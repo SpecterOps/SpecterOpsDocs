@@ -1,0 +1,91 @@
+---
+title: 'RDPsettings'
+description: 'Remote Desktop Server/Client Settings'
+icon: 'gear'
+---
+
+## Overview
+
+The RDPsettings command enumerates Remote Desktop Protocol (RDP) configuration settings for both server and client. This includes security settings, encryption levels, authentication requirements, and client connection settings that affect RDP security posture.
+
+## Syntax
+
+```bash
+Seatbelt.exe RDPsettings
+```
+
+### Remote Execution
+```bash
+Seatbelt.exe RDPsettings -computername=TARGET.domain.com [-username=DOMAIN\user -password=pass]
+```
+
+## Output
+
+Returns RDP configuration:
+- RDP enabled/disabled status
+- Network Level Authentication (NLA) settings
+- Encryption level
+- Security layer
+- Port configuration
+- Client connection settings
+- Saved RDP credentials
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Determine if RDP is accessible
+    - Check NLA requirements
+    - Identify weak encryption settings
+    - Discover custom RDP ports
+    - Assess RDP attack surface
+  </Tab>
+  <Tab title="Blue Team">
+    - Audit RDP security configuration
+    - Verify NLA is enforced
+    - Ensure strong encryption levels
+    - Validate port configurations
+    - Detect RDP security weaknesses
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== RDPsettings ======
+
+RDP Server Settings:
+  RDP Enabled                  : True
+  Port                         : 3389
+  SecurityLayer                : 2 (Negotiate)
+  UserAuthentication (NLA)     : 1 (Required)
+  MinEncryptionLevel           : 3 (High - 128-bit)
+  NetworkLevelAuthentication   : Enabled
+
+RDP Client Settings:
+  RestrictedAdmin              : 1 (Enabled)
+  DisablePasswordSaving        : 0 (Disabled)
+
+Firewall Rules:
+  RDP-UserMode-In-TCP          : Enabled
+  RDP-UserMode-In-UDP          : Enabled
+```
+
+## Remote Execution
+
+<Check>
+This command **supports remote execution** using the `-computername` parameter.
+</Check>
+
+## Detection Considerations
+
+<Info>
+Low detection risk - reads RDP registry configuration.
+</Info>
+
+## Related Commands
+
+- [RDPSessions](/commands/rdpsessions) - Active RDP sessions
+- [WindowsFirewall](/commands/windowsfirewall) - Firewall rules
+- [NetworkProfiles](/commands/networkprofiles) - Network profiles
+- [TcpConnections](/commands/tcpconnections) - Active TCP connections

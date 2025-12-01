@@ -1,0 +1,271 @@
+---
+title: 'get collection-variables'
+description: 'Extract collection variable credentials'
+icon: 'folder-lock'
+sidebarTitle: 'get collection-variables'
+---
+
+## Overview
+
+Extract collection variable credentials from SCCM policies. Collection variables are key-value pairs assigned to device or user collections that often contain sensitive credentials used for application deployment and system configuration.
+
+<Warning>
+  Collection variables frequently contain service account passwords, application credentials, and other sensitive information used for automated deployments.
+</Warning>
+
+## Syntax
+
+```bash
+SharpSCCM get collection-variables [options]
+```
+
+## Parameters
+
+<ParamField path="management-point" type="string">
+  Management point server address
+</ParamField>
+
+<ParamField path="site-code" type="string">
+  The three-character site code (e.g., "PS1")
+</ParamField>
+
+<ParamField path="collection-id" type="string">
+  Specific collection ID to target (e.g., "PS100001")
+</ParamField>
+
+<ParamField path="collection-name" type="string">
+  Collection name pattern for filtering
+</ParamField>
+
+<ParamField path="client-id" type="string">
+  SMS client GUID for authentication
+</ParamField>
+
+<ParamField path="certificate" type="string">
+  Base64 certificate blob for client authentication
+</ParamField>
+
+<ParamField path="output-file" type="string">
+  Save extracted variables to file
+</ParamField>
+
+## Examples
+
+<CodeGroup>
+```bash Basic Usage
+# Extract all collection variables
+SharpSCCM get collection-variables -mp SCCM01.corp.local -sc PS1
+
+# Target specific collection
+SharpSCCM get collection-variables -i PS100001 -mp SCCM01.corp.local -sc PS1
+```
+
+```bash Collection Targeting
+# Filter by collection name
+SharpSCCM get collection-variables -n "Database" -mp SCCM01.corp.local -sc PS1
+
+# Target application collections
+SharpSCCM get collection-variables -n "App" -mp SCCM01.corp.local -sc PS1
+```
+
+```bash Output Management
+# Save to file for analysis
+SharpSCCM get collection-variables -o variables.txt -mp SCCM01.corp.local -sc PS1
+```
+</CodeGroup>
+
+## Required Permissions
+
+<Info>
+  **Local Administrator** on SCCM client OR **Computer account credentials** OR **Valid SCCM client certificate**
+</Info>
+
+## Collection Variables Overview
+
+<Accordion title="Variable Types">
+  **Application Credentials:**
+  - Database connection strings
+  - Service account passwords
+  - API keys and tokens
+  - Application-specific secrets
+
+  **Infrastructure Credentials:**
+  - Domain join accounts
+  - Service installation accounts
+  - Administrative passwords
+  - Network access credentials
+
+  **Configuration Data:**
+  - Server names and endpoints
+  - Network configuration
+  - Application settings
+  - Environment-specific data
+</Accordion>
+
+<Accordion title="Security Context">
+  **Variable Scope:**
+  - Device collections: System-level access
+  - User collections: User-level access
+  - Mixed collections: Variable context dependent
+
+  **Credential Exposure:**
+  - Variables visible to collection members
+  - Plaintext storage in policies
+  - Network transmission exposure
+</Accordion>
+
+## Extraction Process
+
+<Accordion title="Policy Request Method">
+  **Authentication Options:**
+  1. **Local Client Certificate** - Use existing SCCM client
+  2. **Device Registration** - Register new device identity
+  3. **Certificate Impersonation** - Use provided certificate
+
+  **Variable Discovery:**
+  1. Request machine policies from management point
+  2. Parse policy XML for collection variable definitions
+  3. Extract variable names and values
+  4. Decrypt any encrypted values
+</Accordion>
+
+<Accordion title="Collection Targeting">
+  **Broad Discovery:**
+  - Request policies for multiple collections
+  - Enumerate all accessible variables
+  - Map variable distribution patterns
+
+  **Targeted Extraction:**
+  - Focus on specific high-value collections
+  - Target application-specific collections
+  - Concentrate on administrative collections
+</Accordion>
+
+## Variable Intelligence
+
+<Accordion title="High-Value Variables">
+  **Database Credentials:**
+  ```text
+  DBPassword, SqlPassword, DatabaseUser
+  ConnString, ConnectionString
+  ```
+
+  **Service Account Credentials:**
+  ```text
+  ServicePassword, SvcPassword, AccountPassword
+  ServiceUser, SvcAccount, RunAsAccount
+  ```
+
+  **Application Secrets:**
+  ```text
+  APIKey, Token, Secret, Key
+  Password, Pass, Credential, Cred
+  ```
+</Accordion>
+
+<Accordion title="Common Naming Patterns">
+  **Password Variables:**
+  - Password, Pass, Pwd
+  - Secret, Key, Token
+  - Credential, Cred, Auth
+
+  **Account Variables:**
+  - User, Username, Account
+  - ServiceAccount, SvcUser
+  - RunAs, ExecuteAs, Identity
+
+  **Connection Variables:**
+  - ConnectionString, ConnString
+  - Server, Host, Endpoint
+  - URL, URI, Address
+</Accordion>
+
+## Output Format
+
+Extracted variables are displayed with collection context:
+
+```text
+[+] Collection: Application Servers (PS100001)
+    Variable: DBPassword
+    Value: P@ssw0rd123!
+
+    Variable: ServiceAccount
+    Value: DOMAIN\svc_app
+
+[+] Collection: Web Servers (PS100002)
+    Variable: APIKey
+    Value: abc123def456ghi789
+```
+
+## Attack Opportunities
+
+<Accordion title="Credential Reuse">
+  **Lateral Movement:**
+  - Use extracted credentials on target systems
+  - Test credentials across multiple systems
+  - Exploit password reuse patterns
+
+  **Service Account Abuse:**
+  - Identify service account credentials
+  - Map service account usage patterns
+  - Exploit service account privileges
+</Accordion>
+
+<Accordion title="Application Targeting">
+  **Database Access:**
+  - Use database credentials for direct access
+  - Bypass application security controls
+  - Access sensitive data repositories
+
+  **API and Service Access:**
+  - Leverage API keys and tokens
+  - Access web services and APIs
+  - Exploit service authentication
+</Accordion>
+
+## Operational Security
+
+<Accordion title="Stealth Considerations">
+  **Policy Requests:**
+  - Policy requests may be logged
+  - Avoid unusual request patterns
+  - Use legitimate client identities
+
+  **Variable Access:**
+  - Collection membership affects access
+  - Target appropriate collections
+  - Avoid excessive enumeration
+</Accordion>
+
+## Common Use Cases
+
+<Accordion title="Credential Harvesting">
+  **Application Deployment Credentials:**
+  - Service account passwords for application installation
+  - Database credentials for application configuration
+  - API keys and tokens for service integration
+
+  **Infrastructure Credentials:**
+  - Domain join account credentials
+  - Administrative account passwords
+  - Network service credentials
+</Accordion>
+
+<Accordion title="Environment Mapping">
+  **Infrastructure Discovery:**
+  - Server names and network locations
+  - Service endpoints and URLs
+  - Configuration and connection details
+
+  **Application Architecture:**
+  - Database server locations
+  - Service dependencies
+  - Integration points and APIs
+</Accordion>
+
+## Related Commands
+
+- [`get collections`](/commands/get/collections) - Identify collections with variables
+- [`get collection-members`](/commands/get/collection-members) - Understand variable scope
+- [`get secrets`](/commands/creds/get-secrets) - Comprehensive credential extraction
+- [`local secrets`](/commands/local/secrets) - Local credential extraction

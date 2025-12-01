@@ -1,0 +1,566 @@
+---
+title: 'Usage Guide'
+description: 'Operational guide for conducting Browser-in-the-Middle attacks with CuddlePhish'
+icon: 'book'
+---
+
+<Warning>
+  **Authorization Required**: Only use CuddlePhish during authorized penetration tests and red team engagements with explicit written permission. Unauthorized use is illegal.
+</Warning>
+
+## Operational Overview
+
+A typical CuddlePhish operation follows this workflow:
+
+<Steps>
+  <Step title="Deploy Infrastructure">
+    Deploy CuddlePhish server on a VPS with configured domain and TLS certificates
+  </Step>
+
+  <Step title="Craft Phishing Campaign">
+    Prepare phishing emails or messages with links to your CuddlePhish domain
+  </Step>
+
+  <Step title="Monitor Admin Interface">
+    Keep the admin interface open to monitor incoming victims and their sessions
+  </Step>
+
+  <Step title="Wait for Victim Authentication">
+    Allow victims to authenticate normally while monitoring keylogsbrowser activity
+  </Step>
+
+  <Step title="Extract Credentials">
+    Use admin controls to extract cookies, localStorage, or take control of authenticated sessions
+  </Step>
+
+  <Step title="Replay Sessions">
+    Use extracted credentials with stealer.js or the browser extension to access target systems
+  </Step>
+</Steps>
+
+## Starting a Campaign
+
+### 1. Launch the Server
+
+Start CuddlePhish with your target service identifier:
+
+```bash
+node index.js servicename
+```
+
+Replace `servicename` with the key from your `targets.json` (e.g., "example" for example.com).
+
+### 2. Verify Server Status
+
+Confirm the server started successfully by checking for:
+- Initial browser instance connection message in console
+- Admin interface accessibility at https://yourdomain.com/admin
+- Victim interface loading at https://yourdomain.com/
+
+### 3. Prepare Phishing Content
+
+Craft phishing communications that direct targets to your CuddlePhish domain. Consider:
+
+**Email Phishing:**
+- Use urgent or compelling pretext relevant to target service
+- Include direct link to your phishing domain
+- Consider adding tracking parameters for campaign metrics
+
+**SMS Phishing:**
+- Use shortened URLs if needed (ensure they resolve to your domain)
+- Create urgency to encourage immediate action
+
+**Social Engineering:**
+- Prepare pretext that justifies directing victim to authentication page
+- Consider help desk impersonation scenarios
+
+## Monitoring Victims
+
+### Admin Interface Overview
+
+Access the admin interface from a whitelisted IP:
+
+```
+https://yourdomain.com/admin
+```
+
+The interface displays active browser sessions with:
+- **Video Thumbnail**: Live preview of the browser instance
+- **Browser ID**: Unique identifier for the session
+- **Keylog**: Real-time display of victim keystrokes
+- **Action Buttons**: Controls for managing the session
+
+### Reading Session Information
+
+Each browser tile in the admin interface provides:
+
+**Visual Information:**
+- Thumbnail updates every 2 seconds showing current browser state
+- See exactly what the victim sees and what page they're on
+
+**Keylog Display:**
+- Real-time keystrokes with basic processing (backspaces handled)
+- Useful for monitoring entered credentials before extraction
+- Full raw keylog saved to `user_data/[browser_id]/keylog.txt`
+
+**Browser ID:**
+- Unique random identifier for each session
+- Used to track user_data directories
+- Required for credential extraction file naming
+
+### Session Lifecycle
+
+**New Victim Connection:**
+1. Victim navigates to phishing domain
+2. Server pairs victim with available "empty phishbowl" browser
+3. WebRTC connection negotiates between victim and browser
+4. Video stream establishes and victim sees target login page
+5. New empty phishbowl spawns for next victim
+6. Admin interface displays new session thumbnail
+
+**Active Session:**
+- Victim controls browser through mouse and keyboard inputs
+- Server logs all keystrokes to memory and disk
+- Admin can monitor in real-time without interfering
+
+**Session Termination:**
+- Victim closes browser tab: WebRTC disconnects but browser instance remains
+- Admin removes instance: Browser and Xvfb process terminate completely
+- Session timeout: Browser remains active until explicitly removed
+
+## Admin Controls
+
+### Boot User
+
+**Purpose**: Redirect the victim's browser to the real target login page
+
+**Use Cases:**
+- Victim successfully authenticated and you want to extract session
+- Need to take control without victim observing your actions
+- Want to give appearance of "forced re-authentication"
+
+**How It Works:**
+- Sends `window.location` change via WebSocket to victim's browser
+- Redirects to the `boot_location` specified in targets.json
+- Victim sees what appears to be normal authentication challenge
+- Attacker retains control of authenticated browser instance
+
+**Usage:**
+```
+Click "Boot User" button on target session
+```
+
+**Example Scenario:**
+1. Victim successfully authenticates to Office 365
+2. Click "Boot User" to redirect victim to real Office 365 login
+3. Take control of authenticated browser to access mailbox
+4. Extract cookies for persistent access
+
+### Take Control
+
+**Purpose**: Directly control a browser instance from the admin interface
+
+**Use Cases:**
+- Navigate authenticated session to access sensitive data
+- Complete additional authentication steps victim couldn't complete
+- Extract specific information from authenticated session
+
+**How It Works:**
+- Establishes WebRTC stream from browser to admin interface
+- Resizes browser window to match admin viewport
+- Admin mouse and keyboard inputs control the browser
+- Victim loses control (if still connected, they can watch)
+
+**Usage:**
+```
+Click "Take Control" button on target session
+Press ESC key to release control
+```
+
+<Warning>
+  **Operational Security**: If the victim is still connected, they will see your mouse movements and actions when you take control. Use "Boot User" first to prevent victim observation.
+</Warning>
+
+**Example Scenario:**
+1. Victim authenticates but doesn't navigate to desired resource
+2. Boot user to remove their observation
+3. Take control to navigate to mailbox, documents, or admin panel
+4. Extract information or establish persistence
+5. Press ESC to release control
+
+### Give Back Control
+
+**Purpose**: Return control of browser instance to the victim
+
+**Use Cases:**
+- Simulating IT help desk remote support scenarios
+- Allowing victim to complete authentication after initial setup
+- Social engineering scenarios requiring victim participation
+
+**How It Works:**
+- Transfers controller_socket back to victim's socket ID
+- Resizes browser back to victim's original viewport dimensions
+- Victim regains full control of mouse and keyboard
+
+**Usage:**
+```
+Click "Other" dropdown → "Give Back Control"
+```
+
+**Example Social Engineering Scenario:**
+1. Pose as IT help desk responding to "account lockout"
+2. Take control to "verify account settings"
+3. Give back control and instruct victim to enter credentials
+4. Victim authenticates while believing IT is helping
+5. Extract credentials after successful authentication
+
+### Send Payload
+
+**Purpose**: Trigger download of arbitrary file to victim's system
+
+**Use Cases:**
+- Delivering secondary payloads for code execution
+- Testing client-side security controls
+- Establishing additional persistence mechanisms
+
+**How It Works:**
+- Uses FileSaver.js to trigger browser download via JavaScript
+- Payload file specified in targets.json (default: payload.txt)
+- Executes in victim's browser context
+
+**Usage:**
+```
+Click "Other" dropdown → "Send Payload"
+```
+
+**Configuration:**
+Edit targets.json to change payload:
+```json
+{
+  "example": {
+    "payload": "path/to/your/payload.exe"
+  }
+}
+```
+
+**Example Scenario:**
+1. Victim authenticates successfully
+2. Send payload to deliver custom implant or tool
+3. Use social engineering to encourage victim to execute payload
+
+<Info>
+  **Default Payload**: The default `payload.txt` is a test file. Replace with actual payloads as needed for your assessment.
+</Info>
+
+### Steal Cookies
+
+**Purpose**: Extract all cookies and localStorage from the browser instance
+
+**Use Cases:**
+- Capture session tokens for replay attacks
+- Extract persistent authentication credentials
+- Archive session state for later analysis
+
+**How It Works:**
+- Uses Chrome DevTools Protocol `Storage.getCookies` command
+- Extracts all cookies for the current origin
+- Retrieves localStorage key-value pairs via `DOMStorage.getDOMStorageItems`
+- Downloads JSON file: `cuddle_[browser_id].json`
+
+**Usage:**
+```
+Click "Other" dropdown → "Steal Cookies"
+Browser automatically downloads JSON file
+```
+
+**Output Format:**
+```json
+{
+  "url": "https://accounts.example.com/authenticated",
+  "cookies": [
+    {
+      "name": "session_token",
+      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+      "domain": ".example.com",
+      "path": "/",
+      "expires": 1735689600,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "Lax"
+    }
+  ],
+  "local_storage": [
+    ["user_preferences", "{\"theme\":\"dark\"}"],
+    ["auth_token", "Bearer abc123..."]
+  ]
+}
+```
+
+**Example Scenario:**
+1. Victim authenticates to cloud application
+2. Monitor keylog and wait for successful login indicators
+3. Click "Steal Cookies" to extract session
+4. Use stealer.js to replay session on your local browser
+
+### Remove Instance
+
+**Purpose**: Terminate a browser instance and clean up resources
+
+**Use Cases:**
+- Victim failed to complete authentication
+- WebRTC connection failed and session is unusable
+- Session timed out and is no longer needed
+- Cleaning up after successful credential extraction
+
+**How It Works:**
+- Stops Xvfb process for the browser
+- Closes Puppeteer browser instance
+- Closes keylog file handle
+- Removes browser from active sessions array
+- Does NOT delete user_data directory (preserved for forensics)
+
+**Usage:**
+```
+Click "Delete Session" button
+```
+
+**Example Scenario:**
+1. Victim connects but doesn't attempt authentication
+2. Remove instance to free resources
+3. New victim can use a fresh browser instance
+
+## Credential Replay
+
+After extracting credentials using "Steal Cookies", replay the session using one of three methods:
+
+### Method 1: stealer.js Script
+
+The stealer.js script injects cookies and localStorage into a local Puppeteer browser.
+
+**Usage:**
+```bash
+node stealer.js ~/Downloads/cuddle_abc123.json
+```
+
+**Optional Proxy:**
+```bash
+node stealer.js http://proxy:8080 ~/Downloads/cuddle_abc123.json
+```
+
+**What It Does:**
+1. Launches Puppeteer browser with stealth plugins
+2. Opens new page and disables JavaScript temporarily
+3. Navigates to target URL
+4. Injects localStorage items
+5. Re-enables JavaScript and injects cookies
+6. Reloads page to activate session
+7. Leaves browser open for manual interaction
+
+**Browser remains open with:**
+- Remote debugging enabled on port 9223
+- All cookies and localStorage injected
+- Session authenticated and ready to use
+
+### Method 2: Browser Extension
+
+The included Chrome extension provides a GUI for cookie injection.
+
+**Installation:**
+1. Open Chrome and navigate to `chrome://extensions/`
+2. Enable "Developer mode"
+3. Click "Load unpacked"
+4. Select the `stealerjs_extension` directory
+
+**Extracting Credentials:**
+1. Navigate to target website
+2. Click extension icon
+3. Click "Get All Storage Data"
+4. Extension downloads JSON file with cookies and localStorage
+
+**Injecting Credentials:**
+1. Open new tab to target domain
+2. Click extension icon
+3. Click "Choose File" and select saved JSON
+4. Click "Set Storage Data"
+5. Refresh page to activate session
+
+### Method 3: smooth_criminal.js Remote Connection
+
+Connect to a running browser instance via Chrome DevTools Protocol.
+
+**Usage:**
+```bash
+node smooth_criminal.js http://target-server:9223 https://target-url.com
+```
+
+**What It Does:**
+1. Connects to remote browser via CDP
+2. Opens new page to target URL
+3. Extracts all cookies and localStorage
+4. Saves to `data.json`
+5. Disconnects from browser
+
+**Use Cases:**
+- Extracting credentials from browsers running on remote systems
+- Accessing browser instances with remote debugging enabled
+- Alternative extraction when stealer.js WebSocket extraction fails
+
+## Best Practices
+
+### Operational Security
+
+**Pre-Operation:**
+- Verify admin IP whitelist is correctly configured
+- Test STUN/TURN connectivity from target network locations
+- Confirm reverse proxy and TLS certificates are working
+- Test victim interface from external network
+
+**During Operation:**
+- Monitor server logs for errors or unexpected behavior
+- Watch for WebRTC connection failures (blank pages for victims)
+- Keep track of which browser IDs correspond to which targets
+- Boot users before taking control to avoid detection
+
+**Post-Operation:**
+- Remove all browser instances
+- Archive user_data directories if needed for reporting
+- Clean up user_data directories when no longer needed
+- Document extracted credentials and their usage
+
+### Resource Management
+
+**Browser Instance Limits:**
+- Each browser consumes significant memory (500MB-1GB per instance)
+- Monitor server memory usage during campaigns
+- Remove unused instances promptly
+- Consider server sizing based on expected concurrent victims
+
+**Data Retention:**
+- Keylogs stored in `user_data/[browser_id]/keylog.txt`
+- Browser profiles persist in `user_data/[browser_id]/`
+- Manually clean up directories after operations complete
+- Consider automated cleanup scripts for large campaigns
+
+### Social Engineering Tips
+
+**Effective Pretexts:**
+- Account security verification
+- Multi-factor authentication enrollment
+- Password expiration requiring re-authentication
+- IT help desk support session
+- Suspicious activity requiring account confirmation
+
+**Timing Considerations:**
+- Business hours have higher success rates
+- Avoid Friday afternoons and Monday mornings
+- Consider target organization's timezone
+- Plan for peak activity periods
+
+## Troubleshooting During Operations
+
+### Victim Sees Blank Page
+
+**Immediate Checks:**
+1. View browser console for JavaScript errors
+2. Verify WebRTC connection status
+3. Check server logs for connection errors
+4. Test STUN server accessibility
+
+**Common Causes:**
+- Special characters in tab_title breaking screen capture
+- Tab title changed after navigation (redirects)
+- STUN server unreachable
+- Symmetric NAT blocking WebRTC
+- Browser instance crashed
+
+**Quick Fixes:**
+- Remove instance and let victim reconnect
+- Verify tab_title in targets.json matches actual page title
+- Switch to TURN server if STUN is failing
+
+### Session Not Appearing in Admin Interface
+
+**Possible Causes:**
+- Admin IP not in whitelist
+- Socket key mismatch
+- Browser instance failed to spawn
+- WebSocket connection failed
+
+**Verification:**
+```bash
+# Check server logs for connection messages
+tail -f /path/to/server/output
+
+# Verify admin IP
+curl https://ifconfig.me
+```
+
+### Keylog Not Updating
+
+**Possible Causes:**
+- Victim is not typing (watching only)
+- Browser lost focus
+- JavaScript error in input forwarding
+
+**Verification:**
+- Check if video thumbnail is updating
+- Look for socket disconnection messages
+- Verify victim hasn't closed browser tab
+
+## Logging and Reporting
+
+### Console Logs
+
+The server provides real-time logging output:
+
+```
+Socket connected! abc123xyz
+client_ip: 203.0.113.45
+video_stream_offer
+viewer_id: def456uvw
+offer: v=0\r\no=- ...
+```
+
+**Key Messages:**
+- `Socket connected`: Browser or victim connected via WebSocket
+- `client_ip`: New victim connection with IP address
+- `video_stream_offer/answer`: WebRTC negotiation progress
+- `candidate`: ICE candidate exchange for NAT traversal
+
+### Keylog Files
+
+Raw keystroke logs saved per session:
+
+```
+user_data/[browser_id]/keylog.txt
+```
+
+Contains all keystrokes including:
+- Individual characters
+- Special keys (Backspace, Enter, Tab, Shift)
+- No backspace processing (raw input)
+
+### Browser User Data
+
+Each session's browser profile preserved in:
+
+```
+user_data/[browser_id]/
+```
+
+Contains:
+- Browser preferences
+- Cache and cookies (before extraction)
+- Keylog file
+- Browser history
+
+Useful for:
+- Post-operation analysis
+- Services with "remember this browser" features
+- Forensic review of session activity
+
+## Next Steps
+
+- Review [Admin Features](/cuddlephish-docs/admin-features) for detailed control descriptions
+- Learn about [Credential Extraction](/cuddlephish-docs/credential-extraction) methods
+- See [Troubleshooting](/cuddlephish-docs/troubleshooting) for common issues

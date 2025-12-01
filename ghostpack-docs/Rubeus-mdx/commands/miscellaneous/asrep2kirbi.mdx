@@ -1,0 +1,158 @@
+---
+title: 'asrep2kirbi'
+description: 'Convert AS-REP response to .kirbi ticket format'
+icon: 'arrows-turn-right'
+sidebarTitle: 'asrep2kirbi'
+---
+
+## Overview
+
+Convert AS-REP (Authentication Server Reply) responses to .kirbi ticket format. This utility command processes AS-REP data extracted from network captures or other sources into usable Kerberos ticket files.
+
+## Syntax
+
+```bash
+Rubeus.exe asrep2kirbi /asrep:ASREP_DATA [options]
+```
+
+## Required Parameters
+
+<ParamField path="asrep" type="string" required>
+  Base64-encoded AS-REP response data
+</ParamField>
+
+## Optional Parameters
+
+<ParamField path="outfile" type="string">
+  Save converted ticket to file
+</ParamField>
+
+<ParamField path="ptt" type="boolean">
+  Pass-the-ticket (inject converted ticket)
+</ParamField>
+
+## Examples
+
+<CodeGroup>
+```bash Basic Conversion
+# Convert AS-REP to kirbi format
+Rubeus.exe asrep2kirbi /asrep:base64_asrep_data
+
+# Convert and save to file
+Rubeus.exe asrep2kirbi /asrep:asrep_data /outfile:converted.kirbi
+
+# Convert and inject immediately
+Rubeus.exe asrep2kirbi /asrep:asrep_data /ptt
+```
+</CodeGroup>
+
+## AS-REP Data Sources
+
+<Accordion title="Data Acquisition">
+  **Network Captures:**
+  - Wireshark/tcpdump packet captures
+  - AS-REP responses from KDC communications
+  - Extracted from authentication exchanges
+  - Base64-encoded packet data
+
+  **Memory Dumps:**
+  - Process memory containing AS-REP responses
+  - Cached authentication data
+  - LSA memory structures
+  - Application memory buffers
+
+  **Log Analysis:**
+  - Authentication logs with embedded data
+  - Debug logs from Kerberos implementations
+  - Application logs with authentication details
+  - Security event log analysis
+</Accordion>
+
+## Use Cases
+
+<Accordion title="Ticket Recovery">
+  **Data Conversion:**
+  - Convert captured AS-REP data to usable tickets
+  - Process authentication data from various sources
+  - Create .kirbi files from raw Kerberos data
+  - Enable ticket analysis and manipulation
+
+  **Forensic Analysis:**
+  - Analyze captured authentication exchanges
+  - Reconstruct ticket data from fragments
+  - Process historical authentication data
+  - Support incident response activities
+</Accordion>
+
+## Integration Workflows
+
+<Accordion title="Capture and Conversion">
+  **Complete Workflow:**
+  ```bash
+  # 1. Capture AS-REP from network traffic
+  # Use Wireshark, tcpdump, or other packet capture tools
+
+  # 2. Extract AS-REP data as base64
+  # Process packet capture to extract AS-REP portion
+
+  # 3. Convert to .kirbi format
+  Rubeus.exe asrep2kirbi /asrep:captured_asrep_data /outfile:recovered.kirbi
+
+  # 4. Use recovered ticket
+  Rubeus.exe ptt /ticket:recovered.kirbi
+  ```
+</Accordion>
+
+<Accordion title="Memory Analysis">
+  **Memory-Based Recovery:**
+  ```bash
+  # 1. Extract AS-REP data from memory dumps
+  # Use memory analysis tools to locate AS-REP structures
+
+  # 2. Convert extracted data
+  Rubeus.exe asrep2kirbi /asrep:memory_extracted_data
+
+  # 3. Analyze converted ticket
+  Rubeus.exe describe /ticket:converted.kirbi
+  ```
+</Accordion>
+
+## Technical Considerations
+
+<Accordion title="AS-REP Structure">
+  **Response Components:**
+  - KDC certificate information
+  - Encrypted TGT data
+  - Session key information
+  - Client and server principal names
+  - Ticket validity periods
+
+  **Conversion Process:**
+  - Parse AS-REP ASN.1 structure
+  - Extract TGT components
+  - Reconstruct .kirbi format
+  - Maintain ticket integrity
+</Accordion>
+
+## Data Validation
+
+<Accordion title="Quality Assurance">
+  **Verification Steps:**
+  - Validate AS-REP structure integrity
+  - Check encryption and encoding
+  - Verify ticket component completeness
+  - Test converted ticket functionality
+
+  **Error Handling:**
+  - Malformed AS-REP data
+  - Incomplete packet captures
+  - Encoding issues
+  - Structural corruption
+</Accordion>
+
+## Related Commands
+
+- [`asreproast`](/commands/roasting/asreproast) - Generate AS-REP data for conversion
+- [`describe`](/commands/management/describe) - Analyze converted tickets
+- [`ptt`](/commands/management/ptt) - Use converted tickets
+- [`kirbi`](/commands/miscellaneous/kirbi) - Alternative ticket format operations

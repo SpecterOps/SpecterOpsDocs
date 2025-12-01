@@ -1,0 +1,153 @@
+---
+title: 'WindowsEventForwarding'
+description: 'Windows Event Forwarding (WEF) settings via the registry'
+icon: 'paper-plane'
+---
+
+## Overview
+
+The WindowsEventForwarding command enumerates Windows Event Forwarding (WEF) configuration from the registry. WEF allows centralized collection of event logs from multiple systems to a collector server. Understanding WEF configuration reveals what events are being forwarded and to where, indicating the organization's logging and monitoring posture.
+
+## Syntax
+
+```bash
+Seatbelt.exe WindowsEventForwarding
+```
+
+### Remote Execution
+```bash
+Seatbelt.exe WindowsEventForwarding -computername=TARGET.domain.com [-username=DOMAIN\user -password=pass]
+```
+
+## Output
+
+Returns WEF configuration:
+- WEF enabled/disabled status
+- Subscription configurations
+- Collector server addresses
+- Event log sources being forwarded
+- Subscription status
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Determine if logs are centrally collected
+    - Identify collector servers (potential high-value targets)
+    - Understand monitoring visibility
+    - Assess detection capabilities
+    - Plan operations to minimize logged events
+  </Tab>
+  <Tab title="Blue Team">
+    - Verify WEF deployment
+    - Audit log forwarding configuration
+    - Ensure critical events are being collected
+    - Validate collector connectivity
+    - Detect WEF tampering or misconfiguration
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== WindowsEventForwarding ======
+
+[*] Windows Event Forwarding Configuration:
+
+Server                    : wef-collector.corp.local
+SubscriptionEnabled       : True
+
+Active Subscriptions:
+
+Subscription Name         : Security Events
+Description              : Forward critical security events
+Enabled                  : True
+ConfigurationMode        : Custom
+URI                      : http://wef-collector.corp.local:5985/wsman
+MaxItems                 : 5
+MaxLatencyTime           : 1000
+Query                    : <QueryList><Query Id="0"><Select Path="Security">*[System[(EventID=4624 or EventID=4625 or EventID=4648)]]</Select></Query></QueryList>
+
+Subscription Name         : PowerShell Events
+Description              : Forward PowerShell script block logging
+Enabled                  : True
+ConfigurationMode        : Custom
+URI                      : http://wef-collector.corp.local:5985/wsman
+Query                    : <QueryList><Query Id="0"><Select Path="Microsoft-Windows-PowerShell/Operational">*[System[(EventID=4104)]]</Select></Query></QueryList>
+```
+
+Example when not configured:
+```
+====== WindowsEventForwarding ======
+
+[*] Windows Event Forwarding is NOT configured
+[*] No active subscriptions found
+```
+
+## Remote Execution
+
+<Check>
+This command **supports remote execution** using the `-computername` parameter.
+</Check>
+
+## Detection Considerations
+
+<Info>
+Low detection risk - reads WEF registry configuration.
+</Info>
+
+- **Registry Access**: Queries `HKLM\SOFTWARE\Policies\Microsoft\Windows\EventLog\EventForwarding`
+- **WMI Activity**: Remote execution generates WMI events
+- **Event Logs**: Registry access may be logged if auditing enabled
+
+### WEF Architecture Understanding
+
+<Accordion title="Windows Event Forwarding Components">
+**Source Computer (Event Forwarder):**
+- Sends events to collector
+- Configured via subscriptions
+- Uses WinRM protocol (HTTP/HTTPS)
+
+**Collector Server:**
+- Receives forwarded events
+- Aggregates logs centrally
+- Typically SIEM or log server
+
+**Subscription Types:**
+- Source-initiated: Computers contact collector
+- Collector-initiated: Collector pulls from computers
+
+**Common Ports:**
+- HTTP: 5985
+- HTTPS: 5986
+</Accordion>
+
+### Critical Events Often Forwarded
+
+<Accordion title="Common Event IDs in WEF">
+**Security Events:**
+- 4624 - Successful logon
+- 4625 - Failed logon
+- 4648 - Explicit credential logon
+- 4688 - Process creation
+- 4672 - Special privilege assigned
+- 4720 - User account created
+- 4732 - Member added to security group
+
+**PowerShell:**
+- 4104 - Script block logging
+- 4103 - Module logging
+
+**Sysmon:**
+- 1 - Process creation
+- 3 - Network connection
+- 7 - Image loaded
+- 10 - Process access
+</Accordion>
+
+## Related Commands
+
+- [AuditPolicies](/commands/auditpolicies) - Audit policy configuration
+- [Sysmon](/commands/sysmon) - Sysmon configuration
+- [PowerShell](/commands/powershell) - PowerShell logging settings
+- [PSSessionSettings](/commands/pssessionsettings) - WinRM configuration

@@ -1,0 +1,125 @@
+---
+title: 'dir'
+description: 'Lists files/folders. By default, lists users downloads, documents, and desktop folders'
+icon: 'folder-open'
+---
+
+## Overview
+
+The `dir` command lists files and folders on the system. By default, it enumerates files in users' Downloads, Documents, and Desktop folders. This command can be customized with arguments to search specific directories, control recursion depth, apply regex filters, and handle errors.
+
+**Important:** User commands run for the current user if not elevated and for ALL users if elevated.
+
+## Syntax
+
+```
+Seatbelt.exe dir
+Seatbelt.exe "dir [directory] [maxDepth] [regex] [boolIgnoreErrors]"
+```
+
+### Arguments
+
+- **directory**: Target directory path to enumerate (default: Downloads, Documents, Desktop)
+- **maxDepth**: Maximum recursion depth for subdirectories
+- **regex**: Regular expression pattern to filter file names
+- **boolIgnoreErrors**: Boolean to ignore access denied errors (true/false)
+
+## Output
+
+The command returns:
+- File and folder names
+- Full file paths
+- File sizes
+- Creation and modification timestamps
+- File attributes
+- Matching files based on regex pattern (if specified)
+
+## Use Cases
+
+### Red Team
+- **File Discovery**: Locate sensitive documents and data files
+- **Intelligence Gathering**: Find configuration files, scripts, and credentials
+- **User Profiling**: Understand user activities through recent files
+- **Target Identification**: Discover high-value data for exfiltration
+- **Reconnaissance**: Map file system structure and identify interesting directories
+
+### Blue Team
+- **Data Classification**: Inventory sensitive files on user endpoints
+- **Compliance Auditing**: Verify file storage policies
+- **Incident Response**: Quickly enumerate files during investigations
+- **Forensics**: Document file system state during security events
+- **Risk Assessment**: Identify potentially sensitive data on workstations
+
+## Example Output
+
+```
+====== dir ======
+
+User: john.doe
+
+  Downloads
+    C:\Users\john.doe\Downloads\passwords.xlsx
+      Size            : 15,234 bytes
+      Created         : 2024-10-15 09:30:00
+      Modified        : 2024-10-18 14:22:15
+
+    C:\Users\john.doe\Downloads\vpn-config.ovpn
+      Size            : 2,156 bytes
+      Created         : 2024-10-10 11:15:30
+      Modified        : 2024-10-10 11:15:30
+
+  Documents
+    C:\Users\john.doe\Documents\credentials.txt
+      Size            : 456 bytes
+      Created         : 2024-09-20 16:45:10
+      Modified        : 2024-10-19 10:30:22
+```
+
+### Example with Arguments
+
+Search for password-related files in Program Files:
+```
+Seatbelt.exe "dir C:\Temp 3 .*password.* true"
+```
+
+## Privilege Context
+
+- **Non-Elevated**: Lists files in the current user's Downloads, Documents, and Desktop folders
+- **Elevated**: Lists files in ALL users' Downloads, Documents, and Desktop folders, providing comprehensive file enumeration across the system
+
+## Remote Execution
+
+This command does **not** support remote execution (not marked with + in the command list).
+
+## Detection Considerations
+
+### Indicators
+- File system enumeration across user directories
+- Access to multiple user profile folders
+- Pattern-based file searching
+- Recursive directory traversal
+- Access denied errors in logs (if errors not suppressed)
+
+### Defensive Monitoring
+- Monitor file system enumeration by unexpected processes
+- Alert on access to sensitive directories (Downloads, Documents, Desktop)
+- Track processes performing recursive file system traversal
+- Log access denied attempts which may indicate reconnaissance
+- Detect automated file discovery tools
+- Monitor for regex-based file searching patterns
+- Alert on enumeration of multiple user profiles
+
+### Security Recommendations
+- Implement file access auditing on sensitive directories
+- Use honeypot files to detect enumeration attempts
+- Enable detailed file system logging
+- Monitor for unusual file access patterns
+- Implement least privilege access controls
+
+## Related Commands
+
+- **InterestingFiles**: Searches for files matching sensitive patterns
+- **ExplorerMRUs**: Shows recently used files in Explorer
+- **OfficeMRUs**: Lists recently used Office files
+- **FileInfo**: Provides detailed information about specific files
+- **RecycleBin**: Lists recently deleted files

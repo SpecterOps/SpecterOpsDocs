@@ -1,0 +1,83 @@
+---
+title: 'ESC16 - Security Extension Disabled on Certificate Authority'
+description: 'Exploit certificate authorities with disabled SID security extensions affecting all issued certificates'
+icon: 'shield-xmark'
+sidebarTitle: 'ESC16'
+---
+
+ESC16 is a misconfiguration in Active Directory Certificate Services (AD CS), which stems from insecure management of security features. Specifically, if the `szOID_NTDS_CA_SECURITY_EXT` (`1.3.6.1.4.1.311.25.2`) extension (the SID security extension) is on the list of disabled extensions for a certificate authority, the certificate authority will not include a SID security extension in any issued certificates.
+
+## Background
+
+The configuration was first described in 2022 by [Will Schroeder](https://x.com/harmj0y) in [this blogpost](https://posts.specterops.io/certificates-and-pwnage-and-patches-oh-my-8ae0f4304c1d) as a temporary workaround for the interaction between [ESC7](./esc7-vulnerable-certificate-authority-access-control) and [ESC6](./esc6-request-attribute-san-editf-attributesubjectaltname2), but was later tagged `ESC16` by [Oliver Lyak](https://github.com/ly4k).
+
+<Info>
+This vulnerability is identical to that of [ESC9](./esc9-security-extension-disabled-on-certificate-template) but covers all certificates issued by the certificate authority rather than just certificates issued from a specific template.
+</Info>
+
+## Detection
+
+We can search for certificate authorities with these vulnerabilities using the `enum-cas --filter-vulnerable` command from Certify. For more information about the command and its parameters, please refer to the [Command Overview](./1-command-overview) page.
+
+<CodeGroup>
+```bash Command
+Certify.exe enum-cas --hide-admins
+```
+
+```diff Output
+   _____          _   _  __
+  / ____|        | | (_)/ _|
+ | |     ___ _ __| |_ _| |_ _   _
+ | |    / _ \ '__| __| |  _| | | |
+ | |___|  __/ |  | |_| | | | |_| |
+  \_____\___|_|   \__|_|_|  \__, |
+                             __/ |
+                            |___./
+  v2.0.0
+
+[*] Action: Find certificate authorities
+[*] Using the search base 'CN=Configuration,DC=corp,DC=local'
+[*] Classifying vulnerabilities in the context of built-in low-privileged domain groups.
+
+[*] Root CAs
+
+    ...
+
+[*] NTAuthCertificates - Certificates that enable authentication:
+
+    ...
+
+[*] Enterprise/enrollment certificate authorities:
+
+    Enterprise CA Name            : CORP-CA01-CA
+    DNS Hostname                  : ca01.corp.local
+    FullName                      : ca01.corp.local\CORP-CA01-CA
+    Flags                         : SUPPORTS_NT_AUTHENTICATION, CA_SERVERTYPE_ADVANCED
+    Cert SubjectName              : CN=CORP-CA01-CA, DC=corp, DC=local
+    Cert Thumbprint               : CFBDC6826AC074EF86BE7774F959A2FF5F322DDC
+    Cert Serial                   : 12D3E574A63DE7854A9E5A1F4CD56490
+    Cert Start Date               : 21/05/2025 12.13.47
+    Cert End Date                 : 21/05/2030 12.23.46
+    Cert Chain                    : CN=CORP-CA01-CA,DC=corp,DC=local
+    User Specifies SAN            : Disabled
+    RPC Request Encryption        : Enabled
++   Disabled Extensions           : <unknown> (1.3.6.1.4.1.311.25.2)
+    Vulnerabilities
++     ESC16                       : The CA has disabled the security extension.
+    CA Permissions
+      Owner: BUILTIN\Administrators             S-1-5-32-544
+
+      Access Rights                                     Principal
+      Allow  Enroll                                     NT AUTHORITY\Authenticated Users   S-1-5-11
+    Enrollment Agent Restrictions : None
+
+    Enabled Certificate Templates:
+        ...
+
+Certify completed in 00:00:00.5293547
+```
+</CodeGroup>
+
+<Info>
+For exploitation techniques related to ESC16, refer to the attack methods described in [ESC9](./esc9-security-extension-disabled-on-certificate-template) and [ESC6](./esc6-request-attribute-san-editf-attributesubjectaltname2), as ESC16 enables these same attack vectors but affects all certificates issued by the CA.
+</Info>

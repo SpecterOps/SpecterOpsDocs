@@ -1,0 +1,22 @@
+---
+title: "Actions"
+---
+
+
+## What are actions?
+
+Actions are what indicate to Mythic what kind of message you're sending. There's `staging_rsa` (for doing EKE staging), `checkin` for going from payload -> callback, `post_response` for exclusively sending output about tasks, and `get_tasking` which allows you to get tasks as well as sending output about tasks.
+
+* [Action: checkin](/Mythic_docs/customizing/payload-type-development/create_tasking/agent-side-coding/initial-checkin) - Initial checkin messages and key exchanges
+
+* [Action: get\_tasking](/Mythic_docs/customizing/payload-type-development/create_tasking/agent-side-coding/action_get_tasking) - Sending response data for tasks, socks, rpfwd, delegates, but ALSO getting new tasks.
+
+* [Action: post\_response](/Mythic_docs/customizing/payload-type-development/create_tasking/agent-side-coding/action-post_response) - Sending response data for tasks, socks, rpfwd, delegates, but NOT getting new tasks.
+
+<Note>
+    The main difference between `get_tasking` and `post_response` is just that you can get new tasks from `get_tasking`. Otherwise, everything you can send / get as part of a `post_response` message _also_ applies to `get_tasking` messages.
+</Note>
+
+<Info>
+    All of the features listed in this "Hooking Features" section apply to both `get_tasking` and `post_response` messages because they can both include a `responses` array.
+</Info>

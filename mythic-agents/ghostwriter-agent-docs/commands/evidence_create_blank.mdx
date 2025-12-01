@@ -1,0 +1,34 @@
+---
+title: "evidence_create_blank"
+description: "Create a new blank evidence entry"
+---
+
+## Summary
+
+Create a placeholder evidence entry that can be populated later.
+
+- Needs Admin: False
+- Version: 1-2
+- Author: @its_a_feature_
+
+### Arguments
+
+#### description
+- Description: Description of the evidence
+- Required: True
+
+
+## Usage
+
+```
+evidence_create_blank -description "SQL injection payload output"
+```
+
+## Detailed Summary
+
+Creates a blank evidence entry without an associated file. Useful for:
+- Planning evidence collection
+- Documenting evidence that will be added later
+- Creating placeholders in reports
+
+The evidence entry can be updated later with an actual file using evidence_update.

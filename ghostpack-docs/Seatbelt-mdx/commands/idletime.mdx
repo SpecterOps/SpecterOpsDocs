@@ -1,0 +1,92 @@
+---
+title: 'IdleTime'
+description: 'Returns the number of seconds since the current users last input'
+icon: 'user-clock'
+---
+
+## Overview
+
+The `IdleTime` command returns the number of seconds since the current user's last input (keyboard or mouse activity). This is useful for determining if a user is actively using the system or if the session is idle, which can inform operational security decisions during assessments.
+
+**Important:** User commands run for the current user if not elevated and for ALL users if elevated.
+
+## Syntax
+
+```
+Seatbelt.exe IdleTime
+```
+
+No additional arguments are supported.
+
+## Output
+
+The command returns:
+- Number of seconds since last user input
+- Current timestamp
+- Idle status interpretation (Active/Idle)
+- User session context
+
+## Use Cases
+
+### Red Team
+- **Operational Security**: Determine if a user is actively using the system before executing noisy commands
+- **Timing Attacks**: Choose optimal times for data exfiltration when user is idle
+- **Session Hijacking**: Identify idle sessions for potential takeover
+- **Stealth Operations**: Avoid detection by operating during idle periods
+- **User Behavior**: Understand usage patterns and active hours
+
+### Blue Team
+- **Session Management**: Identify abandoned or idle user sessions
+- **Security Policy**: Enforce automatic logout for idle sessions
+- **Incident Response**: Determine if suspicious activity occurred during active or idle times
+- **Resource Management**: Identify inactive sessions consuming resources
+- **Anomaly Detection**: Flag unusual activity patterns based on idle times
+
+## Example Output
+
+```
+====== IdleTime ======
+
+  User              : CONTOSO\john.doe
+  IdleTime          : 1,245 seconds (20 minutes, 45 seconds)
+  LastInput         : 2024-10-20 10:15:30
+  CurrentTime       : 2024-10-20 10:36:15
+  Status            : Idle
+```
+
+## Privilege Context
+
+- **Non-Elevated**: Returns idle time for the current user session only
+- **Elevated**: May provide idle time information for multiple user sessions on the system
+
+## Remote Execution
+
+This command does **not** support remote execution (not marked with + in the command list).
+
+## Detection Considerations
+
+### Indicators
+- API calls to GetLastInputInfo() or similar functions
+- Querying user session information
+- Reading user input timestamps
+- Accessing session idle state
+
+### Defensive Monitoring
+- Monitor calls to idle time APIs from unexpected processes
+- Alert on repeated idle time checks (reconnaissance pattern)
+- Track processes querying user session activity
+- Log automated tools checking idle status
+- Detect malware timing operations based on idle checks
+
+### Operational Notes
+- Idle time checks are generally low-noise activities
+- Legitimate applications also check idle time (screen savers, power management)
+- Focus on context and frequency of checks
+- Consider correlation with other suspicious activities
+
+## Related Commands
+
+- **LogonSessions**: Shows active logon sessions
+- **RDPSessions**: Lists current RDP sessions
+- **TokenGroups**: Displays current token's groups
+- **ProcessOwners**: Shows process owners which indicates active users

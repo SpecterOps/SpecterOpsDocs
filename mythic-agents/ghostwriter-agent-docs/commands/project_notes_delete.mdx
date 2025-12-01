@@ -1,0 +1,33 @@
+---
+title: "project_notes_delete"
+description: "Delete a project note"
+---
+
+## Summary
+
+Remove a note from the project.
+
+- Needs Admin: False
+- Version: 1-2
+- Author: @its_a_feature_
+
+### Arguments
+
+#### note_id
+- Description: ID of the note to delete
+- Required: True
+
+
+## Usage
+
+```
+project_notes_delete -note_id 7
+```
+
+## Detailed Summary
+
+Permanently deletes a project note.
+
+<Warning>
+This action cannot be undone.
+</Warning>

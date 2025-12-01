@@ -1,0 +1,333 @@
+---
+title: 'Compilation'
+description: 'Build SharpWMI from source code'
+icon: 'hammer'
+---
+
+## Build Requirements
+
+<CardGroup cols={2}>
+  <Card title="Visual Studio" icon="code">
+    Visual Studio 2015 Community Edition or later
+  </Card>
+  <Card title=".NET Framework" icon="microsoft">
+    .NET Framework 3.5 (default target)
+  </Card>
+</CardGroup>
+
+<Note>
+  SharpWMI has been built against .NET Framework 3.5 for maximum compatibility with older Windows systems. You can retarget to .NET 4.0 or later if needed.
+</Note>
+
+## Compilation Steps
+
+<Steps>
+  <Step title="Clone the Repository">
+    ```bash
+    git clone https://github.com/GhostPack/SharpWMI.git
+    cd SharpWMI
+    ```
+  </Step>
+
+  <Step title="Open in Visual Studio">
+    Open the `SharpWMI.sln` solution file in Visual Studio:
+    ```bash
+    start SharpWMI.sln
+    ```
+
+    Or use the File menu in Visual Studio:
+    - File → Open → Project/Solution
+    - Navigate to `SharpWMI.sln`
+    - Click Open
+  </Step>
+
+  <Step title="Select Build Configuration">
+    Choose the **Release** configuration for production builds:
+    1. In the toolbar, locate the configuration dropdown (typically shows "Debug")
+    2. Change it to **Release**
+    3. Ensure the platform is set to **Any CPU** or **x64** as appropriate
+  </Step>
+
+  <Step title="Build the Solution">
+    Build the project:
+    - **Menu:** Build → Build Solution
+    - **Keyboard:** Ctrl + Shift + B
+
+    The compiled binary will be located at:
+    ```
+    SharpWMI\bin\Release\SharpWMI.exe
+    ```
+  </Step>
+
+  <Step title="Verify the Build">
+    Test the compiled binary:
+    ```bash
+    SharpWMI.exe
+    ```
+
+    You should see the usage information displayed.
+  </Step>
+</Steps>
+
+## Build Configurations
+
+<Tabs>
+  <Tab title="Release Build">
+    **Recommended for operational use:**
+    - Optimized code
+    - No debug symbols
+    - Smaller file size
+    - Better performance
+
+    ```bash
+    # Build location
+    SharpWMI\bin\Release\SharpWMI.exe
+    ```
+  </Tab>
+
+  <Tab title="Debug Build">
+    **For development and troubleshooting:**
+    - Debug symbols included
+    - No optimizations
+    - Larger file size
+    - Easier to debug
+
+    ```bash
+    # Build location
+    SharpWMI\bin\Debug\SharpWMI.exe
+    ```
+  </Tab>
+</Tabs>
+
+## Retargeting .NET Framework Version
+
+If you need to target a different .NET Framework version:
+
+<Steps>
+  <Step title="Open Project Properties">
+    - Right-click on the SharpWMI project in Solution Explorer
+    - Select **Properties**
+  </Step>
+
+  <Step title="Change Target Framework">
+    - Navigate to the **Application** tab
+    - In the **Target framework** dropdown, select your desired version:
+      - .NET Framework 3.5 (default)
+      - .NET Framework 4.0
+      - .NET Framework 4.5
+      - .NET Framework 4.6 or later
+  </Step>
+
+  <Step title="Rebuild">
+    Rebuild the solution after changing the target framework:
+    ```
+    Build → Rebuild Solution
+    ```
+  </Step>
+</Steps>
+
+<Warning>
+  Targeting newer .NET Framework versions may reduce compatibility with older Windows systems. .NET Framework 3.5 provides the widest compatibility.
+</Warning>
+
+## Command-Line Build
+
+You can also build SharpWMI using MSBuild from the command line:
+
+<Tabs>
+  <Tab title="Using MSBuild">
+    ```bash
+    # Locate MSBuild (Visual Studio 2019+ example)
+    cd "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin"
+
+    # Build Release configuration
+    .\MSBuild.exe C:\Path\To\SharpWMI\SharpWMI.sln /p:Configuration=Release
+
+    # Build Debug configuration
+    .\MSBuild.exe C:\Path\To\SharpWMI\SharpWMI.sln /p:Configuration=Debug
+    ```
+  </Tab>
+
+  <Tab title="Using Developer Command Prompt">
+    ```bash
+    # Open "Developer Command Prompt for VS"
+    # Navigate to SharpWMI directory
+    cd C:\Path\To\SharpWMI
+
+    # Build Release
+    msbuild SharpWMI.sln /p:Configuration=Release
+
+    # Build with verbose output
+    msbuild SharpWMI.sln /p:Configuration=Release /v:detailed
+    ```
+  </Tab>
+</Tabs>
+
+## Code Signing (Optional)
+
+For operational security, you may want to sign the compiled binary:
+
+<Accordion title="Generate Self-Signed Certificate">
+  ```powershell
+  # Create self-signed certificate
+  $cert = New-SelfSignedCertificate -DnsName "CompanyName" -Type CodeSigning -CertStoreLocation Cert:\CurrentUser\My
+
+  # Export certificate
+  Export-Certificate -Cert $cert -FilePath ".\CodeSignCert.cer"
+  ```
+</Accordion>
+
+<Accordion title="Sign the Binary">
+  ```powershell
+  # Sign using signtool (Windows SDK)
+  signtool sign /a /t http://timestamp.digicert.com /fd SHA256 SharpWMI.exe
+
+  # Or using PowerShell
+  Set-AuthenticodeSignature -FilePath "SharpWMI.exe" -Certificate $cert
+  ```
+</Accordion>
+
+<Note>
+  Self-signed certificates won't bypass security controls but may help with application whitelisting in some environments.
+</Note>
+
+## Obfuscation (Optional)
+
+Consider obfuscating the binary for operational use:
+
+<CardGroup cols={2}>
+  <Card title="ConfuserEx" icon="shield">
+    Free .NET obfuscator
+    - Rename symbols
+    - Control flow obfuscation
+    - String encryption
+  </Card>
+  <Card title="InvisibilityCloak" icon="user-secret">
+    C# obfuscation specifically for offensive tools
+    - Randomizes method names
+    - Encrypts strings
+    - Compatible with offensive tooling
+  </Card>
+</CardGroup>
+
+<Warning>
+  Heavy obfuscation may cause runtime issues or increase detection by behavioral analysis. Test thoroughly after obfuscation.
+</Warning>
+
+## Troubleshooting Build Issues
+
+<AccordionGroup>
+  <Accordion title="Missing .NET Framework 3.5">
+    **Error:** "The reference assemblies for framework .NETFramework,Version=v3.5 were not found"
+
+    **Solution:**
+    ```powershell
+    # Enable .NET Framework 3.5 on Windows
+    DISM /Online /Enable-Feature /FeatureName:NetFx3 /All
+
+    # Or download from Microsoft
+    # Visual Studio Installer → Modify → Individual Components → .NET Framework 3.5
+    ```
+  </Accordion>
+
+  <Accordion title="NuGet Package Restore Failed">
+    **Error:** "NuGet package restore failed"
+
+    **Solution:**
+    ```bash
+    # Restore NuGet packages manually
+    nuget restore SharpWMI.sln
+
+    # Or in Visual Studio
+    # Tools → NuGet Package Manager → Restore NuGet Packages
+    ```
+  </Accordion>
+
+  <Accordion title="Build Errors After Retargeting">
+    **Error:** Various compilation errors after changing target framework
+
+    **Solution:**
+    1. Clean the solution: Build → Clean Solution
+    2. Delete `bin` and `obj` folders
+    3. Rebuild: Build → Rebuild Solution
+  </Accordion>
+
+  <Accordion title="MSBuild Not Found">
+    **Error:** "MSBuild is not recognized as an internal or external command"
+
+    **Solution:**
+    ```bash
+    # Add MSBuild to PATH or use full path
+    # Visual Studio 2019 example:
+    set PATH=%PATH%;C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin
+
+    # Or use Developer Command Prompt for VS
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Build Automation
+
+Example PowerShell script to automate the build process:
+
+```powershell
+# build.ps1
+$SolutionPath = "C:\Path\To\SharpWMI\SharpWMI.sln"
+$Configuration = "Release"
+$OutputPath = "C:\Output"
+
+# Locate MSBuild
+$MSBuild = "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\MSBuild.exe"
+
+if (-not (Test-Path $MSBuild)) {
+    Write-Error "MSBuild not found at $MSBuild"
+    exit 1
+}
+
+# Clean previous builds
+& $MSBuild $SolutionPath /t:Clean /p:Configuration=$Configuration
+
+# Build solution
+& $MSBuild $SolutionPath /t:Build /p:Configuration=$Configuration
+
+if ($LASTEXITCODE -eq 0) {
+    Write-Host "Build succeeded" -ForegroundColor Green
+
+    # Copy to output directory
+    $SourceBinary = "SharpWMI\bin\$Configuration\SharpWMI.exe"
+    Copy-Item $SourceBinary -Destination $OutputPath
+    Write-Host "Binary copied to $OutputPath" -ForegroundColor Green
+} else {
+    Write-Error "Build failed with exit code $LASTEXITCODE"
+    exit $LASTEXITCODE
+}
+```
+
+## Pre-Built Binaries
+
+<Warning>
+  The SharpWMI authors do **not** release pre-compiled binaries. You must build from source.
+</Warning>
+
+This is intentional to:
+- Prevent malware distribution
+- Ensure you review the code
+- Allow customization for your environment
+- Avoid antivirus signatures on official releases
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Usage Guide" icon="book" href="/ghostpack-docs/SharpWMI-mdx/usage">
+    Learn how to use SharpWMI effectively
+  </Card>
+  <Card title="WMI Queries" icon="database" href="/ghostpack-docs/SharpWMI-mdx/actions/query">
+    Start with WMI enumeration
+  </Card>
+  <Card title="Remote Execution" icon="terminal" href="/ghostpack-docs/SharpWMI-mdx/actions/exec">
+    Execute processes remotely
+  </Card>
+  <Card title="Overview" icon="home" href="/ghostpack-docs/SharpWMI-mdx/overview">
+    Return to overview
+  </Card>
+</CardGroup>

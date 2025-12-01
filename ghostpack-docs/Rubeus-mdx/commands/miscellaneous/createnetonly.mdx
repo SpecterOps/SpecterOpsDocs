@@ -1,0 +1,112 @@
+---
+title: 'createnetonly'
+description: 'Create a new hidden logon session with network-only credentials'
+icon: 'network-wired'
+sidebarTitle: 'createnetonly'
+---
+
+## Overview
+
+Create a new hidden logon session using the LOGON32_LOGON_NEW_CREDENTIALS logon type. This technique establishes a logon session that only affects network authentication while maintaining the current interactive session, enabling credential switching for network operations.
+
+## Syntax
+
+```bash
+Rubeus.exe createnetonly /program:PROGRAM [credentials] [options]
+```
+
+## Required Parameters
+
+<ParamField path="program" type="string" required>
+  Program to execute in the new logon session
+</ParamField>
+
+## Credential Parameters
+
+<ParamField path="user" type="string">
+  Username for the new logon session
+</ParamField>
+
+<ParamField path="domain" type="string">
+  Domain for the new logon session
+</ParamField>
+
+<ParamField path="password" type="string">
+  Password for the new logon session
+</ParamField>
+
+## Optional Parameters
+
+<ParamField path="show" type="boolean">
+  Show the created process window
+</ParamField>
+
+## Examples
+
+<CodeGroup>
+```bash Basic Usage
+# Create cmd.exe with domain credentials
+Rubeus.exe createnetonly /program:cmd.exe /user:admin /domain:corp.local /password:password123
+
+# Create PowerShell with specific credentials
+Rubeus.exe createnetonly /program:powershell.exe /user:serviceaccount /domain:corp.local /password:service_pass
+
+# Show the created process window
+Rubeus.exe createnetonly /program:cmd.exe /user:admin /domain:corp.local /password:pass /show
+```
+</CodeGroup>
+
+## Technical Background
+
+<Accordion title="LOGON32_LOGON_NEW_CREDENTIALS">
+  **Logon Type Characteristics:**
+  - Creates new logon session for network authentication only
+  - Maintains current interactive session unchanged
+  - Network operations use new credentials
+  - Local operations use original identity
+
+  **Use Cases:**
+  - Cross-domain network access
+  - Service account impersonation
+  - Credential switching for network operations
+  - Stealth authentication context changes
+</Accordion>
+
+## Use Cases
+
+<Accordion title="Credential Context Switching">
+  **Network Authentication:**
+  - Access resources with different credentials
+  - Impersonate service accounts for network operations
+  - Cross-domain resource access
+  - Bypass current user's network limitations
+
+  **Operational Security:**
+  - Maintain original interactive session
+  - Reduce credential exposure
+  - Enable targeted credential use
+  - Support compartmentalized operations
+</Accordion>
+
+## Integration Workflows
+
+<Accordion title="Credential Reuse">
+  **Complete Workflow:**
+  ```bash
+  # 1. Create new logon session with compromised credentials
+  Rubeus.exe createnetonly /program:cmd.exe /user:admin /domain:corp.local /password:compromised_pass
+
+  # 2. Use new session for network operations
+  # Network operations in new cmd session use admin credentials
+  dir \\fileserver.corp.local\admin_share
+
+  # 3. Perform operations requiring elevated network access
+  psexec \\target.corp.local cmd
+  ```
+</Accordion>
+
+## Related Commands
+
+- [`asktgt`](/commands/ticket-requests/asktgt) - Request TGT with credentials
+- [`ptt`](/commands/management/ptt) - Alternative credential injection method
+- [`logonsession`](/commands/miscellaneous/logonsession) - Enumerate logon sessions

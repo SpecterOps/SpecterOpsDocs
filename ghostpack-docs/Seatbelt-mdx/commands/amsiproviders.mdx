@@ -1,0 +1,92 @@
+---
+title: 'AMSIProviders'
+description: 'Providers registered for AMSI'
+icon: 'shield-halved'
+---
+
+## Overview
+
+The AMSIProviders command enumerates all providers that are registered with the Windows Antimalware Scan Interface (AMSI). AMSI is a security feature that allows applications and services to integrate with any antimalware product present on a system, providing additional protection against malicious scripts and code.
+
+This command identifies which security products and components have registered themselves as AMSI providers, giving insight into the endpoint protection capabilities of the system.
+
+## Syntax
+
+```bash
+Seatbelt.exe AMSIProviders
+```
+
+### Remote Execution
+```bash
+Seatbelt.exe AMSIProviders -computername=TARGET.domain.com [-username=DOMAIN\user -password=pass]
+```
+
+## Output
+
+The command returns information about registered AMSI providers, including:
+
+- Provider CLSID (Class Identifier)
+- Provider DLL path
+- Provider name and registration details
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Identify endpoint protection capabilities
+    - Discover which security products are monitoring script execution
+    - Plan evasion strategies based on registered providers
+    - Assess detection surface before executing scripts or payloads
+  </Tab>
+  <Tab title="Blue Team">
+    - Verify AMSI providers are properly registered
+    - Audit endpoint protection configuration
+    - Validate security product installation
+    - Investigate potential tampering with AMSI registration
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== AMSIProviders ======
+
+  CLSID                : {2781761E-28E0-4109-99FE-B9D127C57AFE}
+  Path                 : C:\ProgramData\Microsoft\Windows Defender\Platform\4.18.2108.7-0\MpOav.dll
+
+  CLSID                : {A0D9E636-6E77-4E5E-8F82-4F6E8FBEF53F}
+  Path                 : C:\Program Files\Company\SecurityProduct\AmsiProvider.dll
+```
+
+## Remote Execution
+
+<Check>
+This command **supports remote execution** using the `-computername` parameter.
+</Check>
+
+When executing remotely, the command queries the target system's registry to enumerate AMSI providers via WMI's StdRegProv.
+
+## Detection Considerations
+
+<Warning>
+This command may generate the following detection opportunities:
+</Warning>
+
+- **Registry Access**: Queries AMSI provider registration keys in HKLM\SOFTWARE\Microsoft\AMSI
+- **WMI Activity**: Remote execution generates WMI queries that can be logged
+- **Event Logs**: May trigger registry access monitoring if configured
+- **EDR Telemetry**: Security products may alert on enumeration of AMSI configuration
+
+### Defensive Recommendations
+
+- Monitor registry access to AMSI configuration keys
+- Implement alerts for multiple security enumeration commands in succession
+- Review WMI activity logs for unusual remote queries
+- Correlate with other reconnaissance activities
+
+## Related Commands
+
+- [AntiVirus](/commands/antivirus) - Enumerate registered antivirus products
+- [WindowsDefender](/commands/windowsdefender) - Windows Defender specific settings
+- [OSInfo](/commands/osinfo) - General operating system information
+- [SecurityPackages](/commands/securitypackages) - Enumerate available security packages

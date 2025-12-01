@@ -1,0 +1,104 @@
+---
+title: 'LocalUsers'
+description: 'Local users, whether they are active/disabled, and pwd last set'
+icon: 'user'
+---
+
+## Overview
+
+The LocalUsers command enumerates all local user accounts on the system, including their enabled/disabled status, password age, and last logon information. This provides insight into account management, potential stale accounts, and password policies.
+
+## Syntax
+
+```bash
+Seatbelt.exe LocalUsers
+
+# Enumerate remote computer
+Seatbelt.exe "LocalUsers <computername>"
+```
+
+### Remote Execution
+```bash
+Seatbelt.exe LocalUsers -computername=TARGET.domain.com [-username=DOMAIN\user -password=pass]
+```
+
+## Output
+
+Returns local user account information:
+- Username
+- Enabled/Disabled status
+- Password last set date
+- Last logon
+- Account description
+- User comment
+- Password expiration settings
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Identify enabled accounts for credential access
+    - Find accounts with old passwords
+    - Discover service accounts
+    - Identify potential password spray targets
+    - Locate disabled admin accounts that might be re-enabled
+  </Tab>
+  <Tab title="Blue Team">
+    - Audit local account management
+    - Identify stale or orphaned accounts
+    - Detect unauthorized account creation
+    - Validate password age policies
+    - Find accounts that never expire
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== LocalUsers ======
+
+UserName       : Administrator
+Enabled        : True
+Rid            : 500
+LastLogon      : 10/15/2024 3:45:21 PM
+PasswordLastSet: 8/1/2024 9:00:00 AM
+Description    : Built-in account for administering the computer/domain
+
+UserName       : Guest
+Enabled        : False
+Rid            : 501
+LastLogon      : Never
+PasswordLastSet: Never
+Description    : Built-in account for guest access to the computer/domain
+
+UserName       : svc_backup
+Enabled        : True
+Rid            : 1001
+LastLogon      : 10/10/2024 2:15:33 AM
+PasswordLastSet: 1/1/2020 12:00:00 PM
+Description    : Backup Service Account
+```
+
+## Remote Execution
+
+<Check>
+This command **supports remote execution** using the `-computername` parameter.
+</Check>
+
+## Detection Considerations
+
+<Warning>
+User enumeration may generate detection events.
+</Warning>
+
+- **API Calls**: Uses NetUserEnum and related APIs
+- **WMI Queries**: Remote execution via WMI
+- **Event ID 4798**: User account enumeration
+- **Network Traffic**: SMB/RPC connections for remote queries
+
+## Related Commands
+
+- [LocalGroups](/commands/localgroups) - Local group membership
+- [LogonSessions](/commands/logonsessions) - Active logon sessions
+- [LAPS](/commands/laps) - LAPS configuration
+- [TokenPrivileges](/commands/tokenprivileges) - Current token privileges

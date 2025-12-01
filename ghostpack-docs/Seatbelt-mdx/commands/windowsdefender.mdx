@@ -1,0 +1,164 @@
+---
+title: 'WindowsDefender'
+description: 'Windows Defender settings (including exclusion locations)'
+icon: 'shield-virus'
+---
+
+## Overview
+
+The WindowsDefender command enumerates Windows Defender (Microsoft Defender Antivirus) configuration settings, including real-time protection status, scanning options, update information, and critically - exclusion paths, processes, and extensions. Exclusions are prime targets for payload placement as they bypass antivirus scanning.
+
+## Syntax
+
+```bash
+Seatbelt.exe WindowsDefender
+```
+
+### Remote Execution
+```bash
+Seatbelt.exe WindowsDefender -computername=TARGET.domain.com [-username=DOMAIN\user -password=pass]
+```
+
+## Output
+
+Returns Windows Defender configuration:
+- Real-time protection status
+- Cloud protection settings
+- Automatic sample submission
+- Exclusion paths
+- Exclusion processes
+- Exclusion extensions
+- Threat definitions version
+- Last scan information
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Identify exclusion paths for payload delivery
+    - Discover excluded processes for injection
+    - Find excluded file extensions
+    - Assess Defender protection level
+    - Plan evasion strategies
+    - Locate safe directories for tools
+  </Tab>
+  <Tab title="Blue Team">
+    - Audit Defender configuration
+    - Verify real-time protection is enabled
+    - Review exclusion policies
+    - Detect unauthorized exclusions
+    - Validate security baseline
+    - Ensure proper update status
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== WindowsDefender ======
+
+Windows Defender Settings:
+
+RealTimeProtectionEnabled          : True
+BehaviorMonitorEnabled              : True
+IoavProtectionEnabled               : True
+OnAccessProtectionEnabled           : True
+ScriptScanningEnabled               : True
+CloudProtectionEnabled              : True
+AutomaticSampleSubmissionEnabled    : True
+
+Exclusions:
+
+Path Exclusions:
+  C:\Tools\
+  C:\Program Files\CustomApp\
+  D:\Development\
+
+Process Exclusions:
+  build.exe
+  devenv.exe
+
+Extension Exclusions:
+  .tmp
+  .log
+
+Threat Intelligence:
+  SignatureVersion                  : 1.403.1234.0
+  EngineVersion                     : 1.1.23100.2009
+  AntivirusSignatureLastUpdated     : 10/15/2024 8:30:00 AM
+  NISSignatureLastUpdated           : 10/15/2024 8:30:00 AM
+
+Last Scan:
+  QuickScanAge                      : 0 days
+  FullScanAge                       : 7 days
+```
+
+## Remote Execution
+
+<Check>
+This command **supports remote execution** using the `-computername` parameter.
+</Check>
+
+## Detection Considerations
+
+<Warning>
+Defender enumeration may generate alerts on monitored systems.
+</Warning>
+
+- **Registry Access**: Queries `HKLM\SOFTWARE\Microsoft\Windows Defender`
+- **WMI Queries**: Uses WMI to query Defender configuration
+- **Event Logs**: May generate Security event 4663 (registry access)
+- **EDR Telemetry**: Security product enumeration is often flagged
+- **Defender Events**: May log configuration access
+
+### Exclusion Abuse
+
+<Accordion title="Common Exclusion Abuse Patterns">
+**Attacker Objectives:**
+- Drop payloads in excluded directories
+- Inject into excluded processes
+- Use excluded file extensions
+
+**Legitimate Exclusions to Monitor:**
+- Development directories (C:\Dev, C:\Build)
+- Database directories
+- Backup locations
+- Application-specific paths
+
+**Suspicious Exclusions:**
+- Temp directories
+- User profile directories
+- Downloads folder
+- Entire drive roots (C:\, D:\)
+- Common tool locations (C:\Tools, C:\Temp)
+</Accordion>
+
+### Defensive Recommendations
+
+<Accordion title="Monitoring and Hardening">
+**Monitoring:**
+- Alert on new exclusion additions
+- Track exclusion modifications via GPO audit
+- Monitor registry changes to Defender keys
+- Log Defender configuration queries
+
+**Hardening:**
+- Minimize exclusions to only required paths
+- Document and justify all exclusions
+- Regularly review and validate exclusions
+- Use centralized exclusion management (GPO/Intune)
+- Implement exclusion change approval process
+
+**Detection:**
+- Enable Defender event logging (Event ID 5007)
+- Monitor PowerShell Set-MpPreference commands
+- Alert on excluded path file creation
+- Correlate with other reconnaissance activities
+</Accordion>
+
+## Related Commands
+
+- [AMSIProviders](/commands/amsiproviders) - AMSI provider enumeration
+- [AntiVirus](/commands/antivirus) - Registered AV products
+- [InterestingProcesses](/commands/interestingprocesses) - Security products
+- [Sysmon](/commands/sysmon) - Sysmon configuration

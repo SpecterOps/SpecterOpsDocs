@@ -1,0 +1,175 @@
+---
+title: 'get users'
+description: 'Enumerate user accounts in SCCM'
+icon: 'user'
+sidebarTitle: 'users'
+---
+
+## Overview
+
+Enumerate user accounts in SCCM database. This command provides comprehensive user intelligence including domain accounts, login patterns, and user-device relationships.
+
+## Syntax
+
+```bash
+SharpSCCM get users [options]
+```
+
+## Parameters
+
+<ParamField path="sms-provider" type="string">
+  The IP address, FQDN, or NetBIOS name of the SMS Provider to connect to
+</ParamField>
+
+<ParamField path="site-code" type="string">
+  The three-character site code (e.g., "PS1")
+</ParamField>
+
+<ParamField path="name" type="string">
+  Filter users by name pattern (supports partial matching)
+</ParamField>
+
+<ParamField path="properties" type="string">
+  Specify properties to retrieve (can be used multiple times)
+</ParamField>
+
+<ParamField path="where-condition" type="string">
+  Custom WQL WHERE clause for advanced filtering
+</ParamField>
+
+<ParamField path="count" type="boolean">
+  Return count of results only
+</ParamField>
+
+<ParamField path="verbose" type="boolean">
+  Display all user properties
+</ParamField>
+
+## Examples
+
+<CodeGroup>
+```bash Basic Usage
+# List all users
+SharpSCCM get users -sms SCCM01.corp.local -sc PS1
+
+# Count total users
+SharpSCCM get users -c -sms SCCM01.corp.local -sc PS1
+```
+
+```bash User Search
+# Find admin users
+SharpSCCM get users -n "admin" -sms SCCM01.corp.local -sc PS1
+
+# Find service accounts
+SharpSCCM get users -n "svc" -sms SCCM01.corp.local -sc PS1
+```
+
+```bash Advanced Filtering
+# Active users only
+SharpSCCM get users -w "IsActive = True" -sms SCCM01.corp.local -sc PS1
+
+# Domain administrators
+SharpSCCM get users -w "UniqueUserName LIKE '%admin%'" -sms SCCM01.corp.local -sc PS1
+```
+</CodeGroup>
+
+## Key Properties
+
+| Property | Description | Use Case |
+|----------|-------------|----------|
+| `UniqueUserName` | Domain\username format | Primary identifier |
+| `Name` | Display name | User identification |
+| `Domain` | Active Directory domain | Domain analysis |
+| `IsActive` | Account status | Active user filtering |
+| `LastLogonTimestamp` | Last logon time | Activity analysis |
+| `ResourceID` | Unique SCCM identifier | Cross-referencing |
+
+## Required Permissions
+
+<Info>
+  **SMS Admins local group** membership on the SMS Provider server
+</Info>
+
+## Intelligence Gathering
+
+<Accordion title="Administrative Users">
+  **High-Value Targets:**
+  ```sql
+  UniqueUserName LIKE '%admin%'
+  UniqueUserName LIKE '%administrator%'
+  Name LIKE '%admin%'
+  ```
+
+  **Service Accounts:**
+  ```sql
+  UniqueUserName LIKE '%svc%'
+  UniqueUserName LIKE '%service%'
+  Name LIKE '%service%'
+  ```
+</Accordion>
+
+<Accordion title="User Patterns">
+  **Naming Conventions:**
+  - Administrative accounts: admin, administrator prefixes
+  - Service accounts: svc-, service- prefixes
+  - Personal accounts: firstname.lastname format
+  - Shared accounts: shared-, team- prefixes
+
+  **Domain Analysis:**
+  - Multiple domains indicate complex environments
+  - Domain trust relationships
+  - Cross-domain user access patterns
+</Accordion>
+
+## Common Queries
+
+<CodeGroup>
+```sql Active Users
+IsActive = True
+```
+
+```sql Administrative Accounts
+UniqueUserName LIKE '%admin%' OR Name LIKE '%admin%'
+```
+
+```sql Service Accounts
+UniqueUserName LIKE '%svc%' OR UniqueUserName LIKE '%service%'
+```
+
+```sql Recent Activity
+LastLogonTimestamp > '2023-01-01'
+```
+</CodeGroup>
+
+## Use Cases
+
+<Accordion title="Target Identification">
+  **High-Privilege Users:**
+  - Domain administrators and privileged accounts
+  - Service accounts with elevated permissions
+  - Shared administrative accounts
+
+  **User Activity Analysis:**
+  - Login patterns and frequency
+  - Account usage patterns
+  - Dormant or inactive accounts
+</Accordion>
+
+<Accordion title="Attack Planning">
+  **Credential Targeting:**
+  - Focus on administrative and service accounts
+  - Identify high-value user targets
+  - Map user privilege relationships
+
+  **Lateral Movement:**
+  - User-device relationship mapping
+  - Cross-domain access patterns
+  - Service account abuse opportunities
+</Accordion>
+
+## Related Commands
+
+- [`get devices`](/commands/get/devices) - Find devices used by specific users
+- [`get primary-users`](/commands/get/primary-users) - Map user-device relationships
+- [`get collections`](/commands/get/collections) - Analyze user collections
+- [`get admins`](/commands/get/admins) - Enumerate SCCM administrators

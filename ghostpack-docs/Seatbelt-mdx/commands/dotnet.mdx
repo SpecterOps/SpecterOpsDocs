@@ -1,0 +1,78 @@
+---
+title: 'DotNet'
+description: 'DotNet versions'
+icon: 'code'
+---
+
+## Overview
+
+The DotNet command enumerates installed .NET Framework and .NET Core versions on the system. This information is crucial for compatibility assessment when deploying .NET-based tools and payloads.
+
+## Syntax
+
+```bash
+Seatbelt.exe DotNet
+```
+
+### Remote Execution
+```bash
+Seatbelt.exe DotNet -computername=TARGET.domain.com [-username=DOMAIN\user -password=pass]
+```
+
+## Output
+
+Returns .NET version information:
+- .NET Framework versions (2.0, 3.5, 4.x)
+- .NET Core versions
+- Installation paths
+- Service Pack levels
+- CLR versions
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Determine compatible payload versions
+    - Identify systems for .NET exploit deployment
+    - Assess tool compatibility
+    - Plan post-exploitation toolkit deployment
+  </Tab>
+  <Tab title="Blue Team">
+    - Audit .NET installation compliance
+    - Identify outdated framework versions
+    - Track security patch levels
+    - Validate software requirements
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== DotNet ======
+
+.NET Versions:
+  4.0.30319.42000  (4.8 or later)
+  v2.0.50727       (.NET 3.5)
+
+Installed Versions (via registry):
+  v4\Full : 4.8.04084
+  v3.5 : 3.5.30729.4926
+```
+
+## Remote Execution
+
+<Check>
+This command **supports remote execution** using the `-computername` parameter.
+</Check>
+
+## Detection Considerations
+
+<Info>
+Minimal detection surface - reads registry values.
+</Info>
+
+## Related Commands
+
+- [OSInfo](/commands/osinfo) - Operating system information
+- [Hotfixes](/commands/hotfixes) - Installed updates
+- [InstalledProducts](/commands/installedproducts) - Installed software

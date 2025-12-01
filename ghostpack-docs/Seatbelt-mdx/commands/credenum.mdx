@@ -1,0 +1,105 @@
+---
+title: 'CredEnum'
+description: 'Enumerates the current users saved credentials using CredEnumerate()'
+icon: 'key'
+---
+
+## Overview
+
+The `CredEnum` command enumerates saved credentials for the current user using the Windows `CredEnumerate()` API. This retrieves credentials stored by Windows Credential Manager, which may include network passwords, generic credentials, and other authentication data saved by applications.
+
+**Important:** User commands run for the current user if not elevated and for ALL users if elevated.
+
+## Syntax
+
+```
+Seatbelt.exe CredEnum
+```
+
+No additional arguments are supported.
+
+## Output
+
+The command returns:
+- Credential type (Generic, Domain Password, etc.)
+- Target name or resource
+- Username associated with the credential
+- Last written timestamp
+- Persistence level (Session, LocalMachine, Enterprise)
+- Comments or descriptions (if present)
+
+## Use Cases
+
+### Red Team
+- **Credential Harvesting**: Discover saved credentials for network resources and applications
+- **Privilege Escalation**: Find credentials that may provide elevated access
+- **Lateral Movement**: Identify credentials for other systems and services
+- **Reconnaissance**: Map out network resources the user has accessed
+- **Password Reuse**: Collect credentials that might work on other systems
+
+### Blue Team
+- **Credential Hygiene Audit**: Identify users storing credentials in Windows Credential Manager
+- **Security Assessment**: Review saved credentials for compliance with security policies
+- **Incident Response**: Quickly enumerate potentially compromised credentials
+- **User Education**: Identify users who may benefit from credential management training
+- **Risk Assessment**: Evaluate exposure from stored credentials
+
+## Example Output
+
+```
+====== CredEnum ======
+
+  Target            : Domain:target=server01.contoso.com
+  Type              : DomainPassword
+  UserName          : CONTOSO\john.doe
+  LastWritten       : 2024-10-15 14:30:22
+  Persistence       : LocalMachine
+
+  Target            : LegacyGeneric:target=fileshare.contoso.com
+  Type              : Generic
+  UserName          : john.doe
+  LastWritten       : 2024-09-20 09:15:10
+  Persistence       : LocalMachine
+  Comment           : Network share access
+```
+
+## Privilege Context
+
+- **Non-Elevated**: Enumerates saved credentials for the current user only
+- **Elevated**: While the CredEnumerate() API is called, this command primarily returns the current user's credentials as credential enumeration is user-context specific. However, when elevated, it may reveal additional LocalMachine-persisted credentials
+
+## Remote Execution
+
+This command does **not** support remote execution (not marked with + in the command list).
+
+## Detection Considerations
+
+### Indicators
+- Calls to CredEnumerate() Windows API
+- Access to Windows Credential Manager
+- Enumeration of stored credentials
+- Reading credential vault data
+
+### Defensive Monitoring
+- Monitor CredEnumerate() API calls from unusual processes
+- Alert on credential enumeration by non-standard applications
+- Track access patterns to Windows Credential Manager
+- Log processes accessing credential vault
+- Detect automated credential harvesting tools
+- Monitor for bulk credential enumeration
+
+### Security Recommendations
+- Educate users on secure credential management
+- Implement policies restricting credential storage
+- Use enterprise credential management solutions
+- Enable logging for credential access
+- Regularly audit stored credentials
+
+## Related Commands
+
+- **WindowsCredentialFiles**: Finds Windows credential DPAPI blobs
+- **WindowsVault**: Enumerates credentials saved in Windows Vault
+- **SecPackageCreds**: Obtains credentials from security packages
+- **DpapiMasterKeys**: Lists DPAPI master keys
+- **PuttySessions**: Shows saved Putty credentials
+- **RDPSavedConnections**: Displays saved RDP connection credentials

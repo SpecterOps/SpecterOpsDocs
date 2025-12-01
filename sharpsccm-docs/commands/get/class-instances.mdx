@@ -1,0 +1,260 @@
+---
+title: 'get class-instances'
+description: 'Query specific WMI class instances'
+icon: 'search'
+sidebarTitle: 'class-instances'
+---
+
+## Overview
+
+Query instances of specific WMI classes with custom filtering and property selection. This command provides direct access to WMI data through the SMS Provider, enabling detailed analysis of SCCM objects and configurations.
+
+## Syntax
+
+```bash
+SharpSCCM get class-instances <wmi-class> [options]
+```
+
+## Parameters
+
+<ParamField path="wmi-class" type="string" required>
+  The WMI class to query (e.g., "SMS_R_System")
+</ParamField>
+
+<ParamField path="sms-provider" type="string">
+  The IP address, FQDN, or NetBIOS name of the SMS Provider to connect to
+</ParamField>
+
+<ParamField path="site-code" type="string">
+  The three-character site code (e.g., "PS1")
+</ParamField>
+
+<ParamField path="properties" type="string">
+  Specify properties to retrieve (can be used multiple times)
+</ParamField>
+
+<ParamField path="where-condition" type="string">
+  Custom WQL WHERE clause for advanced filtering
+</ParamField>
+
+<ParamField path="count" type="boolean">
+  Return count of results only
+</ParamField>
+
+<ParamField path="verbose" type="boolean">
+  Display all class properties
+</ParamField>
+
+<ParamField path="dry-run" type="boolean">
+  Display the WQL query without execution
+</ParamField>
+
+## Examples
+
+<CodeGroup>
+```bash Basic Usage
+# Query specific class
+SharpSCCM get class-instances SMS_R_System -sms SCCM01.corp.local -sc PS1
+
+# Count instances
+SharpSCCM get class-instances SMS_Admin -c -sms SCCM01.corp.local -sc PS1
+```
+
+```bash Custom Properties
+# Select specific properties
+SharpSCCM get class-instances SMS_R_System -p Name -p LastLogonUserName -sms SCCM01.corp.local -sc PS1
+
+# Query administrative users
+SharpSCCM get class-instances SMS_Admin -p LogonName -p RoleNames -sms SCCM01.corp.local -sc PS1
+```
+
+```bash Advanced Filtering
+# Filter with WHERE condition
+SharpSCCM get class-instances SMS_R_System -w "Client = 1" -sms SCCM01.corp.local -sc PS1
+
+# Complex filtering
+SharpSCCM get class-instances SMS_R_System -w "LastLogonUserName LIKE '%admin%' AND Client = 1" -sms SCCM01.corp.local -sc PS1
+```
+
+```bash Query Testing
+# Dry run to see query
+SharpSCCM get class-instances SMS_Collection -w "CollectionType = 2" -z -sms SCCM01.corp.local -sc PS1
+```
+</CodeGroup>
+
+## Required Permissions
+
+<Info>
+  **SMS Admins local group** membership on the SMS Provider server. Additional permissions may be required for specific classes.
+</Info>
+
+## Common Classes
+
+<Accordion title="Device and User Classes">
+  **SMS_R_System:**
+  - Device information and properties
+  - Hardware and software inventory
+  - User relationships and logon data
+
+  **SMS_R_User:**
+  - User account information
+  - Domain and authentication data
+  - User group memberships
+
+  **SMS_R_UserGroup:**
+  - User group definitions
+  - Group membership information
+  - Security group analysis
+</Accordion>
+
+<Accordion title="Administrative Classes">
+  **SMS_Admin:**
+  - Administrative user accounts
+  - Security role assignments
+  - Administrative scope and permissions
+
+  **SMS_Role:**
+  - Security role definitions
+  - Permission sets and capabilities
+  - Role-based access control
+
+  **SMS_SecuredObject:**
+  - Object security and permissions
+  - Access control lists
+  - Security scope assignments
+</Accordion>
+
+<Accordion title="Collection Classes">
+  **SMS_Collection:**
+  - Collection definitions and properties
+  - Collection types and settings
+  - Collection relationships
+
+  **SMS_FullCollectionMembership:**
+  - Complete collection membership
+  - Member details and properties
+  - Collection-device relationships
+</Accordion>
+
+## WQL Query Examples
+
+<CodeGroup>
+```sql Device Information
+SELECT Name, LastLogonUserName, IPAddresses FROM SMS_R_System WHERE Client = 1
+```
+
+```sql Administrative Users
+SELECT LogonName, RoleNames, DisplayName FROM SMS_Admin
+```
+
+```sql Active Collections
+SELECT Name, CollectionID, MemberCount FROM SMS_Collection WHERE CollectionType = 2
+```
+
+```sql Recent Activity
+SELECT Name, LastLogonTimestamp FROM SMS_R_System WHERE LastLogonTimestamp > '2023-01-01'
+```
+</CodeGroup>
+
+## Intelligence Gathering
+
+<Accordion title="System Reconnaissance">
+  **Device Analysis:**
+  ```bash
+  # Active SCCM clients
+  SharpSCCM get class-instances SMS_R_System -w "Client = 1" -sms SCCM01.corp.local -sc PS1
+
+  # Admin workstations
+  SharpSCCM get class-instances SMS_R_System -w "LastLogonUserName LIKE '%admin%'" -sms SCCM01.corp.local -sc PS1
+  ```
+
+  **User Intelligence:**
+  ```bash
+  # Domain users
+  SharpSCCM get class-instances SMS_R_User -p UniqueUserName -p FullUserName -sms SCCM01.corp.local -sc PS1
+
+  # Administrative accounts
+  SharpSCCM get class-instances SMS_R_User -w "UniqueUserName LIKE '%admin%'" -sms SCCM01.corp.local -sc PS1
+  ```
+</Accordion>
+
+<Accordion title="Administrative Analysis">
+  **SCCM Administrators:**
+  ```bash
+  # All administrators
+  SharpSCCM get class-instances SMS_Admin -v -sms SCCM01.corp.local -sc PS1
+
+  # Full administrators
+  SharpSCCM get class-instances SMS_Admin -w "RoleNames LIKE '%Full Administrator%'" -sms SCCM01.corp.local -sc PS1
+  ```
+
+  **Security Roles:**
+  ```bash
+  # Available roles
+  SharpSCCM get class-instances SMS_Role -p RoleName -p RoleDescription -sms SCCM01.corp.local -sc PS1
+  ```
+</Accordion>
+
+## Advanced Usage
+
+<Accordion title="Complex Filtering">
+  **Multiple Conditions:**
+  ```sql
+  Client = 1 AND LastLogonTimestamp > '2023-01-01' AND LastLogonUserName IS NOT NULL
+  ```
+
+  **Pattern Matching:**
+  ```sql
+  Name LIKE 'WS-%' OR Name LIKE 'LAPTOP-%'
+  ```
+
+  **Numeric Comparisons:**
+  ```sql
+  ResourceID > 1000 AND ResourceID < 2000
+  ```
+</Accordion>
+
+<Accordion title="Property Selection">
+  **Essential Properties:**
+  - Focus on key identifying and security-relevant properties
+  - Avoid retrieving unnecessary data for performance
+  - Use meaningful property combinations
+
+  **Security Properties:**
+  - User authentication and logon information
+  - Administrative roles and permissions
+  - Network and system configuration data
+</Accordion>
+
+## Use Cases
+
+<Accordion title="Target Identification">
+  **High-Value Systems:**
+  - Administrative workstations and servers
+  - Systems with privileged user access
+  - Critical infrastructure components
+
+  **User Targeting:**
+  - Administrative and service accounts
+  - High-privilege users
+  - Domain administrators
+</Accordion>
+
+<Accordion title="Environment Mapping">
+  **Infrastructure Analysis:**
+  - Network topology and system distribution
+  - Administrative boundaries and relationships
+  - User-device relationship mapping
+
+  **Security Assessment:**
+  - Permission and role analysis
+  - Administrative access patterns
+  - Security configuration review
+</Accordion>
+
+## Related Commands
+
+- [`get classes`](/commands/get/classes) - List available WMI classes
+- [`get class-properties`](/commands/get/class-properties) - Examine class structure
+- [`local class-instances`](/commands/local/class-instances) - Query local WMI classes
+- [`local query`](/commands/local/query) - Execute local WQL queries

@@ -1,0 +1,102 @@
+---
+title: 'LogonSessions'
+description: 'Windows logon sessions'
+icon: 'right-to-bracket'
+---
+
+## Overview
+
+The LogonSessions command enumerates active Windows logon sessions on the system. This reveals who is currently logged on, their logon type, authentication package used, and session details - critical information for understanding current user activity and potential token theft targets.
+
+## Syntax
+
+```bash
+Seatbelt.exe LogonSessions
+```
+
+### Remote Execution
+```bash
+Seatbelt.exe LogonSessions -computername=TARGET.domain.com [-username=DOMAIN\user -password=pass]
+```
+
+## Output
+
+Returns logon session information:
+- Username and domain
+- Logon ID (LUID)
+- Logon type (Interactive, Network, Batch, Service, etc.)
+- Authentication package (NTLM, Kerberos, Negotiate)
+- Logon time
+- Logon server
+- DNS domain name
+- User SID
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Identify high-value targets for token theft
+    - Find interactive admin sessions
+    - Discover service account logons
+    - Plan token impersonation attacks
+    - Identify lateral movement opportunities
+    - Locate cached credentials
+  </Tab>
+  <Tab title="Blue Team">
+    - Audit active user sessions
+    - Detect unauthorized access
+    - Investigate suspicious logons
+    - Validate session types
+    - Monitor privileged account usage
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== LogonSessions ======
+
+UserName               : CORP\administrator
+LogonDomain           : CORP
+LogonId               : 0x54321
+LogonType             : Interactive
+AuthenticationPackage : Kerberos
+LogonTime             : 10/15/2024 8:30:15 AM
+LogonServer           : DC01
+DnsDomainName         : corp.local
+Upn                   : administrator@corp.local
+UserSID               : S-1-5-21-123456789-123456789-123456789-500
+
+UserName               : CORP\svc_sql
+LogonDomain           : CORP
+LogonId               : 0x98765
+LogonType             : Service
+AuthenticationPackage : Negotiate
+LogonTime             : 10/14/2024 6:45:22 PM
+LogonServer           : DC01
+DnsDomainName         : corp.local
+```
+
+## Remote Execution
+
+<Check>
+This command **supports remote execution** using the `-computername` parameter.
+</Check>
+
+## Detection Considerations
+
+<Warning>
+Logon session enumeration is a common precursor to credential access.
+</Warning>
+
+- **API Calls**: Uses LsaEnumerateLogonSessions and LsaGetLogonSessionData
+- **Privilege Required**: May require elevated privileges
+- **WMI Activity**: Remote execution generates WMI events
+- **EDR Telemetry**: Often flagged by security products
+
+## Related Commands
+
+- [LocalUsers](/commands/localusers) - Local user accounts
+- [LocalGroups](/commands/localgroups) - Local group membership
+- [TokenPrivileges](/commands/tokenprivileges) - Token privileges
+- [Processes](/commands/processes) - Running processes

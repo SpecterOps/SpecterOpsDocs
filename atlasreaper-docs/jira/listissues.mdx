@@ -1,0 +1,275 @@
+---
+title: 'listissues'
+description: 'List issues in Jira projects'
+icon: 'rectangle-list'
+---
+
+## Overview
+
+The `jira listissues` command enumerates issues within Jira projects, providing detailed information about issue content, creators, assignees, status, and optionally comments and attachments. This reconnaissance command is essential for understanding organizational structure, identifying active projects, discovering sensitive information, and planning targeted attacks or data exfiltration operations.
+
+## Syntax
+
+```bash
+.\AtlasReaper.exe jira listissues [options]
+```
+
+## Required Parameters
+
+<ParamField path="--url" type="string" required>
+  The base URL of the target Jira instance (e.g., `https://company.atlassian.net`)
+</ParamField>
+
+## Optional Parameters
+
+<ParamField path="--cookie" type="string">
+  Authentication cookie (`cloud.session.token` or `tenant.session.token`). Required for accessing non-public issues
+</ParamField>
+
+<ParamField path="--project" type="string">
+  Project key or ID to list issues from (e.g., `PROJ`, `12345`). If not specified, lists issues across all accessible projects
+</ParamField>
+
+<ParamField path="--issue" type="string">
+  Specific issue key to retrieve (e.g., `PROJ-123`). Use this to get detailed information about a single issue
+</ParamField>
+
+<ParamField path="--all" type="boolean" default="false">
+  Return all issues (not just the first 100). Automatically paginates through all results in batches of 100
+</ParamField>
+
+<ParamField path="--limit" type="string" default="100">
+  Maximum number of issues to return (when not using `--all`)
+</ParamField>
+
+<ParamField path="--comments" type="boolean" default="false">
+  Include comments in the issue output. Useful for discovering internal communications and potential sensitive information
+</ParamField>
+
+<ParamField path="--attachments" type="boolean" default="false">
+  Include attachment information in the issue output. Shows filenames and attachment IDs
+</ParamField>
+
+<ParamField path="--output" type="string">
+  Save command output to a specified file
+</ParamField>
+
+## Examples
+
+### List Issues in Specific Project
+
+List the first 100 issues from a project:
+
+```bash
+.\AtlasReaper.exe jira listissues \
+  --url https://company.atlassian.net \
+  --project FIN \
+  --cookie $cookie
+```
+
+### Get Detailed Issue Information
+
+Retrieve full details for a specific issue:
+
+```bash
+.\AtlasReaper.exe jira listissues \
+  --url https://company.atlassian.net \
+  --issue SECURITY-456 \
+  --comments \
+  --attachments \
+  --cookie $cookie
+```
+
+### Comprehensive Project Reconnaissance
+
+List all issues with comments and attachments:
+
+```bash
+.\AtlasReaper.exe jira listissues \
+  --url https://company.atlassian.net \
+  --project HR \
+  --all \
+  --comments \
+  --attachments \
+  --output hr_issues_full.txt \
+  --cookie $cookie
+```
+
+### Enumerate All Accessible Issues
+
+List all issues across all projects (high-volume operation):
+
+```bash
+.\AtlasReaper.exe jira listissues \
+  --url https://company.atlassian.net \
+  --all \
+  --output all_issues_inventory.txt \
+  --cookie $cookie
+```
+
+### Targeted Intelligence Gathering
+
+Gather intelligence from a sensitive project:
+
+```bash
+.\AtlasReaper.exe jira listissues \
+  --url https://company.atlassian.net \
+  --project INFRA \
+  --all \
+  --comments \
+  --attachments \
+  --cookie $cookie
+```
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    ### Offensive Security Applications
+
+    - **Reconnaissance**: Map organizational structure, project relationships, and workflow patterns
+    - **Sensitive Data Discovery**: Find credentials, API keys, or configuration details in issue descriptions
+    - **User Enumeration**: Identify active users, their roles, and communication patterns
+    - **Target Selection**: Find high-value issues for comment injection or phishing campaigns
+    - **Infrastructure Mapping**: Discover internal systems, servers, and network architecture from technical issues
+    - **Credential Harvesting**: Extract hardcoded credentials or secrets from issue content
+    - **Social Engineering Intel**: Understand organizational communication style and culture
+    - **Attachment Discovery**: Identify files for download and analysis
+  </Tab>
+
+  <Tab title="Blue Team">
+    ### Defensive Monitoring
+
+    - **Data Classification Audit**: Identify issues containing sensitive or regulated information
+    - **Compliance Review**: Verify adherence to data handling and privacy policies
+    - **Access Pattern Analysis**: Monitor who is viewing issues and detect abnormal access
+    - **Credential Exposure Detection**: Search for accidentally exposed credentials or secrets
+    - **Incident Response**: Investigate issue access during security incidents
+    - **Security Posture Assessment**: Identify security issues and their resolution status
+    - **Training and Awareness**: Understand common security mistakes for awareness programs
+    - **Project Security Review**: Audit project configurations and access controls
+  </Tab>
+</Tabs>
+
+## Output
+
+The command returns comprehensive information about each issue:
+
+```
+Issue Title    : Database Migration Planning
+Issue Key      : INFRA-789
+Issue Id       : 10789
+Created        : 2024-09-15T10:30:00.000-0700
+Updated        : 2024-10-18T14:22:00.000-0700
+Status         : In Progress
+Creator        : admin@company.com - John Admin - America/Los_Angeles
+Assignee       : dev@company.com - Jane Developer - America/New_York
+Issue Contents : We need to migrate the production database to the new server.
+                 Connection string: Server=prod-db-01;Database=MainDB;User=sa;Password=P@ssw0rd123
+
+Attachments    :
+  Filename      : migration_script.sql
+  Attachment Id : 10234
+  Mimetype      : application/sql
+  File size     : 45678
+
+Comments       :
+  - admin@company.com - John Admin - 2024-09-16T09:15:00.000-0700
+             Make sure to back up before running the migration
+  - dev@company.com - Jane Developer - 2024-09-16T11:30:00.000-0700
+             Started the migration process. ETA 2 hours.
+```
+
+### Output Information
+
+For each issue:
+- **Issue Title**: Summary/title of the issue
+- **Issue Key**: Unique identifier (PROJECT-###)
+- **Issue Id**: Numeric ID
+- **Created**: Timestamp when issue was created
+- **Updated**: Timestamp of last update
+- **Status**: Current workflow status (Open, In Progress, Closed, etc.)
+- **Creator**: Email, display name, and timezone of issue creator
+- **Assignee**: Email, display name, and timezone of assigned user (if any)
+- **Issue Contents**: Full description text (HTML tags stripped, links preserved)
+
+When `--attachments` is used:
+- Filename, Attachment ID, MIME type, and file size for each attachment
+
+When `--comments` is used:
+- Author information, timestamp, and comment text for each comment
+
+## Detection Considerations
+
+<Warning>
+**Detection Indicators**
+
+Security teams should monitor for:
+
+- Use of `--all` flag (comprehensive enumeration)
+- Large numbers of issue listings in short timeframes
+- Access to projects outside user's normal scope
+- Issue viewing patterns from unusual IP addresses or locations
+- Listing activity outside normal business hours
+- Sequential issue enumeration (PROJ-1, PROJ-2, PROJ-3, ...)
+- Correlation with subsequent download or comment activity
+- Service accounts performing bulk issue queries
+- Listing activity after credential compromise indicators
+- Requests including `--comments` and `--attachments` flags (deep reconnaissance)
+</Warning>
+
+### Jira Audit Log Entries
+
+This command generates the following audit log events:
+- `issue_viewed` - Logged for each issue accessed
+- Search/query operations may be logged
+- Includes: User ID, issue key, project key, timestamp, IP address
+
+### Network Indicators
+
+- HTTP GET requests to `/rest/api/3/search?jql=...&expand=renderedFields&fields=...`
+- JQL queries with project or issue filters
+- Multiple sequential requests when using `--all` (pagination)
+- Query parameters indicating comment and attachment inclusion
+- Large response sizes when retrieving many issues with full details
+
+## OPSEC Considerations
+
+<Tip>
+**Operational Security Tips**
+
+To reduce detection risk when using this command:
+
+1. **Targeted Queries**: Use `--project` to limit scope rather than querying all accessible issues
+2. **Rate Limiting**: Use `--limit` to retrieve smaller batches over time
+3. **Timing**: Execute during business hours when legitimate activity is high
+4. **Selective Details**: Only include `--comments` and `--attachments` when necessary
+5. **Output Files**: Save results to files for offline analysis to reduce repeated queries
+6. **Account Context**: Use cookies from accounts that regularly access the target projects
+7. **Incremental Approach**: Start with specific issues before expanding to full project listings
+8. **Pagination Awareness**: Be aware that `--all` generates multiple API requests (one per 100 issues)
+9. **Issue Selection**: Target active projects where queries blend with normal activity
+10. **Network Bandwidth**: Large result sets may be noticeable in network monitoring
+</Tip>
+
+### Performance Considerations
+
+- Using `--all` with `--comments` and `--attachments` can generate substantial data
+- Each page of 100 issues requires a separate API request
+- Large projects may take minutes to fully enumerate
+- Network latency affects overall operation time
+
+### Permission Considerations
+
+- Users can only see issues in projects they have access to
+- Issue-level security may restrict visibility of certain issues
+- Anonymous access typically very limited or disabled
+
+## Related Commands
+
+- [jira listprojects](/jira/listprojects) - List available projects before enumerating issues
+- [jira searchissues](/jira/searchissues) - Search for issues matching specific criteria
+- [jira listattachments](/jira/listattachments) - Focus specifically on attachments across issues
+- [jira download](/jira/download) - Download attachments identified in issue listings
+- [jira addcomment](/jira/addcomment) - Add comments to issues discovered via listing
+- [jira createissue](/jira/createissue) - Create new issues that blend with existing issue patterns

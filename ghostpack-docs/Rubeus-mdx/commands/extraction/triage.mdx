@@ -1,0 +1,252 @@
+---
+title: 'triage'
+description: 'Quickly triage all accessible Kerberos tickets on the system'
+icon: 'list-check'
+sidebarTitle: 'triage'
+---
+
+## Overview
+
+Quickly triage all accessible Kerberos tickets across all logon sessions on the current system. This command provides a rapid overview of available tickets without extracting full ticket data, ideal for initial reconnaissance and target identification.
+
+## Syntax
+
+```bash
+Rubeus.exe triage [options]
+```
+
+## Optional Parameters
+
+<ParamField path="luid" type="string">
+  Target specific logon session ID
+</ParamField>
+
+<ParamField path="user" type="string">
+  Filter by specific username
+</ParamField>
+
+<ParamField path="service" type="string">
+  Filter by service name pattern
+</ParamField>
+
+## Examples
+
+<CodeGroup>
+```bash Basic Triage
+# List all accessible tickets
+Rubeus.exe triage
+
+# Target specific logon session
+Rubeus.exe triage /luid:0x12345
+
+# Filter by username
+Rubeus.exe triage /user:admin
+```
+
+```bash Advanced Filtering
+# Filter by service type
+Rubeus.exe triage /service:cifs
+
+# Combine filters
+Rubeus.exe triage /user:serviceaccount /service:http
+```
+</CodeGroup>
+
+## Triage Information
+
+<Accordion title="Ticket Overview">
+  **Basic Details:**
+  - Logon session ID (LUID)
+  - Username and domain
+  - Service principal name
+  - Ticket type (TGT vs Service)
+
+  **Status Information:**
+  - Start and end times
+  - Encryption type
+  - Ticket flags
+  - Validity status
+</Accordion>
+
+<Accordion title="Session Context">
+  **Logon Session Details:**
+  - Authentication package
+  - Logon type and time
+  - User SID and privileges
+  - Session characteristics
+
+  **Access Capabilities:**
+  - Available for extraction
+  - Requires elevation
+  - Cross-session visibility
+  - Permission requirements
+</Accordion>
+
+## Use Cases
+
+<Accordion title="Initial Reconnaissance">
+  **System Assessment:**
+  - Identify high-value tickets
+  - Map user sessions and activities
+  - Locate administrative accounts
+  - Find service account tickets
+
+  **Target Prioritization:**
+  - Identify domain admin tickets
+  - Locate delegation-enabled accounts
+  - Find cross-domain tickets
+  - Spot unusual service tickets
+</Accordion>
+
+<Accordion title="Operational Planning">
+  **Attack Preparation:**
+  - Plan ticket extraction strategy
+  - Identify privilege escalation paths
+  - Map lateral movement opportunities
+  - Assess defensive visibility
+
+  **Resource Optimization:**
+  - Focus on valuable targets
+  - Avoid unnecessary extractions
+  - Minimize detection footprint
+  - Streamline operations
+</Accordion>
+
+## Output Analysis
+
+<Accordion title="Understanding Results">
+  **Sample Output:**
+  ```bash
+  # Example triage output
+  Rubeus.exe triage
+
+  [*] Action: Ticket Triage
+
+  [*] Current LUID    : 0x12345
+  [*] Current user    : CORP\admin
+
+  [0x3e7] - SYSTEM
+    [*] 0x3e4 krbtgt/CORP.LOCAL                             [CORP.LOCAL]    [10/25/2024 1:23:45 PM] [10/25/2024 11:23:45 PM]
+    [*] 0x3e5 CIFS/fileserver.corp.local                    [CORP.LOCAL]    [10/25/2024 1:25:12 PM] [10/25/2024 11:25:12 PM]
+
+  [0x54321] - CORP\serviceaccount
+    [*] 0x123 krbtgt/CORP.LOCAL                             [CORP.LOCAL]    [10/25/2024 9:15:30 AM] [10/25/2024 7:15:30 PM]
+    [*] 0x124 HTTP/webapp.corp.local                        [CORP.LOCAL]    [10/25/2024 9:16:45 AM] [10/25/2024 7:16:45 PM]
+  ```
+
+  **Key Elements:**
+  - LUID identifies logon session
+  - Ticket ID for extraction reference
+  - Service name indicates access scope
+  - Times show validity window
+</Accordion>
+
+## Strategic Applications
+
+<Accordion title="High-Value Target Identification">
+  **Administrative Tickets:**
+  - Domain controller access (HOST, LDAP)
+  - Domain admin accounts (krbtgt tickets)
+  - Exchange server access (exchangeab)
+  - SQL server access (mssql)
+
+  **Service Account Detection:**
+  - Service accounts with delegation
+  - Machine accounts with valuable access
+  - Cross-domain service accounts
+  - Accounts with multiple service tickets
+</Accordion>
+
+<Accordion title="Lateral Movement Planning">
+  **Access Mapping:**
+  - Identify accessible systems via tickets
+  - Map service relationships
+  - Find trust relationships
+  - Locate administrative boundaries
+
+  **Path Optimization:**
+  - Choose highest-value targets
+  - Minimize required privilege escalation
+  - Identify direct access paths
+  - Plan multi-hop strategies
+</Accordion>
+
+## Integration Workflows
+
+<Accordion title="Reconnaissance to Extraction">
+  **Complete Workflow:**
+  ```bash
+  # 1. Initial triage
+  Rubeus.exe triage
+
+  # 2. Identify valuable tickets
+  # Look for admin accounts, service accounts, high-value services
+
+  # 3. Extract specific tickets
+  Rubeus.exe dump /luid:0x54321 /service:krbtgt
+
+  # 4. Use extracted tickets
+  Rubeus.exe ptt /ticket:extracted.kirbi
+  ```
+</Accordion>
+
+<Accordion title="Targeted Assessment">
+  **Focused Analysis:**
+  ```bash
+  # 1. Target specific user
+  Rubeus.exe triage /user:admin
+
+  # 2. Target specific service
+  Rubeus.exe triage /service:cifs
+
+  # 3. Extract matching tickets
+  Rubeus.exe dump /user:admin /service:cifs
+  ```
+</Accordion>
+
+## Session Management
+
+<Accordion title="Current Session">
+  **Default Behavior:**
+  - Shows tickets from current session
+  - No elevation required
+  - Limited to user's context
+  - Safe for reconnaissance
+</Accordion>
+
+<Accordion title="Cross-Session Access">
+  **Elevated Operations:**
+  - Requires administrative privileges
+  - Access to all logon sessions
+  - System-wide ticket visibility
+  - Enhanced targeting capabilities
+
+  **LUID Discovery:**
+  - Use logonsession command for LUID enumeration
+  - Target specific high-value sessions
+  - Cross-reference with user activities
+  - Plan extraction strategies
+</Accordion>
+
+## Operational Security
+
+<Accordion title="Detection Considerations">
+  **Low-Risk Operations:**
+  - Triage generates minimal logs
+  - No ticket modification or extraction
+  - Standard authentication package queries
+  - Difficult to distinguish from normal activity
+
+  **Volume Considerations:**
+  - Avoid excessive triage frequency
+  - Focus on specific targets when possible
+  - Correlate with normal system activity
+  - Minimize enumeration footprint
+</Accordion>
+
+## Related Commands
+
+- [`dump`](/GhostPack/Rubeus-mdx/commands/extraction/dump) - Extract identified tickets
+- [`klist`](/GhostPack/Rubeus-mdx/commands/extraction/klist) - List current session tickets
+- [`logonsession`](/GhostPack/Rubeus-mdx/commands/miscellaneous/logonsession) - Enumerate logon sessions
+- [`ptt`](/GhostPack/Rubeus-mdx/commands/management/ptt) - Use triaged tickets

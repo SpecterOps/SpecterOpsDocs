@@ -1,0 +1,380 @@
+---
+title: 'blob'
+description: 'Decrypt arbitrary DPAPI blob data'
+icon: 'database'
+---
+
+## Overview
+
+The **blob** command decrypts arbitrary DPAPI blobs provided as base64 strings or binary files. This is a general-purpose decryption tool for any DPAPI-protected data not covered by other specific commands.
+
+<Info>
+  DPAPI blobs are the fundamental encrypted data structure used throughout Windows. This command can decrypt any DPAPI blob if you have the appropriate masterkeys.
+</Info>
+
+## Basic Usage
+
+```bash
+# Decrypt blob file with CryptUnprotectData (unprivileged)
+SharpDPAPI.exe blob /target:C:\Path\To\blob.bin /unprotect
+
+# Decrypt blob with domain backup key
+SharpDPAPI.exe blob /target:C:\Path\To\blob.bin /pvk:key.pvk
+
+# Decrypt base64 blob with masterkey mappings
+SharpDPAPI.exe blob /target:AQAAAAAADQCAAAAAgA... {GUID}:SHA1
+
+# Decrypt blob file with user password
+SharpDPAPI.exe blob /target:C:\Path\To\blob.bin /password:Password123!
+```
+
+<Warning>
+  The `/target` parameter is **required** for the blob command. You must specify either a file path or base64-encoded blob data.
+</Warning>
+
+## Command Arguments
+
+### Required Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `/target:BASE64` | Base64-encoded DPAPI blob to decrypt |
+| `/target:blob.bin` | Path to binary file containing DPAPI blob |
+
+### Decryption Methods
+
+<Tabs>
+  <Tab title="CryptUnprotectData">
+    ```bash
+    # Use Windows API for decryption (unprivileged)
+    SharpDPAPI.exe blob /target:C:\Temp\blob.bin /unprotect
+    ```
+
+    <Tip>
+      This method works **without** masterkeys if run from the user context who created the blob. No LSASS access required!
+    </Tip>
+  </Tab>
+
+  <Tab title="Domain Backup Key">
+    ```bash
+    # Base64-encoded key
+    SharpDPAPI.exe blob /target:C:\Temp\blob.bin /pvk:HvG1sAAAAAABAAAAAAAAAAAAAAC...
+
+    # Key file
+    SharpDPAPI.exe blob /target:C:\Temp\blob.bin /pvk:key.pvk
+    ```
+
+    First decrypts user masterkeys, then uses them to decrypt the blob.
+  </Tab>
+
+  <Tab title="Masterkey Mappings">
+    ```bash
+    # Inline masterkeys
+    SharpDPAPI.exe blob /target:C:\Temp\blob.bin {GUID1}:SHA1 {GUID2}:SHA1
+
+    # Masterkey file
+    SharpDPAPI.exe blob /target:C:\Temp\blob.bin /mkfile:masterkeys.txt
+    ```
+
+    Directly uses pre-decrypted masterkeys for blob decryption.
+  </Tab>
+
+  <Tab title="User Credentials">
+    ```bash
+    # Plaintext password
+    SharpDPAPI.exe blob /target:C:\Temp\blob.bin /password:Password123!
+
+    # NTLM hash
+    SharpDPAPI.exe blob /target:C:\Temp\blob.bin /ntlm:8846F7EAEE8FB117AD06BDD830B7586C
+
+    # DPAPI credkey
+    SharpDPAPI.exe blob /target:C:\Temp\blob.bin /credkey:abc123...
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+  The `/server` argument is **not** applicable to the blob command since you must specify a specific target blob or file.
+</Note>
+
+## Example: Decrypting Binary Blob File with /unprotect
+
+```bash
+SharpDPAPI.exe blob /target:C:\Temp\blob.bin /unprotect
+```
+
+**Output:**
+```
+[*] Action: Describe DPAPI blob
+
+[*] Using CryptUnprotectData() for decryption.
+
+    guidMasterKey    : {0241bc33-44ae-404a-b05d-a35eea8cbc63}
+    size             : 170
+    flags            : 0x0
+    algHash/algCrypt : 32772 (CALG_SHA) / 26115 (CALG_3DES)
+    description      :
+    dec(blob)        : Password123!
+```
+
+## Example: Decrypting with Masterkey Mappings
+
+```bash
+SharpDPAPI.exe blob /target:C:\Temp\blob2.bin {0241bc33-44ae-404a-b05d-a35eea8cbc63}:E7E481877B9D51C17E015EB3C1F72FB887363EE3
+```
+
+**Output:**
+```
+[*] Action: Describe DPAPI blob
+
+[*] Using CryptUnprotectData() for decryption.
+
+    guidMasterKey    : {0241bc33-44ae-404a-b05d-a35eea8cbc63}
+    size             : 314
+    flags            : 0x0
+    algHash/algCrypt : 32772 (CALG_SHA) / 26115 (CALG_3DES)
+    description      :
+    dec(blob)        : 01 00 00 00 3F 3F 3F 3F 01 15 3F 11 3F 7A 00 3F 4F 3F 3F ...
+```
+
+<Note>
+  Binary data is displayed as hex bytes. Text data is displayed as a string.
+</Note>
+
+## Example: Decrypting with Domain Backup Key
+
+```bash
+SharpDPAPI.exe blob /target:C:\Temp\blob2.bin /pvk:HvG1sAAAAAABAAAAAAAAAAAAAAC...
+```
+
+**Output:**
+```
+[*] Action: Describe DPAPI blob
+
+[*] Using a domain DPAPI backup key to triage masterkeys for decryption key mappings!
+
+[*] User master key cache:
+
+{0241bc33-44ae-404a-b05d-a35eea8cbc63}:E7E481877B9D51C17E015EB3C1F72FB887363EE3
+
+    guidMasterKey    : {0241bc33-44ae-404a-b05d-a35eea8cbc63}
+    size             : 314
+    flags            : 0x0
+    algHash/algCrypt : 32772 (CALG_SHA) / 26115 (CALG_3DES)
+    description      :
+    dec(blob)        : 01 00 00 00 3F 3F 3F 3F 01 15 3F 11 3F 7A 00 3F 4F 3F 3F ...
+```
+
+## DPAPI Blob Structure
+
+A DPAPI blob contains:
+
+| Field | Description |
+|-------|-------------|
+| **guidMasterKey** | GUID of masterkey used for encryption |
+| **size** | Size of encrypted data |
+| **flags** | Protection flags (e.g., CRYPTPROTECT_SYSTEM) |
+| **algHash** | Hash algorithm used (e.g., CALG_SHA) |
+| **algCrypt** | Encryption algorithm used (e.g., CALG_3DES, CALG_AES_256) |
+| **description** | Optional description string |
+| **encrypted data** | The actual encrypted content |
+
+## Common DPAPI Blob Sources
+
+<AccordionGroup>
+  <Accordion title="Registry Values">
+    - Browser saved passwords
+    - Application credentials
+    - Windows settings
+    - Software configurations
+  </Accordion>
+
+  <Accordion title="File System">
+    - Configuration files
+    - Credential stores
+    - Encrypted user data
+    - Application data
+  </Accordion>
+
+  <Accordion title="Memory Dumps">
+    - Process memory containing DPAPI data
+    - Crash dumps with credentials
+    - Hibernation files
+  </Accordion>
+
+  <Accordion title="Custom Applications">
+    - Third-party software using DPAPI
+    - Custom credential management
+    - Encrypted configuration data
+  </Accordion>
+</AccordionGroup>
+
+## Finding DPAPI Blobs
+
+Use the [search](/GhostPack/SharpDPAPI-mdx/commands/search) command to find DPAPI blobs:
+
+```bash
+# Search registry
+SharpDPAPI.exe search /type:registry
+
+# Search folder
+SharpDPAPI.exe search /type:folder /path:C:\ProgramData\
+
+# Search specific file
+SharpDPAPI.exe search /type:file /path:C:\config.dat
+
+# Search base64 string
+SharpDPAPI.exe search /type:base64 /base:AQAAAAAADQCAAAAAgA...
+```
+
+## Common Scenarios
+
+<AccordionGroup>
+  <Accordion title="Analyzing Custom Application Data">
+    Decrypt DPAPI blobs from custom applications:
+
+    ```bash
+    # Find blobs in application directory
+    SharpDPAPI.exe search /type:folder /path:C:\Program Files\CustomApp\
+
+    # Decrypt discovered blob
+    SharpDPAPI.exe blob /target:C:\Program Files\CustomApp\encrypted.dat /unprotect
+    ```
+  </Accordion>
+
+  <Accordion title="Registry-Based Credentials">
+    Extract and decrypt registry DPAPI blobs:
+
+    ```powershell
+    # Extract from registry
+    $regValue = Get-ItemProperty -Path "HKCU:\Software\App" -Name "EncryptedData"
+    $base64 = [Convert]::ToBase64String($regValue.EncryptedData)
+    ```
+
+    ```bash
+    # Decrypt the blob
+    SharpDPAPI.exe blob /target:AQAAAAAADQCAAAAAgA... /unprotect
+    ```
+  </Accordion>
+
+  <Accordion title="Post-Domain Compromise">
+    Decrypt arbitrary DPAPI blobs with domain backup key:
+
+    ```bash
+    # 1. Retrieve backup key
+    SharpDPAPI.exe backupkey /file:key.pvk
+
+    # 2. Find interesting blobs
+    SharpDPAPI.exe search /type:folder /path:C:\ProgramData\
+
+    # 3. Decrypt discovered blobs
+    SharpDPAPI.exe blob /target:C:\ProgramData\App\data.bin /pvk:key.pvk
+    ```
+  </Accordion>
+
+  <Accordion title="Offline/Forensic Analysis">
+    Analyze extracted DPAPI blobs:
+
+    ```bash
+    # Decrypt with backup key
+    SharpDPAPI.exe blob /target:C:\Evidence\unknown.blob /pvk:key.pvk
+
+    # Decrypt with known masterkey
+    SharpDPAPI.exe blob /target:C:\Evidence\unknown.blob {GUID}:SHA1
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Blob Flags
+
+Common DPAPI protection flags:
+
+| Flag | Value | Description |
+|------|-------|-------------|
+| **CRYPTPROTECT_UI_FORBIDDEN** | 0x1 | No UI prompts |
+| **CRYPTPROTECT_LOCAL_MACHINE** | 0x4 | Machine-scope protection |
+| **CRYPTPROTECT_SYSTEM** | 0x20000000 | System credential protection |
+
+<Note>
+  The `CRYPTPROTECT_SYSTEM` flag (0x20000000) indicates credentials saved by Windows services or scheduled tasks.
+</Note>
+
+## Encryption Algorithms
+
+Common DPAPI encryption algorithms:
+
+| Algorithm | Value | Description |
+|-----------|-------|-------------|
+| **CALG_3DES** | 26115 | Triple DES encryption |
+| **CALG_AES_128** | 26126 | AES-128 encryption |
+| **CALG_AES_256** | 26128 | AES-256 encryption (newer Windows) |
+
+## Detection Considerations
+
+**Host-Based Indicators:**
+- Reading unknown/arbitrary files
+- Processing base64-encoded data
+- Decryption attempts on multiple blobs
+- Access patterns suggesting blob enumeration
+
+**Defensive Monitoring:**
+- Monitor for bulk file access patterns
+- Alert on DPAPI-related process activity
+- Track access to application credential stores
+- Detect registry value enumeration
+- Monitor for LSASS access (when not using /unprotect)
+
+## Related Commands
+
+<CardGroup cols={2}>
+  <Card title="search" icon="magnifying-glass" href="/ghostpack-docs/SharpDPAPI-mdx/commands/search">
+    Find DPAPI blobs in registry, files, and folders
+  </Card>
+  <Card title="ps" icon="terminal" href="/ghostpack-docs/SharpDPAPI-mdx/commands/ps">
+    Decrypt PowerShell credential XML files
+  </Card>
+  <Card title="credentials" icon="id-card" href="/ghostpack-docs/SharpDPAPI-mdx/commands/credentials">
+    Decrypt Credential Manager files
+  </Card>
+  <Card title="masterkeys" icon="key" href="/ghostpack-docs/SharpDPAPI-mdx/commands/masterkeys">
+    Decrypt user masterkeys
+  </Card>
+</CardGroup>
+
+## Tips
+
+<Accordion title="Working with Blobs">
+  - Use the search command to locate DPAPI blobs first
+  - Extract blobs from registry using PowerShell
+  - Binary data may require further parsing after decryption
+  - Check blob flags to understand protection scope
+  - Text data will be displayed directly, binary as hex
+</Accordion>
+
+<Accordion title="OPSEC Considerations">
+  - Prefer `/unprotect` when running as target user
+  - Target specific blobs to avoid bulk processing
+  - Redirect output to file with `/consoleoutfile`
+  - Consider the visibility of accessing unusual files
+  - Base64 blobs in command line may be logged
+</Accordion>
+
+<Accordion title="Troubleshooting">
+  **Decryption fails with /unprotect:**
+  - Must run from user context who created the blob
+  - Try using masterkeys or backup key instead
+  - Verify you're running as correct user
+  - Blob may use machine-scope protection
+
+  **Invalid blob format:**
+  - Data may not be a DPAPI blob
+  - File may be corrupted
+  - Check file header for DPAPI signature
+  - Verify base64 encoding is correct
+
+  **Decrypted data is binary:**
+  - Data is not plain text
+  - May require additional parsing
+  - Check application documentation
+  - Could be encrypted with additional layer
+</Accordion>

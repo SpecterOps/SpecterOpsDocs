@@ -1,0 +1,179 @@
+---
+title: "query"
+description: "Send a single query to an AI model and receive a single response"
+---
+
+## Summary
+
+Send a single query to an AI model and receive a single response. Unlike the `chat` command, this does not maintain conversational context and is ideal for one-off questions.
+
+- Needs Admin: False
+- Version: 0
+- Author: @Ne0nd0g
+
+### Arguments
+
+#### provider
+
+- Description: The model provider to interact with (Anthropic, Bedrock, OpenAI, ollama, OpenWebUI)
+- Required: False (uses build parameters, user secrets, or environment variables if not specified)
+- Type: Choose One
+- Choices: Anthropic, Bedrock, OpenAI, ollama, OpenWebUI
+
+#### model
+
+- Description: The model to use for inference from the selected provider
+- Required: False (uses build parameters, user secrets, or environment variables if not specified)
+- Type: String
+
+#### prompt
+
+- Description: The prompt to send to the model for inference
+- Required: True
+- Type: String
+
+#### tools
+
+- Description: Use tools to enhance the model's capabilities
+- Required: False
+- Default: true
+- Type: Boolean
+
+#### verbose
+
+- Description: Show verbose output of all user and AI messages
+- Required: False
+- Default: false
+- Type: Boolean
+
+#### API_ENDPOINT
+
+- Description: The API endpoint to use for the selected provider
+- Required: False
+- Type: String
+
+#### API_KEY
+
+- Description: The API key to authenticate with the provider
+- Required: False
+- Type: String
+
+#### AWS_ACCESS_KEY_ID
+
+- Description: AWS Access Key ID for Bedrock
+- Required: False
+- Type: String
+
+#### AWS_SECRET_ACCESS_KEY
+
+- Description: AWS Secret Access Key for Bedrock
+- Required: False
+- Type: String
+
+#### AWS_SESSION_TOKEN
+
+- Description: AWS Session Token for Bedrock
+- Required: False
+- Type: String
+
+#### AWS_DEFAULT_REGION
+
+- Description: AWS Region for Bedrock
+- Required: False
+- Type: String
+
+#### filename
+
+- Description: The filename of an already uploaded file to send to the model
+- Required: False
+- Type: Choose One (dynamically populated)
+
+#### file
+
+- Description: Upload a new file to send to the model for analysis
+- Required: False
+- Type: File
+
+## Usage
+
+```
+query -prompt "What is Kerberoasting?"
+query -provider Anthropic -model claude-3-7-sonnet-latest -prompt "Explain Pass-the-Hash"
+query -provider OpenAI -model gpt-4o-mini -prompt "List common persistence mechanisms"
+query -prompt "Analyze this log" -file upload.log
+```
+
+## Detailed Summary
+
+The `query` command sends a single prompt to an AI model and returns a single response. This is the most straightforward way to interact with AI models when you don't need conversational context.
+
+### Use Cases
+
+**Quick Information Retrieval**
+- Look up technique details
+- Get command syntax help
+- Understand error messages
+
+**One-Time Analysis**
+- Analyze a single file or log
+- Review a code snippet
+- Check configuration settings
+
+**Batch Operations**
+- Send multiple independent queries
+- Process different files separately
+- Compare responses from different models
+
+### File Support
+
+The command supports two parameter groups for file handling:
+
+**Default Group** - Use existing files
+- Select from files already uploaded to Mythic
+- Reference by filename parameter
+
+**New File Group** - Upload new files
+- Upload a file as part of the query
+- Combine prompt with file analysis
+
+### Tool Enhancement
+
+When tools are enabled (default), models can:
+- Access additional context from Mythic
+- Perform structured analysis
+- Generate formatted outputs
+- Use specialized functions for better results
+
+### Provider Comparison
+
+**Anthropic Claude**
+- Excellent for security analysis
+- Strong reasoning capabilities
+- Good at following instructions
+
+**Bedrock Claude**
+- Same Claude models via AWS
+- Enterprise compliance features
+- May have different rate limits
+
+**OpenAI GPT**
+- Fast response times
+- Good general knowledge
+- Wide ecosystem support
+
+**ollama**
+- Local model execution
+- No API costs
+- Privacy-focused option
+
+### Performance Tips
+
+- Keep prompts focused and specific
+- Use tools for enhanced capabilities
+- Match provider/model to task complexity
+- Consider cost and speed trade-offs
+
+<Info>
+Each query is independent. The model does not remember previous queries. For multi-turn conversations, use the `chat` command instead.
+</Info>
+

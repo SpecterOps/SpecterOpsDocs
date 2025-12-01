@@ -1,0 +1,232 @@
+---
+title: 'Installation and Setup'
+description: 'Complete installation guide for SCCMHunter including dependencies, configuration, and initial setup verification.'
+icon: 'download'
+sidebarTitle: 'Installation'
+---
+
+SCCMHunter is a Python-based tool that requires proper configuration for SCCM infrastructure assessment. This guide covers installation, dependencies, and initial setup.
+
+<Info>
+SCCMHunter requires Python 3.6+ and various dependencies for LDAP, SMB, and HTTP functionality.
+</Info>
+
+## Prerequisites
+
+<Card title="System Requirements" icon="server">
+- **Operating System**: Linux (preferred), Windows, or macOS
+- **Python Version**: Python 3.6 or higher
+- **Network Access**: Connectivity to target Active Directory environment
+- **Credentials**: Valid domain user account (minimum privileges)
+</Card>
+
+## Installation Methods
+
+### Method 1: Git Clone (Recommended)
+
+<CodeGroup>
+```bash Clone Repository
+git clone https://github.com/garrettfoster13/sccmhunter.git
+cd sccmhunter
+```
+
+```bash Install Dependencies
+pip3 install -r requirements.txt
+```
+
+```bash Verify Installation
+python3 sccmhunter.py --help
+```
+</CodeGroup>
+
+### Method 2: Direct Download
+
+<CodeGroup>
+```bash Download Latest Release
+wget https://github.com/garrettfoster13/sccmhunter/archive/refs/heads/main.zip
+unzip main.zip
+cd sccmhunter-main
+```
+
+```bash Install Dependencies
+pip3 install -r requirements.txt
+```
+</CodeGroup>
+
+## Dependencies
+
+SCCMHunter relies on several Python libraries for its functionality:
+
+<Accordion title="Core Dependencies">
+- **impacket**: For SMB, LDAP, and authentication protocols
+- **ldap3**: Enhanced LDAP operations and queries
+- **requests**: HTTP client enrollment and web service interactions
+- **colorama**: Terminal output formatting and colors
+- **click**: Command-line interface framework
+</Accordion>
+
+<Accordion title="Optional Dependencies">
+- **pyopenssl**: For certificate handling in HTTP modules
+- **cryptography**: Enhanced cryptographic operations
+- **neo4j**: For data export to BloodHound/Neo4j (if using --neo4j flag)
+</Accordion>
+
+### Manual Dependency Installation
+
+If you encounter issues with requirements.txt:
+
+<CodeGroup>
+```bash Core Libraries
+pip3 install impacket ldap3 requests colorama click
+```
+
+```bash Optional Libraries
+pip3 install pyopenssl cryptography neo4j
+```
+</CodeGroup>
+
+## Configuration
+
+### Environment Setup
+
+<Warning>
+Never hardcode credentials in scripts. Use environment variables or secure credential management.
+</Warning>
+
+<CodeGroup>
+```bash Environment Variables
+export SCCM_USERNAME="domain\\username"
+export SCCM_PASSWORD="password"
+export SCCM_DOMAIN="contoso.com"
+export SCCM_DC="dc01.contoso.com"
+```
+
+```bash Alternative: Config File
+# Create ~/.sccmhunter/config
+[default]
+username = domain\\username
+domain = contoso.com
+dc-ip = 192.168.1.10
+```
+</CodeGroup>
+
+### Kerberos Configuration
+
+For Kerberos authentication, ensure proper krb5.conf setup:
+
+<CodeGroup>
+```bash Generate Kerberos Ticket
+kinit username@DOMAIN.COM
+```
+
+```bash Verify Ticket
+klist
+```
+
+```bash Use with SCCMHunter
+python3 sccmhunter.py find -d domain.com -dc-ip 192.168.1.10 -k --no-pass
+```
+</CodeGroup>
+
+## Verification
+
+### Basic Functionality Test
+
+<CodeGroup>
+```bash Help Command
+python3 sccmhunter.py --help
+```
+
+```bash Module List
+python3 sccmhunter.py find --help
+python3 sccmhunter.py smb --help
+python3 sccmhunter.py http --help
+```
+</CodeGroup>
+
+### Connectivity Test
+
+<CodeGroup>
+```bash LDAP Connectivity
+python3 sccmhunter.py find -d contoso.com -dc-ip 192.168.1.10 -u testuser -p password
+```
+
+```bash Expected Output
+[+] Starting LDAP enumeration...
+[+] Connecting to domain controller: 192.168.1.10
+[+] Authentication successful
+[+] Beginning SCCM infrastructure discovery...
+```
+</CodeGroup>
+
+## Common Installation Issues
+
+<Accordion title="ImportError: No module named 'impacket'">
+**Solution**: Install impacket properly
+```bash
+pip3 install impacket
+# or for development version:
+git clone https://github.com/SecureAuthCorp/impacket.git
+cd impacket
+pip3 install .
+```
+</Accordion>
+
+<Accordion title="Permission Denied Errors">
+**Solution**: Use virtual environment or user installation
+```bash
+# Create virtual environment
+python3 -m venv sccmhunter-env
+source sccmhunter-env/bin/activate
+pip3 install -r requirements.txt
+
+# Or install for user only
+pip3 install --user -r requirements.txt
+```
+</Accordion>
+
+<Accordion title="SSL/TLS Certificate Errors">
+**Solution**: Disable certificate verification for testing
+```bash
+export PYTHONHTTPSVERIFY=0
+# Or use --no-ssl-verify flag when available
+```
+</Accordion>
+
+## Performance Optimization
+
+<Card title="Optimization Tips" icon="rocket">
+- **Use LDAPS**: Enable LDAPS with `-ldaps` for encrypted communication
+- **Targeted Scans**: Use specific IP ranges rather than full domain scans
+- **Parallel Processing**: Consider running multiple instances for large environments
+- **Network Tuning**: Adjust timeouts for slow network conditions
+</Card>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Quick Start Guide" icon="rocket" href="./quick-start">
+    Begin your first SCCM assessment with a guided walkthrough
+  </Card>
+
+  <Card title="LDAP Enumeration" icon="magnifying-glass" href="../enumeration/find">
+    Start discovering SCCM infrastructure with the find module
+  </Card>
+
+  <Card title="SMB Profiling" icon="network-wired" href="../enumeration/smb">
+    Profile identified targets for attack surface analysis
+  </Card>
+
+  <Card title="Troubleshooting" icon="wrench" href="#common-installation-issues">
+    Resolve common installation and configuration issues
+  </Card>
+</CardGroup>
+
+## Support and Resources
+
+<Card title="Getting Help" icon="question-circle">
+- **GitHub Issues**: [Report bugs and feature requests](https://github.com/garrettfoster13/sccmhunter/issues)
+- **Documentation**: This documentation covers all modules and use cases
+- **Community**: Follow [@garrfoster](https://twitter.com/garrfoster) for updates
+- **Lab Environment**: Test in a controlled lab before production assessments
+</Card>

@@ -1,0 +1,186 @@
+---
+title: 'WMIFilterBinding'
+description: 'Lists WMI Filter to Consumer Bindings'
+icon: 'link'
+---
+
+## Overview
+
+The WMIFilterBinding command enumerates WMI Filter-to-Consumer bindings. These bindings connect WMI Event Filters (triggers) to Event Consumers (actions), creating complete event-driven automation or persistence mechanisms. A binding is necessary for a WMI event to actually execute an action - the filter and consumer alone are not sufficient.
+
+## Syntax
+
+```bash
+Seatbelt.exe WMIFilterBinding
+```
+
+<Note>
+This command does **not** support remote execution.
+</Note>
+
+## Output
+
+Returns WMI Filter Binding information:
+- Filter name (trigger condition)
+- Consumer name (action to execute)
+- Binding creation timestamp
+- Creator SID
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Identify active WMI persistence mechanisms
+    - Understand complete event-action chains
+    - Find orphaned filters or consumers
+    - Discover WMI-based automation
+  </Tab>
+  <Tab title="Blue Team">
+    - Hunt for WMI-based persistence
+    - Map complete attack chains (filter + consumer + binding)
+    - Identify malicious WMI automation
+    - Detect unauthorized bindings
+    - Investigate persistence mechanisms
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== WMIFilterBinding ======
+
+[*] Listing WMI Filter-to-Consumer Bindings...
+
+Filter             : BVTFilter
+Consumer           : BVTConsumer
+Binding Path       : \\.\root\subscription:__FilterToConsumerBinding.Consumer="CommandLineEventConsumer.Name='BVTConsumer'",Filter="__EventFilter.Name='BVTFilter'"
+Creator SID        : S-1-5-21-...
+Creation Time      : 1/15/2023 10:00:00 AM
+
+[*] Active WMI Persistence Mechanism:
+    Filter: SELECT * FROM __InstanceCreationEvent WITHIN 60 WHERE TargetInstance ISA 'Win32_Process' AND TargetInstance.Name = 'notepad.exe'
+    Consumer: C:\Windows\System32\cmd.exe /c C:\Tools\cleanup.bat
+
+Filter             : SystemBootTrigger
+Consumer           : MaliciousConsumer
+Binding Path       : \\.\root\subscription:__FilterToConsumerBinding.Consumer="CommandLineEventConsumer.Name='MaliciousConsumer'",Filter="__EventFilter.Name='SystemBootTrigger'"
+Creator SID        : S-1-5-21-...
+Creation Time      : 10/1/2024 3:45:22 PM
+[!] Suspicious boot-time persistence detected!
+
+[*] Active WMI Persistence Mechanism:
+    Filter: Boot time trigger (4-5 minutes after system start)
+    Consumer: powershell.exe -WindowStyle Hidden -enc <base64>
+```
+
+## Remote Execution
+
+<Warning>
+This command does **NOT support remote execution**.
+</Warning>
+
+## Detection Considerations
+
+<Warning>
+Active WMI bindings represent complete persistence mechanisms and should be carefully reviewed.
+</Warning>
+
+- **WMI Namespace**: Queries `root\subscription` namespace for `__FilterToConsumerBinding` instances
+- **Sysmon Events**: Event ID 21 logs binding creation/modification
+- **Event Logs**: WMI-Activity logs may capture binding activity
+- **Persistence**: Bindings survive reboots and execute with SYSTEM privileges
+
+### Understanding the Binding Relationship
+
+<Accordion title="WMI Persistence Components">
+**Three Required Components:**
+
+1. **Event Filter** (Trigger)
+   - Defines WHEN something happens
+   - WQL query monitoring system events
+   - Example: Process creation, system boot, time interval
+
+2. **Event Consumer** (Action)
+   - Defines WHAT to execute
+   - Command, script, or other action
+   - Example: Run executable, execute script
+
+3. **Filter-to-Consumer Binding** (Connection)
+   - Links filter to consumer
+   - Activates the persistence mechanism
+   - Without binding, filter and consumer are inactive
+
+**Complete Chain:**
+```
+Event Occurs → Filter Matches → Binding Triggers → Consumer Executes
+```
+</Accordion>
+
+### Detection Strategy
+
+<Accordion title="Hunting for WMI Persistence">
+**Step 1: Enumerate All Components**
+```bash
+# Find all filters
+Seatbelt.exe WMIEventFilter
+
+# Find all consumers
+Seatbelt.exe WMIEventConsumer
+
+# Find all bindings
+Seatbelt.exe WMIFilterBinding
+```
+
+**Step 2: Correlate Components**
+- Match binding filter/consumer names
+- Verify all three components exist
+- Check creation timestamps
+- Validate creator SIDs
+
+**Step 3: Analyze Legitimacy**
+- Review filter WQL queries
+- Examine consumer commands
+- Check for obfuscation (Base64, encoding)
+- Validate business justification
+
+**Step 4: Investigate Suspicious Indicators**
+- Recently created bindings
+- Boot/logon triggers
+- PowerShell execution
+- Encoded commands
+- Non-standard paths
+- SYSTEM privilege consumers
+</Accordion>
+
+### Removal Procedure
+
+<Accordion title="Removing WMI Persistence">
+**PowerShell Method:**
+```powershell
+# List all bindings
+Get-WMIObject -Namespace root\Subscription -Class __FilterToConsumerBinding
+
+# Remove specific binding
+$binding = Get-WMIObject -Namespace root\Subscription -Class __FilterToConsumerBinding -Filter "__Path LIKE '%BindingName%'"
+$binding | Remove-WmiObject
+
+# Remove filter
+$filter = Get-WMIObject -Namespace root\Subscription -Class __EventFilter -Filter "Name='FilterName'"
+$filter | Remove-WmiObject
+
+# Remove consumer
+$consumer = Get-WMIObject -Namespace root\Subscription -Class CommandLineEventConsumer -Filter "Name='ConsumerName'"
+$consumer | Remove-WmiObject
+```
+
+**Note:** Remove all three components (binding, filter, consumer) for complete cleanup.
+</Accordion>
+
+## Related Commands
+
+- [WMIEventFilter](/commands/wmieventfilter) - WMI event filters (triggers)
+- [WMIEventConsumer](/commands/wmieventconsumer) - WMI event consumers (actions)
+- [WMI](/commands/wmi) - Custom WMI queries
+- [AutoRuns](/commands/autoruns) - Auto-start programs
+- [Services](/commands/services) - Windows services
+- [Sysmon](/commands/sysmon) - Sysmon event monitoring

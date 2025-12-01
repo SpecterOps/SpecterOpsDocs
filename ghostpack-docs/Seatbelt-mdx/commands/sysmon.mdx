@@ -1,0 +1,98 @@
+---
+title: 'Sysmon'
+description: 'Sysmon configuration from the registry'
+icon: 'eye'
+---
+
+## Overview
+
+The Sysmon command retrieves Sysmon (System Monitor) configuration from the registry. Sysmon is a powerful Windows system service that logs detailed system activity including process creation, network connections, and file modifications. Understanding Sysmon configuration reveals what activities are being monitored and logged.
+
+## Syntax
+
+```bash
+Seatbelt.exe Sysmon
+```
+
+### Remote Execution
+```bash
+Seatbelt.exe Sysmon -computername=TARGET.domain.com [-username=DOMAIN\user -password=pass]
+```
+
+## Output
+
+Returns Sysmon configuration:
+- Sysmon installation status
+- Sysmon version
+- Configuration file hash
+- Configured event IDs
+- Filtering rules
+- Network monitoring status
+- Process access monitoring
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Determine if Sysmon is deployed
+    - Identify monitored activities
+    - Understand detection capabilities
+    - Plan evasion strategies
+    - Assess logging granularity
+  </Tab>
+  <Tab title="Blue Team">
+    - Verify Sysmon deployment
+    - Audit Sysmon configuration
+    - Validate monitoring coverage
+    - Ensure proper event logging
+    - Detect Sysmon tampering
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== Sysmon ======
+
+[*] Sysmon Installed: True
+
+Version                : 14.13
+HashingAlgorithm       : SHA256
+Configuration Hash     : ABC123DEF456...
+Network Monitoring     : Enabled
+
+Configured Event IDs:
+  Event ID 1           : Process Creation - Enabled
+  Event ID 3           : Network Connection - Enabled
+  Event ID 7           : Image Load - Enabled with filters
+  Event ID 8           : CreateRemoteThread - Enabled
+  Event ID 10          : Process Access - Enabled with filters
+  Event ID 11          : File Create - Enabled with filters
+
+Rules Summary:
+  Include Rules        : 15
+  Exclude Rules        : 42
+```
+
+## Remote Execution
+
+<Check>
+This command **supports remote execution** using the `-computername` parameter.
+</Check>
+
+## Detection Considerations
+
+<Warning>
+Sysmon configuration enumeration may alert on monitored systems.
+</Warning>
+
+- **Registry Access**: Queries `HKLM\SYSTEM\CurrentControlSet\Services\SysmonDrv`
+- **WMI Activity**: Remote execution generates WMI events
+- **Sysmon Event 12/13**: Registry access may be logged by Sysmon itself
+
+## Related Commands
+
+- [AuditPolicies](/commands/auditpolicies) - Windows audit policies
+- [PowerShell](/commands/powershell) - PowerShell logging configuration
+- [WindowsEventForwarding](/commands/windowseventforwarding) - Event forwarding
+- [InterestingProcesses](/commands/interestingprocesses) - Security products

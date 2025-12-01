@@ -1,0 +1,91 @@
+---
+title: 'local class-properties'
+description: 'Get all properties of a specified local WMI class'
+icon: 'gear'
+sidebarTitle: 'class-properties'
+---
+
+## Overview
+
+Get all properties of a specified local WMI class. This command is useful for understanding the structure and available properties of WMI classes before querying their instances.
+
+## Syntax
+
+```bash
+SharpSCCM local class-properties <wmi-class> [options]
+```
+
+## Parameters
+
+<ParamField path="wmi-class" type="string" required>
+  The WMI class to query (e.g., "SMS_Authority")
+</ParamField>
+
+<ParamField path="wmi-namespace" type="string">
+  The WMI namespace to query (default: "root\CCM")
+</ParamField>
+
+## Examples
+
+<CodeGroup>
+```bash Basic Usage
+# Get properties of SMS_Authority class
+SharpSCCM local class-properties SMS_Authority
+```
+
+```bash Custom Namespace
+# Query a class in a different namespace
+SharpSCCM local class-properties Win32_ComputerSystem -n "root\cimv2"
+```
+</CodeGroup>
+
+## Output Format
+
+The command outputs all properties with their data types:
+
+```text
+[+] Connecting to \\127.0.0.1\root\CCM
+-----------------------------------
+SMS_Authority
+-----------------------------------
+Capabilities (String)
+CurrentManagementPoint (String)
+Index (UInt32)
+Name (String)
+PolicyOrder (UInt32)
+PolicyRequestTarget (String)
+Protocol (String)
+SigningCertificate (String)
+Version (UInt32)
+-----------------------------------
+```
+
+## Common Data Types
+
+| Type | Description |
+|------|-------------|
+| String | Text data |
+| UInt32 | 32-bit unsigned integer |
+| Boolean | True/false value |
+| DateTime | Date and time value |
+| Object | Complex object reference |
+
+## Use Cases
+
+<Accordion title="Query Planning">
+  Before running complex queries, use this command to understand what properties are available for filtering and selection.
+</Accordion>
+
+<Accordion title="Data Type Validation">
+  Verify data types of properties to ensure proper formatting in WHERE conditions and property selections.
+</Accordion>
+
+<Accordion title="Class Schema Discovery">
+  Explore the schema of WMI classes to understand their structure and relationships.
+</Accordion>
+
+## Related Commands
+
+- [`local classes`](/sharpsccm/commands/local/classes) - List available WMI classes
+- [`local class-instances`](/sharpsccm/commands/local/class-instances) - Get instances of a WMI class
+- [`local query`](/sharpsccm/commands/local/query) - Execute custom WQL queries with specific properties

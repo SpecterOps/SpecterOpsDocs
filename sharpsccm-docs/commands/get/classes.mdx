@@ -1,0 +1,216 @@
+---
+title: 'get classes'
+description: 'List available WMI classes'
+icon: 'list'
+sidebarTitle: 'classes'
+---
+
+## Overview
+
+List available WMI classes in the SMS Provider namespace. This command is useful for understanding the WMI schema, identifying custom classes, and discovering available data sources for reconnaissance and exploitation.
+
+## Syntax
+
+```bash
+SharpSCCM get classes [options]
+```
+
+## Parameters
+
+<ParamField path="sms-provider" type="string">
+  The IP address, FQDN, or NetBIOS name of the SMS Provider to connect to
+</ParamField>
+
+<ParamField path="site-code" type="string">
+  The three-character site code (e.g., "PS1")
+</ParamField>
+
+<ParamField path="wmi-namespace" type="string">
+  The WMI namespace to query (default: auto-detected SMS namespace)
+</ParamField>
+
+<ParamField path="name" type="string">
+  Filter classes by name pattern (supports partial matching)
+</ParamField>
+
+<ParamField path="count" type="boolean">
+  Return count of results only
+</ParamField>
+
+## Examples
+
+<CodeGroup>
+```bash Basic Usage
+# List all SMS classes
+SharpSCCM get classes -sms SCCM01.corp.local -sc PS1
+
+# Count total classes
+SharpSCCM get classes -c -sms SCCM01.corp.local -sc PS1
+```
+
+```bash Class Search
+# Find specific class types
+SharpSCCM get classes -n "SMS_R_" -sms SCCM01.corp.local -sc PS1
+
+# Find collection-related classes
+SharpSCCM get classes -n "Collection" -sms SCCM01.corp.local -sc PS1
+```
+
+```bash Custom Namespace
+# Specify custom namespace
+SharpSCCM get classes -n "root\SMS\site_PS1" -sms SCCM01.corp.local -sc PS1
+```
+</CodeGroup>
+
+## Required Permissions
+
+<Info>
+  **SMS Admins local group** membership on the SMS Provider server
+</Info>
+
+## Class Categories
+
+<Accordion title="Core Resource Classes">
+  **SMS_R_* Classes:**
+  - `SMS_R_System` - Device/computer information
+  - `SMS_R_User` - User account information
+  - `SMS_R_UserGroup` - User group information
+
+  **Usage:** Primary resource discovery and enumeration
+</Accordion>
+
+<Accordion title="Collection Classes">
+  **Collection Management:**
+  - `SMS_Collection` - Collection definitions
+  - `SMS_CollectionMember` - Collection membership
+  - `SMS_CollectionRule` - Collection rules
+
+  **Usage:** Collection analysis and manipulation
+</Accordion>
+
+<Accordion title="Application Classes">
+  **Application Management:**
+  - `SMS_Application` - Application definitions
+  - `SMS_ApplicationAssignment` - Application deployments
+  - `SMS_DeploymentType` - Deployment configurations
+
+  **Usage:** Application and deployment analysis
+</Accordion>
+
+<Accordion title="Administrative Classes">
+  **Administration:**
+  - `SMS_Admin` - Administrative users
+  - `SMS_Role` - Security roles
+  - `SMS_SecuredObject` - Object permissions
+
+  **Usage:** Administrative structure analysis
+</Accordion>
+
+## WMI Schema Discovery
+
+<Accordion title="Class Naming Patterns">
+  **SMS_* Classes:**
+  - Core SCCM functionality
+  - Microsoft-provided classes
+  - Standard SCCM operations
+
+  **Custom Classes:**
+  - Organization-specific extensions
+  - Third-party integrations
+  - Custom reporting classes
+</Accordion>
+
+<Accordion title="Class Relationships">
+  **Resource Classes:**
+  - Discovery and inventory data
+  - Device and user information
+  - Hardware and software inventory
+
+  **Management Classes:**
+  - Administrative operations
+  - Configuration and policy
+  - Deployment and enforcement
+</Accordion>
+
+## Use Cases
+
+<Accordion title="WMI Reconnaissance">
+  **Schema Discovery:**
+  - Understand available data sources
+  - Identify custom extensions
+  - Map WMI capabilities
+
+  **Class Analysis:**
+  - Find interesting data classes
+  - Identify administrative classes
+  - Discover custom implementations
+</Accordion>
+
+<Accordion title="Attack Planning">
+  **Data Source Identification:**
+  - Locate sensitive information classes
+  - Find credential-related classes
+  - Identify high-value data sources
+
+  **Operation Planning:**
+  - Understand WMI structure for exploitation
+  - Plan data extraction strategies
+  - Identify manipulation opportunities
+</Accordion>
+
+## Common Class Patterns
+
+<CodeGroup>
+```sql Resource Classes
+SMS_R_%
+```
+
+```sql Collection Classes
+%Collection%
+```
+
+```sql Application Classes
+SMS_Application% OR %Deployment%
+```
+
+```sql Administrative Classes
+SMS_Admin% OR SMS_Role% OR SMS_Secured%
+```
+</CodeGroup>
+
+## Output Analysis
+
+<Accordion title="Class Distribution">
+  **By Category:**
+  - Resource classes: Discovery and inventory
+  - Management classes: Administrative operations
+  - Policy classes: Configuration and enforcement
+  - Custom classes: Organization-specific extensions
+
+  **By Prefix:**
+  - SMS_: Microsoft SCCM classes
+  - CCM_: Client-side classes
+  - Win32_: Windows management classes
+  - Custom: Organization-specific classes
+</Accordion>
+
+<Accordion title="Security Implications">
+  **Sensitive Data Classes:**
+  - User and device information
+  - Administrative accounts and roles
+  - Credential and secret storage
+  - Network and infrastructure data
+
+  **Operational Classes:**
+  - Deployment and execution
+  - Collection and targeting
+  - Policy and configuration
+  - Administrative operations
+</Accordion>
+
+## Related Commands
+
+- [`get class-instances`](/commands/get/class-instances) - Query specific class instances
+- [`get class-properties`](/commands/get/class-properties) - Examine class structure
+- [`local classes`](/commands/local/classes) - List local WMI classes
+- [`local query`](/commands/local/query) - Execute custom WQL queries

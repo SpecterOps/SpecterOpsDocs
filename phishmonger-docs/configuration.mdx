@@ -1,0 +1,725 @@
+---
+title: 'Configuration'
+description: 'Detailed configuration options for Phishmonger'
+icon: 'gear'
+---
+
+Phishmonger's behavior is controlled through `config.json` and various DNS configurations. This guide covers all configuration options in detail.
+
+## Configuration File (config.json)
+
+The `config.json` file in the Phishmonger root directory controls server behavior, authentication, and integrations.
+
+### Complete Configuration Example
+
+```json
+{
+  "timezone": "America/New_York",
+  "set_admin": {
+    "switch": true,
+    "search_string": "SetMeAdmin"
+  },
+  "admin_cookie": {
+    "cookie_name": "admin_cookie",
+    "cookie_value": "CHANGE_THIS_TO_RANDOM_VALUE"
+  },
+  "signal_bot": {
+    "bot_id": "bot123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11",
+    "chat_id": "123456789"
+  },
+  "phishmarket": {
+    "url": "https://yourphishmarket.com",
+    "token": "your_api_token_here"
+  }
+}
+```
+
+### Configuration Parameters
+
+#### timezone (Required)
+
+Specifies the server's timezone for campaign scheduling and timestamp display.
+
+**Format**: IANA timezone database format
+
+**Examples**:
+- `"America/New_York"` - Eastern Time
+- `"America/Chicago"` - Central Time
+- `"America/Los_Angeles"` - Pacific Time
+- `"Europe/London"` - GMT/BST
+- `"UTC"` - Coordinated Universal Time
+
+**Usage**: All scheduled campaigns use this timezone. The campaign scheduling interface displays the current server time based on this setting.
+
+```json
+{
+  "timezone": "America/New_York"
+}
+```
+
+#### set_admin (Required)
+
+Controls the first-time admin cookie setup mechanism.
+
+**Parameters**:
+- **switch** (boolean): Set to `true` for first-time setup, automatically changes to `false` after first use
+- **search_string** (string): URL parameter value that triggers admin cookie creation
+
+**How It Works**:
+1. Visit `https://yourdomain.com/?SetMeAdmin` (using your configured search_string)
+2. Server sets the admin cookie
+3. `switch` automatically changes to `false` in config.json
+4. Subsequent visits to the URL have no effect
+
+```json
+{
+  "set_admin": {
+    "switch": true,
+    "search_string": "SetMeAdmin"
+  }
+}
+```
+
+<Warning>
+  **One-Time Setup**: After the admin cookie is set, manually change `switch` back to `true` if you need to set the cookie again (e.g., after clearing browser cookies).
+</Warning>
+
+#### admin_cookie (Required)
+
+Defines the authentication cookie used for admin interface access.
+
+**Parameters**:
+- **cookie_name** (string): Name of the HTTP cookie
+- **cookie_value** (string): Secret value for authentication
+
+**Security Characteristics**:
+- Cookie flags: `secure`, `httponly`, `max-age=31536000` (1 year)
+- All routes except `/documentation` and `set_admin` URLs require this cookie
+- Cookie value is checked on every request
+
+```json
+{
+  "admin_cookie": {
+    "cookie_name": "admin_cookie",
+    "cookie_value": "CHANGE_THIS_TO_RANDOM_VALUE"
+  }
+}
+```
+
+<Warning>
+  **Critical Security Setting**: This is the primary authentication mechanism. Use a cryptographically random value. Anyone with this cookie value has full admin access.
+</Warning>
+
+**Generate a Secure Value**:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+#### signal_bot (Optional)
+
+Configures Telegram bot notifications for campaign events.
+
+**Parameters**:
+- **bot_id** (string): Telegram bot token from @BotFather
+- **chat_id** (string): Telegram chat ID to receive notifications
+
+**Events That Trigger Notifications**:
+- `EMAIL_SENT`: Email successfully sent
+- `CLICK`: Target clicked phishing link
+- `POST_DATA`: Target submitted form data
+- `ERROR`: Email delivery failure
+
+**Notification Format**:
+```
+CampaignName:EVENT_TYPE:source_ip
+```
+
+```json
+{
+  "signal_bot": {
+    "bot_id": "bot123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11",
+    "chat_id": "123456789"
+  }
+}
+```
+
+**Setup Instructions**:
+
+<Steps>
+  <Step title="Create Telegram Bot">
+    Message @BotFather on Telegram and use `/newbot` command to create a bot. Save the bot token.
+  </Step>
+
+  <Step title="Get Chat ID">
+    Start a conversation with your bot, then visit:
+    ```
+    https://api.telegram.org/bot<YOUR_BOT_TOKEN>/getUpdates
+    ```
+    Look for the `chat.id` field in the response.
+  </Step>
+
+  <Step title="Add to Config">
+    Add the bot token and chat ID to your config.json
+  </Step>
+</Steps>
+
+#### phishmarket (Optional)
+
+Configures integration with a Phishmarket server for remote template management.
+
+**Parameters**:
+- **url** (string): Base URL of Phishmarket server
+- **token** (string): API authentication token
+
+**Functionality**:
+- Access pre-built phishing templates
+- Import templates directly into campaigns
+- Track template usage via `market_id` field
+
+```json
+{
+  "phishmarket": {
+    "url": "https://yourphishmarket.com",
+    "token": "your_api_token_here"
+  }
+}
+```
+
+When configured, the admin interface displays a "Phishmarket" button providing access to remote templates.
+
+## DNS Configuration
+
+Proper DNS configuration is critical for email deliverability and avoiding spam filters.
+
+### Required DNS Records
+
+#### A Records
+
+Point your domain and subdomains to your server IP:
+
+```
+@               IN  A       <server-ip>
+*               IN  A       <server-ip>
+mx              IN  A       <server-ip>
+```
+
+**Purpose**:
+- `@` (root domain): Main domain resolution
+- `*` (wildcard): All subdomain resolution
+- `mx`: Mail exchanger hostname
+
+#### MX Record
+
+Defines the mail server for your domain:
+
+```
+@               IN  MX      10 mx.yourdomain.com.
+```
+
+**Priority**: 10 (lower numbers have higher priority)
+
+<Info>
+  The trailing dot after `mx.yourdomain.com.` is important - it indicates a fully qualified domain name.
+</Info>
+
+#### SPF Record (TXT)
+
+Sender Policy Framework record authorizes your server to send email for your domain:
+
+```
+@               IN  TXT     "v=spf1 mx a ptr ip4:<server-ip>/32 -all"
+```
+
+**Record Breakdown**:
+- `v=spf1`: SPF version 1
+- `mx`: Mail from servers listed in MX records is authorized
+- `a`: Mail from servers listed in A records is authorized
+- `ptr`: Reverse DNS lookup authorization
+- `ip4:<server-ip>/32`: Explicit IP authorization
+- `-all`: Fail all other sources (hard fail)
+
+**SPF Policy Options**:
+- `-all`: Hard fail (reject unauthorized)
+- `~all`: Soft fail (accept but mark as suspicious)
+- `?all`: Neutral (no policy)
+
+For testing, you might use `~all`, but production should use `-all`.
+
+#### DMARC Record (TXT)
+
+Domain-based Message Authentication, Reporting & Conformance policy:
+
+```
+_dmarc          IN  TXT     "v=DMARC1; p=none"
+```
+
+**Policy Options**:
+- `p=none`: Monitor mode (no action taken, reports only)
+- `p=quarantine`: Suspicious emails go to spam
+- `p=reject`: Reject unauthorized emails
+
+**Extended DMARC Example**:
+
+```
+_dmarc          IN  TXT     "v=DMARC1; p=none; rua=mailto:dmarc@yourdomain.com; pct=100; fo=1"
+```
+
+**Parameters**:
+- `rua`: Aggregate report email address
+- `pct`: Percentage of messages to apply policy to
+- `fo`: Failure reporting options
+
+<Info>
+  Start with `p=none` to monitor email flow, then tighten to `p=quarantine` or `p=reject` after verifying configuration.
+</Info>
+
+#### DKIM Record (TXT)
+
+DomainKeys Identified Mail provides cryptographic authentication:
+
+```
+default._domainkey    IN  TXT     "v=DKIM1; k=rsa; p=<public-key>"
+```
+
+**Generate DKIM Keys**:
+
+```bash
+cd setup
+node -e "const NodeRSA = require('node-rsa'); const key = new NodeRSA({b: 1024}); const fs = require('fs'); fs.writeFileSync('dkim_private.pem', key.exportKey('pkcs8-private')); fs.writeFileSync('dkim_public.pem', key.exportKey('public')); console.log(key.exportKey('public').replace(/^-.*-$/mg,'').replace(/[\r\n]+/g, ''));"
+```
+
+The output is your public key for the DNS record.
+
+**Key Files**:
+- `dkim_private.pem`: Private key (keep secure, used for signing)
+- `dkim_public.pem`: Public key (published in DNS)
+
+**DKIM Selector**: Phishmonger uses the selector `default`. This is configured in the nodemailer DKIM settings in index.js:
+
+```javascript
+dkim: {
+  domainName: mail_object.supplied_smtp_from.split("@")[1],
+  keySelector: "default",
+  privateKey: fs.readFileSync("./setup/dkim_private.pem", "utf8")
+}
+```
+
+### Verify DNS Configuration
+
+After configuring DNS records, verify them:
+
+**Check A Record**:
+```bash
+dig yourdomain.com A +short
+```
+
+**Check MX Record**:
+```bash
+dig yourdomain.com MX +short
+```
+
+**Check SPF Record**:
+```bash
+dig yourdomain.com TXT +short | grep spf
+```
+
+**Check DMARC Record**:
+```bash
+dig _dmarc.yourdomain.com TXT +short
+```
+
+**Check DKIM Record**:
+```bash
+dig default._domainkey.yourdomain.com TXT +short
+```
+
+### DNS Propagation
+
+DNS changes can take time to propagate:
+- Minimum: 5-15 minutes
+- Typical: 1-4 hours
+- Maximum: 24-48 hours
+
+Check propagation globally: [https://www.whatsmydns.net/](https://www.whatsmydns.net/)
+
+## SMTP Configuration
+
+Phishmonger provides granular SMTP configuration per campaign.
+
+### Transport Settings
+
+Configured via the campaign creation interface, SMTP settings include:
+
+#### Mail Server
+
+**Purpose**: Destination mail server for email delivery
+
+**Options**:
+- **Target's MX Server**: Direct server-to-server delivery
+- **SMTP Relay**: Route through an authenticated relay
+
+**Finding Target MX Servers**:
+
+```bash
+dig target-domain.com MX +short
+```
+
+Example for Gmail:
+
+```bash
+$ dig gmail.com MX +short
+5 gmail-smtp-in.l.google.com.
+10 alt1.gmail-smtp-in.l.google.com.
+20 alt2.gmail-smtp-in.l.google.com.
+```
+
+Use the lowest priority server (5 in this example).
+
+#### SMTP From
+
+**Purpose**: Envelope sender (`MAIL FROM` in SMTP protocol)
+
+**Format**: `sender@yourdomain.com`
+
+**Considerations**:
+- Must match a domain you control for SPF/DKIM alignment
+- Can differ from the `From:` header in the email
+- Used for bounce messages
+
+#### Secure Mail (TLS)
+
+**Options**:
+- **Enabled** (port 465): Use SMTPS with TLS encryption
+- **Disabled** (port 25): Use unencrypted SMTP with optional STARTTLS
+
+**When to Use**:
+- **Port 465**: Authenticated relays, commercial SMTP services
+- **Port 25**: Direct server-to-server delivery, most common for phishing
+
+#### Authentication
+
+**Username/Password**: Required for authenticated SMTP relays
+
+**Relay Examples**:
+- SendGrid
+- AWS SES
+- Mailgun
+- Office 365 SMTP
+- Gmail SMTP
+
+**Configuration for Relay**:
+```
+Mail Server: smtp.sendgrid.net
+Port: 465 (Secure Mail: enabled)
+Username: apikey
+Password: SG.xxx...
+```
+
+**Configuration for Direct Delivery**:
+```
+Mail Server: mx.target-domain.com
+Port: 25 (Secure Mail: disabled)
+Username: (empty)
+Password: (empty)
+```
+
+#### DKIM Signing
+
+**Options**: Enable/Disable per campaign
+
+**When Enabled**:
+- Phishmonger signs outgoing emails with `setup/dkim_private.pem`
+- Uses selector `default` and domain from SMTP From address
+- Adds `DKIM-Signature` header to email
+
+**Requirements**:
+- `dkim_private.pem` must exist in `setup/` directory
+- Corresponding public key published in DNS
+- SMTP From domain must match DKIM domain
+
+**Disable DKIM When**:
+- Sending through a relay that does its own signing
+- Testing without proper DNS configuration
+- The SMTP From domain doesn't match your configured DKIM domain
+
+## Database Configuration
+
+Phishmonger uses SQLite for data storage. The database is created automatically on first run at `db/aquarium.db`.
+
+### Database Schema
+
+**campaigns Table**:
+```sql
+CREATE TABLE campaigns (
+    name TEXT,
+    email TEXT,
+    mail_server TEXT,
+    smtp_from TEXT,
+    phishing_link TEXT,
+    id_parameter TEXT,
+    delay INTEGER,
+    secure INTEGER,
+    username TEXT,
+    password TEXT,
+    dkim INTEGER,
+    scheduled_start INTEGER,
+    start_timestamp INTEGER,
+    end_timestamp INTEGER,
+    is_sending INTEGER,
+    market_id INTEGER
+)
+```
+
+**templates Table**:
+```sql
+CREATE TABLE templates (
+    name TEXT PRIMARY KEY,
+    email TEXT
+)
+```
+
+**targets Table**:
+```sql
+CREATE TABLE targets (
+    target_id TEXT,
+    address TEXT,
+    campaign TEXT,
+    first_name TEXT,
+    last_name TEXT,
+    position TEXT,
+    custom TEXT,
+    phished INTEGER
+)
+```
+
+**events Table**:
+```sql
+CREATE TABLE events (
+    event_timestamp INTEGER,
+    event_ip TEXT,
+    campaign TEXT,
+    target TEXT,
+    event_type TEXT,
+    event_data TEXT,
+    ignore INTEGER
+)
+```
+
+### Database Backup
+
+Regular backups are recommended:
+
+```bash
+# Backup database
+cp db/aquarium.db db/aquarium.db.backup-$(date +%Y%m%d)
+
+# Restore database
+cp db/aquarium.db.backup-20231215 db/aquarium.db
+```
+
+### Database Queries
+
+Access the database directly:
+
+```bash
+sqlite3 db/aquarium.db
+```
+
+**Useful Queries**:
+
+```sql
+-- List all campaigns
+SELECT name, mail_server, smtp_from FROM campaigns;
+
+-- Count targets per campaign
+SELECT campaign, COUNT(*) FROM targets GROUP BY campaign;
+
+-- View recent events
+SELECT * FROM events ORDER BY event_timestamp DESC LIMIT 10;
+
+-- Campaign statistics
+SELECT
+    c.name,
+    COUNT(DISTINCT t.target_id) AS total_targets,
+    SUM(t.phished) AS emails_sent,
+    COUNT(DISTINCT e.target) AS targets_with_events
+FROM campaigns c
+LEFT JOIN targets t ON c.name = t.campaign
+LEFT JOIN events e ON c.name = e.campaign
+GROUP BY c.name;
+```
+
+## Port Configuration
+
+Phishmonger uses specific ports for different functions:
+
+| Port | Purpose | Protocol | Notes |
+|------|---------|----------|-------|
+| 25 | SMTP (send/receive) | TCP | Required for email operations |
+| 80 | HTTP | TCP | NGINX redirect to HTTPS |
+| 443 | HTTPS | TCP | NGINX reverse proxy |
+| 4005 | Application | TCP | Node.js (localhost only) |
+
+### Firewall Configuration
+
+Configure firewall to allow required ports:
+
+**UFW (Ubuntu/Debian)**:
+
+```bash
+sudo ufw allow 25/tcp
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw enable
+```
+
+**iptables**:
+
+```bash
+sudo iptables -A INPUT -p tcp --dport 25 -j ACCEPT
+sudo iptables -A INPUT -p tcp --dport 80 -j ACCEPT
+sudo iptables -A INPUT -p tcp --dport 443 -j ACCEPT
+```
+
+**Important**: Port 4005 should NOT be exposed externally. NGINX handles external traffic and proxies to port 4005 locally.
+
+## Application Configuration (index.js)
+
+Advanced configuration options are set directly in `index.js`:
+
+### Server Port
+
+Change the listening port (default: 4005):
+
+```javascript
+fastify.listen({ port: 4005, host: '127.0.0.1' }, (err) => {
+  // ...
+})
+```
+
+**Note**: If changing this, update the NGINX proxy_pass configuration accordingly.
+
+### Body Size Limit
+
+Controls maximum request body size (default: ~19 MB):
+
+```javascript
+const fastify = require('fastify')({
+  logger: true,
+  bodyLimit: 19922944  // bytes
+})
+```
+
+Increase this value if capturing very large emails with many attachments.
+
+### SMTP Timeout
+
+Modify SMTP connection timeout in the `sendMail` function:
+
+```javascript
+transport_settings = {
+  host: mail_object.supplied_mail_server,
+  name: mail_object.supplied_smtp_from.split("@")[1],
+  port: 25,
+  secure: false,
+  tls: {rejectUnauthorized: false},
+  connectionTimeout: 60000,  // Add this line
+  logger,
+  debug: true
+}
+```
+
+### Campaign Delay
+
+Email sending delay is configured per-campaign in the database (default: 30 seconds).
+
+Access via the campaign settings interface or directly in the database:
+
+```sql
+UPDATE campaigns SET delay = 60 WHERE name = 'campaign_name';
+```
+
+## Logging Configuration
+
+Phishmonger uses Bunyan for structured logging during email operations.
+
+### SMTP Command Logging
+
+SMTP protocol commands are logged in real-time and sent to the web interface via WebSockets. View them in the campaign creation interface during test sends.
+
+### NGINX Logs
+
+**Access Log**: `/var/log/nginx/vhosts/yourdomain.com/access.log`
+
+**Error Log**: `/var/log/nginx/vhosts/yourdomain.com/error.log`
+
+**Tail Logs**:
+
+```bash
+sudo tail -f /var/log/nginx/vhosts/yourdomain.com/access.log
+sudo tail -f /var/log/nginx/vhosts/yourdomain.com/error.log
+```
+
+### Application Logs
+
+Fastify logs to stdout. Capture logs when running:
+
+```bash
+node index.js 2>&1 | tee phishmonger.log
+```
+
+## Security Hardening
+
+### HTTPS Configuration
+
+The generated NGINX configuration includes secure TLS settings:
+
+```nginx
+ssl_protocols TLSv1.3 TLSv1.2 TLSv1.1;
+ssl_prefer_server_ciphers on;
+ssl_ciphers EECDH+ECDSA+AESGCM:EECDH+aRSA+AESGCM:EECDH+ECDSA+SHA512:EECDH+ECDSA+SHA384:EECDH+ECDSA+SHA256:ECDH+AESGCM:ECDH+AES256:DH+AESGCM:DH+AES256:RSA+AESGCM:!aNULL:!eNULL:!LOW:!RC4:!3DES:!MD5:!EXP:!PSK:!SRP:!DSS;
+```
+
+**Enable TLSv1.3 Only** (Most Secure):
+
+```nginx
+ssl_protocols TLSv1.3;
+```
+
+### File Permissions
+
+Secure sensitive files:
+
+```bash
+chmod 600 config.json
+chmod 600 setup/dkim_private.pem
+chmod 600 db/aquarium.db
+```
+
+### Cookie Security
+
+Admin cookie is set with secure flags:
+
+```javascript
+reply.header(
+    "set-cookie",
+    config.admin_cookie.cookie_name +
+      "=" +
+      config.admin_cookie.cookie_value +
+      ";secure;httponly;max-age=31536000"
+);
+```
+
+- `secure`: Only sent over HTTPS
+- `httponly`: Not accessible via JavaScript
+- `max-age`: Valid for 1 year
+
+### Database Security
+
+Restrict database access:
+
+```bash
+chown www-data:www-data db/aquarium.db
+chmod 640 db/aquarium.db
+```

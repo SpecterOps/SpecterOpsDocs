@@ -1,0 +1,36 @@
+---
+title: "findings_delete"
+description: "Delete a finding from a report"
+---
+
+## Summary
+
+Remove a finding from the report. Use with caution as this action cannot be undone.
+
+- Needs Admin: False
+- Version: 1-2
+- Author: @its_a_feature_
+
+### Arguments
+
+#### finding_id
+- Description: ID of the finding to delete
+- Required: True
+- Default: None
+
+
+## Usage
+
+```
+findings_delete -finding_id 42
+```
+
+## Detailed Summary
+
+Permanently deletes a finding from the Ghostwriter database.
+
+<Warning>
+This action cannot be undone. Ensure you have the correct finding ID before deleting.
+</Warning>
+
+All evidence attachments and associations with this finding will also be removed.

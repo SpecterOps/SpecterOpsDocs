@@ -1,0 +1,596 @@
+---
+title: 'Installation Guide'
+description: 'Step-by-step setup instructions for Ghost Scout'
+icon: 'download'
+---
+
+## Prerequisites
+
+Before installing Ghost Scout, ensure you have the following:
+
+<AccordionGroup>
+  <Accordion title="Required Software" icon="laptop-code">
+    - **Node.js**: Version 14 or higher
+    - **npm**: Comes with Node.js
+    - **Docker**: For running Redis and MarkItDown-API containers
+    - **Git**: For cloning the repository
+  </Accordion>
+
+  <Accordion title="API Keys" icon="key">
+    - **Hunter.io API Key**: Required for contact discovery
+      - Sign up at [hunter.io](https://hunter.io)
+      - Obtain API key from account settings
+    - **Anthropic API Key**: Required for AI profile and pretext generation
+      - Sign up at [anthropic.com](https://www.anthropic.com)
+      - Obtain API key from console
+  </Accordion>
+
+  <Accordion title="System Requirements" icon="server">
+    - **Operating System**: Linux, macOS, or Windows
+    - **RAM**: Minimum 2GB, 4GB recommended
+    - **Disk Space**: At least 500MB for application and dependencies
+    - **Network**: Internet connection for API access
+  </Accordion>
+</AccordionGroup>
+
+## Installation Steps
+
+<Steps>
+  <Step title="Clone the Repository">
+    Clone the Ghost Scout repository to your local machine:
+
+    ```bash
+    git clone <repository-url>
+    cd ghost_scout
+    ```
+
+    <Info>
+      Replace `<repository-url>` with the actual Git repository URL for Ghost Scout
+    </Info>
+  </Step>
+
+  <Step title="Install Dependencies">
+    Install all required Node.js packages:
+
+    ```bash
+    npm install
+    ```
+
+    This will install all dependencies specified in `package.json`, including:
+    - Fastify (web framework)
+    - Socket.io (real-time updates)
+    - Bee-Queue (job processing)
+    - SQLite3 (database)
+    - Alpine.js (frontend framework)
+    - And other required packages
+  </Step>
+
+  <Step title="Configure Environment Variables">
+    Create a `.env` file in the project root with your API credentials:
+
+    ```bash
+    # Create .env file
+    touch .env
+    ```
+
+    Add the following content to `.env`:
+
+    ```bash
+    # Hunter.io API Key
+    HUNTER_API_KEY=your_hunter.io_api_key
+
+    # Anthropic API Key
+    ANTHROPIC_API_KEY=your_anthropic_api_key
+    ```
+
+    <Warning>
+      Never commit your `.env` file to version control. Ensure it's listed in `.gitignore`
+    </Warning>
+
+    **Obtaining API Keys:**
+
+    <Tabs>
+      <Tab title="Hunter.io">
+        1. Visit [hunter.io](https://hunter.io)
+        2. Create an account or sign in
+        3. Navigate to API settings
+        4. Copy your API key
+        5. Paste into `.env` file
+      </Tab>
+
+      <Tab title="Anthropic">
+        1. Visit [anthropic.com](https://www.anthropic.com)
+        2. Create an account or sign in
+        3. Navigate to API console
+        4. Generate an API key
+        5. Copy and paste into `.env` file
+      </Tab>
+    </Tabs>
+  </Step>
+
+  <Step title="Start Redis Container">
+    Ghost Scout requires Redis for job queue processing. Start Redis using Docker:
+
+    <Tabs>
+      <Tab title="Basic Redis">
+        **For development/testing (no persistence):**
+
+        ```bash
+        docker run --name redis -p 6379:6379 -d redis
+        ```
+
+        This starts a Redis container without data persistence.
+      </Tab>
+
+      <Tab title="Redis with Persistence">
+        **For production (with data persistence):**
+
+        ```bash
+        docker run --name redis -p 6379:6379 -v redis-data:/data -d redis redis-server --appendonly yes
+        ```
+
+        This enables append-only file (AOF) persistence to prevent data loss.
+      </Tab>
+    </Tabs>
+
+    **Verify Redis is running:**
+
+    ```bash
+    docker ps | grep redis
+    ```
+
+    **Managing Redis Container:**
+
+    ```bash
+    # Stop Redis
+    docker stop redis
+
+    # Start Redis (after stopping)
+    docker start redis
+
+    # Restart Redis
+    docker restart redis
+
+    # View Redis logs
+    docker logs redis
+
+    # Remove Redis container
+    docker rm redis
+    ```
+  </Step>
+
+  <Step title="Start MarkItDown-API Container">
+    Ghost Scout uses MarkItDown-API for HTML to Markdown conversion. Start the container:
+
+    ```bash
+    docker run -d --name markitdown-api -p 8490:8490 ghcr.io/fkasler/markitdown-api:sha-ee4fcafe2cf2f17fbbff77cc7f1b1c81a7c370d2
+    ```
+
+    **Verify MarkItDown-API is running:**
+
+    ```bash
+    docker ps | grep markitdown-api
+    ```
+
+    **Test the API:**
+
+    ```bash
+    curl http://localhost:8490/health
+    ```
+
+    <Info>
+      The MarkItDown-API container will be accessible on port 8490
+    </Info>
+
+    **Managing MarkItDown-API Container:**
+
+    ```bash
+    # Stop MarkItDown-API
+    docker stop markitdown-api
+
+    # Start MarkItDown-API (after stopping)
+    docker start markitdown-api
+
+    # View logs
+    docker logs markitdown-api
+
+    # Remove container
+    docker rm markitdown-api
+    ```
+  </Step>
+
+  <Step title="Start Ghost Scout">
+    Start the Ghost Scout application:
+
+    ```bash
+    node index.js
+    ```
+
+    You should see output indicating the server has started:
+
+    ```
+    Server listening on port 3000
+    ```
+
+    <Tip>
+      For production deployments, consider using a process manager like PM2
+    </Tip>
+  </Step>
+
+  <Step title="Access the Application">
+    Open your web browser and navigate to:
+
+    ```
+    http://localhost:3000
+    ```
+
+    You should see the Ghost Scout web interface.
+  </Step>
+</Steps>
+
+## Verification
+
+Verify your installation is working correctly:
+
+<Tabs>
+  <Tab title="Check Services">
+    Ensure all services are running:
+
+    ```bash
+    # Check Ghost Scout
+    curl http://localhost:3000
+
+    # Check Redis
+    docker ps | grep redis
+
+    # Check MarkItDown-API
+    docker ps | grep markitdown-api
+    curl http://localhost:8490/health
+    ```
+  </Tab>
+
+  <Tab title="Test Database">
+    Verify SQLite database was created:
+
+    ```bash
+    ls -lh db/
+    ```
+
+    You should see the database file.
+  </Tab>
+
+  <Tab title="Check Logs">
+    Monitor application logs for errors:
+
+    ```bash
+    # Ghost Scout logs (terminal where you ran node index.js)
+    # Watch for connection errors or API issues
+
+    # Redis logs
+    docker logs redis
+
+    # MarkItDown-API logs
+    docker logs markitdown-api
+    ```
+  </Tab>
+</Tabs>
+
+## Post-Installation Configuration
+
+### Database Setup
+
+Ghost Scout automatically initializes the SQLite database on first run. The database includes:
+
+- **Domain** - Target company domains
+- **SourceDomain** - Domains where source data is found
+- **Target** - Target individuals (prospects)
+- **SourceData** - URLs where target data was found
+- **TargetSourceMap** - Many-to-many relationship between targets and sources
+- **Prompt** - LLM prompts for pretext generation
+- **Pretext** - Generated phishing messages
+
+<Info>
+  No manual database initialization is required
+</Info>
+
+### Prompt Library
+
+Ghost Scout includes a prompt library for AI generation:
+
+```bash
+ls prompt_library/
+```
+
+These YAML files contain templates for:
+- Profile generation prompts
+- Pretext generation prompts
+- Different phishing scenarios
+
+You can customize these templates to fit your specific use cases.
+
+## Production Deployment
+
+For production deployments, consider the following enhancements:
+
+<AccordionGroup>
+  <Accordion title="Process Manager" icon="gears">
+    Use PM2 to manage the Node.js process:
+
+    ```bash
+    # Install PM2 globally
+    npm install -g pm2
+
+    # Start Ghost Scout with PM2
+    pm2 start index.js --name ghost-scout
+
+    # Configure PM2 to start on boot
+    pm2 startup
+    pm2 save
+    ```
+
+    **PM2 Commands:**
+
+    ```bash
+    # Status
+    pm2 status
+
+    # Logs
+    pm2 logs ghost-scout
+
+    # Restart
+    pm2 restart ghost-scout
+
+    # Stop
+    pm2 stop ghost-scout
+    ```
+  </Accordion>
+
+  <Accordion title="Reverse Proxy" icon="server">
+    Use Nginx as a reverse proxy:
+
+    ```nginx
+    server {
+        listen 80;
+        server_name your-domain.com;
+
+        location / {
+            proxy_pass http://localhost:3000;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection 'upgrade';
+            proxy_set_header Host $host;
+            proxy_cache_bypass $http_upgrade;
+        }
+
+        # WebSocket support for Socket.io
+        location /socket.io/ {
+            proxy_pass http://localhost:3000;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+        }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="SSL/TLS" icon="lock">
+    Use Let's Encrypt for HTTPS:
+
+    ```bash
+    # Install Certbot
+    sudo apt-get install certbot python3-certbot-nginx
+
+    # Obtain certificate
+    sudo certbot --nginx -d your-domain.com
+    ```
+  </Accordion>
+
+  <Accordion title="Docker Compose" icon="box">
+    Consider creating a Docker Compose setup (currently on project TODO list):
+
+    ```yaml
+    version: '3.8'
+    services:
+      ghost-scout:
+        build: .
+        ports:
+          - "3000:3000"
+        environment:
+          - HUNTER_API_KEY=${HUNTER_API_KEY}
+          - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+        depends_on:
+          - redis
+          - markitdown-api
+
+      redis:
+        image: redis:latest
+        ports:
+          - "6379:6379"
+        volumes:
+          - redis-data:/data
+
+      markitdown-api:
+        image: ghcr.io/fkasler/markitdown-api:sha-ee4fcafe2cf2f17fbbff77cc7f1b1c81a7c370d2
+        ports:
+          - "8490:8490"
+
+    volumes:
+      redis-data:
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Port Already in Use" icon="triangle-exclamation">
+    **Error:** `Port 3000 is already in use`
+
+    **Solutions:**
+    - Stop the process using port 3000: `lsof -ti:3000 | xargs kill -9`
+    - Change the port in Ghost Scout configuration
+    - Identify and stop conflicting service
+  </Accordion>
+
+  <Accordion title="Redis Connection Failed" icon="database">
+    **Error:** `Cannot connect to Redis`
+
+    **Solutions:**
+    - Verify Redis container is running: `docker ps | grep redis`
+    - Check Redis logs: `docker logs redis`
+    - Ensure port 6379 is not blocked by firewall
+    - Restart Redis container: `docker restart redis`
+  </Accordion>
+
+  <Accordion title="API Key Invalid" icon="key">
+    **Error:** `Invalid API key` or `Authentication failed`
+
+    **Solutions:**
+    - Verify API keys in `.env` file
+    - Check for extra spaces or newlines in `.env`
+    - Ensure `.env` is in the project root directory
+    - Restart Ghost Scout after updating `.env`
+    - Verify API keys are active in respective portals
+  </Accordion>
+
+  <Accordion title="MarkItDown-API Not Responding" icon="server">
+    **Error:** `Cannot connect to MarkItDown-API`
+
+    **Solutions:**
+    - Verify container is running: `docker ps | grep markitdown-api`
+    - Check logs: `docker logs markitdown-api`
+    - Test endpoint: `curl http://localhost:8490/health`
+    - Restart container: `docker restart markitdown-api`
+    - Ensure port 8490 is available
+  </Accordion>
+
+  <Accordion title="Module Not Found" icon="box">
+    **Error:** `Cannot find module 'package-name'`
+
+    **Solutions:**
+    - Run `npm install` again
+    - Delete `node_modules/` and `package-lock.json`, then run `npm install`
+    - Check Node.js version compatibility
+    - Verify `package.json` is intact
+  </Accordion>
+
+  <Accordion title="Database Errors" icon="database">
+    **Error:** SQLite database errors
+
+    **Solutions:**
+    - Ensure `db/` directory exists and is writable
+    - Check disk space availability
+    - Verify SQLite3 module is installed
+    - Delete database and let Ghost Scout recreate it
+  </Accordion>
+</AccordionGroup>
+
+## Updating Ghost Scout
+
+To update Ghost Scout to the latest version:
+
+```bash
+# Pull latest changes
+git pull origin main
+
+# Update dependencies
+npm install
+
+# Restart the application
+node index.js
+```
+
+If using PM2:
+
+```bash
+git pull origin main
+npm install
+pm2 restart ghost-scout
+```
+
+<Warning>
+  Always backup your database before updating
+</Warning>
+
+## Uninstallation
+
+To completely remove Ghost Scout:
+
+<Steps>
+  <Step title="Stop the Application">
+    ```bash
+    # If running directly
+    # Press Ctrl+C in the terminal
+
+    # If using PM2
+    pm2 stop ghost-scout
+    pm2 delete ghost-scout
+    ```
+  </Step>
+
+  <Step title="Stop and Remove Containers">
+    ```bash
+    # Stop containers
+    docker stop redis markitdown-api
+
+    # Remove containers
+    docker rm redis markitdown-api
+
+    # Remove volumes (optional - deletes data)
+    docker volume rm redis-data
+    ```
+  </Step>
+
+  <Step title="Remove Application Files">
+    ```bash
+    cd ..
+    rm -rf ghost_scout
+    ```
+  </Step>
+</Steps>
+
+## Security Considerations
+
+<Warning>
+  Protect your Ghost Scout installation and API keys
+</Warning>
+
+<AccordionGroup>
+  <Accordion title="API Key Security" icon="shield-halved">
+    - Never commit `.env` to version control
+    - Use environment-specific API keys
+    - Rotate API keys regularly
+    - Limit API key permissions where possible
+    - Monitor API usage for anomalies
+  </Accordion>
+
+  <Accordion title="Network Security" icon="network-wired">
+    - Use firewall rules to restrict access
+    - Deploy behind VPN for production use
+    - Use HTTPS in production (SSL/TLS)
+    - Restrict database access
+    - Secure Redis with password (Redis AUTH)
+  </Accordion>
+
+  <Accordion title="Access Control" icon="lock">
+    - Implement authentication for web interface
+    - Use role-based access control
+    - Audit user actions and data access
+    - Restrict to authorized users only
+    - Use separate instances per client/campaign
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={3}>
+  <Card title="Overview" icon="ghost" href="/ghostscout-docs/overview">
+    Learn about Ghost Scout features
+  </Card>
+  <Card title="Usage Guide" icon="terminal" href="/ghostscout-docs/usage">
+    Practical usage and workflows
+  </Card>
+  <Card title="Hunter.io Docs" icon="link" href="https://hunter.io/api-documentation">
+    Hunter.io API documentation
+  </Card>
+</CardGroup>

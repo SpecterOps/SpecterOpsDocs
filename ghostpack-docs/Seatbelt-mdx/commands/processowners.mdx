@@ -1,0 +1,157 @@
+---
+title: 'ProcessOwners'
+description: 'Running non-session 0 process list with owners. For remote use'
+icon: 'user-gear'
+---
+
+## Overview
+
+The ProcessOwners command enumerates all running processes in non-session 0 (user sessions) along with their process owners. Session 0 is reserved for system services, so this command focuses on interactive user processes. It provides process names, PIDs, and the user accounts that own each process. This command is specifically designed for remote execution to identify active users and their running processes on target systems.
+
+## Syntax
+
+```
+Seatbelt.exe ProcessOwners
+```
+
+This command does not accept arguments.
+
+## Output
+
+The command returns:
+- Process ID (PID)
+- Process name
+- Process owner (user account)
+- Domain
+- Session ID
+
+The command excludes Session 0 processes (system services) and focuses only on user-interactive sessions.
+
+## Use Cases
+
+### Red Team
+- Identify active users on target systems
+- Map user activity across the network
+- Identify high-value user sessions (administrators, executives)
+- Determine if target accounts are logged in
+- Plan session hijacking attacks
+- Identify processes for injection or migration
+- Discover administrative tools being used
+- Map user behavior patterns
+- Identify users running specific applications
+- Locate processes owned by privileged accounts
+
+### Blue Team
+- Monitor active user sessions for anomalies
+- Audit running processes by user
+- Detect unauthorized user activity
+- Identify suspicious processes running under user accounts
+- Validate least privilege principles
+- Investigate compromised user accounts
+- Track malware running in user context
+- Identify policy violations (unauthorized software)
+- Detect lateral movement attempts
+- Monitor for process injection attacks
+- Audit remote desktop sessions
+
+## Example Output
+
+```
+====== ProcessOwners (Non-Session 0 Processes) ======
+
+  PID      : 4832
+  Process  : powershell.exe
+  Owner    : CORP\john.doe
+  Domain   : CORP
+  Session  : 1
+
+  PID      : 5124
+  Process  : chrome.exe
+  Owner    : CORP\john.doe
+  Domain   : CORP
+  Session  : 1
+
+  PID      : 2156
+  Process  : outlook.exe
+  Owner    : CORP\john.doe
+  Domain   : CORP
+  Session  : 1
+
+  PID      : 3344
+  Process  : cmd.exe
+  Owner    : CORP\administrator
+  Domain   : CORP
+  Session  : 2
+
+  PID      : 6789
+  Process  : mmc.exe
+  Owner    : CORP\administrator
+  Domain   : CORP
+  Session  : 2
+
+  PID      : 8901
+  Process  : firefox.exe
+  Owner    : CORP\jane.smith
+  Domain   : CORP
+  Session  : 3
+
+  PID      : 1234
+  Process  : code.exe
+  Owner    : CORP\developer
+  Domain   : CORP
+  Session  : 4
+```
+
+## Performance Considerations
+
+This command has minimal performance impact as it queries the process list and session information via WMI or native APIs. Execution time depends on:
+- Number of running processes
+- Number of active user sessions
+- WMI service responsiveness
+- Network latency (for remote execution)
+
+Typically completes in seconds.
+
+## Remote Execution
+
+This command supports remote execution via WMI and is specifically designed for this purpose. Use the `-computername` parameter to enumerate process owners on remote systems:
+
+```
+Seatbelt.exe ProcessOwners -computername=TARGET.domain.com
+Seatbelt.exe ProcessOwners -computername=WORKSTATION01 -username=DOMAIN\admin -password=Pass123
+```
+
+Remote execution is the primary use case for this command, allowing operators to identify active users and their processes across multiple systems.
+
+## Detection Considerations
+
+### Indicators
+- WMI queries to Win32_Process class
+- Process enumeration with owner information
+- WMI queries to remote systems
+- Access to process and session information
+- Sequential process queries across multiple systems
+- Remote WMI connections from unusual sources
+
+### Defensive Recommendations
+- Monitor for WMI process enumeration queries
+- Alert on mass process owner queries across multiple systems
+- Track remote WMI connections to workstations
+- Implement least privilege for WMI access
+- Restrict remote WMI access to authorized accounts
+- Use AppLocker or similar to control execution of enumeration tools
+- Log WMI activity for forensic analysis
+- Monitor for reconnaissance patterns
+- Correlate process enumeration with other suspicious activity
+- Implement network segmentation to limit reconnaissance scope
+- Enable WMI auditing (Event IDs 5857-5861)
+
+## Related Commands
+
+- **Processes** - Running processes with file info
+- **InterestingProcesses** - "Interesting" processes including defensive products
+- **LogonSessions** - Windows logon sessions
+- **LogonEvents** - Logon events (Event ID 4624) from the security event log
+- **ProcessCreationEvents** - Process creation logs (Event ID 4688)
+- **RDPSessions** - Current incoming RDP sessions
+- **LocalUsers** - Local users and password last set

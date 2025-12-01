@@ -1,0 +1,401 @@
+---
+title: 'Build Instructions'
+description: 'Complete guide to building SharpSCCM from source code'
+icon: 'hammer'
+sidebarTitle: 'Build Instructions'
+---
+
+<Warning>
+  **Legal Notice**: Only build and use SharpSCCM in authorized environments. Ensure you have proper permission before compiling or executing this tool.
+</Warning>
+
+## Prerequisites
+
+<Tabs>
+  <Tab title="Development Environment">
+    **Required Software:**
+    - Visual Studio 2019 or later (Community Edition is sufficient)
+    - .NET Framework 4.8 or later
+    - Git client (for cloning the repository)
+    - Windows 10/11 or Windows Server 2016+ (recommended)
+
+    **Optional but Recommended:**
+    - Visual Studio Code (for quick edits)
+    - GitHub Desktop (for easier repository management)
+    - Windows SDK (for advanced debugging)
+  </Tab>
+
+  <Tab title="Visual Studio Workloads">
+    **Required Workloads:**
+    - .NET desktop development
+    - Game development with C# (for MSBuild tools)
+
+    **Required Individual Components:**
+    - .NET Framework 4.8 targeting pack
+    - MSBuild
+    - NuGet package manager
+    - Git for Windows
+
+    <Tip>
+      **Installation Tip**: You can install these components through the Visual Studio Installer under "Individual components"
+    </Tip>
+  </Tab>
+
+  <Tab title="System Requirements">
+    **Minimum System Requirements:**
+    - 4 GB RAM (8 GB recommended)
+    - 2 GB free disk space
+    - Windows 10 version 1909 or later
+    - .NET Framework 4.8
+
+    **Recommended Configuration:**
+    - 16 GB RAM for faster builds
+    - SSD storage for improved compile times
+    - Multi-core processor for parallel builds
+  </Tab>
+</Tabs>
+
+## Step-by-Step Build Process
+
+<Steps>
+  <Step title="Clone the Repository">
+    Open a command prompt or PowerShell terminal and clone the repository:
+
+    <CodeGroup>
+    ```bash Command Line
+    git clone https://github.com/Mayyhem/SharpSCCM.git
+    cd SharpSCCM
+    ```
+
+    ```powershell PowerShell
+    git clone https://github.com/Mayyhem/SharpSCCM.git
+    Set-Location .\SharpSCCM
+    ```
+    </CodeGroup>
+
+    <Info>
+      **Alternative**: You can also download the source as a ZIP file from GitHub if you prefer not to use Git.
+    </Info>
+  </Step>
+
+  <Step title="Open the Solution">
+    Launch Visual Studio and open the solution file:
+    - File → Open → Project/Solution
+    - Navigate to the cloned repository directory
+    - Select `SharpSCCM.sln`
+
+    <Tip>
+      **Quick Tip**: You can also double-click the `.sln` file in Windows Explorer to open it directly in Visual Studio.
+    </Tip>
+  </Step>
+
+  <Step title="Configure Build Settings">
+    Select your target configuration and platform:
+
+    **Recommended Settings:**
+    - **Configuration**: Release (for production use)
+    - **Platform**: x64 (for better compatibility)
+    - **Target Framework**: .NET Framework 4.8
+
+    <Accordion title="Configuration Options Explained">
+      - **Debug**: Includes debugging symbols, larger file size, slower execution
+      - **Release**: Optimized build, smaller file size, faster execution
+      - **AnyCPU**: Runs on both x86 and x64 (may have compatibility issues)
+      - **x64**: Specifically targets 64-bit systems (recommended)
+      - **x86**: Targets 32-bit systems (legacy compatibility)
+    </Accordion>
+  </Step>
+
+  <Step title="Restore NuGet Packages">
+    Before building, restore all required dependencies:
+    - Right-click on the solution in Solution Explorer
+    - Select "Restore NuGet Packages"
+    - Wait for the restore process to complete
+
+    <CodeGroup>
+    ```bash Package Manager Console
+    Update-Package -reinstall
+    ```
+
+    ```bash Command Line
+    nuget restore SharpSCCM.sln
+    ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="Build the Solution">
+    Build the complete solution:
+    - Press `Ctrl + Shift + B`, or
+    - Go to Build → Build Solution, or
+    - Right-click solution → Build Solution
+
+    **Expected Output Location:**
+    ```
+    .\SharpSCCM\bin\x64\Release\SharpSCCM.exe
+    ```
+
+    <Note>
+      The output will be a merged assembly containing all dependencies, making it a standalone executable.
+    </Note>
+  </Step>
+</Steps>
+
+## Build Configurations
+
+<AccordionGroup>
+  <Accordion title="Release Build (Recommended)" icon="rocket">
+    **Best for production use and deployment**
+
+    ```bash
+    Configuration: Release
+    Platform: x64
+    Optimizations: Enabled
+    Debug Info: None
+    ```
+
+    **Characteristics:**
+    - Smaller file size
+    - Better performance
+    - No debugging symbols
+    - Suitable for deployment
+  </Accordion>
+
+  <Accordion title="Debug Build" icon="bug">
+    **Best for development and troubleshooting**
+
+    ```bash
+    Configuration: Debug
+    Platform: x64
+    Optimizations: Disabled
+    Debug Info: Full
+    ```
+
+    **Characteristics:**
+    - Larger file size
+    - Includes debugging symbols
+    - Easier to troubleshoot
+    - Better for development
+  </Accordion>
+
+  <Accordion title="Custom Build Options" icon="gear">
+    **Advanced configuration options**
+
+    You can customize builds by editing the project properties:
+    - Right-click project → Properties
+    - Modify compilation constants
+    - Adjust optimization settings
+    - Configure post-build events
+  </Accordion>
+</AccordionGroup>
+
+## Troubleshooting Common Issues
+
+<AccordionGroup>
+  <Accordion title="Red Underlines in Code" icon="exclamation-triangle">
+    **Issue**: Visual Studio shows red underlines under code elements
+
+    **Solution**: This is usually a temporary IntelliSense issue:
+    1. Try building the solution anyway (`Ctrl + Shift + B`)
+    2. Clean and rebuild: Build → Clean Solution, then Build → Rebuild Solution
+    3. Close and reopen Visual Studio
+    4. Clear Visual Studio cache: Delete `bin` and `obj` folders
+  </Accordion>
+
+  <Accordion title="Missing Dependencies" icon="gear">
+    **Issue**: Build fails with missing assembly references
+
+    **Solutions**:
+    1. **Restore NuGet packages**: Tools → NuGet Package Manager → Package Manager Console, then run `Update-Package -reinstall`
+    2. **Check .NET Framework version**: Ensure you have .NET Framework 4.8 installed
+    3. **Verify Windows SDK**: Install the latest Windows SDK if needed
+    4. **Clear NuGet cache**: `nuget locals all -clear`
+  </Accordion>
+
+  <Accordion title="Build Errors" icon="times-circle">
+    **Issue**: Compilation errors during build
+
+    **Common Solutions**:
+    1. **Update Visual Studio**: Ensure you're using a recent version
+    2. **Check target framework**: Verify .NET Framework 4.8 is selected
+    3. **Clean solution**: Build → Clean Solution, then rebuild
+    4. **Check file permissions**: Ensure write access to the project directory
+    5. **Antivirus interference**: Temporarily disable real-time protection during build
+  </Accordion>
+
+  <Accordion title="Post-Build Issues" icon="warning">
+    **Issue**: Build succeeds but executable doesn't work properly
+
+    **Troubleshooting Steps**:
+    1. **Check dependencies**: Ensure all required DLLs are present
+    2. **Run as administrator**: Some features require elevated privileges
+    3. **Test in clean environment**: Try running on a different machine
+    4. **Check .NET version**: Target system must have .NET Framework 4.8
+    5. **Verify architecture**: Ensure x64 build on x64 systems
+  </Accordion>
+</AccordionGroup>
+
+## Build Optimization
+
+<Tabs>
+  <Tab title="Performance Optimizations">
+    **Speed up build times:**
+
+    1. **Enable parallel builds**:
+       - Tools → Options → Projects and Solutions → Build and Run
+       - Set "maximum number of parallel project builds" to your CPU core count
+
+    2. **Use SSD storage** for faster I/O operations
+
+    3. **Increase memory allocation**:
+       ```xml
+       <PropertyGroup>
+         <MSBuildArguments>/m /p:UseSharedCompilation=false</MSBuildArguments>
+       </PropertyGroup>
+       ```
+
+    4. **Exclude directories from antivirus scanning**:
+       - Add your development folder to antivirus exclusions
+       - Exclude Visual Studio processes from real-time scanning
+  </Tab>
+
+  <Tab title="Output Customization">
+    **Customize build output:**
+
+    **Post-build events** (Project Properties → Build Events):
+    ```batch
+    rem Copy to custom directory
+    copy "$(TargetPath)" "C:\Tools\SharpSCCM.exe"
+
+    rem Create checksums
+    certutil -hashfile "$(TargetPath)" SHA256 > "$(TargetDir)checksums.txt"
+    ```
+
+    **Custom output paths**:
+    - Modify project properties to change default output directory
+    - Use environment variables for dynamic paths
+    - Configure conditional compilation symbols
+  </Tab>
+
+  <Tab title="Security Considerations">
+    **Building securely:**
+
+    1. **Verify source integrity**:
+       ```bash
+       git log --oneline -10
+       git status
+       ```
+
+    2. **Build in isolated environment**:
+       - Use virtual machines for building
+       - Scan built executables with antivirus
+       - Verify cryptographic signatures
+
+    3. **Code signing** (optional):
+       - Obtain code signing certificate
+       - Configure post-build signing
+       - Verify signatures before distribution
+  </Tab>
+</Tabs>
+
+## Verification & Testing
+
+<Steps>
+  <Step title="Verify Build Success">
+    After a successful build, verify the output:
+
+    ```powershell
+    # Check if file exists and get file info
+    Get-ChildItem ".\SharpSCCM\bin\x64\Release\SharpSCCM.exe" | Select-Object Name, Length, LastWriteTime
+
+    # Verify .NET Framework version
+    [System.Reflection.Assembly]::LoadFile("$PWD\SharpSCCM\bin\x64\Release\SharpSCCM.exe").ImageRuntimeVersion
+    ```
+  </Step>
+
+  <Step title="Basic Functionality Test">
+    Test basic functionality to ensure the build works:
+
+    ```bash
+    # Display help information
+    .\SharpSCCM.exe --help
+
+    # Test local site information (safe command)
+    .\SharpSCCM.exe local site-info
+    ```
+
+    <Warning>
+      Only run these tests in authorized lab environments.
+    </Warning>
+  </Step>
+
+  <Step title="Environment Validation">
+    Ensure the built executable works in your target environment:
+
+    - Test on different Windows versions
+    - Verify SCCM client compatibility
+    - Check domain/workgroup scenarios
+    - Validate privilege requirements
+  </Step>
+</Steps>
+
+## Alternative Build Methods
+
+<Accordion title="Command Line Build (MSBuild)">
+  Build from command line using MSBuild:
+
+  ```bash
+  # Navigate to project directory
+  cd SharpSCCM
+
+  # Build using MSBuild
+  msbuild SharpSCCM.sln /p:Configuration=Release /p:Platform=x64
+
+  # Or use dotnet CLI if available
+  dotnet build SharpSCCM.sln --configuration Release
+  ```
+
+  **Advantages:**
+  - Scriptable builds
+  - CI/CD integration
+  - Consistent build environment
+</Accordion>
+
+<Accordion title="Docker Build Environment">
+  Use Docker for consistent build environments:
+
+  ```dockerfile
+  FROM mcr.microsoft.com/dotnet/framework/sdk:4.8
+  WORKDIR /src
+  COPY . .
+  RUN msbuild SharpSCCM.sln /p:Configuration=Release /p:Platform=x64
+  ```
+
+  **Benefits:**
+  - Reproducible builds
+  - Isolated environment
+  - Cross-platform development support
+</Accordion>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Command Line Usage" icon="terminal" href="/sharpsccm-docs/resources/Command-Line-Usage">
+    Learn how to use SharpSCCM effectively
+  </Card>
+
+  <Card title="Get Started with Commands" icon="play" href="/sharpsccm-docs/commands/get">
+    Begin with information gathering commands
+  </Card>
+
+  <Card title="Security Considerations" icon="shield-check" href="/sharpsccm-docs/security/defensive-recommendations">
+    Understand defensive measures and detection
+  </Card>
+
+  <Card title="GitHub Repository" icon="github" href="https://github.com/Mayyhem/SharpSCCM">
+    Access source code and report issues
+  </Card>
+</CardGroup>
+
+<Info>
+  **Need Help?** If you encounter build issues not covered here, check the [GitHub Issues](https://github.com/Mayyhem/SharpSCCM/issues) or create a new issue with your build environment details.
+</Info>

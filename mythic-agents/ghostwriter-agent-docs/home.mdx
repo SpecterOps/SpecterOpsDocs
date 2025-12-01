@@ -1,0 +1,39 @@
+---
+title: "Ghostwriter"
+description: "Ghostwriter is a service agent for Mythic that provides an interface to work with an external instance of the Ghostwriter project management and reporting platform."
+---
+
+<img
+  src="./images/ghostwriter.svg"
+  alt="Ghostwriter Logo"
+  width="50%"
+  style={{ margin: "0 auto" }}
+/>
+
+## Summary
+
+Ghostwriter is a service agent for Mythic - it doesn't generate any payloads, but instead provides an easy interface to work with an external instance of the [Ghostwriter](https://github.com/GhostManager/Ghostwriter) project management and reporting platform.
+
+This doesn't build a payload, but instead generates a "callback" within Mythic that allows you to interact with Ghostwriter's GraphQL API.
+
+<Info>
+You must generate an API JWT in Ghostwriter and set it as GHOSTWRITER_API_KEY as a user secret in the Mythic UI (red key on your operator settings page).
+</Info>
+
+### Highlighted Agent Features
+
+- Project and client management
+- Findings creation, search, and management
+- Evidence tracking and attachment
+- Objectives and subtask management
+- Operation log (oplog) creation and search
+- Report generation and artifact management
+- Project notes collaboration
+
+## Authors
+
+- [@its_a_feature_](https://twitter.com/its_a_feature_)
+
+### Special Thanks to These Contributors
+
+- GhostManager team for the amazing Ghostwriter platform

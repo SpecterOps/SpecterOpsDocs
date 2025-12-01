@@ -1,0 +1,117 @@
+---
+title: 'OfficeMRUs'
+description: 'Office most recently used file list (last 7 days)'
+icon: 'file-word'
+---
+
+## Overview
+
+The `OfficeMRUs` command enumerates Microsoft Office Most Recently Used (MRU) files. By default, it shows files accessed in the last 7 days across Office applications (Word, Excel, PowerPoint, etc.). This reveals user document access patterns and potentially sensitive file locations.
+
+**Important:** User commands run for the current user if not elevated and for ALL users if elevated.
+
+## Syntax
+
+```
+Seatbelt.exe OfficeMRUs
+```
+
+No additional arguments are supported.
+
+## Output
+
+The command returns:
+- Recently accessed Office document paths
+- Application type (Word, Excel, PowerPoint, Access, etc.)
+- Last access timestamps
+- File locations (local and network paths)
+- User context for each MRU entry
+- Document names and extensions
+
+## Use Cases
+
+### Red Team
+- **Intelligence Gathering**: Discover sensitive documents users have recently accessed
+- **Target Identification**: Find high-value files (budgets, passwords, strategic plans)
+- **Network Mapping**: Identify network shares and file servers from document paths
+- **User Profiling**: Understand user roles and responsibilities from document types
+- **Data Exfiltration Planning**: Locate documents of interest for theft
+
+### Blue Team
+- **Data Loss Prevention**: Identify access to sensitive documents
+- **Incident Response**: Track document access during security investigations
+- **User Behavior Analysis**: Identify anomalous document access patterns
+- **Compliance Auditing**: Ensure document access aligns with user roles
+- **Forensic Analysis**: Reconstruct user activity timelines from document access
+
+## Example Output
+
+```
+====== OfficeMRUs ======
+
+User: john.doe
+
+  Word Documents
+    \\fileserver\HR\Salaries_2024.docx
+      LastAccessed    : 2024-10-19 14:30:22
+
+    C:\Users\john.doe\Documents\Passwords_List.docx
+      LastAccessed    : 2024-10-18 11:15:30
+
+  Excel Documents
+    \\fileserver\Finance\Q4_Budget_Confidential.xlsx
+      LastAccessed    : 2024-10-20 09:45:10
+
+    C:\Users\john.doe\Desktop\VPN_Credentials.xlsx
+      LastAccessed    : 2024-10-17 16:20:15
+
+  PowerPoint
+    \\dc01\shared\IT\Network_Diagram.pptx
+      LastAccessed    : 2024-10-15 13:00:00
+```
+
+## Privilege Context
+
+- **Non-Elevated**: Returns Office MRU entries for the current user only
+- **Elevated**: Returns Office MRU entries for ALL users on the system, providing comprehensive visibility of document access patterns
+
+## Remote Execution
+
+This command does **not** support remote execution (not marked with + in the command list).
+
+## Detection Considerations
+
+### Indicators
+- Registry enumeration of Office MRU keys
+- Access to user registry hives (HKCU\Software\Microsoft\Office)
+- Reading recent file list data
+- Enumeration across multiple user profiles
+
+### Defensive Monitoring
+- Monitor registry access to Office MRU keys
+- Alert on automated enumeration of recent document lists
+- Track processes reading Office application data
+- Log unusual access patterns to Office registry keys
+- Detect reconnaissance tools querying document access history
+- Monitor for bulk MRU enumeration across multiple users
+
+### What Office MRUs Reveal
+- Document names often indicate sensitivity (passwords, confidential, etc.)
+- Network paths reveal file server infrastructure
+- Access patterns indicate user roles and responsibilities
+- Timestamps show recent user activity
+- File types indicate work focus areas
+- Personal vs. organizational document storage patterns
+
+### Privacy Considerations
+- MRU data reveals detailed user work patterns
+- Can expose sensitive project information
+- May contain personally identifiable information
+- Consider user privacy when collecting MRU data
+
+## Related Commands
+
+- **ExplorerMRUs**: Shows recently used files in Explorer
+- **dir**: Lists files in user directories including documents
+- **RecentFiles**: General recent file access information
+- **InterestingFiles**: Searches for files with sensitive patterns

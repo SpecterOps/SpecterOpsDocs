@@ -1,0 +1,258 @@
+---
+title: 'get collections'
+description: 'Discover and analyze device and user collections'
+icon: 'folder'
+sidebarTitle: 'collections'
+---
+
+## Overview
+
+Discover and analyze device and user collections. Collections are fundamental to SCCM operations and reveal organizational structure, deployment targets, and administrative groupings.
+
+## Syntax
+
+```bash
+SharpSCCM get collections [options]
+```
+
+## Parameters
+
+<ParamField path="sms-provider" type="string">
+  The IP address, FQDN, or NetBIOS name of the SMS Provider to connect to
+</ParamField>
+
+<ParamField path="site-code" type="string">
+  The three-character site code (e.g., "PS1")
+</ParamField>
+
+<ParamField path="name" type="string">
+  Filter collections by name pattern (supports partial matching)
+</ParamField>
+
+<ParamField path="collection-id" type="string">
+  Filter by specific collection ID (e.g., "PS100001")
+</ParamField>
+
+<ParamField path="properties" type="string">
+  Specify properties to retrieve (can be used multiple times)
+</ParamField>
+
+<ParamField path="where-condition" type="string">
+  Custom WQL WHERE clause for advanced filtering
+</ParamField>
+
+<ParamField path="count" type="boolean">
+  Return count of results only
+</ParamField>
+
+<ParamField path="verbose" type="boolean">
+  Display all collection properties
+</ParamField>
+
+## Examples
+
+<CodeGroup>
+```bash Basic Usage
+# List all collections
+SharpSCCM get collections -sms SCCM01.corp.local -sc PS1
+
+# Count total collections
+SharpSCCM get collections -c -sms SCCM01.corp.local -sc PS1
+```
+
+```bash Collection Search
+# Find collections by name
+SharpSCCM get collections -n "Admin" -sms SCCM01.corp.local -sc PS1
+
+# Get specific collection details
+SharpSCCM get collections -i "PS100001" -v -sms SCCM01.corp.local -sc PS1
+```
+
+```bash Collection Analysis
+# Device collections only
+SharpSCCM get collections -w "CollectionType = 2" -sms SCCM01.corp.local -sc PS1
+
+# User collections only
+SharpSCCM get collections -w "CollectionType = 1" -sms SCCM01.corp.local -sc PS1
+
+# Custom collections (non-built-in)
+SharpSCCM get collections -w "IsBuiltIn = False" -sms SCCM01.corp.local -sc PS1
+```
+
+```bash Targeted Queries
+# High-member collections
+SharpSCCM get collections -w "MemberCount > 100" -sms SCCM01.corp.local -sc PS1
+
+# Recently modified collections
+SharpSCCM get collections -w "LastChangeTime > '2023-01-01'" -sms SCCM01.corp.local -sc PS1
+```
+</CodeGroup>
+
+## Key Properties
+
+| Property | Description | Values |
+|----------|-------------|--------|
+| `Name` | Collection display name | User-defined |
+| `CollectionID` | Unique identifier | PS100001, SMS00001, etc. |
+| `CollectionType` | Collection type | 1 (User), 2 (Device) |
+| `MemberCount` | Number of members | Numeric |
+| `IsBuiltIn` | Microsoft default collection | True/False |
+| `LimitToCollectionID` | Parent collection | Collection ID |
+| `LimitToCollectionName` | Parent collection name | Collection name |
+| `Comment` | Collection description | User-defined |
+
+## Required Permissions
+
+<Info>
+  **SMS Admins local group** membership on the SMS Provider server
+</Info>
+
+## Collection Types
+
+<Accordion title="Device Collections (Type 2)">
+  **Purpose:** Group devices for management operations
+
+  **Common Examples:**
+  - All Systems (SMS00001)
+  - All Workstations
+  - All Servers
+  - Domain Controllers
+  - Administrative Workstations
+
+  **Use Cases:**
+  - Application deployment targets
+  - Operating system deployment
+  - Configuration baseline assignment
+  - Software update deployment
+</Accordion>
+
+<Accordion title="User Collections (Type 1)">
+  **Purpose:** Group users for policy and application deployment
+
+  **Common Examples:**
+  - All Users (SMS00002)
+  - Domain Administrators
+  - IT Staff
+  - Department-specific groups
+
+  **Use Cases:**
+  - User-targeted application deployment
+  - User policy assignment
+  - User group management
+</Accordion>
+
+## Strategic Collections
+
+<Accordion title="High-Value Targets">
+  **Administrative Collections:**
+  ```bash
+  # Find admin-related collections
+  SharpSCCM get collections -n "admin" -sms SCCM01.corp.local -sc PS1
+  SharpSCCM get collections -n "server" -sms SCCM01.corp.local -sc PS1
+  SharpSCCM get collections -n "IT" -sms SCCM01.corp.local -sc PS1
+  ```
+
+  **Infrastructure Collections:**
+  ```bash
+  # Critical infrastructure groups
+  SharpSCCM get collections -n "DC" -sms SCCM01.corp.local -sc PS1
+  SharpSCCM get collections -n "SQL" -sms SCCM01.corp.local -sc PS1
+  SharpSCCM get collections -n "Exchange" -sms SCCM01.corp.local -sc PS1
+  ```
+</Accordion>
+
+<Accordion title="Built-in vs Custom">
+  **Built-in Collections (IsBuiltIn = True):**
+  - Created by Microsoft
+  - Standard SCCM functionality
+  - SMS00001 (All Systems), SMS00002 (All Users), etc.
+
+  **Custom Collections (IsBuiltIn = False):**
+  - Created by administrators
+  - Organization-specific groupings
+  - Higher intelligence value for attackers
+</Accordion>
+
+## Collection Intelligence
+
+<Accordion title="Organizational Structure">
+  Collections reveal:
+  - **Departmental organization** (HR, Finance, IT collections)
+  - **Geographic distribution** (Site-based collections)
+  - **Administrative boundaries** (Admin, standard user groups)
+  - **Asset categorization** (Workstation, server, mobile device types)
+</Accordion>
+
+<Accordion title="Deployment Patterns">
+  Collection analysis shows:
+  - **Application deployment targets** (which groups get which software)
+  - **Update deployment strategies** (pilot groups, production rollout)
+  - **Security policy application** (compliance baselines)
+  - **Operating system deployment** (imaging targets)
+</Accordion>
+
+## Attack Planning
+
+<Accordion title="Target Identification">
+  Use collections to identify:
+  - **High-value systems** (admin workstations, servers)
+  - **Privilege escalation paths** (admin user groups)
+  - **Lateral movement opportunities** (connected systems)
+  - **Deployment targets** (for malicious applications)
+</Accordion>
+
+<Accordion title="Collection Manipulation">
+  Potential attack vectors:
+  - Add devices to high-privilege collections
+  - Create malicious collections for deployment
+  - Modify collection membership rules
+  - Target specific user/device groups
+</Accordion>
+
+## Common Queries
+
+<CodeGroup>
+```sql Device Collections
+CollectionType = 2
+```
+
+```sql User Collections
+CollectionType = 1
+```
+
+```sql Custom Collections
+IsBuiltIn = False
+```
+
+```sql Large Collections
+MemberCount > 50
+```
+
+```sql Admin Collections
+Name LIKE '%admin%' OR Name LIKE '%IT%'
+```
+</CodeGroup>
+
+## Output Analysis
+
+<Accordion title="Naming Conventions">
+  Collection names often reveal:
+  - **Purpose:** "Pilot Group", "Production Servers"
+  - **Department:** "HR Workstations", "Finance Users"
+  - **Location:** "Building A", "Remote Users"
+  - **Function:** "SQL Servers", "Web Servers"
+</Accordion>
+
+<Accordion title="Member Count Analysis">
+  - **Large collections (100+):** Broad deployment targets
+  - **Medium collections (10-100):** Departmental groups
+  - **Small collections (1-10):** Specialized or test groups
+  - **Empty collections (0):** Unused or test collections
+</Accordion>
+
+## Related Commands
+
+- [`get collection-members`](/commands/get/collection-members) - List members of specific collections
+- [`get devices`](/commands/get/devices) - Enumerate managed devices
+- [`get users`](/commands/get/users) - Enumerate user accounts
+- [`get deployments`](/commands/get/deployments) - Analyze collection-targeted deployments

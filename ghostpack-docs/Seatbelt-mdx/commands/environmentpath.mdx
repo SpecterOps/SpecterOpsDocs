@@ -1,0 +1,80 @@
+---
+title: 'EnvironmentPath'
+description: 'Current environment %PATH% folders and SDDL information'
+icon: 'folder-tree'
+---
+
+## Overview
+
+The EnvironmentPath command enumerates all directories in the system %PATH% environment variable along with their security descriptors (SDDL). This helps identify writable directories in the PATH that could be exploited for DLL hijacking or binary planting attacks.
+
+## Syntax
+
+```bash
+Seatbelt.exe EnvironmentPath
+```
+
+<Note>
+This command does **not** support remote execution.
+</Note>
+
+## Output
+
+Returns PATH directories with:
+- Full directory path
+- SDDL (Security Descriptor Definition Language)
+- Write permissions for current user
+- Directory existence status
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Identify writable PATH directories for DLL hijacking
+    - Find locations for binary planting
+    - Discover persistence opportunities
+    - Locate paths for search order hijacking
+  </Tab>
+  <Tab title="Blue Team">
+    - Audit PATH security configurations
+    - Identify overly permissive directories
+    - Detect unauthorized PATH modifications
+    - Validate security baselines
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== EnvironmentPath ======
+
+Folder : C:\Windows\system32
+SDDL   : O:S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464G:S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464D:PAI(A;OICIIO;GA;;;CO)(A;;0x1301bf;;;SY)(A;OICIIO;GA;;;SY)(A;;0x1301bf;;;BA)(A;OICIIO;GA;;;BA)(A;;0x1200a9;;;BU)(A;OICIIO;GXGR;;;BU)
+Writable : False
+
+Folder : C:\Program Files\Custom
+SDDL   : O:BAG:DUD:PAI(A;;FA;;;BA)(A;;FA;;;SY)(A;;0x1200a9;;;BU)(A;;0x1200a9;;;AC)
+Writable : False
+
+Folder : C:\Tools
+SDDL   : O:BAG:BAD:(A;;FA;;;BA)(A;;FA;;;SY)(A;;0x1301bf;;;AU)
+Writable : True [!]
+```
+
+## Remote Execution
+
+<Warning>
+This command does **NOT support remote execution**.
+</Warning>
+
+## Detection Considerations
+
+<Info>
+Low detection risk - reads environment variables and file system ACLs.
+</Info>
+
+## Related Commands
+
+- [EnvironmentVariables](/commands/environmentvariables) - All environment variables
+- [InterestingProcesses](/commands/interestingprocesses) - Security and admin tools
+- [Services](/commands/services) - Windows services

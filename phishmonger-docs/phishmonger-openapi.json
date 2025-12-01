@@ -1,0 +1,1387 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Phishmonger API",
+    "version": "2.0.0",
+    "description": "RESTful API for programmatic access to Phishmonger phishing platform functionality"
+  },
+  "servers": [
+    {
+      "url": "https://yourdomain.com",
+      "description": "Phishmonger server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "cookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "admin_cookie",
+        "description": "Admin cookie authentication (configurable in config.json)"
+      }
+    },
+    "schemas": {
+      "Template": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Template name"
+          },
+          "email": {
+            "type": "string",
+            "description": "Raw email MIME content"
+          }
+        }
+      },
+      "Campaign": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Campaign name"
+          },
+          "email": {
+            "type": "string",
+            "description": "Raw email message"
+          },
+          "mail_server": {
+            "type": "string",
+            "description": "Mail server hostname"
+          },
+          "smtp_from": {
+            "type": "string",
+            "description": "SMTP mail from field"
+          },
+          "phishing_link": {
+            "type": "string",
+            "description": "Base phishing link URL"
+          },
+          "id_parameter": {
+            "type": "string",
+            "description": "Tracking ID parameter name"
+          },
+          "delay": {
+            "type": "integer",
+            "description": "Delay between emails in seconds"
+          },
+          "secure": {
+            "type": "integer",
+            "description": "Use TLS (1 = yes, 0 = no)"
+          },
+          "username": {
+            "type": "string",
+            "description": "SMTP username for authentication"
+          },
+          "password": {
+            "type": "string",
+            "description": "SMTP password for authentication"
+          },
+          "dkim": {
+            "type": "integer",
+            "description": "DKIM sign messages (1 = yes, 0 = no)"
+          },
+          "scheduled_start": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Unix timestamp for scheduled start"
+          },
+          "start_timestamp": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Unix timestamp when campaign started"
+          },
+          "end_timestamp": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Unix timestamp when campaign ended"
+          },
+          "is_sending": {
+            "type": "integer",
+            "description": "Campaign sending status (1 = sending, 0 = stopped)"
+          },
+          "market_id": {
+            "type": "integer",
+            "description": "Phishmarket template ID if applicable"
+          }
+        }
+      },
+      "Target": {
+        "type": "object",
+        "properties": {
+          "target_id": {
+            "type": "string",
+            "description": "Unique target identifier"
+          },
+          "address": {
+            "type": "string",
+            "description": "Target email address"
+          },
+          "campaign": {
+            "type": "string",
+            "description": "Associated campaign name"
+          },
+          "first_name": {
+            "type": "string",
+            "description": "Target first name"
+          },
+          "last_name": {
+            "type": "string",
+            "description": "Target last name"
+          },
+          "position": {
+            "type": "string",
+            "description": "Target job title/position"
+          },
+          "custom": {
+            "type": "string",
+            "description": "Custom field (phone number, etc.)"
+          },
+          "phished": {
+            "type": "integer",
+            "description": "Email sent status (0 = not sent, 1 = sent)"
+          }
+        }
+      },
+      "Event": {
+        "type": "object",
+        "properties": {
+          "event_timestamp": {
+            "type": "integer",
+            "description": "Unix timestamp of event"
+          },
+          "event_ip": {
+            "type": "string",
+            "description": "Source IP address"
+          },
+          "campaign": {
+            "type": "string",
+            "description": "Associated campaign name"
+          },
+          "target": {
+            "type": "string",
+            "description": "Target ID"
+          },
+          "event_type": {
+            "type": "string",
+            "description": "Event type (EMAIL_SENT, CLICK, POST_DATA, COOKIE_DATA, ERROR)"
+          },
+          "event_data": {
+            "type": "string",
+            "description": "Event-specific data"
+          },
+          "ignore": {
+            "type": "integer",
+            "description": "Ignore status for filtering (0 = show, 1 = hidden)"
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "cookieAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Template",
+      "description": "Email template management"
+    },
+    {
+      "name": "Campaign",
+      "description": "Phishing campaign operations"
+    },
+    {
+      "name": "Target",
+      "description": "Target recipient management"
+    },
+    {
+      "name": "Event",
+      "description": "Event tracking and analytics"
+    }
+  ],
+  "paths": {
+    "/list_templates": {
+      "get": {
+        "tags": ["Template"],
+        "summary": "List all templates",
+        "description": "Get a list of local template names",
+        "security": [{"cookieAuth": []}],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authorized"
+          }
+        }
+      }
+    },
+    "/get_template": {
+      "get": {
+        "tags": ["Template"],
+        "summary": "Get template by name",
+        "description": "Retrieve a full local template",
+        "security": [{"cookieAuth": []}],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Template name"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Template"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authorized"
+          }
+        }
+      }
+    },
+    "/save_template": {
+      "post": {
+        "tags": ["Template"],
+        "summary": "Save template",
+        "description": "Create or update a local template",
+        "security": [{"cookieAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "template_name": {
+                    "type": "string",
+                    "description": "Template name"
+                  },
+                  "mail_data": {
+                    "type": "string",
+                    "description": "Template MIME content"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Template saved successfully",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Template Saved"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authorized"
+          }
+        }
+      }
+    },
+    "/delete_template": {
+      "delete": {
+        "tags": ["Template"],
+        "summary": "Delete template",
+        "description": "Remove a local template",
+        "security": [{"cookieAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "template_name": {
+                    "type": "string",
+                    "description": "Template name"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Template deleted successfully",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Template Deleted"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authorized"
+          }
+        }
+      }
+    },
+    "/list_campaigns": {
+      "get": {
+        "tags": ["Campaign"],
+        "summary": "List all campaigns",
+        "description": "Get a list of all campaigns",
+        "security": [{"cookieAuth": []}],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Campaign"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authorized"
+          }
+        }
+      }
+    },
+    "/get_campaign": {
+      "get": {
+        "tags": ["Campaign"],
+        "summary": "Get campaign details",
+        "description": "Retrieve campaign settings and configuration",
+        "security": [{"cookieAuth": []}],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Campaign name"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Campaign"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authorized"
+          }
+        }
+      }
+    },
+    "/save_campaign": {
+      "post": {
+        "tags": ["Campaign"],
+        "summary": "Create campaign",
+        "description": "Save email as a new campaign",
+        "security": [{"cookieAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "campaign_name": {
+                    "type": "string",
+                    "description": "Campaign name"
+                  },
+                  "mail_data": {
+                    "type": "string",
+                    "description": "Raw email message"
+                  },
+                  "supplied_mail_server": {
+                    "type": "string",
+                    "description": "Mail server hostname"
+                  },
+                  "supplied_smtp_from": {
+                    "type": "string",
+                    "description": "SMTP from address"
+                  },
+                  "supplied_link": {
+                    "type": "string",
+                    "description": "Phishing link URL"
+                  },
+                  "supplied_id_param": {
+                    "type": "string",
+                    "description": "Tracking parameter name"
+                  },
+                  "supplied_delay": {
+                    "type": "string",
+                    "default": "30",
+                    "description": "Delay between emails in seconds"
+                  },
+                  "secure_mail": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Use TLS"
+                  },
+                  "supplied_username": {
+                    "type": "string",
+                    "description": "SMTP username"
+                  },
+                  "supplied_password": {
+                    "type": "string",
+                    "description": "SMTP password"
+                  },
+                  "dkim": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "DKIM sign messages"
+                  },
+                  "market_id": {
+                    "type": "number",
+                    "default": 0,
+                    "description": "Phishmarket template ID"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Campaign saved successfully",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Saved Campaign"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authorized"
+          }
+        }
+      }
+    },
+    "/update_campaign": {
+      "put": {
+        "tags": ["Campaign"],
+        "summary": "Update campaign",
+        "description": "Modify an existing campaign",
+        "security": [{"cookieAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "campaign_name": {
+                    "type": "string",
+                    "description": "Campaign name"
+                  },
+                  "mail_data": {
+                    "type": "string",
+                    "description": "Raw email message"
+                  },
+                  "supplied_mail_server": {
+                    "type": "string",
+                    "description": "Mail server hostname"
+                  },
+                  "supplied_smtp_from": {
+                    "type": "string",
+                    "description": "SMTP from address"
+                  },
+                  "supplied_link": {
+                    "type": "string",
+                    "description": "Phishing link URL"
+                  },
+                  "supplied_id_param": {
+                    "type": "string",
+                    "description": "Tracking parameter name"
+                  },
+                  "supplied_delay": {
+                    "type": "string",
+                    "description": "Delay between emails in seconds"
+                  },
+                  "secure_mail": {
+                    "type": "boolean",
+                    "description": "Use TLS"
+                  },
+                  "supplied_username": {
+                    "type": "string",
+                    "description": "SMTP username"
+                  },
+                  "supplied_password": {
+                    "type": "string",
+                    "description": "SMTP password"
+                  },
+                  "dkim": {
+                    "type": "boolean",
+                    "description": "DKIM sign messages"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Campaign updated successfully",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Updated Campaign"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authorized"
+          }
+        }
+      }
+    },
+    "/send_campaign": {
+      "put": {
+        "tags": ["Campaign"],
+        "summary": "Start campaign",
+        "description": "Begin sending campaign immediately",
+        "security": [{"cookieAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "campaign": {
+                    "type": "string",
+                    "description": "Campaign name"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Campaign started successfully",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Sending Campaign"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authorized"
+          }
+        }
+      }
+    },
+    "/schedule_campaign": {
+      "put": {
+        "tags": ["Campaign"],
+        "summary": "Schedule campaign",
+        "description": "Set a future time to start sending the campaign",
+        "security": [{"cookieAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "campaign": {
+                    "type": "string",
+                    "description": "Campaign name"
+                  },
+                  "start_time": {
+                    "type": "number",
+                    "description": "Unix epoch timestamp to start campaign"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Campaign scheduled successfully",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Scheduled Campaign"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authorized"
+          }
+        }
+      }
+    },
+    "/cancel_campaign": {
+      "put": {
+        "tags": ["Campaign"],
+        "summary": "Stop campaign",
+        "description": "Stop sending the campaign",
+        "security": [{"cookieAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "campaign": {
+                    "type": "string",
+                    "description": "Campaign name"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Campaign cancelled successfully",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Cancelled Campaign"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authorized"
+          }
+        }
+      }
+    },
+    "/delete_campaign": {
+      "delete": {
+        "tags": ["Campaign"],
+        "summary": "Delete campaign",
+        "description": "Delete an entire campaign and associated events",
+        "security": [{"cookieAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "campaign": {
+                    "type": "string",
+                    "description": "Campaign name to delete"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Campaign deleted successfully",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "campaign deleted"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authorized"
+          }
+        }
+      }
+    },
+    "/send_test_email": {
+      "post": {
+        "tags": ["Template", "Campaign"],
+        "summary": "Send test email",
+        "description": "Test a template or campaign email",
+        "security": [{"cookieAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "campaign": {
+                    "type": "string",
+                    "default": "test",
+                    "description": "Campaign name"
+                  },
+                  "mail_data": {
+                    "type": "string",
+                    "description": "Raw email message"
+                  },
+                  "supplied_mail_to": {
+                    "type": "string",
+                    "description": "Test recipient email"
+                  },
+                  "supplied_mail_server": {
+                    "type": "string",
+                    "description": "Mail server hostname"
+                  },
+                  "supplied_smtp_from": {
+                    "type": "string",
+                    "description": "SMTP from address"
+                  },
+                  "supplied_link": {
+                    "type": "string",
+                    "description": "Phishing link URL"
+                  },
+                  "supplied_id_param": {
+                    "type": "string",
+                    "description": "Tracking parameter name"
+                  },
+                  "target_id": {
+                    "type": "string",
+                    "default": "test",
+                    "description": "Test target ID"
+                  },
+                  "supplied_first_name": {
+                    "type": "string",
+                    "description": "Test first name"
+                  },
+                  "supplied_last_name": {
+                    "type": "string",
+                    "description": "Test last name"
+                  },
+                  "supplied_position": {
+                    "type": "string",
+                    "description": "Test position"
+                  },
+                  "supplied_custom_replacement": {
+                    "type": "string",
+                    "description": "Test custom field"
+                  },
+                  "secure_mail": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Use TLS"
+                  },
+                  "supplied_username": {
+                    "type": "string",
+                    "description": "SMTP username"
+                  },
+                  "supplied_password": {
+                    "type": "string",
+                    "description": "SMTP password"
+                  },
+                  "dkim": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "DKIM sign message"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Test email sent successfully",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "email sent"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authorized"
+          }
+        }
+      }
+    },
+    "/get_targets": {
+      "get": {
+        "tags": ["Target"],
+        "summary": "List campaign targets",
+        "description": "Get all targets for a campaign",
+        "security": [{"cookieAuth": []}],
+        "parameters": [
+          {
+            "name": "campaign",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Campaign name"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Target"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authorized"
+          }
+        }
+      }
+    },
+    "/get_target_info": {
+      "get": {
+        "tags": ["Target"],
+        "summary": "Get target details",
+        "description": "Retrieve basic info for a specific target",
+        "security": [{"cookieAuth": []}],
+        "parameters": [
+          {
+            "name": "target_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Unique target ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Target"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authorized"
+          }
+        }
+      }
+    },
+    "/create_target": {
+      "post": {
+        "tags": ["Target"],
+        "summary": "Add target",
+        "description": "Add a target to a campaign",
+        "security": [{"cookieAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["address", "campaign"],
+                "properties": {
+                  "address": {
+                    "type": "string",
+                    "description": "Target email address"
+                  },
+                  "campaign": {
+                    "type": "string",
+                    "description": "Campaign to add target to"
+                  },
+                  "first_name": {
+                    "type": "string",
+                    "description": "First name"
+                  },
+                  "last_name": {
+                    "type": "string",
+                    "description": "Last name"
+                  },
+                  "position": {
+                    "type": "string",
+                    "description": "Job title"
+                  },
+                  "custom": {
+                    "type": "string",
+                    "description": "Custom field (phone, etc.)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Target created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Target"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authorized"
+          }
+        }
+      }
+    },
+    "/delete_target": {
+      "delete": {
+        "tags": ["Target"],
+        "summary": "Remove target",
+        "description": "Remove target from a campaign",
+        "security": [{"cookieAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "address": {
+                    "type": "string",
+                    "description": "Target email address"
+                  },
+                  "campaign": {
+                    "type": "string",
+                    "description": "Campaign to remove target from"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Target deleted successfully",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authorized"
+          }
+        }
+      }
+    },
+    "/update_phished_status": {
+      "put": {
+        "tags": ["Target"],
+        "summary": "Update email sent status",
+        "description": "Reset or set phished status for a target",
+        "security": [{"cookieAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "address": {
+                    "type": "string",
+                    "description": "Target email address"
+                  },
+                  "campaign": {
+                    "type": "string",
+                    "description": "Campaign name"
+                  },
+                  "phished": {
+                    "type": "number",
+                    "description": "Phished status (0 or 1)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Status updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "address": {
+                      "type": "string"
+                    },
+                    "campaign": {
+                      "type": "string"
+                    },
+                    "phished": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authorized"
+          }
+        }
+      }
+    },
+    "/create_event": {
+      "post": {
+        "tags": ["Event"],
+        "summary": "Log event",
+        "description": "Create a tracked event (used by payload servers like Humble Chameleon)",
+        "security": [{"cookieAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["event_ip", "target", "event_type", "event_data"],
+                "properties": {
+                  "event_ip": {
+                    "type": "string",
+                    "description": "Source IP address",
+                    "example": "203.0.113.45"
+                  },
+                  "target": {
+                    "type": "string",
+                    "description": "Target ID",
+                    "example": "a7k2m9"
+                  },
+                  "event_type": {
+                    "type": "string",
+                    "description": "Event type",
+                    "enum": ["CLICK", "POST_DATA", "COOKIE_DATA", "EMAIL_SENT", "ERROR"],
+                    "example": "CLICK"
+                  },
+                  "event_data": {
+                    "type": "string",
+                    "description": "Event-specific data",
+                    "example": "User-Agent: Mozilla/5.0..."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Event created successfully",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Event created"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authorized"
+          }
+        }
+      }
+    },
+    "/get_campaign_events": {
+      "get": {
+        "tags": ["Event"],
+        "summary": "Get campaign events",
+        "description": "Retrieve all events for a campaign",
+        "security": [{"cookieAuth": []}],
+        "parameters": [
+          {
+            "name": "campaign",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Campaign name"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Event"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authorized"
+          }
+        }
+      }
+    },
+    "/get_target_events": {
+      "get": {
+        "tags": ["Event"],
+        "summary": "Get target events",
+        "description": "Retrieve all events for a specific target",
+        "security": [{"cookieAuth": []}],
+        "parameters": [
+          {
+            "name": "target_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Unique target ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Event"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authorized"
+          }
+        }
+      }
+    },
+    "/get_search_events": {
+      "get": {
+        "tags": ["Event"],
+        "summary": "Search events",
+        "description": "Search events with filters",
+        "security": [{"cookieAuth": []}],
+        "parameters": [
+          {
+            "name": "campaign",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Campaign to search"
+          },
+          {
+            "name": "timestamp",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Timestamp filter"
+          },
+          {
+            "name": "event_type",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Event type filter"
+          },
+          {
+            "name": "source",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Source IP filter"
+          },
+          {
+            "name": "target",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Target ID filter"
+          },
+          {
+            "name": "data",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Event data search term"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Event"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authorized"
+          }
+        }
+      }
+    },
+    "/ignore_event": {
+      "put": {
+        "tags": ["Event"],
+        "summary": "Ignore event",
+        "description": "Mark an event as ignored (hidden from queries)",
+        "security": [{"cookieAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "campaign": {
+                    "type": "string",
+                    "description": "Campaign name"
+                  },
+                  "timestamp": {
+                    "type": "string",
+                    "description": "Event timestamp"
+                  },
+                  "event_type": {
+                    "type": "string",
+                    "description": "Event type"
+                  },
+                  "source": {
+                    "type": "string",
+                    "description": "Source IP"
+                  },
+                  "target": {
+                    "type": "string",
+                    "description": "Target ID"
+                  },
+                  "data": {
+                    "type": "string",
+                    "description": "Event data"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Event ignored successfully",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "event updated"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authorized"
+          }
+        }
+      }
+    },
+    "/unignore_events": {
+      "put": {
+        "tags": ["Event"],
+        "summary": "Unignore events",
+        "description": "Show all events for a campaign (reset ignore status)",
+        "security": [{"cookieAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "campaign": {
+                    "type": "string",
+                    "description": "Campaign name"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Events unignored successfully",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "events unignored"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authorized"
+          }
+        }
+      }
+    }
+  }
+}

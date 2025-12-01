@@ -1,0 +1,352 @@
+---
+title: 'SharpUp Overview'
+description: 'C# port of PowerUp for Windows privilege escalation enumeration'
+icon: 'arrow-up'
+---
+
+## What is SharpUp?
+
+SharpUp is a **C# port of PowerUp functionality** for enumerating common Windows privilege escalation vectors. It performs automated checks to identify potential privilege escalation opportunities on Windows systems without requiring weaponization or exploitation.
+
+<Tip>
+  SharpUp is a port of [@mattifestation](https://twitter.com/mattifestation)'s [PowerUp](https://github.com/PowerShellMafia/PowerSploit/blob/dev/Privesc/PowerUp.ps1) from PowerSploit. Only enumeration checks have been ported - no exploitation functions are included.
+</Tip>
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Privilege Escalation Checks" icon="magnifying-glass">
+    15 different vulnerability checks for common Windows privesc vectors
+  </Card>
+  <Card title="No Weaponization" icon="shield">
+    Enumeration only - no exploitation or modification of systems
+  </Card>
+  <Card title="Audit Mode" icon="clipboard-check">
+    Run checks regardless of current privilege level
+  </Card>
+  <Card title="Selective Checks" icon="sliders">
+    Run all checks or specify individual checks to execute
+  </Card>
+</CardGroup>
+
+## Available Checks
+
+SharpUp includes 15 privilege escalation enumeration checks:
+
+### Service-Based Checks
+
+<AccordionGroup>
+  <Accordion title="ModifiableServices" icon="gear">
+    Identifies services where the current user can modify the service configuration
+  </Accordion>
+
+  <Accordion title="ModifiableServiceBinaries" icon="file-code">
+    Finds service binaries that the current user can modify
+  </Accordion>
+
+  <Accordion title="ModifiableServiceRegistryKeys" icon="table">
+    Locates service registry keys that can be modified by the current user
+  </Accordion>
+
+  <Accordion title="UnquotedServicePath" icon="quote-left">
+    Identifies services with unquoted paths containing spaces (DLL hijacking opportunity)
+  </Accordion>
+</AccordionGroup>
+
+### Registry-Based Checks
+
+<AccordionGroup>
+  <Accordion title="RegistryAutoLogons" icon="right-to-bracket">
+    Searches for plaintext credentials in registry AutoLogon configuration
+  </Accordion>
+
+  <Accordion title="RegistryAutoruns" icon="rotate">
+    Finds modifiable registry autoruns (HKLM and HKCU Run keys)
+  </Accordion>
+
+  <Accordion title="AlwaysInstallElevated" icon="box">
+    Checks if AlwaysInstallElevated policy is enabled (MSI privilege escalation)
+  </Accordion>
+</AccordionGroup>
+
+### File-Based Checks
+
+<AccordionGroup>
+  <Accordion title="UnattendedInstallFiles" icon="file">
+    Searches for unattended installation files that may contain credentials
+  </Accordion>
+
+  <Accordion title="McAfeeSitelistFiles" icon="shield-virus">
+    Locates McAfee SiteList.xml files containing encrypted passwords
+  </Accordion>
+
+  <Accordion title="CachedGPPPassword" icon="folder-tree">
+    Searches local cache for Group Policy Preference passwords
+  </Accordion>
+
+  <Accordion title="DomainGPPPassword" icon="building">
+    Searches domain SYSVOL for Group Policy Preference passwords
+  </Accordion>
+</AccordionGroup>
+
+### Scheduled Task Checks
+
+<AccordionGroup>
+  <Accordion title="ModifiableScheduledTask" icon="calendar-days">
+    Identifies scheduled tasks with modifiable binaries or scripts
+  </Accordion>
+</AccordionGroup>
+
+### PATH & DLL Checks
+
+<AccordionGroup>
+  <Accordion title="HijackablePaths" icon="route">
+    Finds modifiable directories in the system %PATH% variable
+  </Accordion>
+
+  <Accordion title="ProcessDLLHijack" icon="book-bookmark">
+    Identifies running processes with missing DLLs (DLL hijacking opportunity)
+  </Accordion>
+</AccordionGroup>
+
+### Token & Privileges
+
+<AccordionGroup>
+  <Accordion title="TokenPrivileges" icon="key">
+    Enumerates current user token privileges
+  </Accordion>
+</AccordionGroup>
+
+## Basic Usage
+
+```bash
+# Run all checks (default behavior for non-admin users)
+SharpUp.exe
+
+# Run all checks in audit mode (regardless of privilege level)
+SharpUp.exe audit
+
+# Run specific check
+SharpUp.exe ModifiableServices
+
+# Run multiple specific checks
+SharpUp.exe ModifiableServices UnquotedServicePath
+
+# Audit mode with specific checks
+SharpUp.exe audit HijackablePaths RegistryAutoLogons
+```
+
+## Audit Mode
+
+<Info>
+  By default, SharpUp will not run checks if you're already a local administrator or in high integrity. Use `audit` mode to force all checks to run anyway.
+</Info>
+
+**Default Behavior:**
+- **High Integrity**: SharpUp detects this and skips checks (already privileged)
+- **Medium Integrity + Local Admin**: SharpUp suggests UAC bypass instead
+- **Standard User**: All checks run normally
+
+**Audit Mode Behavior:**
+- Runs all specified checks regardless of current privilege level
+- Useful for security auditing and compliance checking
+- Will produce false positives when run in high integrity
+
+```bash
+# Force all checks to run
+SharpUp.exe audit
+
+# Run specific checks in audit mode
+SharpUp.exe audit AlwaysInstallElevated RegistryAutoLogons
+```
+
+## Typical Workflow
+
+<Steps>
+  <Step title="Initial Enumeration">
+    Run all checks to identify potential privilege escalation vectors
+    ```bash
+    SharpUp.exe
+    ```
+  </Step>
+
+  <Step title="Review Results">
+    Analyze the output to identify the most promising vulnerabilities
+  </Step>
+
+  <Step title="Targeted Checks">
+    Re-run specific checks for verification or detailed information
+    ```bash
+    SharpUp.exe ModifiableServices
+    ```
+  </Step>
+
+  <Step title="Exploitation">
+    Use the information to manually exploit identified vulnerabilities (SharpUp doesn't include weaponization)
+  </Step>
+</Steps>
+
+## Example Output
+
+```
+=== SharpUp: Running Privilege Escalation Checks ===
+
+[*] Already in high integrity, no need to privesc!
+
+[*] Quitting now, re-run with "audit" argument to run checks anyway (audit mode).
+
+
+[*] Completed Privesc Checks in 0 seconds
+```
+
+**With Vulnerabilities Found:**
+```
+=== ModifiableServices ===
+	Service 'VulnService' (C:\Services\service.exe)
+	Start Permission: Everyone [AllAccess]
+
+=== UnquotedServicePath ===
+	Service 'Unquoted Service' has unquoted path: C:\Program Files\My Service\service.exe
+	ModifiablePath: C:\Program Files\My Service
+```
+
+## Detection Considerations
+
+<Warning>
+  SharpUp performs enumeration activities that can be detected by EDR and security monitoring tools.
+</Warning>
+
+### Host-Based Detection
+
+- **Registry Enumeration**: Reading service configurations and Run keys
+- **File System Enumeration**: Searching for unattended install files and GPP passwords
+- **Service Queries**: Enumerating service ACLs and configurations
+- **Scheduled Task Queries**: Enumerating task configurations
+- **Token Queries**: Reading current process token privileges
+
+### Behavioral Indicators
+
+- Process making numerous registry queries to service keys
+- Rapid enumeration of file system for specific file patterns
+- Querying service security descriptors
+- SYSVOL/netlogon share access (for Domain GPP checks)
+- Sequential execution of multiple privilege checks
+
+### Defensive Measures
+
+<Accordion title="Detection Strategies">
+  - Monitor for rapid service configuration enumeration
+  - Alert on SYSVOL access from non-DC systems
+  - Track unusual registry key access patterns
+  - Monitor for SharpUp.exe execution
+  - Detect sequential privilege escalation check patterns
+</Accordion>
+
+<Accordion title="Prevention Strategies">
+  - Remove unattended install files from systems
+  - Disable AlwaysInstallElevated policy
+  - Properly configure service ACLs
+  - Quote all service paths
+  - Remove cached GPP passwords
+  - Implement least privilege for service accounts
+  - Audit and restrict PATH directory permissions
+</Accordion>
+
+## Prerequisites
+
+<AccordionGroup>
+  <Accordion title="Build Requirements">
+    - Visual Studio 2015 Community Edition or later
+    - .NET Framework 3.5 (default target)
+  </Accordion>
+
+  <Accordion title="Execution Requirements">
+    - Windows operating system
+    - .NET Framework 3.5 or later
+    - Standard user privileges (no elevation required)
+  </Accordion>
+
+  <Accordion title="Privilege Requirements">
+    **Standard User:**
+    - Can run all enumeration checks
+    - Identifies privilege escalation opportunities
+
+    **Administrator:**
+    - SharpUp will detect and skip checks (use `audit` mode to force)
+    - May produce false positives in high integrity
+  </Accordion>
+</AccordionGroup>
+
+## Comparison with PowerUp
+
+| Feature | PowerUp | SharpUp |
+|---------|---------|---------|
+| Language | PowerShell | C# |
+| Checks | 15+ enumeration + exploitation | 15 enumeration only |
+| Weaponization | Included | Not included |
+| Execution | PowerShell.exe | Native .exe |
+| AMSI/CLM | Affected | Bypasses |
+| Footprint | Script loaded in memory | Binary execution |
+
+<Note>
+  SharpUp focuses purely on enumeration. For exploitation, you'll need to manually leverage the identified vulnerabilities or use other tools.
+</Note>
+
+## Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Penetration Testing" icon="user-secret">
+    Quickly identify privilege escalation vectors during assessments
+  </Card>
+  <Card title="Red Team Operations" icon="flag">
+    Enumerate local privilege escalation opportunities post-compromise
+  </Card>
+  <Card title="Security Auditing" icon="clipboard-check">
+    Identify and remediate privilege escalation vulnerabilities
+  </Card>
+  <Card title="Compliance Checking" icon="shield-check">
+    Verify proper security configurations are in place
+  </Card>
+</CardGroup>
+
+## Additional Resources
+
+<CardGroup cols={2}>
+  <Card title="PowerUp (Original)" icon="github" href="https://github.com/PowerShellMafia/PowerSploit/blob/dev/Privesc/PowerUp.ps1">
+    Original PowerShell implementation
+  </Card>
+  <Card title="GitHub Repository" icon="github" href="https://github.com/GhostPack/SharpUp">
+    Official SharpUp repository
+  </Card>
+  <Card title="Windows Privilege Escalation" icon="book" href="https://book.hacktricks.xyz/windows-hardening/windows-local-privilege-escalation">
+    Comprehensive Windows privesc guide
+  </Card>
+  <Card title="GhostPack Tools" icon="ghost" href="/ghostpack-docs/index">
+    Other GhostPack security tools
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Compilation Guide" icon="hammer" href="/ghostpack-docs/SharpUp-mdx/compilation">
+    Build SharpUp from source
+  </Card>
+  <Card title="Check Reference" icon="list" href="/ghostpack-docs/SharpUp-mdx/checks/alwaysinstallelevated">
+    Detailed check documentation
+  </Card>
+  <Card title="Usage Examples" icon="terminal" href="/ghostpack-docs/SharpUp-mdx/usage">
+    Practical usage scenarios
+  </Card>
+  <Card title="Remediation Guide" icon="shield" href="/ghostpack-docs/SharpUp-mdx/remediation">
+    Fix identified vulnerabilities
+  </Card>
+</CardGroup>
+
+## License
+
+SharpUp is licensed under the BSD 3-Clause license.
+
+<Note>
+  SharpUp is developed by [@harmj0y](https://twitter.com/harmj0y) and is a port of PowerUp by [@mattifestation](https://twitter.com/mattifestation).
+</Note>

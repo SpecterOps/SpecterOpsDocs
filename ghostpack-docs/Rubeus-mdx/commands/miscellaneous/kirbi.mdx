@@ -1,0 +1,187 @@
+---
+title: 'kirbi'
+description: 'Convert between different Kerberos ticket formats'
+icon: 'arrow-right-arrow-left'
+sidebarTitle: 'kirbi'
+---
+
+## Overview
+
+Convert between different Kerberos ticket formats including .kirbi files, base64-encoded tickets, and other ticket representations. This utility command facilitates ticket format conversion for various operational requirements.
+
+## Syntax
+
+```bash
+Rubeus.exe kirbi [options]
+```
+
+## Input Options
+
+<ParamField path="ticket" type="string">
+  Base64-encoded ticket data or path to .kirbi file
+</ParamField>
+
+<ParamField path="infile" type="string">
+  Input file containing ticket data
+</ParamField>
+
+## Output Options
+
+<ParamField path="outfile" type="string">
+  Save converted ticket to file
+</ParamField>
+
+<ParamField path="format" type="string">
+  Output format (kirbi, base64, hex)
+</ParamField>
+
+<ParamField path="nowrap" type="boolean">
+  Don't wrap base64 output
+</ParamField>
+
+## Examples
+
+<CodeGroup>
+```bash Format Conversion
+# Convert base64 to .kirbi file
+Rubeus.exe kirbi /ticket:base64_data /outfile:converted.kirbi
+
+# Convert .kirbi to base64
+Rubeus.exe kirbi /infile:ticket.kirbi /format:base64
+
+# Convert with no line wrapping
+Rubeus.exe kirbi /ticket:data /format:base64 /nowrap
+```
+</CodeGroup>
+
+## Supported Formats
+
+<Accordion title="Input Formats">
+  **.kirbi Files:**
+  - Binary Kerberos ticket format
+  - Standard Windows credential cache format
+  - Used by Mimikatz and other tools
+  - Native Rubeus ticket format
+
+  **Base64 Encoded:**
+  - Text representation of binary tickets
+  - Suitable for command-line operations
+  - Easy to transfer and store
+  - Standard Rubeus output format
+
+  **Hexadecimal:**
+  - Hex representation of ticket data
+  - Useful for analysis and debugging
+  - Alternative text encoding
+  - Support for various tools
+</Accordion>
+
+## Use Cases
+
+<Accordion title="Format Compatibility">
+  **Tool Integration:**
+  - Convert tickets for different tools
+  - Enable cross-tool ticket usage
+  - Support various input/output requirements
+  - Facilitate ticket sharing and storage
+
+  **Operational Flexibility:**
+  - Convert formats for specific use cases
+  - Adapt to environment constraints
+  - Support automated processing
+  - Enable batch operations
+</Accordion>
+
+<Accordion title="Data Processing">
+  **Analysis Preparation:**
+  - Convert tickets for analysis tools
+  - Prepare data for forensic examination
+  - Enable reverse engineering efforts
+  - Support research activities
+
+  **Storage and Transfer:**
+  - Convert for efficient storage
+  - Prepare tickets for network transfer
+  - Support backup and archival
+  - Enable data portability
+</Accordion>
+
+## Integration Workflows
+
+<Accordion title="Cross-Tool Operations">
+  **Tool Chain Integration:**
+  ```bash
+  # 1. Extract ticket with Rubeus
+  Rubeus.exe dump /service:krbtgt /outfile:extracted.kirbi
+
+  # 2. Convert for other tools
+  Rubeus.exe kirbi /infile:extracted.kirbi /format:base64 /nowrap
+
+  # 3. Use with external tools
+  # Copy base64 output to other Kerberos tools
+
+  # 4. Convert back if needed
+  Rubeus.exe kirbi /ticket:base64_from_other_tool /outfile:reconverted.kirbi
+  ```
+</Accordion>
+
+<Accordion title="Batch Processing">
+  **Multiple Ticket Conversion:**
+  ```bash
+  # 1. Convert multiple tickets to base64
+  for %%f in (*.kirbi) do (
+    Rubeus.exe kirbi /infile:%%f /format:base64 >> all_tickets.txt
+  )
+
+  # 2. Process converted tickets
+  # Use base64 tickets for automated operations
+
+  # 3. Convert back as needed
+  # Individual conversion for specific operations
+  ```
+</Accordion>
+
+## Format Specifications
+
+<Accordion title="Technical Details">
+  **.kirbi Format:**
+  - Binary ASN.1 DER-encoded tickets
+  - Standard Kerberos credential cache format
+  - Maintains full ticket structure
+  - Preserves all ticket attributes
+
+  **Base64 Format:**
+  - RFC 4648 base64 encoding
+  - Optional line wrapping at 64 characters
+  - Portable text representation
+  - Command-line friendly
+
+  **Hexadecimal Format:**
+  - Lowercase hexadecimal representation
+  - No separators or formatting
+  - Direct binary representation
+  - Analysis-friendly format
+</Accordion>
+
+## Quality Assurance
+
+<Accordion title="Conversion Validation">
+  **Integrity Verification:**
+  - Validate ticket structure after conversion
+  - Check for data corruption
+  - Verify format compliance
+  - Test functional compatibility
+
+  **Error Detection:**
+  - Invalid input formats
+  - Corrupted ticket data
+  - Encoding/decoding errors
+  - Structure validation failures
+</Accordion>
+
+## Related Commands
+
+- [`describe`](/commands/management/describe) - Analyze converted tickets
+- [`ptt`](/commands/management/ptt) - Use converted tickets
+- [`dump`](/commands/extraction/dump) - Extract tickets for conversion
+- [`asrep2kirbi`](/commands/miscellaneous/asrep2kirbi) - Specialized AS-REP conversion

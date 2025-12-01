@@ -1,0 +1,142 @@
+---
+title: 'InterestingFiles'
+description: '"Interesting" files matching various patterns in the user\'s folder. Note: takes non-trivial time'
+icon: 'magnifying-glass-dollar'
+---
+
+## Overview
+
+The InterestingFiles command recursively searches user folders for files matching patterns commonly associated with sensitive data, credentials, configuration files, scripts, and other security-relevant artifacts. This command is designed to identify files that may contain passwords, private keys, database credentials, API tokens, and other valuable information.
+
+## Syntax
+
+```
+Seatbelt.exe InterestingFiles
+```
+
+This command does not accept arguments.
+
+## Output
+
+The command returns:
+- File path
+- File name
+- File size
+- Last modified timestamp
+- Pattern matched (reason for being flagged as interesting)
+
+The command searches for files matching patterns such as:
+- Password files (password.txt, passwords.xlsx, etc.)
+- Private keys (.key, .pem, id_rsa, etc.)
+- Configuration files (.config, .conf, web.config, etc.)
+- Database files (.db, .sqlite, .mdb, etc.)
+- Scripts (.ps1, .bat, .vbs, .sh, etc.)
+- Credential stores (.kdbx, .rdp, etc.)
+- SSH keys and certificates
+- API keys and tokens
+
+## Use Cases
+
+### Red Team
+- Discover credentials stored in plain text files
+- Locate private keys and certificates for lateral movement
+- Find configuration files containing sensitive information
+- Identify database files with potential credentials
+- Locate scripts that may contain hardcoded credentials
+- Discover API keys and authentication tokens
+- Find backup files and archives with sensitive data
+- Identify KeePass databases and other password managers
+
+### Blue Team
+- Audit for insecure credential storage practices
+- Identify sensitive data at risk of exposure
+- Detect potential data leakage from user directories
+- Validate data loss prevention (DLP) policies
+- Identify policy violations (storing credentials on disk)
+- Assess insider threat risk based on sensitive file access
+- Support incident response by identifying compromised data
+- Generate compliance reports for sensitive data handling
+- Educate users on secure credential storage practices
+
+## Example Output
+
+```
+====== InterestingFiles ======
+
+  File     : C:\Users\john\Desktop\passwords.txt
+  Size     : 2,345 bytes
+  Modified : 10/15/2023 2:34:12 PM
+  Pattern  : password file
+
+  File     : C:\Users\john\Documents\database_config.xml
+  Size     : 1,823 bytes
+  Modified : 9/20/2023 9:15:43 AM
+  Pattern  : configuration file
+
+  File     : C:\Users\john\.ssh\id_rsa
+  Size     : 1,679 bytes
+  Modified : 8/5/2023 11:22:56 AM
+  Pattern  : SSH private key
+
+  File     : C:\Users\john\Documents\scripts\deploy.ps1
+  Size     : 4,567 bytes
+  Modified : 10/10/2023 3:45:21 PM
+  Pattern  : PowerShell script
+
+  File     : C:\Users\john\Downloads\api_keys.xlsx
+  Size     : 12,456 bytes
+  Modified : 10/18/2023 1:12:33 PM
+  Pattern  : credential file
+
+  File     : C:\Users\john\AppData\Local\KeePass\Database.kdbx
+  Size     : 87,234 bytes
+  Modified : 10/19/2023 8:42:15 AM
+  Pattern  : KeePass database
+```
+
+## Performance Considerations
+
+**WARNING:** This command is time-intensive and can take considerable time to complete.
+
+Performance factors:
+- Number of files in user directories
+- Depth of directory structure
+- Disk I/O performance
+- File system response time
+- Number of user profiles on the system
+
+On systems with large user directories or many files, execution may take several minutes to over an hour. The command performs recursive directory traversal and pattern matching against thousands or millions of files.
+
+## Remote Execution
+
+This command does not support remote execution. File enumeration must be performed on the local system.
+
+## Detection Considerations
+
+### Indicators
+- Mass file system enumeration across user directories
+- Recursive directory traversal of user profiles
+- Sequential file access across multiple folders
+- High volume of file metadata queries
+- Sustained disk I/O activity
+- Access to `C:\Users\*\` directories
+
+### Defensive Recommendations
+- Monitor for mass file enumeration operations
+- Alert on recursive directory traversal by suspicious processes
+- Track file access patterns across user directories
+- Implement least privilege to restrict user directory access
+- Use AppLocker or similar to control execution of enumeration tools
+- Enable file system auditing on sensitive directories
+- Monitor for processes accessing large numbers of files
+- Correlate file enumeration with other reconnaissance activities
+- Use honeypot files to detect unauthorized enumeration
+
+## Related Commands
+
+- **FileInfo** - Information about specific files
+- **LOLBAS** - Locates Living Off The Land Binaries and Scripts
+- **SearchIndex** - Query results from the Windows Search Index
+- **dir** - Lists files/folders in specified directories
+- **KeePass** - Finds KeePass configuration files
+- **FileZilla** - FileZilla configuration files

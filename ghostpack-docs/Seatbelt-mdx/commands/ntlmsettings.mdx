@@ -1,0 +1,85 @@
+---
+title: 'NTLMSettings'
+description: 'NTLM authentication settings'
+icon: 'lock-keyhole'
+---
+
+## Overview
+
+The NTLMSettings command enumerates NTLM authentication configuration settings on the system. These settings control how NTLM authentication is used, including security levels, client/server requirements, and restrictions that impact credential relay and pass-the-hash attacks.
+
+## Syntax
+
+```bash
+Seatbelt.exe NTLMSettings
+```
+
+### Remote Execution
+```bash
+Seatbelt.exe NTLMSettings -computername=TARGET.domain.com [-username=DOMAIN\user -password=pass]
+```
+
+## Output
+
+Returns NTLM configuration including:
+- LAN Manager authentication level
+- NTLM minimum security settings
+- Client/Server requirements
+- Session security settings
+- NTLM blocking configuration
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Assess NTLM relay vulnerability
+    - Determine if NTLMv1 is allowed
+    - Check SMB signing requirements
+    - Plan credential relay attacks
+    - Identify weak authentication settings
+  </Tab>
+  <Tab title="Blue Team">
+    - Audit NTLM security configuration
+    - Verify NTLMv1 is disabled
+    - Ensure SMB signing is enforced
+    - Validate authentication hardening
+    - Detect weak security settings
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== NTLMSettings ======
+
+LAN Manager Authentication Level:
+  LmCompatibilityLevel : 5 (Send NTLMv2 response only. Refuse LM & NTLM)
+
+NTLM Minimum Security Settings:
+  ClientRequireNTLMv2     : True
+  ServerRequireNTLMv2     : True
+  RequireSessionSecurity  : True
+  Require128BitEncryption : True
+
+Domain Controller Settings:
+  RestrictNTLMInDomain : Deny all
+  AuditNTLMInDomain   : Enable
+```
+
+## Remote Execution
+
+<Check>
+This command **supports remote execution** using the `-computername` parameter.
+</Check>
+
+## Detection Considerations
+
+<Info>
+Low detection risk - reads registry configuration.
+</Info>
+
+## Related Commands
+
+- [LSASettings](/commands/lsasettings) - LSA configuration
+- [CredGuard](/commands/credguard) - Credential Guard status
+- [LogonSessions](/commands/logonsessions) - Active logon sessions

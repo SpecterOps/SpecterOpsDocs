@@ -1,0 +1,115 @@
+---
+title: 'UdpConnections'
+description: 'Current UDP connections and associated processes and services'
+icon: 'broadcast-tower'
+---
+
+## Overview
+
+The UdpConnections command enumerates all active UDP endpoints on the system, including local addresses, ports, and associated processes. UDP is connectionless, so unlike TCP there are no "established" connections, but this command reveals listening UDP sockets that may indicate DNS, DHCP, SNMP, or C2 communication channels.
+
+## Syntax
+
+```bash
+Seatbelt.exe UdpConnections
+```
+
+<Note>
+This command does **not** support remote execution.
+</Note>
+
+## Output
+
+Returns UDP endpoint information:
+- Local address and port
+- Process ID (PID)
+- Process name
+- Service name (if applicable)
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Identify UDP-based services
+    - Discover DNS, DHCP, or custom UDP services
+    - Locate potential C2 channels
+    - Find services for exploitation
+    - Map network services
+  </Tab>
+  <Tab title="Blue Team">
+    - Hunt for unusual UDP listeners
+    - Detect DNS tunneling endpoints
+    - Identify unauthorized services
+    - Monitor for C2 infrastructure
+    - Audit network service exposure
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== UdpConnections ======
+
+LocalAddress   : 0.0.0.0:53
+PID            : 1844
+ProcessName    : dns.exe
+Service        : DNS
+
+LocalAddress   : 0.0.0.0:137
+PID            : 4
+ProcessName    : System
+Service        : NetBT
+
+LocalAddress   : 0.0.0.0:138
+PID            : 4
+ProcessName    : System
+Service        : NetBT
+
+LocalAddress   : 0.0.0.0:5353
+PID            : 2156
+ProcessName    : chrome.exe
+Service        :
+
+LocalAddress   : 192.168.1.100:54321
+PID            : 5624
+ProcessName    : suspicious.exe
+Service        :
+[!] Non-standard high port UDP listener
+```
+
+## Remote Execution
+
+<Warning>
+This command does **NOT support remote execution**.
+</Warning>
+
+## Detection Considerations
+
+<Info>
+Low detection risk - reads UDP endpoint table from system.
+</Info>
+
+- **API Calls**: Uses GetUdpTable or similar networking APIs
+- **No Network Traffic**: Local enumeration only
+- **EDR Telemetry**: May be logged as process behavior
+
+### Common UDP Ports to Monitor
+
+<Accordion title="Standard UDP Services">
+**53** - DNS
+**67/68** - DHCP
+**123** - NTP
+**137/138/139** - NetBIOS
+**161/162** - SNMP
+**500/4500** - IPSec/IKE
+**5353** - mDNS
+**1900** - SSDP
+</Accordion>
+
+## Related Commands
+
+- [TcpConnections](/commands/tcpconnections) - Active TCP connections
+- [ARPTable](/commands/arptable) - ARP cache entries
+- [DNSCache](/commands/dnscache) - DNS resolver cache
+- [Processes](/commands/processes) - Running processes
+- [WindowsFirewall](/commands/windowsfirewall) - Firewall rules

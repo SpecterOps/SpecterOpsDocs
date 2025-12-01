@@ -1,0 +1,758 @@
+---
+title: 'Remediation Guide'
+description: 'How to fix vulnerabilities identified by SharpUp'
+icon: 'shield'
+---
+
+## Overview
+
+This guide provides remediation steps for all vulnerabilities that SharpUp can identify. Each section corresponds to a specific check and provides actionable steps to fix the security issue.
+
+<Warning>
+  Always test remediation steps in a non-production environment before applying to production systems.
+</Warning>
+
+## Service-Related Vulnerabilities
+
+### Modifiable Services
+
+**Vulnerability:** User or group has permissions to modify service configuration.
+
+**Remediation:**
+
+<Steps>
+  <Step title="Identify Affected Services">
+    Review SharpUp output to identify which services have weak permissions.
+  </Step>
+
+  <Step title="Review Service Permissions">
+    ```powershell
+    # Check current service permissions
+    sc sdshow ServiceName
+    ```
+  </Step>
+
+  <Step title="Set Proper Permissions">
+    ```powershell
+    # Set secure permissions (SYSTEM and Administrators only)
+    sc sdset ServiceName "D:(A;;CCLCSWRPWPDTLOCRRC;;;SY)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCSWLOCRRC;;;IU)(A;;CCLCSWLOCRRC;;;SU)"
+    ```
+  </Step>
+
+  <Step title="Verify Changes">
+    ```bash
+    # Re-run SharpUp to confirm fix
+    SharpUp.exe ModifiableServices
+    ```
+  </Step>
+</Steps>
+
+**Best Practices:**
+- Only SYSTEM and Administrators should have full control
+- Authenticated Users should have read-only access
+- Remove unnecessary permissions for standard users
+- Use Group Policy to enforce service permissions across domain
+
+### Unquoted Service Paths
+
+**Vulnerability:** Service executable path contains spaces but is not quoted, allowing path hijacking.
+
+**Remediation:**
+
+<Steps>
+  <Step title="Identify Affected Services">
+    Review SharpUp output for services with unquoted paths.
+  </Step>
+
+  <Step title="Quote the Service Path">
+    ```powershell
+    # Get current path
+    $svc = Get-WmiObject Win32_Service -Filter "Name='ServiceName'"
+    $currentPath = $svc.PathName
+
+    # Set quoted path
+    sc config ServiceName binpath= "`"$currentPath`""
+    ```
+
+    Or manually:
+    ```cmd
+    sc config ServiceName binpath= "C:\Program Files\App\service.exe"
+    ```
+  </Step>
+
+  <Step title="Verify Fix">
+    ```powershell
+    # Check that path is now quoted
+    Get-WmiObject Win32_Service -Filter "Name='ServiceName'" | Select-Object Name, PathName
+    ```
+  </Step>
+</Steps>
+
+**Automated Remediation Script:**
+
+```powershell
+# Fix all unquoted service paths
+$services = Get-WmiObject Win32_Service | Where-Object {
+    $_.PathName -notmatch '^"' -and
+    $_.PathName -match ' ' -and
+    $_.PathName -match '\.exe'
+}
+
+foreach ($service in $services) {
+    $path = $service.PathName
+    if ($path -match '(.+\.exe)(.*)') {
+        $exe = $matches[1]
+        $args = $matches[2]
+        $newPath = "`"$exe`"$args"
+
+        Write-Host "Fixing: $($service.Name)"
+        sc.exe config $service.Name binpath= $newPath
+    }
+}
+```
+
+### Modifiable Service Binaries
+
+**Vulnerability:** Service executable file has weak permissions allowing modification.
+
+**Remediation:**
+
+<Steps>
+  <Step title="Identify Affected Binaries">
+    Note the service binary paths from SharpUp output.
+  </Step>
+
+  <Step title="Set Proper File Permissions">
+    ```powershell
+    # Remove write access for non-admin users
+    $path = "C:\Program Files\App\service.exe"
+
+    # Get current ACL
+    $acl = Get-Acl $path
+
+    # Remove all access rules for Users group
+    $acl.Access | Where-Object {
+        $_.IdentityReference -eq "BUILTIN\Users" -and
+        $_.FileSystemRights -match "Write|Modify|FullControl"
+    } | ForEach-Object { $acl.RemoveAccessRule($_) }
+
+    # Apply ACL
+    Set-Acl $path $acl
+    ```
+  </Step>
+
+  <Step title="Verify Parent Directory Permissions">
+    Ensure the parent directory also has proper permissions to prevent replacement attacks.
+  </Step>
+</Steps>
+
+**Recommended Permissions:**
+- **SYSTEM:** Full Control
+- **Administrators:** Full Control
+- **Users:** Read & Execute only
+- **TrustedInstaller:** Full Control (for system binaries)
+
+### Modifiable Service Registry Keys
+
+**Vulnerability:** Service registry key has weak permissions allowing configuration changes.
+
+**Remediation:**
+
+<Steps>
+  <Step title="Identify Affected Registry Keys">
+    Note the registry paths from SharpUp output (typically under `HKLM\SYSTEM\CurrentControlSet\Services\`).
+  </Step>
+
+  <Step title="Set Proper Registry Permissions">
+    ```powershell
+    # Fix registry key permissions
+    $serviceName = "VulnerableService"
+    $keyPath = "HKLM:\SYSTEM\CurrentControlSet\Services\$serviceName"
+
+    # Get current ACL
+    $acl = Get-Acl $keyPath
+
+    # Remove problematic permissions
+    $acl.Access | Where-Object {
+        $_.IdentityReference -notmatch "SYSTEM|Administrators|TrustedInstaller" -and
+        $_.RegistryRights -match "WriteKey|SetValue|CreateSubKey"
+    } | ForEach-Object { $acl.RemoveAccessRule($_) }
+
+    # Apply ACL
+    Set-Acl $keyPath $acl
+    ```
+  </Step>
+
+  <Step title="Use Group Policy (Domain Environment)">
+    Configure registry permissions centrally using Group Policy Preferences → Registry Permissions.
+  </Step>
+</Steps>
+
+### Modifiable Scheduled Tasks
+
+**Vulnerability:** Scheduled task file or binary has weak permissions.
+
+**Remediation:**
+
+<Steps>
+  <Step title="Secure Task XML Files">
+    ```powershell
+    # Secure task definition files
+    $taskPath = "$env:SystemRoot\System32\Tasks"
+
+    # Remove write access for non-admin users
+    icacls $taskPath /inheritance:r
+    icacls $taskPath /grant:r "SYSTEM:(OI)(CI)F"
+    icacls $taskPath /grant:r "Administrators:(OI)(CI)F"
+    icacls $taskPath /grant:r "Users:(OI)(CI)RX"
+    ```
+  </Step>
+
+  <Step title="Secure Task Binaries">
+    Apply the same file permission fixes as for service binaries (see Modifiable Service Binaries above).
+  </Step>
+
+  <Step title="Review Task Actions">
+    Ensure scheduled tasks run binaries from secure locations only.
+  </Step>
+</Steps>
+
+## Registry-Based Vulnerabilities
+
+### AlwaysInstallElevated
+
+**Vulnerability:** Windows Installer configured to install MSI packages with SYSTEM privileges.
+
+**Remediation:**
+
+<Steps>
+  <Step title="Disable the Policy">
+    ```powershell
+    # Remove or set to 0 in both locations
+    Remove-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Installer" -Name "AlwaysInstallElevated" -ErrorAction SilentlyContinue
+    Remove-ItemProperty -Path "HKCU:\SOFTWARE\Policies\Microsoft\Windows\Installer" -Name "AlwaysInstallElevated" -ErrorAction SilentlyContinue
+
+    # Or set to 0
+    Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Installer" -Name "AlwaysInstallElevated" -Value 0
+    Set-ItemProperty -Path "HKCU:\SOFTWARE\Policies\Microsoft\Windows\Installer" -Name "AlwaysInstallElevated" -Value 0
+    ```
+  </Step>
+
+  <Step title="Remove from Group Policy">
+    If configured via GPO:
+    - Open Group Policy Management
+    - Navigate to: Computer Configuration → Administrative Templates → Windows Components → Windows Installer
+    - Set "Always install with elevated privileges" to **Disabled**
+  </Step>
+
+  <Step title="Verify Removal">
+    ```bash
+    SharpUp.exe AlwaysInstallElevated
+    ```
+  </Step>
+</Steps>
+
+**Impact:** Users will need administrator privileges to install MSI packages requiring elevation.
+
+### Registry AutoLogons
+
+**Vulnerability:** Plaintext credentials stored in registry for automatic logon.
+
+**Remediation:**
+
+<Steps>
+  <Step title="Disable Auto-Logon">
+    ```powershell
+    # Disable auto-logon
+    Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" -Name "AutoAdminLogon" -Value "0"
+
+    # Remove stored credentials
+    Remove-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" -Name "DefaultPassword" -ErrorAction SilentlyContinue
+    Remove-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" -Name "AltDefaultPassword" -ErrorAction SilentlyContinue
+    ```
+  </Step>
+
+  <Step title="Use Alternative Solutions">
+    If auto-logon is required:
+    - Use Windows Credential Manager with encrypted credentials
+    - Implement LSA secrets for service accounts
+    - Use Managed Service Accounts (MSA) or Group Managed Service Accounts (gMSA)
+  </Step>
+
+  <Step title="Verify Removal">
+    ```bash
+    SharpUp.exe RegistryAutoLogons
+    ```
+  </Step>
+</Steps>
+
+### Registry Autoruns
+
+**Vulnerability:** Autorun registry entries point to binaries with weak permissions.
+
+**Remediation:**
+
+<Steps>
+  <Step title="Identify Vulnerable Autoruns">
+    Review SharpUp output for modifiable autorun binaries.
+  </Step>
+
+  <Step title="Secure Autorun Binaries">
+    Apply proper file permissions (see Modifiable Service Binaries section).
+  </Step>
+
+  <Step title="Remove Unnecessary Autoruns">
+    ```powershell
+    # Review and remove unnecessary autoruns
+    $autorunKeys = @(
+        "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run",
+        "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run"
+    )
+
+    foreach ($key in $autorunKeys) {
+        Get-ItemProperty $key | Get-Member -MemberType NoteProperty |
+        Select-Object -ExpandProperty Name |
+        Where-Object { $_ -notin @('PSPath','PSParentPath','PSChildName','PSDrive','PSProvider') }
+    }
+    ```
+  </Step>
+
+  <Step title="Use Group Policy for Autoruns">
+    Centrally manage autoruns via Group Policy instead of registry entries.
+  </Step>
+</Steps>
+
+## Credential Storage Vulnerabilities
+
+### Cached GPP Passwords
+
+**Vulnerability:** Group Policy Preference passwords cached locally.
+
+**Remediation:**
+
+<Steps>
+  <Step title="Delete Cached Policy Files">
+    ```powershell
+    # Remove cached GPP files
+    $cachePath = "$env:ALLUSERSPROFILE\Microsoft\Group Policy\History"
+
+    # Identify files with passwords
+    Get-ChildItem -Path $cachePath -Recurse -Include Groups.xml,Services.xml,Scheduledtasks.xml,DataSources.xml,Printers.xml,Drives.xml,Registry.xml |
+    ForEach-Object {
+        Write-Host "Found: $($_.FullName)"
+        # Review before deletion
+        # Remove-Item $_.FullName -Force
+    }
+    ```
+  </Step>
+
+  <Step title="Prevent Future Caching">
+    This is controlled by Group Policy distribution. See Domain GPP Password remediation.
+  </Step>
+</Steps>
+
+### Domain GPP Passwords
+
+**Vulnerability:** Group Policy Preference passwords stored in SYSVOL.
+
+**Remediation:**
+
+<Steps>
+  <Step title="Identify GPP Files in SYSVOL">
+    ```powershell
+    # Find all GPP XML files in SYSVOL
+    $domain = $env:USERDNSDOMAIN
+    $sysvolPath = "\\$domain\SYSVOL\$domain\Policies"
+
+    Get-ChildItem -Path $sysvolPath -Recurse -Include Groups.xml,Services.xml,Scheduledtasks.xml,DataSources.xml,Printers.xml,Drives.xml,Registry.xml
+    ```
+  </Step>
+
+  <Step title="Remove GPP Passwords">
+    - Open Group Policy Management Console (GPMC)
+    - Navigate to each policy containing GPP passwords
+    - Remove or update the affected preferences:
+      - Groups: Use restricted groups instead
+      - Services: Use service account management
+      - Scheduled Tasks: Use proper credential delegation
+  </Step>
+
+  <Step title="Delete XML Files from SYSVOL">
+    After updating GPOs, manually delete old XML files from SYSVOL.
+    ```powershell
+    # After verifying GPOs are updated, delete files
+    # Remove-Item -Path "\\$domain\SYSVOL\...\Groups.xml" -Force
+    ```
+  </Step>
+
+  <Step title="Implement KB2962486">
+    Microsoft removed the ability to set passwords in GPP. Ensure this update is installed:
+    - Windows 7/Server 2008 R2: KB2962486
+    - Already patched in newer Windows versions
+  </Step>
+
+  <Step title="Use Alternative Solutions">
+    - **Group Managed Service Accounts (gMSA):** For service accounts
+    - **LAPS:** For local administrator password management
+    - **CyberArk/HashiCorp Vault:** For enterprise credential management
+    - **Restricted Groups:** For group membership management without passwords
+  </Step>
+</Steps>
+
+### Unattended Install Files
+
+**Vulnerability:** Credentials stored in unattended installation files.
+
+**Remediation:**
+
+<Steps>
+  <Step title="Locate Unattended Files">
+    SharpUp checks common locations. Verify these files exist and contain credentials.
+  </Step>
+
+  <Step title="Remove or Secure Files">
+    ```powershell
+    # Common locations
+    $locations = @(
+        "$env:windir\sysprep\sysprep.xml",
+        "$env:windir\sysprep\sysprep.inf",
+        "$env:windir\sysprep.inf",
+        "$env:windir\Panther\Unattended.xml",
+        "$env:windir\Panther\Unattend.xml",
+        "$env:windir\Panther\Unattend\Unattend.xml",
+        "$env:windir\System32\Sysprep\unattend.xml",
+        "$env:windir\System32\Sysprep\Panther\unattend.xml"
+    )
+
+    foreach ($file in $locations) {
+        if (Test-Path $file) {
+            Write-Host "Found: $file"
+            # Review content, then delete if contains credentials
+            # Remove-Item $file -Force
+        }
+    }
+    ```
+  </Step>
+
+  <Step title="Secure Deployment Process">
+    - Don't store credentials in answer files
+    - Use offline domain join for automated deployments
+    - Implement MDT/SCCM with proper credential management
+    - Delete answer files after deployment completes
+  </Step>
+</Steps>
+
+### McAfee SiteList Files
+
+**Vulnerability:** McAfee SiteList.xml contains encrypted credentials that can be decrypted.
+
+**Remediation:**
+
+<Steps>
+  <Step title="Locate SiteList Files">
+    ```powershell
+    # Find SiteList.xml files
+    $searchPaths = @(
+        "${env:ProgramFiles}\",
+        "${env:ProgramFiles(x86)}\",
+        "C:\Documents and Settings\",
+        "C:\Users\"
+    )
+
+    foreach ($path in $searchPaths) {
+        Get-ChildItem -Path $path -Recurse -Filter "SiteList.xml" -ErrorAction SilentlyContinue
+    }
+    ```
+  </Step>
+
+  <Step title="Remove Files">
+    ```powershell
+    # Delete SiteList.xml files
+    Get-ChildItem -Path C:\ -Recurse -Filter "SiteList.xml" -ErrorAction SilentlyContinue |
+    Remove-Item -Force
+    ```
+  </Step>
+
+  <Step title="Update McAfee Configuration">
+    - Use ePO server for centralized management
+    - Don't store credentials in SiteList.xml
+    - Use proper repository authentication methods
+    - Deploy via GPO or SCCM instead of SiteList
+  </Step>
+</Steps>
+
+## Path and DLL Vulnerabilities
+
+### Hijackable Paths
+
+**Vulnerability:** Folders in system PATH have weak permissions.
+
+**Remediation:**
+
+<Steps>
+  <Step title="Identify Vulnerable Paths">
+    Review SharpUp output for modifiable folders in PATH.
+  </Step>
+
+  <Step title="Secure Folder Permissions">
+    ```powershell
+    # Fix permissions on PATH folder
+    $folder = "C:\VulnerableFolder"
+
+    icacls $folder /inheritance:r
+    icacls $folder /grant:r "SYSTEM:(OI)(CI)F"
+    icacls $folder /grant:r "Administrators:(OI)(CI)F"
+    icacls $folder /grant:r "Users:(OI)(CI)RX"
+    ```
+  </Step>
+
+  <Step title="Review PATH Variable">
+    ```powershell
+    # Review system PATH
+    $env:PATH -split ';'
+
+    # Remove unnecessary or insecure paths
+    # Modify via System Properties → Environment Variables
+    ```
+  </Step>
+
+  <Step title="Remove Unnecessary Paths">
+    Remove folders from PATH that aren't needed or can't be secured.
+  </Step>
+</Steps>
+
+**Best Practices:**
+- Only include necessary folders in system PATH
+- Ensure all PATH folders are in protected locations
+- User-specific paths should use user PATH variable, not system PATH
+- Avoid adding user-writable folders to system PATH
+
+### Process DLL Hijack
+
+**Vulnerability:** DLL files loaded by privileged processes have weak permissions.
+
+**Remediation:**
+
+<Steps>
+  <Step title="Identify Vulnerable DLLs">
+    Review SharpUp output for writable DLLs used by privileged processes.
+  </Step>
+
+  <Step title="Secure DLL Permissions">
+    ```powershell
+    # Fix DLL permissions
+    $dll = "C:\Path\To\vulnerable.dll"
+
+    icacls $dll /inheritance:r
+    icacls $dll /grant:r "SYSTEM:F"
+    icacls $dll /grant:r "Administrators:F"
+    icacls $dll /grant:r "Users:RX"
+    ```
+  </Step>
+
+  <Step title="Review Application Installation">
+    - Reinstall applications that have vulnerable DLLs
+    - Install to Program Files (protected location)
+    - Ensure applications use proper installer that sets correct permissions
+  </Step>
+
+  <Step title="Use AppLocker or WDAC">
+    Implement application control to prevent unauthorized DLL loading.
+  </Step>
+</Steps>
+
+## Token Privilege Vulnerabilities
+
+### Token Privileges
+
+**Vulnerability:** User has dangerous token privileges that can be abused.
+
+**Remediation:**
+
+<Steps>
+  <Step title="Review Assigned Privileges">
+    Understand which privileges are assigned and why:
+    - SeImpersonatePrivilege
+    - SeDebugPrivilege
+    - SeLoadDriverPrivilege
+    - SeTakeOwnershipPrivilege
+    - SeBackupPrivilege
+    - SeRestorePrivilege
+  </Step>
+
+  <Step title="Remove Unnecessary Privileges">
+    ```powershell
+    # Use Local Security Policy or Group Policy
+    # Computer Configuration → Windows Settings → Security Settings → Local Policies → User Rights Assignment
+
+    # Remove users from:
+    # - Debug programs (SeDebugPrivilege)
+    # - Impersonate a client after authentication (SeImpersonatePrivilege)
+    # - Load and unload device drivers (SeLoadDriverPrivilege)
+    # - Take ownership of files (SeTakeOwnershipPrivilege)
+    # - Back up files and directories (SeBackupPrivilege)
+    # - Restore files and directories (SeRestorePrivilege)
+    ```
+  </Step>
+
+  <Step title="Limit Service Account Privileges">
+    Service accounts often have these privileges. Consider:
+    - Use gMSA or sMSA instead of standard accounts
+    - Apply principle of least privilege
+    - Use Virtual Service Accounts when possible
+    - Limit services running as LocalSystem
+  </Step>
+
+  <Step title="Monitor Privilege Usage">
+    Enable auditing for privilege use:
+    ```powershell
+    # Enable audit policy
+    auditpol /set /subcategory:"Sensitive Privilege Use" /success:enable /failure:enable
+    ```
+  </Step>
+</Steps>
+
+**Special Considerations:**
+
+<AccordionGroup>
+  <Accordion title="SeImpersonatePrivilege">
+    - Required for IIS, SQL Server, and many services
+    - Cannot be fully removed from service accounts
+    - Mitigate with proper segmentation and monitoring
+    - Use constrained delegation where possible
+  </Accordion>
+
+  <Accordion title="SeDebugPrivilege">
+    - Only assign to developers and administrators who need it
+    - Never assign to service accounts
+    - Monitor usage heavily
+  </Accordion>
+
+  <Accordion title="SeBackupPrivilege / SeRestorePrivilege">
+    - Required for backup software
+    - Use dedicated backup accounts
+    - Implement audit logging
+    - Restrict to specific systems
+  </Accordion>
+</AccordionGroup>
+
+## Centralized Remediation Strategies
+
+### Group Policy Approach
+
+For domain environments, use Group Policy to enforce security settings:
+
+```powershell
+# Example: Create GPO for service permission enforcement
+New-GPO -Name "Service Security Hardening" -Comment "Enforces secure service permissions"
+
+# Link to appropriate OUs
+New-GPLink -Name "Service Security Hardening" -Target "OU=Workstations,DC=domain,DC=com"
+
+# Configure settings via GPMC
+```
+
+### PowerShell Remediation Script
+
+Comprehensive script for multiple vulnerabilities:
+
+```powershell
+# Security Hardening Script
+# Run with Administrator privileges
+
+# 1. Disable AlwaysInstallElevated
+Write-Host "[+] Disabling AlwaysInstallElevated..."
+Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Installer" -Name "AlwaysInstallElevated" -Value 0 -ErrorAction SilentlyContinue
+Set-ItemProperty -Path "HKCU:\SOFTWARE\Policies\Microsoft\Windows\Installer" -Name "AlwaysInstallElevated" -Value 0 -ErrorAction SilentlyContinue
+
+# 2. Remove AutoLogon credentials
+Write-Host "[+] Removing AutoLogon credentials..."
+Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" -Name "AutoAdminLogon" -Value "0"
+Remove-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" -Name "DefaultPassword" -ErrorAction SilentlyContinue
+
+# 3. Clean up unattended install files
+Write-Host "[+] Removing unattended install files..."
+$unattendedFiles = @(
+    "$env:windir\sysprep\sysprep.xml",
+    "$env:windir\Panther\Unattend.xml"
+)
+foreach ($file in $unattendedFiles) {
+    if (Test-Path $file) {
+        Remove-Item $file -Force
+        Write-Host "    Removed: $file"
+    }
+}
+
+# 4. Fix unquoted service paths
+Write-Host "[+] Fixing unquoted service paths..."
+$services = Get-WmiObject Win32_Service | Where-Object {
+    $_.PathName -notmatch '^"' -and $_.PathName -match ' ' -and $_.PathName -match '\.exe'
+}
+foreach ($service in $services) {
+    if ($service.PathName -match '(.+\.exe)(.*)') {
+        $newPath = "`"$($matches[1])`"$($matches[2])"
+        sc.exe config $service.Name binpath= $newPath
+        Write-Host "    Fixed: $($service.Name)"
+    }
+}
+
+Write-Host "[+] Hardening complete. Re-run SharpUp to verify."
+```
+
+### Continuous Monitoring
+
+Implement continuous monitoring for these vulnerabilities:
+
+```powershell
+# Schedule regular SharpUp scans
+$action = New-ScheduledTaskAction -Execute "C:\Tools\SharpUp.exe" -Argument "audit" -WorkingDirectory "C:\Tools"
+$trigger = New-ScheduledTaskTrigger -Weekly -DaysOfWeek Monday -At 2am
+$principal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount
+Register-ScheduledTask -TaskName "SharpUp Security Scan" -Action $action -Trigger $trigger -Principal $principal
+```
+
+## Verification
+
+After implementing remediation steps:
+
+<Steps>
+  <Step title="Re-run SharpUp">
+    ```bash
+    SharpUp.exe audit
+    ```
+    Verify that previously identified vulnerabilities are no longer present.
+  </Step>
+
+  <Step title="Document Changes">
+    Maintain documentation of:
+    - What was found
+    - What was fixed
+    - When it was fixed
+    - Who performed the remediation
+  </Step>
+
+  <Step title="Implement Regular Scanning">
+    Schedule periodic SharpUp scans to detect configuration drift.
+  </Step>
+
+  <Step title="Update Security Baseline">
+    Update your security baseline documentation to prevent reintroduction of vulnerabilities.
+  </Step>
+</Steps>
+
+## Additional Resources
+
+<CardGroup cols={2}>
+  <Card title="Check Documentation" icon="list" href="/ghostpack-docs/SharpUp-mdx/checks/alwaysinstallelevated">
+    Detailed information for each vulnerability type
+  </Card>
+  <Card title="Usage Guide" icon="terminal" href="/ghostpack-docs/SharpUp-mdx/usage">
+    How to identify vulnerabilities with SharpUp
+  </Card>
+  <Card title="Microsoft Security" icon="book" href="https://docs.microsoft.com/en-us/windows/security/">
+    Official Windows security documentation
+  </Card>
+  <Card title="CIS Benchmarks" icon="book" href="https://www.cisecurity.org/cis-benchmarks/">
+    Security configuration benchmarks
+  </Card>
+</CardGroup>

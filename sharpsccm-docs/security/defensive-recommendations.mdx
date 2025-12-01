@@ -1,0 +1,262 @@
+---
+title: 'Defensive Recommendations'
+description: 'Security hardening guidance to protect against SCCM attacks'
+icon: 'shield-check'
+---
+
+## Overview
+
+This guide provides comprehensive defensive recommendations to protect your SCCM infrastructure against the attack techniques demonstrated by SharpSCCM and similar tools.
+
+<Note>
+  Microsoft's [official security best practices](https://docs.microsoft.com/en-us/mem/configmgr/core/clients/deploy/plan/security-and-privacy-for-clients) should be your primary reference. This guide supplements those recommendations with specific mitigations for known attack techniques.
+</Note>
+
+## Critical Security Controls
+
+<Cards>
+  <Card title="Priority 1: Critical" color="#dc2626">
+    Must be implemented immediately to prevent compromise
+  </Card>
+  <Card title="Priority 2: High" color="#ea580c">
+    Should be implemented as soon as possible
+  </Card>
+  <Card title="Priority 3: Medium" color="#facc15">
+    Recommended for defense in depth
+  </Card>
+</Cards>
+
+## Priority 1: Critical Controls
+
+<AccordionGroup>
+  <Accordion title="1. Disable NTLM Authentication" icon="ban">
+    **Why It's Critical**: Prevents NTLM relay attacks and credential theft
+    
+    <Steps>
+      <Step title="Install KB15599094">
+        Apply security hotfix KB15599094 to all site servers
+      </Step>
+      <Step title="Disable NTLM for Client Push">
+        Configure client push installation to use Kerberos only
+      </Step>
+      <Step title="Require SMB Signing">
+        Enable SMB signing on all site systems:
+        ```powershell
+        Set-SmbServerConfiguration -RequireSecuritySignature $true -Force
+        ```
+      </Step>
+    </Steps>
+  </Accordion>
+
+  <Accordion title="2. Enable Enhanced HTTP" icon="lock">
+    **Why It's Critical**: Eliminates the need for Network Access Accounts
+    
+    ```powershell
+    # Enable Enhanced HTTP via PowerShell
+    Set-CMSite -SiteCode "PS1" -UseEnhancedHttp $true
+    ```
+    
+    <Warning>
+      After enabling Enhanced HTTP, disable any existing Network Access Accounts in Active Directory
+    </Warning>
+  </Accordion>
+
+  <Accordion title="3. Implement PKI Certificates" icon="certificate">
+    **Why It's Critical**: Prevents rogue device registration and man-in-the-middle attacks
+    
+    Requirements:
+    - Deploy PKI infrastructure
+    - Issue certificates to all clients
+    - Configure HTTPS communication only
+    - Disable HTTP communication on all site systems
+  </Accordion>
+</AccordionGroup>
+
+## Priority 2: High-Value Controls
+
+<Tabs>
+  <Tab title="Authentication">
+    ### Multi-Factor Authentication
+    Enable MFA for SMS Provider calls:
+    ```powershell
+    # Configure MFA for administrative access
+    Set-CMAdministrativeUser -Name "DOMAIN\Admin" -RequireMfa $true
+    ```
+    
+    ### Kerberos Configuration
+    - Require Kerberos for all site communications
+    - Disable legacy authentication protocols
+    - Configure SPNs correctly for all service accounts
+  </Tab>
+  
+  <Tab title="Network Security">
+    ### LDAP Security
+    ```powershell
+    # Require LDAP signing
+    Set-ADDefaultDomainPasswordPolicy -LDAPServerIntegrity 2
+    
+    # Enable LDAP channel binding
+    Set-ItemProperty -Path "HKLM:\System\CurrentControlSet\Services\NTDS\Parameters" `
+                     -Name "LdapEnforceChannelBinding" -Value 2
+    ```
+    
+    ### EPA Configuration
+    Enable Extended Protection for Authentication on:
+    - AD CS servers
+    - SQL servers
+    - IIS sites
+  </Tab>
+  
+  <Tab title="Access Controls">
+    ### Least Privilege
+    - Remove Domain Admins from SCCM roles
+    - Use dedicated service accounts with minimal permissions
+    - Implement role-based access control (RBAC)
+    
+    ### Account Restrictions
+    - Disable SeMachineAccountPrivilege for non-admins
+    - Set MachineAccountQuota to 0
+    - Remove unnecessary Extended Rights assignments
+  </Tab>
+</Tabs>
+
+## Priority 3: Defense in Depth
+
+<Steps>
+  <Step title="Disable Automatic Client Push">
+    Replace automatic site-wide client push with software update-based installation
+  </Step>
+  
+  <Step title="Secure PXE Boot">
+    - Set strong PXE boot passwords (minimum 14 characters)
+    - Disable F8 debugging in production
+    - Restrict PXE to specific VLANs
+  </Step>
+  
+  <Step title="Secure Task Sequences">
+    - Don't store credentials in task sequences
+    - Use Windows LAPS for local admin passwords
+    - Enable password encryption for Windows LAPS
+  </Step>
+  
+  <Step title="Database Security">
+    - Enable EPA on SQL servers
+    - Don't link external databases with DBA privileges
+    - Use strong passwords for all database accounts
+    - Encrypt SQL connections
+  </Step>
+</Steps>
+
+## Detection & Monitoring
+
+### Key Detection Opportunities
+
+<CardGroup cols={2}>
+  <Card title="Authentication Anomalies" icon="user-secret">
+    - Site system accounts authenticating from unexpected IPs
+    - Client push accounts used outside primary site server
+    - NAA authentication from non-distribution points
+  </Card>
+  
+  <Card title="Policy Violations" icon="shield-exclamation">
+    - Unusual policy requests from clients
+    - Mass deployment of new applications
+    - Suspicious CMPivot queries
+  </Card>
+  
+  <Card title="Credential Access" icon="key">
+    - DPAPI decryption events for SCCM
+    - Access to credential-related WMI classes
+    - Collection variable enumeration
+  </Card>
+  
+  <Card title="Lateral Movement" icon="arrows-alt">
+    - Client push installation to sensitive systems
+    - Script execution on multiple devices
+    - Application deployment to admin workstations
+  </Card>
+</CardGroup>
+
+### Monitoring Rules
+
+```kusto
+// KQL query for detecting suspicious SCCM activity
+SecurityEvent
+| where EventID in (4624, 4625, 4648)
+| where (TargetUserName has "sccm" or TargetUserName has "cm_")
+| where IpAddress !in ("10.0.1.10", "10.0.1.11") // Legitimate SCCM servers
+| project TimeGenerated, Computer, TargetUserName, IpAddress, LogonType
+```
+
+## Incident Response
+
+<Accordion title="If Compromise Is Suspected">
+  1. **Immediate Actions**
+     - Reset all SCCM service account passwords
+     - Revoke and reissue PKI certificates
+     - Disable Network Access Accounts
+     - Review recent application deployments
+  
+  2. **Investigation Steps**
+     - Check SCCM audit logs for unauthorized changes
+     - Review client push installation logs
+     - Analyze SQL queries against the site database
+     - Examine AdminService API access logs
+  
+  3. **Remediation**
+     - Remove unauthorized administrators
+     - Delete malicious applications/packages
+     - Reset affected client configurations
+     - Implement missing security controls
+</Accordion>
+
+## Security Checklist
+
+<Checklist>
+  <Check>KB15599094 hotfix installed</Check>
+  <Check>Enhanced HTTP enabled</Check>
+  <Check>Network Access Accounts disabled</Check>
+  <Check>PKI certificates required for clients</Check>
+  <Check>SMB signing required on all systems</Check>
+  <Check>LDAP signing/channel binding enabled</Check>
+  <Check>EPA configured on critical services</Check>
+  <Check>MFA enabled for administrators</Check>
+  <Check>Automatic client push disabled</Check>
+  <Check>PXE boot password configured</Check>
+  <Check>F8 debugging disabled</Check>
+  <Check>WebClient service disabled on site systems</Check>
+  <Check>Domain Admins removed from SCCM</Check>
+  <Check>Monitoring rules implemented</Check>
+</Checklist>
+
+## Additional Resources
+
+<CardGroup>
+  <Card
+    title="Microsoft Security Best Practices"
+    icon="microsoft"
+    href="https://docs.microsoft.com/en-us/mem/configmgr/core/clients/deploy/plan/security-and-privacy-for-clients"
+  >
+    Official SCCM security guidance
+  </Card>
+  
+  <Card
+    title="CISA Red Team Report"
+    icon="flag-usa"
+    href="https://www.cisa.gov/sites/default/files/2023-03/aa23-059a-cisa_red_team_shares_key_findings_to_improve_monitoring_and_hardening_of_networks_1.pdf"
+  >
+    Real-world SCCM attack scenarios
+  </Card>
+  
+  <Card
+    title="Detection Guidance"
+    icon="search"
+    href="https://posts.specterops.io/coercing-ntlm-authentication-from-sccm-e6e23ea8260a"
+  >
+    Detailed detection opportunities
+  </Card>
+</CardGroup>
+
+<Info>
+  **Questions?** Reach out on the [BloodHound Slack](http://ghst.ly/BHSlack) or create an issue on [GitHub](https://github.com/Mayyhem/SharpSCCM/issues).
+</Info>

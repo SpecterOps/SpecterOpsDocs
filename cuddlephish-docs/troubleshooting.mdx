@@ -1,0 +1,671 @@
+---
+title: 'Troubleshooting'
+description: 'Common issues and solutions for CuddlePhish deployments'
+icon: 'wrench'
+---
+
+## Blank Page Issues
+
+The most frequently reported issue is victims seeing a blank white page instead of the video stream. This is a symptom with multiple possible root causes.
+
+<Warning>
+  **Do Not Open Generic Issues**: "Blank page" is a symptom, not a specific issue. Follow the diagnostic steps below to identify the root cause before seeking support.
+</Warning>
+
+### Diagnostic Workflow
+
+Follow this systematic approach to diagnose blank page issues:
+
+<Steps>
+  <Step title="Verify HTML Loading">
+    Check that cuddlephish.html is loading correctly
+  </Step>
+
+  <Step title="Check JavaScript Console">
+    Open browser DevTools and look for JavaScript errors
+  </Step>
+
+  <Step title="Verify Tab Title Matching">
+    Confirm the tab title matches the configured value
+  </Step>
+
+  <Step title="Test STUN Connectivity">
+    Verify STUN server is reachable from both server and client
+  </Step>
+
+  <Step title="Review Server Logs">
+    Check Node.js console for WebRTC negotiation messages
+  </Step>
+
+  <Step title="Test ICE Connectivity">
+    Use external tools to verify NAT traversal capabilities
+  </Step>
+</Steps>
+
+### Issue 1: Tab Title Mismatch
+
+**Symptom**: Blank page on victim side, no video stream
+
+**Root Cause**: The `--auto-select-desktop-capture-source` Chrome flag requires an exact match of the tab title. If the title doesn't match, Chrome fails to select the tab for screen capture.
+
+**Common Scenarios:**
+- Target service uses special characters in tab title
+- Tab title changes after redirect
+- Dynamic tab titles that change during page load
+
+**Diagnosis:**
+
+1. Check current tab title in targets.json:
+```bash
+cat targets.json | grep tab_title
+```
+
+2. Manually verify the actual tab title:
+```javascript
+// In add_target.js or manually in browser
+const title = await page.evaluate('document.title');
+console.log(`Actual title: ${title}`);
+```
+
+3. Check server console for screen capture errors
+
+**Solutions:**
+
+**Solution A: Update Tab Title**
+
+If the title has changed, update targets.json:
+```json
+{
+  "example": {
+    "tab_title": "Sign In | Example Service"
+  }
+}
+```
+
+**Solution B: Use Partial Match**
+
+You only need enough of the title for a unique match. Shorten the title to avoid special characters:
+```json
+{
+  "example": {
+    "tab_title": "Sign In"
+  }
+}
+```
+
+**Solution C: Handle Redirects**
+
+If the target redirects and changes title, modify index.js to wait longer or navigate to the post-redirect URL:
+
+```javascript
+// In index.js, modify get_browser function
+await browser.target_page.goto(target_page, {waitUntil: 'networkidle2'})
+// Add delay to wait for redirects
+await new Promise(resolve => setTimeout(resolve, 3000));
+// Verify title
+const title = await browser.target_page.evaluate('document.title');
+console.log(`Final title: ${title}`);
+```
+
+### Issue 2: STUN Server Unreachable
+
+**Symptom**: Blank page, no errors in JavaScript console, WebRTC negotiation fails
+
+**Root Cause**: The STUN server (stun.l.google.com:19302) is not accessible from server or client, preventing ICE candidate gathering.
+
+**Diagnosis:**
+
+Test STUN connectivity:
+
+**From Server:**
+```bash
+# Test UDP connectivity to STUN server
+nc -u -v stun.l.google.com 19302
+```
+
+**From Client:**
+Use [https://icetest.info/](https://icetest.info/) to test WebRTC connectivity
+
+**Review Server Logs:**
+Look for ICE candidate messages:
+```
+candidate: viewer_id to broadcaster_id
+```
+
+If no candidates appear, STUN is failing.
+
+**Solutions:**
+
+**Solution A: Alternative STUN Server**
+
+Edit both `cuddlephish.html` and `broadcast.html`:
+```javascript
+iceServers: [
+  {
+    "urls": "stun:stun.stunprotocol.org:3478"
+  }
+]
+```
+
+**Solution B: Deploy TURN Server**
+
+For maximum reliability, deploy a TURN server:
+
+1. Install coturn:
+```bash
+sudo apt install coturn
+```
+
+2. Configure coturn (`/etc/turnserver.conf`):
+```
+listening-port=3478
+fingerprint
+lt-cred-mech
+use-auth-secret
+static-auth-secret=YOUR_SECRET_KEY
+realm=your-domain.com
+total-quota=100
+stale-nonce=600
+```
+
+3. Update HTML files with TURN configuration:
+```javascript
+iceServers: [
+  {
+    "urls": "stun:stun.l.google.com:19302"
+  },
+  {
+    "urls": "turn:your-domain.com:3478?transport=tcp",
+    "username": "username",
+    "credential": "password"
+  }
+]
+```
+
+### Issue 3: Incompatible NAT Type
+
+**Symptom**: WebRTC negotiation starts but connection never establishes
+
+**Root Cause**: Network uses Symmetric NAT, which is incompatible with STUN-based WebRTC connections.
+
+**Diagnosis:**
+
+Test NAT type using: [https://icetest.info/](https://icetest.info/)
+
+**NAT Compatibility:**
+- ✅ Full-cone NAT
+- ✅ Address-restricted-cone NAT
+- ✅ Port-restricted cone NAT
+- ❌ Symmetric NAT
+
+**Solution:**
+
+Deploy and configure a TURN server (see Issue 2, Solution B). TURN relays traffic through the server, bypassing NAT traversal issues.
+
+### Issue 4: Caddy Blocking Requests
+
+**Symptom**: 403 Forbidden error on victim page
+
+**Root Cause**: Caddy's user-agent filtering blocking the request
+
+**Diagnosis:**
+
+Check Caddyfile for user-agent denylist:
+```bash
+grep -A 10 "@ua_denylist" Caddyfile
+```
+
+Test with curl:
+```bash
+curl -v https://your-domain.com/
+```
+
+If 403, the user-agent is blocked.
+
+**Solution:**
+
+**Temporarily disable filtering for testing:**
+```caddyfile
+# Comment out the respond line
+# respond @ua_denylist "Forbidden" 403 {
+#   close
+# }
+```
+
+**Add legitimate user-agents to whitelist:**
+Modify Caddyfile to only block truly malicious agents.
+
+### Issue 5: JavaScript Errors
+
+**Symptom**: Browser console shows JavaScript errors
+
+**Common Errors:**
+
+**"Socket connection failed"**
+- Server not running on port 58082
+- Caddy not proxying correctly
+- Firewall blocking WebSocket connections
+
+**"Cannot read property of undefined"**
+- Variable substitution failed in HTML (CLIENT_IP, TARGET_ID, PAGE_TITLE)
+- Check server route handlers for proper string replacement
+
+**"RTCPeerConnection failed"**
+- WebRTC not supported in browser
+- STUN/TURN configuration incorrect
+- ICE gathering failed
+
+**Diagnosis:**
+
+Open browser DevTools (F12) and check Console tab for errors.
+
+**Solution:**
+
+Review server logs alongside browser console to identify where the connection chain breaks:
+
+```
+Start WebRTC → Select Tab to Broadcast → Negotiate ICE → Stream Video
+```
+
+## Connection Flow Issues
+
+### Expected Log Sequence
+
+When working properly, you should see this log pattern:
+
+```
+Socket connected! abc123
+client_ip: 203.0.113.45
+video_stream_offer
+viewer_id: def456
+offer: v=0\r\no=- ...
+video_stream_answer
+broadcaster_id: abc123
+answer: v=0\r\no=- ...
+candidate: abc123 to def456
+candidate: def456 to abc123
+```
+
+### Issue: No "Socket connected" Message
+
+**Symptom**: Server starts but no browser instance connects
+
+**Diagnosis:**
+```bash
+# Check if Chrome processes are running
+ps aux | grep chrome
+
+# Check Xvfb processes
+ps aux | grep Xvfb
+```
+
+**Root Cause:**
+- Puppeteer failed to launch Chrome
+- Missing dependencies
+- Xvfb failed to start
+
+**Solution:**
+
+Check for missing dependencies:
+```bash
+# Run install_deps.sh again
+sudo bash install_deps.sh
+
+# Test Puppeteer manually
+node -e "require('puppeteer').launch().then(b => { console.log('Success'); b.close(); })"
+```
+
+If Puppeteer fails, install missing libraries:
+```bash
+ldd $(which chromium) | grep "not found"
+```
+
+### Issue: Victim Connects But No Video
+
+**Symptom**: Admin interface shows session, but victim sees blank page
+
+**Diagnosis Checklist:**
+- [ ] Victim socket ID appears in server logs
+- [ ] video_stream_offer sent
+- [ ] video_stream_answer received
+- [ ] ICE candidates exchanged
+- [ ] Tab title matches configuration
+- [ ] STUN server reachable
+
+**Root Cause:**
+Likely ICE negotiation failure after initial WebSocket connection.
+
+**Solution:**
+
+Enable verbose WebRTC logging in cuddlephish.html:
+```javascript
+peerConnection.oniceconnectionstatechange = function() {
+  console.log('ICE state:', peerConnection.iceConnectionState);
+};
+
+peerConnection.onconnectionstatechange = function() {
+  console.log('Connection state:', peerConnection.connectionState);
+};
+```
+
+Monitor console for state transitions:
+- `checking` → `connected` = Success
+- `checking` → `failed` = ICE negotiation failed (STUN/TURN issue)
+
+## Admin Interface Issues
+
+### Issue: Cannot Access Admin Interface (403)
+
+**Symptom**: 403 Forbidden when accessing /admin
+
+**Root Cause:** IP address not in admin_ips whitelist
+
+**Diagnosis:**
+
+1. Check your public IP:
+```bash
+curl https://ifconfig.me
+```
+
+2. Verify config.json:
+```bash
+cat config.json | grep admin_ips
+```
+
+**Solution:**
+
+Add your IP to config.json:
+```json
+{
+  "admin_ips": ["YOUR.PUBLIC.IP.HERE"]
+}
+```
+
+Restart the server after configuration changes.
+
+<Info>
+  **Local Testing**: If testing locally without a reverse proxy, the `X-Real-IP` header won't be set. You may need to modify index.js to allow localhost connections for testing.
+</Info>
+
+### Issue: Admin Interface Loads But No Sessions
+
+**Symptom**: Admin page accessible but no browser thumbnails appear
+
+**Root Cause:**
+- No victims have connected yet
+- Socket authentication failed
+- Thumbnails not generating
+
+**Diagnosis:**
+
+1. Check for victim connections in server logs
+2. Verify socket_key matches between config.json and admin.html
+3. Check browser console on admin page for socket errors
+
+**Solution:**
+
+Test with a victim connection:
+```bash
+# From external network
+curl https://your-domain.com/
+```
+
+Check server logs for:
+```
+client_ip: [IP address]
+```
+
+If no client_ip appears, the victim request isn't reaching the server.
+
+### Issue: Thumbnails Not Updating
+
+**Symptom**: Browser tiles appear but thumbnails are black or frozen
+
+**Root Cause:**
+- Browser instance crashed
+- Canvas capture failing
+- WebSocket disconnected
+
+**Diagnosis:**
+
+Check browser processes:
+```bash
+ps aux | grep chrome | wc -l
+```
+
+Should show Chrome processes equal to number of browser instances.
+
+**Solution:**
+
+Remove the stuck instance and allow victim to reconnect:
+```
+Click "Delete Session" button in admin interface
+```
+
+Check server logs for errors:
+```bash
+grep -i error /path/to/server/output
+```
+
+## Performance Issues
+
+### Issue: High Memory Usage
+
+**Symptom**: Server becomes slow or unresponsive with multiple victims
+
+**Root Cause:** Each browser instance consumes 500MB-1GB of RAM
+
+**Solution:**
+
+**Monitor resource usage:**
+```bash
+# Check memory per Chrome process
+ps aux | grep chrome | awk '{sum+=$6} END {print sum/1024 " MB"}'
+```
+
+**Recommendations:**
+- Remove idle browser instances promptly
+- Size server based on expected concurrent users
+- Consider 2GB RAM per simultaneous victim
+- Monitor with htop during operations
+
+### Issue: Slow Video Streaming
+
+**Symptom**: Video is choppy or has high latency
+
+**Root Cause:**
+- Server bandwidth limitations
+- CPU saturation from multiple browser instances
+- Network congestion
+
+**Solutions:**
+
+**Reduce video quality:**
+
+Edit broadcast.html to lower frame rate:
+```javascript
+getDisplayMedia({'video': {frameRate: {max: 15}}})
+```
+
+**Reduce thumbnail frequency:**
+
+Edit broadcast.html to update thumbnails less frequently:
+```javascript
+setInterval(function(){
+  // Thumbnail generation code
+}, 5000) // Changed from 2000ms to 5000ms
+```
+
+**Scale server resources:**
+- Upgrade to higher CPU count
+- Increase network bandwidth
+- Use dedicated server instead of VPS
+
+## Credential Extraction Issues
+
+### Issue: stealer.js Fails to Inject Cookies
+
+**Symptom**: Browser opens but session not authenticated
+
+**Root Cause:**
+- Cookie domain mismatch
+- Cookie expired
+- SameSite restrictions
+- HTTPS required for Secure cookies
+
+**Diagnosis:**
+
+Check extracted cookies:
+```bash
+cat cuddle_abc123.json | jq '.cookies[] | {name, domain, secure, sameSite}'
+```
+
+**Solution:**
+
+**Domain Mismatch:**
+Ensure you're navigating to correct domain that matches cookie:
+```javascript
+// Cookie has domain: ".example.com"
+// Must navigate to: https://example.com or https://app.example.com
+```
+
+**Expired Cookies:**
+Extract credentials immediately after authentication, before timeout.
+
+**Secure Cookies:**
+Always use HTTPS when replaying sessions with secure cookies.
+
+### Issue: Browser Extension Not Working
+
+**Symptom**: Extension fails to extract or inject credentials
+
+**Root Cause:**
+- Debugger permission denied
+- Chrome version incompatibility
+- Target tab not active
+
+**Solution:**
+
+**Check permissions:**
+```json
+// In manifest.json
+"permissions": [
+  "activeTab",
+  "debugger"
+]
+```
+
+**Reload extension:**
+1. Navigate to chrome://extensions/
+2. Toggle extension off and back on
+3. Refresh target page
+
+**Ensure tab is active:**
+Extension only works on the currently active tab.
+
+## Installation Issues
+
+### Issue: npm install Fails
+
+**Symptom**: Errors during npm install
+
+**Common Errors:**
+
+**"puppeteer download failed"**
+```bash
+# Set proxy if behind firewall
+npm config set proxy http://proxy:8080
+npm config set https-proxy http://proxy:8080
+
+# Or skip Chromium download and use system Chrome
+npm install --ignore-scripts
+```
+
+**"node-gyp build failed"**
+```bash
+# Install build tools
+sudo apt install -y build-essential python3
+```
+
+### Issue: Docker Build Fails
+
+**Symptom**: Caddy Docker build errors
+
+**Solution:**
+
+**Check Docker installation:**
+```bash
+sudo docker --version
+sudo docker ps
+```
+
+**Verify Dockerfile syntax:**
+```bash
+cd /path/to/cuddlephish
+cat Dockerfile
+```
+
+**Try alternate DNS provider:**
+
+If Gandi plugin fails, try Cloudflare:
+```dockerfile
+RUN xcaddy build \
+    --with github.com/caddy-dns/cloudflare
+```
+
+## Platform-Specific Issues
+
+### Kali Linux
+
+**Issue**: Missing libraries for Chrome
+
+**Solution:**
+Uncomment the Kali-specific line in install_deps.sh:
+```bash
+sudo apt install -y libx11-xcb1 libxcomposite1 ... [full line]
+```
+
+### ARM Architecture
+
+**Issue**: Puppeteer fails to download Chromium
+
+**Root Cause**: Official Chromium builds not available for ARM
+
+**Workaround:**
+```bash
+# Install system Chromium
+sudo apt install -y chromium-browser
+
+# Configure Puppeteer to use system Chrome
+export PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+export PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+```
+
+<Warning>
+  **Feature Loss**: Using system Chromium on ARM loses puppeteer-extra stealth features and may be detectable as automation.
+</Warning>
+
+## Getting Help
+
+If issues persist after following this guide:
+
+1. **Gather diagnostic information:**
+   - Server console output (full logs)
+   - Browser DevTools console errors
+   - Network tab showing WebSocket and WebRTC connections
+   - config.json and targets.json (redact sensitive data)
+   - Steps to consistently reproduce the issue
+
+2. **Check existing issues:**
+   - Review GitHub issues: https://github.com/fkasler/cuddlephish/issues
+   - Search for your specific error message
+
+3. **Open a detailed issue:**
+   - Provide all diagnostic information
+   - Describe expected vs. actual behavior
+   - Include reproduction steps
+   - Specify your platform and versions
+
+<Info>
+  **Issue Quality**: Well-documented issues with reproduction steps receive faster responses than vague "it doesn't work" reports.
+</Info>

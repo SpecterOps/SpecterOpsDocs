@@ -1,0 +1,33 @@
+---
+title: 'psinject'
+description: 'Converted from Markdown to MDX'
+source: 'MythicAgents/Apollo'
+---
+ 
+<Note>Artifacts Generated: Process Inject</Note>
+
+## Summary
+Execute PowerShell commands in a remote process. Leverages the currently set injection technique to inject the PowerShell loader.
+
+### Arguments (Positional or Popup)
+#### PID
+Target process ID.
+
+#### Command
+PowerShell command to be executed.
+
+## Usage
+```
+psinject -PID [pid] -Command [command]
+```
+
+Example
+```
+psinject -PID 1234 -Command Get-Process
+```
+
+
+## MITRE ATT&CK Mapping
+
+- T1059
+- T1055

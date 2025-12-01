@@ -1,0 +1,92 @@
+---
+title: 'NetworkShares'
+description: 'Network shares exposed by the machine (via WMI)'
+icon: 'folder-open'
+---
+
+## Overview
+
+The NetworkShares command enumerates network shares exposed by the system via WMI. This reveals shared folders, their paths, permissions, and descriptions, helping identify data exposure risks and potential lateral movement opportunities.
+
+## Syntax
+
+```bash
+Seatbelt.exe NetworkShares
+```
+
+### Remote Execution
+```bash
+Seatbelt.exe NetworkShares -computername=TARGET.domain.com [-username=DOMAIN\user -password=pass]
+```
+
+## Output
+
+Returns network share information:
+- Share name
+- Share path
+- Share description
+- Share type
+- Current connections
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Discover accessible file shares
+    - Identify data exfiltration targets
+    - Find writable shares for payload delivery
+    - Locate administrative shares (C$, ADMIN$)
+    - Map file server topology
+  </Tab>
+  <Tab title="Blue Team">
+    - Audit exposed file shares
+    - Validate share permissions
+    - Detect unauthorized shares
+    - Ensure proper access controls
+    - Identify data leakage risks
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== NetworkShares ======
+
+Name        : IPC$
+Path        :
+Description : Remote IPC
+Type        : IPC
+
+Name        : ADMIN$
+Path        : C:\Windows
+Description : Remote Admin
+Type        : Disk Drive Admin
+
+Name        : C$
+Path        : C:\
+Description : Default share
+Type        : Disk Drive Admin
+
+Name        : SharedFiles
+Path        : D:\Shared\Files
+Description : Team Shared Documents
+Type        : Disk Drive
+```
+
+## Remote Execution
+
+<Check>
+This command **supports remote execution** using the `-computername` parameter.
+</Check>
+
+## Detection Considerations
+
+<Info>
+Low detection risk - queries WMI for share information.
+</Info>
+
+## Related Commands
+
+- [NetworkProfiles](/commands/networkprofiles) - Network profiles
+- [LocalGroups](/commands/localgroups) - Local group membership
+- [Processes](/commands/processes) - Running processes

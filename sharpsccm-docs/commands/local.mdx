@@ -1,0 +1,153 @@
+---
+title: 'Local Commands'
+description: 'Interact with the local SCCM client workstation or server'
+icon: 'computer'
+---
+
+## Overview
+
+The `local` command group provides comprehensive capabilities for interacting with the local SCCM client. These commands enable reconnaissance, credential extraction, log analysis, and WMI querying directly on the current workstation or server.
+
+<Info>
+  Local commands operate entirely on the current system and do not require network connectivity to SCCM infrastructure.
+</Info>
+
+## Command Categories
+
+### WMI Operations
+<CardGroup cols={2}>
+  <Card title="classes" icon="list" href="/sharpsccm-docs/commands/local/classes">
+    List available WMI classes in a namespace
+  </Card>
+  <Card title="class-instances" icon="database" href="/sharpsccm-docs/commands/local/class-instances">
+    Query specific WMI class instances with filtering
+  </Card>
+  <Card title="class-properties" icon="gear" href="/sharpsccm-docs/commands/local/class-properties">
+    Get property definitions for WMI classes
+  </Card>
+  <Card title="query" icon="code" href="/sharpsccm-docs/commands/local/query">
+    Execute custom WQL queries on local WMI
+  </Card>
+</CardGroup>
+
+### Information Gathering
+<CardGroup cols={2}>
+  <Card title="client-info" icon="info" href="/sharpsccm-docs/commands/local/client-info">
+    Get SCCM client version information
+  </Card>
+  <Card title="site-info" icon="server" href="/sharpsccm-docs/commands/local/site-info">
+    Get management point and site code
+  </Card>
+  <Card title="user-sid" icon="fingerprint" href="/sharpsccm-docs/commands/local/user-sid">
+    Get current user SID in hex format
+  </Card>
+  <Card title="triage" icon="file-magnifying-glass" href="/sharpsccm-docs/commands/local/triage">
+    Comprehensive log file analysis
+  </Card>
+</CardGroup>
+
+### File Operations
+<CardGroup cols={2}>
+  <Card title="grep" icon="magnifying-glass" href="/sharpsccm-docs/commands/local/grep">
+    Search files for specific strings
+  </Card>
+  <Card title="secrets" icon="key" href="/sharpsccm-docs/commands/local/secrets">
+    Extract DPAPI-protected credentials
+  </Card>
+</CardGroup>
+
+## Common Workflows
+
+### Initial Reconnaissance
+<Steps>
+  <Step title="Get Site Information">
+    Start with `local site-info` to identify the management point and site code
+  </Step>
+  <Step title="Check Client Version">
+    Use `local client-info` to verify SCCM client version and compatibility
+  </Step>
+  <Step title="Comprehensive Analysis">
+    Run `local triage` for complete log analysis and infrastructure discovery
+  </Step>
+</Steps>
+
+### Credential Extraction
+<Steps>
+  <Step title="Extract Secrets">
+    Use `local secrets -m wmi` or `local secrets -m disk` to extract credentials
+  </Step>
+  <Step title="Get User Context">
+    Run `local user-sid` to get current user's hex SID for database operations
+  </Step>
+  <Step title="Verify Access">
+    Use discovered credentials with other SharpSCCM commands
+  </Step>
+</Steps>
+
+### WMI Investigation
+<Steps>
+  <Step title="List Classes">
+    Start with `local classes` to see available WMI classes
+  </Step>
+  <Step title="Examine Properties">
+    Use `local class-properties` to understand class structure
+  </Step>
+  <Step title="Query Data">
+    Extract specific data with `local class-instances` or `local query`
+  </Step>
+</Steps>
+
+## Prerequisites
+
+<Accordion title="Permissions Required">
+  - **Standard User**: Most read-only operations (classes, properties, site-info)
+  - **Local Administrator**: Required for secrets extraction and some WMI operations
+  - **SYSTEM**: Optional for enhanced secrets extraction
+</Accordion>
+
+<Accordion title="SCCM Client Requirements">
+  - SCCM client must be installed and configured
+  - Client should be assigned to a site
+  - WMI repository must be accessible and functional
+</Accordion>
+
+## Security Considerations
+
+<Warning>
+  Local commands can expose sensitive information:
+  - **Network topology** and server locations
+  - **Domain credentials** including Network Access Accounts
+  - **Configuration details** that aid in further attacks
+  - **User context** and privilege information
+</Warning>
+
+## Integration with Remote Commands
+
+Local commands often provide essential information for remote operations:
+
+<CodeGroup>
+```bash Site Discovery
+# Get site information locally
+SharpSCCM local site-info
+# Output: MP: ATLAS.APERTURE.SCI, Site: PS1
+
+# Use for remote enumeration
+SharpSCCM get collections -mp ATLAS.APERTURE.SCI -sc PS1
+```
+
+```bash Credential Flow
+# Extract credentials locally
+SharpSCCM local secrets -m wmi
+# Output: NetworkAccessUsername: DOMAIN\user
+
+# Use credentials remotely
+SharpSCCM get naa -mp ATLAS.APERTURE.SCI -sc PS1
+```
+</CodeGroup>
+
+## Performance Notes
+
+- **WMI operations** are typically fast (< 1 second)
+- **Log analysis** (triage) can take 20+ seconds
+- **Secrets extraction** may require elevated privileges and take several seconds
+- **File operations** depend on file size and disk performance

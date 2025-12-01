@@ -1,0 +1,719 @@
+---
+title: 'Usage Guide'
+description: 'Practical usage examples and operational workflows for Ghost Scout'
+icon: 'terminal'
+---
+
+## Getting Started
+
+After [installing Ghost Scout](/ghost_scout-mdx/installation), you can begin your reconnaissance workflow. The application provides a web interface accessible at `http://localhost:3000`.
+
+## Typical Workflow
+
+Ghost Scout follows a sequential workflow for building phishing campaigns:
+
+<Steps>
+  <Step title="Add Target Domain">
+    Navigate to the Domains page and add your target company's domain
+
+    - Enter the domain (e.g., `example.com`)
+    - Ghost Scout will store the domain and prepare for reconnaissance
+    - DNS records will be queued for lookup
+  </Step>
+
+  <Step title="Start Reconnaissance">
+    Initiate Hunter.io search to find employees and email formats
+
+    - Click "Start Reconnaissance" for the target domain
+    - Hunter.io API will search for email addresses
+    - Email format patterns will be identified
+    - Discovered contacts will be stored in the database
+    - Real-time updates will show progress
+  </Step>
+
+  <Step title="Scrape Sources">
+    Enrich contact information by scraping discovered URLs
+
+    - Review discovered sources for each contact
+    - Select sources to scrape for additional information
+    - HTML content will be converted to Markdown
+    - Source data will be associated with contacts
+    - Enriched profiles will include scraped content
+  </Step>
+
+  <Step title="Generate Profiles">
+    Use AI to generate detailed profiles for discovered contacts
+
+    - Select contacts for profile generation
+    - Anthropic API will analyze scraped data
+    - AI will generate structured profiles
+    - Profiles include key information and context
+    - Review generated profiles for accuracy
+  </Step>
+
+  <Step title="Create Pretexts">
+    Generate personalized phishing emails for each target
+
+    - Select targets for pretext generation
+    - Choose prompt template from library
+    - AI generates personalized pretexts
+    - Review generated emails for quality
+    - Edit pretexts as needed
+  </Step>
+
+  <Step title="Review & Export">
+    Review, approve, and export pretexts for your campaign
+
+    - Review all generated pretexts
+    - Make final edits and approvals
+    - Export for use in phishing infrastructure
+    - Track which pretexts have been used
+  </Step>
+</Steps>
+
+## Feature Usage
+
+### Domain Management
+
+<Tabs>
+  <Tab title="Add Domain">
+    **Adding a Target Domain:**
+
+    1. Navigate to the Domains page
+    2. Click "Add Domain"
+    3. Enter the target domain (without `http://` or `www`)
+    4. Click "Submit"
+
+    **Example:**
+    ```
+    Domain: targetcompany.com
+    ```
+
+    Ghost Scout will:
+    - Store the domain in the database
+    - Queue DNS lookups (MX, SPF, DMARC records)
+    - Prepare for reconnaissance activities
+  </Tab>
+
+  <Tab title="View DNS Records">
+    **Viewing DNS Information:**
+
+    After adding a domain, view DNS records:
+    - **MX Records**: Mail server information
+    - **SPF Records**: Email authentication policies
+    - **DMARC Records**: Email security policies
+
+    This information helps understand email infrastructure and security posture.
+  </Tab>
+
+  <Tab title="Related Domains">
+    **Autodiscovery:**
+
+    Ghost Scout can discover related domains:
+    - Autodiscover records
+    - Mail server domains
+    - Related organizational domains
+
+    Use this to expand your reconnaissance scope.
+  </Tab>
+</Tabs>
+
+### Reconnaissance
+
+<Tabs>
+  <Tab title="Start Reconnaissance">
+    **Initiating Hunter.io Search:**
+
+    1. Select a domain from your list
+    2. Click "Start Reconnaissance"
+    3. Monitor real-time progress updates
+
+    **What Happens:**
+    - Hunter.io API searches for email addresses at the domain
+    - Email format patterns are identified (e.g., `{first}.{last}@domain.com`)
+    - Discovered contacts are stored with available information
+    - Sources (LinkedIn, company websites, etc.) are recorded
+    - Real-time updates show discovered contacts
+  </Tab>
+
+  <Tab title="Monitor Progress">
+    **Real-time Updates:**
+
+    Watch Socket.io updates for:
+    - Number of contacts discovered
+    - Email format patterns identified
+    - Sources found for each contact
+    - Job queue progress
+    - Completion status
+
+    Progress is shown in real-time without page refreshes.
+  </Tab>
+
+  <Tab title="Review Contacts">
+    **Analyzing Discovered Contacts:**
+
+    For each contact, view:
+    - Name and email address
+    - Position/role (if available)
+    - Sources where information was found
+    - Confidence score
+    - Associated domain
+
+    Use this information to prioritize targets.
+  </Tab>
+</Tabs>
+
+### Source Scraping
+
+<Tabs>
+  <Tab title="Select Sources">
+    **Choosing Sources to Scrape:**
+
+    1. Navigate to a contact's detail page
+    2. Review discovered sources (URLs)
+    3. Select sources likely to contain useful information
+    4. Click "Scrape Selected"
+
+    **Source Types:**
+    - LinkedIn profiles
+    - Company bios
+    - Blog posts
+    - Social media profiles
+    - Company directories
+  </Tab>
+
+  <Tab title="Scraping Process">
+    **How Scraping Works:**
+
+    1. Ghost Scout fetches the HTML content
+    2. Content is sent to MarkItDown-API
+    3. HTML is converted to clean Markdown
+    4. Markdown is stored and associated with the contact
+    5. Real-time updates show scraping progress
+
+    **Benefits of Markdown:**
+    - Better formatting for LLM processing
+    - Cleaner data extraction
+    - Improved profile generation quality
+  </Tab>
+
+  <Tab title="Review Scraped Data">
+    **Analyzing Source Data:**
+
+    View scraped content for each source:
+    - Original URL
+    - Scraped date
+    - Markdown content
+    - Associated targets
+
+    Use this to verify information quality before profile generation.
+  </Tab>
+</Tabs>
+
+### Profile Generation
+
+<Tabs>
+  <Tab title="Generate Profiles">
+    **Creating AI Profiles:**
+
+    1. Select contacts with scraped data
+    2. Click "Generate Profiles"
+    3. Monitor queue processing
+    4. Review generated profiles
+
+    **Profile Contents:**
+    - Professional background
+    - Role and responsibilities
+    - Interests and activities
+    - Public information summary
+    - Context for personalization
+  </Tab>
+
+  <Tab title="Profile Quality">
+    **Factors Affecting Quality:**
+
+    - **Source Data**: More scraped sources = better profiles
+    - **Source Quality**: Professional profiles better than brief mentions
+    - **Prompt Templates**: Customize prompts in `prompt_library/`
+    - **LLM Model**: Anthropic Claude quality affects output
+
+    **Best Practices:**
+    - Scrape multiple sources per target
+    - Use high-quality sources (LinkedIn, company bios)
+    - Review and edit profiles as needed
+  </Tab>
+
+  <Tab title="Edit Profiles">
+    **Manual Profile Refinement:**
+
+    Profiles can be edited:
+    - Add additional information manually
+    - Correct inaccuracies
+    - Emphasize relevant details
+    - Remove irrelevant information
+
+    Edited profiles improve pretext generation.
+  </Tab>
+</Tabs>
+
+### Pretext Generation
+
+<Tabs>
+  <Tab title="Choose Template">
+    **Selecting Prompt Templates:**
+
+    Ghost Scout includes templates in `prompt_library/`:
+    - IT support pretexts
+    - HR/benefits pretexts
+    - Executive communication pretexts
+    - Vendor/partner pretexts
+    - Security awareness pretexts
+
+    Choose templates that match your campaign goals.
+  </Tab>
+
+  <Tab title="Generate Pretexts">
+    **Creating Personalized Emails:**
+
+    1. Select targets with generated profiles
+    2. Choose pretext template
+    3. Click "Generate Pretexts"
+    4. Wait for AI generation
+    5. Review generated emails
+
+    **Personalization Elements:**
+    - Target's name and role
+    - Company information
+    - Professional interests
+    - Recent activities (from profile)
+    - Contextual details
+  </Tab>
+
+  <Tab title="Review & Edit">
+    **Refining Pretexts:**
+
+    Before using pretexts, review for:
+    - **Accuracy**: Verify personalized details are correct
+    - **Believability**: Ensure scenario is plausible
+    - **Grammar**: Check for AI artifacts
+    - **Tone**: Match organizational communication style
+    - **Call to Action**: Ensure objective is clear
+
+    Edit as needed to improve effectiveness.
+  </Tab>
+</Tabs>
+
+### Export & Campaign Management
+
+<Tabs>
+  <Tab title="Export Pretexts">
+    **Exporting for Campaigns:**
+
+    Export pretexts for use in phishing tools:
+    - CSV format with target information
+    - Individual email templates
+    - Bulk export functionality
+
+    Use exported data in your phishing infrastructure.
+  </Tab>
+
+  <Tab title="Track Usage">
+    **Campaign Tracking:**
+
+    Mark pretexts as:
+    - **Pending**: Not yet used
+    - **Sent**: Used in campaign
+    - **Successful**: Target interacted
+    - **Failed**: Target did not interact
+
+    Track effectiveness across campaigns.
+  </Tab>
+
+  <Tab title="Data Management">
+    **Managing Campaign Data:**
+
+    - Archive completed campaigns
+    - Delete outdated reconnaissance data
+    - Backup database regularly
+    - Secure sensitive information
+    - Clean up between engagements
+  </Tab>
+</Tabs>
+
+## Operational Scenarios
+
+### Scenario 1: Broad Company Reconnaissance
+
+**Goal:** Discover as many employees as possible at a target organization
+
+<Steps>
+  <Step title="Add Primary Domain">
+    ```
+    Domain: targetcompany.com
+    ```
+  </Step>
+
+  <Step title="Start Reconnaissance">
+    Let Hunter.io discover all available contacts at the domain
+  </Step>
+
+  <Step title="Identify Related Domains">
+    Check for:
+    - Subsidiary domains
+    - Regional domains
+    - Acquired company domains
+  </Step>
+
+  <Step title="Expand Reconnaissance">
+    Add and search related domains for additional contacts
+  </Step>
+
+  <Step title="Prioritize Targets">
+    Review all discovered contacts and select high-value targets:
+    - Executive leadership
+    - IT administrators
+    - Finance personnel
+    - HR staff
+  </Step>
+</Steps>
+
+### Scenario 2: Targeted Spear Phishing
+
+**Goal:** Create highly personalized pretexts for specific individuals
+
+<Steps>
+  <Step title="Identify Targets">
+    Use Hunter.io to find specific individuals:
+    - C-level executives
+    - Department heads
+    - Project managers
+  </Step>
+
+  <Step title="Comprehensive Source Scraping">
+    Scrape multiple sources per target:
+    - LinkedIn profiles
+    - Company bios
+    - Conference presentations
+    - Blog posts
+    - Social media
+  </Step>
+
+  <Step title="Generate Detailed Profiles">
+    Create rich profiles with extensive information
+  </Step>
+
+  <Step title="Custom Pretexts">
+    Generate pretexts referencing:
+    - Recent activities
+    - Professional interests
+    - Current projects
+    - Industry trends relevant to target
+  </Step>
+
+  <Step title="Manual Refinement">
+    Carefully edit pretexts for maximum believability
+  </Step>
+</Steps>
+
+### Scenario 3: Campaign Template Development
+
+**Goal:** Develop reusable pretext templates for multiple campaigns
+
+<Steps>
+  <Step title="Research Multiple Organizations">
+    Conduct reconnaissance on several similar organizations
+  </Step>
+
+  <Step title="Identify Common Patterns">
+    Find patterns across organizations:
+    - Similar roles
+    - Common workflows
+    - Industry-specific language
+    - Shared pain points
+  </Step>
+
+  <Step title="Create Template Pretexts">
+    Develop pretext templates that work across targets:
+    - Generic IT support scenarios
+    - Common HR/benefits topics
+    - Industry-standard processes
+  </Step>
+
+  <Step title="Customize Per Campaign">
+    For each engagement, personalize templates with:
+    - Organization-specific details
+    - Target-specific information
+    - Current events/context
+  </Step>
+</Steps>
+
+## OPSEC Best Practices
+
+<Warning>
+  Follow operational security best practices to avoid detection
+</Warning>
+
+### Hunter.io Usage
+
+<AccordionGroup>
+  <Accordion title="API Key Management" icon="key">
+    - Use dedicated API keys for operations
+    - Avoid personal/company accounts
+    - Consider disposable accounts for sensitive engagements
+    - Rotate keys between campaigns
+    - Monitor API usage and rate limits
+  </Accordion>
+
+  <Accordion title="Search Patterns" icon="magnifying-glass">
+    - Be aware Hunter.io may notify target organizations
+    - Space out searches over time
+    - Avoid rapid sequential searches
+    - Consider search volume limits
+    - Document search timestamps
+  </Accordion>
+
+  <Accordion title="Attribution" icon="user-secret">
+    - Hunter.io searches can be attributed to your account
+    - Target organizations may receive alerts
+    - Consider using separate accounts per client
+    - Be prepared to explain reconnaissance activities
+    - Maintain engagement documentation
+  </Accordion>
+</AccordionGroup>
+
+### Infrastructure Security
+
+<AccordionGroup>
+  <Accordion title="Network Isolation" icon="network-wired">
+    - Deploy Ghost Scout on isolated infrastructure
+    - Use VPN or dedicated network for operations
+    - Separate infrastructure per engagement
+    - Avoid using organizational networks
+    - Consider cloud-based deployments
+  </Accordion>
+
+  <Accordion title="Data Security" icon="database">
+    - Encrypt SQLite database files
+    - Secure Redis instance with passwords
+    - Limit access to Ghost Scout interface
+    - Implement authentication and access control
+    - Backup data securely
+  </Accordion>
+
+  <Accordion title="Operational Hygiene" icon="broom">
+    - Clean up data between engagements
+    - Delete reconnaissance data after campaigns
+    - Maintain separate instances per client
+    - Document data retention policies
+    - Secure API keys and credentials
+  </Accordion>
+</AccordionGroup>
+
+### Content Generation
+
+<AccordionGroup>
+  <Accordion title="AI-Generated Content" icon="robot">
+    - Review all AI-generated content carefully
+    - Watch for AI artifacts and inconsistencies
+    - Verify personalized details are accurate
+    - Ensure realistic tone and style
+    - Edit for natural language
+  </Accordion>
+
+  <Accordion title="Personalization Accuracy" icon="bullseye">
+    - Verify scraped information is current
+    - Check that details match target's reality
+    - Avoid outdated or incorrect information
+    - Cross-reference multiple sources
+    - Update profiles as needed
+  </Accordion>
+
+  <Accordion title="Template Management" icon="file-lines">
+    - Customize prompt templates for each engagement
+    - Test templates with sample data
+    - Iterate based on campaign results
+    - Document effective templates
+    - Maintain template library
+  </Accordion>
+</AccordionGroup>
+
+## Automation Examples
+
+### Bulk Profile Generation
+
+```bash
+# Example: Generate profiles for all contacts without profiles
+# This would be done through the web interface, but can be scripted
+
+# 1. Query database for contacts without profiles
+# 2. Ensure sources are scraped
+# 3. Queue profile generation jobs
+# 4. Monitor queue progress
+# 5. Review generated profiles
+```
+
+### Scheduled Reconnaissance
+
+```bash
+# Example: Scheduled reconnaissance for ongoing monitoring
+# Use cron or scheduled task to periodically update reconnaissance
+
+# Crontab entry (daily reconnaissance at 2 AM)
+0 2 * * * cd /path/to/ghost_scout && node scripts/scheduled-recon.js
+```
+
+### Export Automation
+
+```bash
+# Example: Automated export of completed pretexts
+# Export pretexts as they're approved for campaign use
+
+# Script to export approved pretexts to campaign infrastructure
+node scripts/export-pretexts.js --status=approved --format=csv --output=/path/to/campaign/
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="No Contacts Found" icon="user-slash">
+    **Possible Causes:**
+    - Hunter.io has no data for the domain
+    - Domain spelling error
+    - Private/small organization
+    - API key issues
+
+    **Solutions:**
+    - Verify domain spelling
+    - Check Hunter.io directly for domain data
+    - Try related domains
+    - Verify API key is valid
+    - Check Hunter.io account status
+  </Accordion>
+
+  <Accordion title="Scraping Failures" icon="triangle-exclamation">
+    **Possible Causes:**
+    - Source URL is behind authentication
+    - Source has anti-scraping protections
+    - MarkItDown-API connection issues
+    - Rate limiting by source site
+
+    **Solutions:**
+    - Verify MarkItDown-API is running
+    - Check source URL is accessible
+    - Space out scraping requests
+    - Skip protected sources
+    - Manual data collection for important sources
+  </Accordion>
+
+  <Accordion title="Profile Generation Errors" icon="user-xmark">
+    **Possible Causes:**
+    - Insufficient scraped data
+    - Anthropic API key issues
+    - API rate limits
+    - Prompt template errors
+
+    **Solutions:**
+    - Scrape more sources for the target
+    - Verify Anthropic API key
+    - Check API usage and limits
+    - Review prompt template syntax
+    - Monitor job queue for errors
+  </Accordion>
+
+  <Accordion title="Pretext Quality Issues" icon="message-slash">
+    **Possible Causes:**
+    - Low-quality profile data
+    - Inappropriate template selection
+    - Prompt needs customization
+    - LLM hallucination
+
+    **Solutions:**
+    - Improve profile quality with better sources
+    - Choose more appropriate template
+    - Customize prompt templates
+    - Manually edit generated pretexts
+    - Provide more context in prompts
+  </Accordion>
+
+  <Accordion title="Real-time Updates Not Working" icon="plug-circle-xmark">
+    **Possible Causes:**
+    - Socket.io connection issues
+    - Redis connection problems
+    - Job queue not processing
+    - Client-side JavaScript errors
+
+    **Solutions:**
+    - Check browser console for errors
+    - Verify Redis is running
+    - Check Socket.io connection status
+    - Restart Ghost Scout application
+    - Clear browser cache and reload
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+### Reconnaissance
+
+<CardGroup cols={2}>
+  <Card title="Start Broad" icon="expand">
+    Begin with company-wide reconnaissance to identify all potential targets
+  </Card>
+  <Card title="Then Focus" icon="bullseye">
+    Narrow down to high-value targets for detailed profiling
+  </Card>
+  <Card title="Multiple Sources" icon="layer-group">
+    Scrape multiple sources per target for comprehensive profiles
+  </Card>
+  <Card title="Verify Information" icon="circle-check">
+    Cross-reference information across sources for accuracy
+  </Card>
+</CardGroup>
+
+### Profile & Pretext Generation
+
+<CardGroup cols={2}>
+  <Card title="Quality Over Quantity" icon="award">
+    Better to have fewer high-quality pretexts than many poor ones
+  </Card>
+  <Card title="Manual Review" icon="eye">
+    Always review AI-generated content before use
+  </Card>
+  <Card title="Iterate Templates" icon="rotate">
+    Improve prompt templates based on campaign results
+  </Card>
+  <Card title="Test Pretexts" icon="flask">
+    Test pretexts on internal team before deploying
+  </Card>
+</CardGroup>
+
+### Campaign Management
+
+<CardGroup cols={2}>
+  <Card title="Document Everything" icon="file-lines">
+    Keep detailed records of reconnaissance and campaigns
+  </Card>
+  <Card title="Track Results" icon="chart-line">
+    Monitor campaign effectiveness and iterate
+  </Card>
+  <Card title="Secure Data" icon="lock">
+    Protect reconnaissance data and pretexts
+  </Card>
+  <Card title="Clean Up" icon="trash">
+    Delete data after engagement completion
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={3}>
+  <Card title="Overview" icon="ghost" href="/ghostscout-docs/overview">
+    Learn about Ghost Scout features
+  </Card>
+  <Card title="Installation" icon="download" href="/ghostscout-docs/installation">
+    Setup and installation guide
+  </Card>
+  <Card title="Hunter.io API" icon="link" href="https://hunter.io/api-documentation">
+    Hunter.io API documentation
+  </Card>
+</CardGroup>

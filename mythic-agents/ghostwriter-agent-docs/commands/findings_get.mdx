@@ -1,0 +1,46 @@
+---
+title: "findings_get"
+description: "Get all findings associated with a specific report"
+---
+
+## Summary
+
+Get all the findings (vulnerabilities/issues) associated with a report in the current project.
+
+- Needs Admin: False
+- Version: 1-2
+- Author: @its_a_feature_
+
+### Arguments
+
+#### title
+- Description: If there are multiple reports, specify which report to get findings for (uses case insensitive matching)
+- Required: False
+- Default: ""
+
+
+## Usage
+
+```
+findings_get
+findings_get -title "Penetration Test Report"
+```
+
+## Detailed Summary
+
+This command retrieves all findings from a Ghostwriter report including:
+
+### Finding Information
+- Title and affected entities
+- Finding type and severity
+- Description and impact
+- Mitigation recommendations
+- CVSS scores
+- Tags and categorization
+
+### Status Tracking
+- Finding status (complete, in progress, etc.)
+- Assignment information
+- Last modified timestamps
+
+Findings represent security vulnerabilities, misconfigurations, or other issues discovered during testing.

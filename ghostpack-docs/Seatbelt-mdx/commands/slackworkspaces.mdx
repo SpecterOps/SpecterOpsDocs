@@ -1,0 +1,139 @@
+---
+title: 'SlackWorkspaces'
+description: 'Parses any found slack-workspaces files'
+icon: 'slack'
+---
+
+## Overview
+
+The `SlackWorkspaces` command parses Slack workspace configuration files to enumerate workspaces that users have accessed. This reveals organizational Slack workspaces, team names, and workspace URLs, providing valuable intelligence about communication infrastructure.
+
+**Important:** User commands run for the current user if not elevated and for ALL users if elevated.
+
+## Syntax
+
+```
+Seatbelt.exe SlackWorkspaces
+```
+
+No additional arguments are supported. This command supports remote execution.
+
+## Output
+
+The command returns:
+- Workspace names and IDs
+- Workspace URLs (e.g., company-name.slack.com)
+- Team names and domains
+- User email addresses associated with workspaces
+- Last access timestamps
+- Authentication token presence indicators
+
+## Use Cases
+
+### Red Team
+- **Organization Identification**: Discover target organization's Slack workspace URLs
+- **User Enumeration**: Identify email addresses and usernames
+- **Phishing Preparation**: Craft targeted phishing using workspace information
+- **Credential Access**: Locate authentication tokens for workspace access
+- **Reconnaissance**: Map organizational structure from workspace names
+
+### Blue Team
+- **Shadow IT Detection**: Identify unauthorized Slack workspaces
+- **Access Audit**: Review workspace memberships and access patterns
+- **Compliance Monitoring**: Ensure workspace usage aligns with policies
+- **Incident Response**: Track workspace access during investigations
+- **Data Governance**: Document organizational Slack usage
+
+## Example Output
+
+```
+====== SlackWorkspaces ======
+
+User: john.doe
+
+  Slack Workspaces  : C:\Users\john.doe\AppData\Roaming\Slack\storage\slack-workspaces
+
+  Workspace
+    Name              : Contoso Corporation
+    Domain            : contoso.slack.com
+    TeamId            : T01234ABCDE
+    UserEmail         : john.doe@contoso.com
+    UserId            : U56789FGHIJ
+    LastAccess        : 2024-10-20 08:30:15
+
+  Workspace
+    Name              : Contoso IT Department
+    Domain            : contoso-it.slack.com
+    TeamId            : T98765ZYXWV
+    UserEmail         : john.doe@contoso.com
+    UserId            : U11111AAAAA
+    LastAccess        : 2024-10-19 14:22:00
+
+  Workspace
+    Name              : Partner Network
+    Domain            : partner-collab.slack.com
+    TeamId            : T24680BDFHJ
+    UserEmail         : jdoe@partners.com
+    UserId            : U33333CCCCC
+    LastAccess        : 2024-10-15 11:10:30
+```
+
+## Privilege Context
+
+- **Non-Elevated**: Parses Slack workspaces for the current user only
+- **Elevated**: Parses Slack workspaces for ALL users on the system, providing comprehensive workspace discovery
+
+## Remote Execution
+
+This command **supports** remote execution (marked with + in the command list).
+
+Remote syntax:
+```
+Seatbelt.exe SlackWorkspaces -computername=TARGET.domain.com -username=DOMAIN\user -password=pass
+```
+
+## Detection Considerations
+
+### Indicators
+- File system access to Slack storage directories
+- Reading slack-workspaces files in AppData\Roaming\Slack
+- Parsing LevelDB or JSON data structures
+- Enumeration across multiple user profiles
+
+### Defensive Monitoring
+- Monitor access to Slack storage directories by non-Slack processes
+- Alert on automated enumeration of workspace data
+- Track processes reading Slack workspace configuration
+- Log bulk access to Slack storage across multiple users
+- Detect reconnaissance tools accessing collaboration app data
+- Monitor for exfiltration of workspace configuration files
+
+### What Slack Workspaces Reveal
+- Organizational Slack workspace names and URLs
+- User email addresses and identities
+- Team structure and departmental workspaces
+- External collaboration partnerships (partner workspaces)
+- Multi-workspace usage patterns
+- Phishing targets and social engineering vectors
+
+### Workspace Data Contains
+- Workspace domain names (subdomain.slack.com)
+- Team IDs and workspace identifiers
+- User IDs and email addresses
+- Authentication tokens (in some cases)
+- Workspace membership information
+- Access timestamps
+
+### Privacy Considerations
+- Workspace data may reveal personal Slack usage
+- Can expose external collaboration relationships
+- May contain business-sensitive workspace names
+- Consider user privacy when collecting workspace data
+
+## Related Commands
+
+- **SlackPresence**: Checks for Slack installation and file presence
+- **SlackDownloads**: Parses Slack download history
+- **azuread**: Returns AzureAD information
+- **CloudCredentials**: Finds cloud provider credentials
+- **dir**: Lists files in user directories

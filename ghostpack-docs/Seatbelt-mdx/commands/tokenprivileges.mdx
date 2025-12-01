@@ -1,0 +1,146 @@
+---
+title: 'TokenPrivileges'
+description: 'Currently enabled token privileges (e.g. SeDebugPrivilege/etc.)'
+icon: 'key'
+---
+
+## Overview
+
+The TokenPrivileges command enumerates the privileges assigned to the current process token, showing which are enabled, disabled, or removed. Windows privileges control what actions a process can perform, and certain privileges (like SeDebugPrivilege, SeImpersonatePrivilege) are critical for offensive operations and privilege escalation.
+
+## Syntax
+
+```bash
+Seatbelt.exe TokenPrivileges
+```
+
+<Note>
+This command does **not** support remote execution.
+</Note>
+
+## Output
+
+Returns token privilege information:
+- Privilege name
+- Status (Enabled, Disabled, Enabled by Default)
+- Description
+- Privilege LUID
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Identify available privileges for exploitation
+    - Check for SeDebugPrivilege (credential dumping)
+    - Verify SeImpersonatePrivilege (token impersonation)
+    - Assess SeBackupPrivilege (file access)
+    - Plan privilege escalation techniques
+  </Tab>
+  <Tab title="Blue Team">
+    - Audit process privileges
+    - Detect unauthorized privilege assignment
+    - Validate least privilege principles
+    - Investigate suspicious privilege usage
+    - Monitor for privilege abuse
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== TokenPrivileges ======
+
+Current Token's Privileges:
+
+SeShutdownPrivilege                  : DISABLED
+SeChangeNotifyPrivilege              : ENABLED_BY_DEFAULT, ENABLED
+SeUndockPrivilege                    : DISABLED
+SeIncreaseWorkingSetPrivilege        : DISABLED
+SeTimeZonePrivilege                  : DISABLED
+
+[*] Running as standard user with typical privileges
+```
+
+Example for Administrator:
+```
+====== TokenPrivileges ======
+
+Current Token's Privileges:
+
+SeIncreaseQuotaPrivilege             : DISABLED
+SeSecurityPrivilege                  : DISABLED
+SeTakeOwnershipPrivilege             : DISABLED
+SeLoadDriverPrivilege                : DISABLED
+SeSystemProfilePrivilege             : DISABLED
+SeSystemtimePrivilege                : DISABLED
+SeProfileSingleProcessPrivilege      : DISABLED
+SeIncreaseBasePriorityPrivilege      : DISABLED
+SeCreatePagefilePrivilege            : DISABLED
+SeBackupPrivilege                    : DISABLED
+SeRestorePrivilege                   : DISABLED
+SeShutdownPrivilege                  : DISABLED
+SeDebugPrivilege                     : DISABLED [!]
+SeSystemEnvironmentPrivilege         : DISABLED
+SeChangeNotifyPrivilege              : ENABLED_BY_DEFAULT, ENABLED
+SeRemoteShutdownPrivilege            : DISABLED
+SeUndockPrivilege                    : DISABLED
+SeManageVolumePrivilege              : DISABLED
+SeImpersonatePrivilege               : ENABLED_BY_DEFAULT, ENABLED [!]
+SeCreateGlobalPrivilege              : ENABLED_BY_DEFAULT, ENABLED
+SeIncreaseWorkingSetPrivilege        : DISABLED
+SeTimeZonePrivilege                  : DISABLED
+SeCreateSymbolicLinkPrivilege        : DISABLED
+
+[*] Running as administrator with elevated privileges
+```
+
+## Remote Execution
+
+<Warning>
+This command does **NOT support remote execution**.
+</Warning>
+
+## Detection Considerations
+
+<Info>
+Minimal detection risk - queries current process token.
+</Info>
+
+- **API Calls**: Uses GetTokenInformation with TokenPrivileges class
+- **No Privilege Changes**: Only reads existing privileges
+- **EDR Telemetry**: May be logged as process behavior
+
+### High-Value Privileges for Attackers
+
+<Accordion title="Dangerous Privileges">
+**SeDebugPrivilege**
+- Allows debugging and accessing other processes
+- Used for credential dumping (LSASS access)
+
+**SeImpersonatePrivilege**
+- Enables token impersonation attacks
+- Key for potato-style privilege escalation
+
+**SeBackupPrivilege**
+- Allows reading any file on the system
+- Can be used to access SAM/SYSTEM/SECURITY hives
+
+**SeRestorePrivilege**
+- Allows writing to any file
+- Can modify system files and registry
+
+**SeLoadDriverPrivilege**
+- Allows loading kernel drivers
+- Can be used for kernel-level persistence
+
+**SeTakeOwnershipPrivilege**
+- Allows taking ownership of objects
+- Can bypass file/registry permissions
+</Accordion>
+
+## Related Commands
+
+- [TokenGroups](/commands/tokengroups) - Current token group membership
+- [LogonSessions](/commands/logonsessions) - Active logon sessions
+- [LocalGroups](/commands/localgroups) - Local group membership
+- [UserRightAssignments](/commands/userrightsassignments) - User rights configuration

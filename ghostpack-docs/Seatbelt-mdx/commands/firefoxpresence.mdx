@@ -1,0 +1,110 @@
+---
+title: 'FirefoxPresence'
+description: 'Checks if interesting Firefox files exist'
+icon: 'firefox-browser'
+---
+
+## Overview
+
+The `FirefoxPresence` command checks for the existence of interesting files associated with Mozilla Firefox browser. This command identifies the presence of Firefox browser data files without parsing their contents, providing a quick assessment of Firefox installations and usage.
+
+**Important:** User commands run for the current user if not elevated and for ALL users if elevated.
+
+## Syntax
+
+```
+Seatbelt.exe FirefoxPresence
+```
+
+No additional arguments are supported. This command supports remote execution.
+
+## Output
+
+The command returns:
+- Presence of Firefox browser installation
+- Locations of Firefox profile directories
+- Existence of key browser data files (places.sqlite, cookies.sqlite, key4.db, logins.json)
+- Profile names and paths
+- User profiles associated with Firefox
+
+## Use Cases
+
+### Red Team
+- **Browser Targeting**: Identify Firefox installations for credential harvesting
+- **Data Exfiltration Planning**: Determine if Firefox contains potential sensitive information
+- **User Profiling**: Understand user browser preferences and usage
+- **Credential Access**: Locate Firefox password databases for offline cracking
+- **Pre-Exploitation**: Identify Firefox before deploying browser-specific attacks
+
+### Blue Team
+- **Asset Inventory**: Track Firefox installations across the environment
+- **Security Posture**: Identify outdated or unapproved Firefox versions
+- **Data Loss Prevention**: Locate browsers containing potentially sensitive cached data
+- **Compliance Auditing**: Ensure browser usage aligns with organizational policies
+- **Incident Response**: Quickly identify Firefox data during investigations
+
+## Example Output
+
+```
+====== FirefoxPresence ======
+
+User: john.doe
+
+  Firefox Profile
+    ProfilePath       : C:\Users\john.doe\AppData\Roaming\Mozilla\Firefox\Profiles\abc123.default-release
+    ProfileName       : default-release
+
+  Files Present:
+    places.sqlite     : True (History and Bookmarks)
+    cookies.sqlite    : True
+    key4.db           : True (Master Password Key)
+    logins.json       : True (Saved Passwords)
+    cert9.db          : True (Certificates)
+    formhistory.sqlite: True
+```
+
+## Privilege Context
+
+- **Non-Elevated**: Checks for Firefox files in the current user's profile only
+- **Elevated**: Checks for Firefox files across all user profiles on the system, providing comprehensive browser presence information
+
+## Remote Execution
+
+This command **supports** remote execution (marked with + in the command list).
+
+Remote syntax:
+```
+Seatbelt.exe FirefoxPresence -computername=TARGET.domain.com -username=DOMAIN\user -password=pass
+```
+
+## Detection Considerations
+
+### Indicators
+- File system enumeration in Firefox profile directories
+- Access to Mozilla\Firefox directories in AppData
+- Pattern-based searching for Firefox-specific file names
+- Rapid sequential access to browser data locations
+
+### Defensive Monitoring
+- Monitor access to Firefox profile directories by non-browser processes
+- Alert on enumeration of multiple users' AppData\Roaming\Mozilla folders
+- Track automated tools accessing Firefox file locations
+- Log unusual file system queries targeting browser data paths
+- Detect processes reading Firefox databases without being Firefox
+- Monitor for reconnaissance patterns across browser directories
+
+### Security Recommendations
+- Use Firefox Master Password to protect saved credentials
+- Keep Firefox updated to latest version
+- Implement policies to control browser extensions
+- Monitor for unauthorized access to browser profile directories
+- Enable Enhanced Tracking Protection
+- Consider using enterprise Firefox with centralized management
+
+## Related Commands
+
+- **FirefoxHistory**: Parses Firefox history database files
+- **ChromiumPresence**: Checks for Chromium-based browser files
+- **IEFavorites**: Enumerates Internet Explorer favorites
+- **IETabs**: Lists open Internet Explorer tabs
+- **ChromiumBookmarks**: Parses Chromium browser bookmarks

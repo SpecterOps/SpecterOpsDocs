@@ -1,0 +1,89 @@
+---
+title: 'preauthscan'
+description: 'Scan for accounts that do not require Kerberos pre-authentication'
+icon: 'radar'
+sidebarTitle: 'preauthscan'
+---
+
+## Overview
+
+Scan for user accounts that do not require Kerberos pre-authentication. Accounts without pre-authentication requirements are vulnerable to AS-REP roasting attacks, allowing offline password cracking.
+
+## Syntax
+
+```bash
+Rubeus.exe preauthscan /users:USERS_FILE [options]
+```
+
+## Required Parameters
+
+<ParamField path="users" type="string" required>
+  File containing list of usernames to test
+</ParamField>
+
+## Optional Parameters
+
+<ParamField path="domain" type="string">
+  Target domain (default: current domain)
+</ParamField>
+
+<ParamField path="dc" type="string">
+  Domain controller to target
+</ParamField>
+
+<ParamField path="proxyurl" type="string">
+  KDC proxy URL for authentication
+</ParamField>
+
+## Examples
+
+<CodeGroup>
+```bash Basic Scanning
+# Scan users from file
+Rubeus.exe preauthscan /users:C:\temp\users.txt
+
+# Scan against specific domain
+Rubeus.exe preauthscan /users:users.txt /domain:corp.local
+
+# Use specific domain controller
+Rubeus.exe preauthscan /users:users.txt /dc:dc01.corp.local
+```
+</CodeGroup>
+
+## Pre-Authentication Overview
+
+<Accordion title="Kerberos Pre-Authentication">
+  **Security Mechanism:**
+  - Requires proof of password knowledge before TGT issuance
+  - Prevents offline password attacks
+  - Enabled by default for all accounts
+
+  **When Disabled:**
+  - AS-REQ returns encrypted TGT without pre-auth
+  - Enables AS-REP roasting attacks
+  - Often misconfigured for compatibility
+</Accordion>
+
+## Attack Integration
+
+<Accordion title="AS-REP Roasting Preparation">
+  **Vulnerability Identification:**
+  ```bash
+  # 1. Scan for vulnerable accounts
+  Rubeus.exe preauthscan /users:all_users.txt
+
+  # 2. Perform AS-REP roasting on vulnerable accounts
+  Rubeus.exe asreproast /user:vulnerable_user
+  ```
+
+  **Workflow Integration:**
+  - Identify accounts without pre-auth
+  - Target them with AS-REP roasting
+  - Crack extracted hashes offline
+  - Use credentials for further attacks
+</Accordion>
+
+## Related Commands
+
+- [`asreproast`](/GhostPack/Rubeus-mdx/commands/roasting/asreproast) - Exploit accounts without pre-auth
+- [`brute`](/GhostPack/Rubeus-mdx/commands/ticket-requests/brute) - Password attack vulnerable accounts

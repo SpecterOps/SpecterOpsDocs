@@ -1,0 +1,174 @@
+---
+title: 'reg'
+description: 'Registry key values (HKLM\Software by default) argument == [Path] [intDepth] [Regex] [boolIgnoreErrors]'
+icon: 'database'
+---
+
+## Overview
+
+The reg command provides flexible enumeration of Windows Registry keys and values. It allows recursive traversal of registry hives with configurable depth, regex pattern matching for filtering results, and error handling options. This command is useful for discovering configuration settings, credentials stored in the registry, installed software, and other security-relevant information.
+
+## Syntax
+
+```
+Seatbelt.exe reg
+```
+
+To customize the registry enumeration:
+
+```
+Seatbelt.exe "reg [Path] [Depth] [Regex] [IgnoreErrors]"
+```
+
+### Arguments
+
+- **Path** (optional) - Registry path to enumerate. Default is `HKLM\Software`
+- **Depth** (optional) - Integer specifying recursion depth. Default varies by implementation
+- **Regex** (optional) - Regular expression pattern to filter keys, value names, or values
+- **IgnoreErrors** (optional) - Boolean (true/false) to ignore access denied errors. Default is false
+
+### Examples
+
+```
+Seatbelt.exe reg
+# Enumerates HKLM\Software with default depth
+
+Seatbelt.exe "reg \"HKLM\SOFTWARE\Microsoft\Windows Defender\" 3 .*defini.* true"
+# Queries Windows Defender registry 3 levels deep, filtering for "defini" pattern, ignoring errors
+
+Seatbelt.exe "reg HKLM\Software\Microsoft\Windows\CurrentVersion\Run 1"
+# Enumerates AutoRun registry keys 1 level deep
+
+Seatbelt.exe "reg HKCU\Software 2 password false"
+# Searches HKCU\Software 2 levels deep for "password" pattern
+
+Seatbelt.exe "reg \"HKLM\System\CurrentControlSet\Services\" 2 .* true"
+# Enumerates Services registry 2 levels deep, matching all, ignoring errors
+```
+
+## Output
+
+The command returns:
+- Registry key path
+- Value name
+- Value type (REG_SZ, REG_DWORD, REG_BINARY, etc.)
+- Value data
+- Access errors (if IgnoreErrors is false)
+
+## Use Cases
+
+### Red Team
+- Discover credentials stored in the registry
+- Identify security product configurations
+- Enumerate autorun locations for persistence
+- Find VPN and network credentials
+- Discover application configurations with sensitive data
+- Locate database connection strings
+- Identify installed security tools
+- Find API keys and tokens in registry
+- Enumerate installed software and versions
+- Discover service configurations
+
+### Blue Team
+- Audit registry for insecure credential storage
+- Identify unauthorized registry modifications
+- Validate security product configurations
+- Detect malicious persistence mechanisms
+- Investigate registry-based attacks
+- Audit autorun locations for malware
+- Verify compliance with registry policies
+- Identify suspicious registry keys
+- Support incident response investigations
+- Audit software installation registry entries
+- Detect registry-based backdoors
+- Validate system hardening configurations
+
+## Example Output
+
+```
+====== reg (HKLM\SOFTWARE\Microsoft\Windows Defender - Depth: 3) ======
+
+  Key   : HKLM\SOFTWARE\Microsoft\Windows Defender\Exclusions\Paths
+  Value : C:\temp\tools
+  Type  : REG_SZ
+  Data  : 0
+
+  Key   : HKLM\SOFTWARE\Microsoft\Windows Defender\Features
+  Value : TamperProtection
+  Type  : REG_DWORD
+  Data  : 0
+
+  Key   : HKLM\SOFTWARE\Microsoft\Windows Defender\Real-Time Protection
+  Value : DisableRealtimeMonitoring
+  Type  : REG_DWORD
+  Data  : 1
+
+====== reg (HKCU\Software - Depth: 2 - Pattern: password) ======
+
+  Key   : HKCU\Software\Application\Settings
+  Value : DatabasePassword
+  Type  : REG_SZ
+  Data  : P@ssw0rd123!
+
+  Key   : HKCU\Software\VPNClient\Config
+  Value : SavedPassword
+  Type  : REG_SZ
+  Data  : VPN_P@ss2023
+
+====== reg (HKLM\Software\Microsoft\Windows\CurrentVersion\Run - Depth: 1) ======
+
+  Key   : HKLM\Software\Microsoft\Windows\CurrentVersion\Run
+  Value : SecurityUpdate
+  Type  : REG_SZ
+  Data  : C:\Users\Public\update.exe
+
+  Key   : HKLM\Software\Microsoft\Windows\CurrentVersion\Run
+  Value : OneDrive
+  Type  : REG_SZ
+  Data  : "C:\Program Files\Microsoft OneDrive\OneDrive.exe" /background
+```
+
+## Performance Considerations
+
+Performance depends heavily on the parameters used:
+- **Path**: Broader paths (e.g., HKLM\Software) take longer
+- **Depth**: Higher depth values exponentially increase execution time
+- **Regex**: Complex regex patterns add processing overhead
+- **IgnoreErrors**: Setting to true speeds up enumeration by skipping access denied keys
+
+Deep recursion on large registry hives can take considerable time (minutes to hours). Use specific paths and limited depth for faster results.
+
+## Remote Execution
+
+This command does not support remote execution in the standard implementation. Registry enumeration must be performed on the local system.
+
+## Detection Considerations
+
+### Indicators
+- Mass registry enumeration operations
+- Access to security-sensitive registry keys
+- Recursive registry traversal
+- Registry access by non-standard processes
+- Sequential registry key access patterns
+- Access to credential storage registry locations
+
+### Defensive Recommendations
+- Enable registry auditing (Event ID 4656, 4657, 4663, 4670)
+- Monitor for mass registry enumeration
+- Alert on access to sensitive registry keys (credentials, security products)
+- Track processes accessing large numbers of registry keys
+- Implement least privilege for registry access
+- Use AppLocker or similar to control execution of enumeration tools
+- Monitor for unusual registry access patterns
+- Correlate registry access with other reconnaissance activity
+- Implement registry ACLs to restrict access
+- Use SACL auditing on sensitive registry keys
+
+## Related Commands
+
+- **AuditPolicyRegistry** - Audit settings via the registry
+- **WindowsDefender** - Windows Defender settings from registry
+- **AutoRuns** - Auto run executables/scripts/programs
+- **LSASettings** - LSA settings including auth packages
+- **InstalledProducts** - Installed products via the registry
+- **Sysmon** - Sysmon configuration from the registry

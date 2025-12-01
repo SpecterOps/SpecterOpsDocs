@@ -1,0 +1,124 @@
+---
+title: 'PuttyHostKeys'
+description: 'Saved Putty SSH host keys'
+icon: 'key-skeleton'
+---
+
+## Overview
+
+The `PuttyHostKeys` command enumerates saved SSH host keys from PuTTY configurations. Host keys are used to verify the identity of SSH servers. This information reveals which SSH servers users have connected to, providing valuable intelligence about infrastructure and network topology.
+
+**Important:** User commands run for the current user if not elevated and for ALL users if elevated.
+
+## Syntax
+
+```
+Seatbelt.exe PuttyHostKeys
+```
+
+No additional arguments are supported. This command supports remote execution.
+
+## Output
+
+The command returns:
+- SSH server hostnames and IP addresses
+- Port numbers for SSH connections
+- Host key algorithms (RSA, ECDSA, ED25519, etc.)
+- Host key fingerprints
+- User context for each saved host key
+- Connection history inference
+
+## Use Cases
+
+### Red Team
+- **Network Mapping**: Discover SSH servers users have connected to
+- **Infrastructure Discovery**: Identify internal and external SSH infrastructure
+- **Lateral Movement Planning**: Find potential targets for SSH-based lateral movement
+- **Target Prioritization**: Identify frequently accessed SSH servers
+- **Attack Surface Analysis**: Map SSH-accessible systems in the environment
+
+### Blue Team
+- **Asset Discovery**: Document SSH server connections across the organization
+- **Access Audit**: Review SSH access patterns and server connections
+- **Incident Response**: Track SSH connections during investigations
+- **Compliance Monitoring**: Ensure SSH access aligns with policies
+- **Risk Assessment**: Identify external SSH connections that may pose risks
+
+## Example Output
+
+```
+====== PuttyHostKeys ======
+
+User: john.doe
+
+  SSH Host Key
+    Host              : ssh.contoso.com
+    Port              : 22
+    Algorithm         : ssh-rsa
+    Fingerprint       : 0x23,0x9a,0x15,0xc3,0x...
+
+  SSH Host Key
+    Host              : 192.168.10.50
+    Port              : 22
+    Algorithm         : ssh-ed25519
+    Fingerprint       : 0xb4,0x2e,0x7f,0xa8,0x...
+
+  SSH Host Key
+    Host              : web-server.contoso.local
+    Port              : 2222
+    Algorithm         : ecdsa-sha2-nistp256
+    Fingerprint       : 0x1a,0x5c,0x88,0xd2,0x...
+
+  SSH Host Key
+    Host              : prod-db-01.contoso.com
+    Port              : 22
+    Algorithm         : ssh-rsa
+    Fingerprint       : 0x77,0xe9,0x33,0xba,0x...
+```
+
+## Privilege Context
+
+- **Non-Elevated**: Returns Putty host keys for the current user only
+- **Elevated**: Returns Putty host keys for ALL users on the system, providing comprehensive SSH connection mapping
+
+## Remote Execution
+
+This command **supports** remote execution (marked with + in the command list).
+
+Remote syntax:
+```
+Seatbelt.exe PuttyHostKeys -computername=TARGET.domain.com -username=DOMAIN\user -password=pass
+```
+
+## Detection Considerations
+
+### Indicators
+- Registry enumeration of PuTTY configuration keys
+- Access to HKCU\Software\SimonTatham\PuTTY\SshHostKeys
+- Reading SSH host key data
+- Enumeration across multiple user profiles
+
+### Defensive Monitoring
+- Monitor registry access to PuTTY host key storage
+- Alert on automated enumeration of SSH connection history
+- Track processes reading PuTTY configuration data
+- Log bulk access to host key information across users
+- Detect reconnaissance tools mapping SSH infrastructure
+- Monitor for unusual SSH connection patterns
+
+### What Host Keys Reveal
+- Complete list of SSH servers users have connected to
+- Internal SSH infrastructure (hostnames, IPs, non-standard ports)
+- External SSH connections potentially violating policies
+- Frequency of access (inferred from key presence)
+- Network topology and server naming conventions
+- Privileged access to production systems
+
+## Related Commands
+
+- **PuttySessions**: Finds saved Putty session configurations with credentials
+- **MTPuTTY**: Searches for MTPuTTY configuration files
+- **SuperPutty**: Finds SuperPutty configuration files
+- **FileZilla**: Searches for FileZilla FTP credentials
+- **RDPSavedConnections**: Lists saved RDP connections
+- **MappedDrives**: Shows mapped network drives

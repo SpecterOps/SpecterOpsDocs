@@ -1,0 +1,857 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "Mythic",
+  "colors": {
+    "primary": "#6D70A7",
+    "light": "#50B071",
+    "dark": "#6D70A7"
+  },
+  "integrations": {
+    "plausible": {
+      "domain": "wiki.mythic-c2.net"
+    }
+  },
+  "favicon": "/favicon.png",
+  "navigation": {
+    "versions": [
+      {
+        "version": "version 3.3",
+        "tabs": [
+          {
+            "tab": "Documentation",
+            "groups": [
+              {
+                "group": "Overview",
+                "pages": [
+                  "home",
+                  "operators",
+                  {
+                    "group": "Installation",
+                    "pages": [
+                      "installation",
+                      "installation/connecting",
+                      "installation/a-note-about-containers",
+                      "installation/offline-installation",
+                      "installation/updating-mythic"
+                    ]
+                  },
+                  "internal-documentation",
+                  "quick-usage",
+                  {
+                    "group": "Operational Pieces",
+                    "pages": [
+                      "operational-pieces",
+                      "operational-pieces/mitre-att-and-ck",
+                      "operational-pieces/operations",
+                      "operational-pieces/browser-scripts",
+                      "operational-pieces/active-callbacks",
+                      "operational-pieces/files",
+                      "operational-pieces/search",
+                      "operational-pieces/file-browser",
+                      "operational-pieces/socks-proxy",
+                      "operational-pieces/credentials",
+                      "operational-pieces/comments",
+                      "operational-pieces/tags",
+                      "operational-pieces/split-callbacks",
+                      "operational-pieces/screenshots",
+                      "operational-pieces/event-feed",
+                      {
+                        "group": "Understanding Commands",
+                        "pages": [
+                          "operational-pieces/understanding-commands",
+                          "operational-pieces/understanding-commands/basic-information",
+                          "operational-pieces/understanding-commands/parameters",
+                          "operational-pieces/understanding-commands/mitre-att-and-ck"
+                        ]
+                      },
+                      {
+                        "group": "Payload Types",
+                        "pages": [
+                          "operational-pieces/payload-types",
+                          "operational-pieces/payload-types/containers"
+                        ]
+                      },
+                      {
+                        "group": "C2 Profiles",
+                        "pages": [
+                          "operational-pieces/c2-profiles",
+                          "operational-pieces/c2-profiles/opsec-checks",
+                          "operational-pieces/c2-profiles/egress-vs-p2p",
+                          "operational-pieces/c2-profiles/http",
+                          "operational-pieces/c2-profiles/save-parameters"
+                        ]
+                      },
+                      "operational-pieces/api-tokens"
+                    ]
+                  },
+                  {
+                    "group": "Message Flow",
+                    "pages": [
+                      "message-flow",
+                      "message-flow/building-payloads",
+                      "message-flow/agent-sends-message",
+                      "message-flow/file-upload-mythic-greater-than-agent",
+                      "message-flow/file-download-agent-greater-than-mythic",
+                      "message-flow/p2p-messages",
+                      "message-flow/operator-submits-tasking"
+                    ]
+                  },
+                  "database-schema",
+                  {
+                    "group": "Reporting",
+                    "pages": [
+                      "reporting",
+                      "reporting/artifacts",
+                      "reporting/mitre-att-and-ck",
+                      "reporting/reports"
+                    ]
+                  },
+                  "presentations-webinars",
+                  "common-errors"
+                ]
+              },
+
+              {
+                "group": "Common Questions and Answers",
+                "pages": [
+                  "common-questions-and-answers/faq-troubleshooting-tips",
+                  "common-questions-and-answers/change-log"
+                ]
+              },
+              {
+                "group": "Updating",
+                "pages": [
+                  {
+                    "group": "Mythic 2.1 -> 2.2 Updates",
+                    "pages": [
+                      "updating/mythic-2.1-greater-than-2.2-updates",
+                      {
+                        "group": "Agents 2.1.* -> 2.2.8",
+                        "pages": [
+                          "updating/mythic-2.1-greater-than-2.2-updates/agents-2.1.-greater-than-2.2.2",
+                          "updating/mythic-2.1-greater-than-2.2-updates/agents-2.1.-greater-than-2.2.2/mythicrpc"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "group": "Mythic 2.2 -> 2.3 Updates",
+                    "pages": [
+                      "updating/mythic-2.2-greater-than-2.3-updates",
+                      "updating/mythic-2.2-greater-than-2.3-updates/agents-2.2-greater-than-2.3"
+                    ]
+                  },
+                  {
+                    "group": "Mythic 2.3 -> 3.0 Updates",
+                    "pages": [
+                      "updating/mythic-2.3-greater-than-3.0-updates",
+                      "updating/mythic-2.3-greater-than-3.0-updates/agents-2.3-greater-than-3.0"
+                    ]
+                  },
+                  "updating/mythic-3.2-greater-than-3.3-updates"
+                ]
+              }
+            ]
+          },
+          {
+            "tab": "GraphQL API",
+            "groups": [
+              {
+                "group": "Overview",
+                "pages": [
+                  "scripting/home",
+                  "scripting/hasura"
+                ]
+              },
+              {
+                "group": "Scripting",
+                "pages": [
+                  "scripting/scripting"
+                ]
+              }
+            ]
+          },
+          {
+            "tab": "Development",
+            "groups": [
+              {
+                "group": "overview",
+                "pages": [
+                  "customizing/customizing-public-agent",
+                  {
+                    "group": "Hooking Features",
+                    "pages": [
+                      "customizing/hooking-features",
+                      "customizing/hooking-features/actions",
+                      {
+                        "group": "Linking Agents",
+                        "pages": [
+                          "customizing/hooking-features/linking-agents",
+                          "customizing/hooking-features/linking-agents/action-p2p_info"
+                        ]
+                      },
+                      "customizing/hooking-features/process_list",
+                      "customizing/hooking-features/artifacts",
+                      "customizing/hooking-features/credentials",
+                      "customizing/hooking-features/download",
+                      "customizing/hooking-features/action-upload",
+                      "customizing/hooking-features/screenshots",
+                      "customizing/hooking-features/commands",
+                      "customizing/hooking-features/keylog",
+                      "customizing/hooking-features/file-browser",
+                      "customizing/hooking-features/tokens",
+                      "customizing/hooking-features/alerts",
+                      "customizing/hooking-features/socks",
+                      "customizing/hooking-features/rpfwd",
+                      "customizing/hooking-features/interactive-tasking",
+                      "customizing/hooking-features/task-status",
+                      "customizing/hooking-features/oncontainerstart",
+                      "customizing/hooking-features/context-tracking"
+                    ]
+                  },
+                  {
+                    "group": "1. Payload Type Development",
+                    "pages": [
+                      "customizing/payload-type-development",
+                      {
+                        "group": "2. Payload Type Definition",
+                        "pages": [
+                          "customizing/payload-type-development/payload-type-info/container-syncing",
+                          "customizing/payload-type-development/payload-type-info/turning-a-vm-into-a-container"
+                        ]
+                      },
+                      {
+                        "group": "3. Adding Commands",
+                        "pages": [
+                          "customizing/payload-type-development/adding-commands",
+                          "customizing/payload-type-development/adding-commands/commands"
+                        ]
+                      },
+                      {
+                        "group": "4. Create Tasking & Comms Format",
+                        "pages": [
+                          "customizing/payload-type-development/create_tasking",
+                          {
+                            "group": "Agent Messages",
+                            "pages": [
+                              "customizing/payload-type-development/create_tasking/agent-side-coding",
+                              "customizing/payload-type-development/create_tasking/agent-side-coding/agent-message-format",
+                              "customizing/payload-type-development/create_tasking/agent-side-coding/initial-checkin",
+                              "customizing/payload-type-development/create_tasking/agent-side-coding/action_get_tasking",
+                              "customizing/payload-type-development/create_tasking/agent-side-coding/action-post_response",
+                              "customizing/payload-type-development/create_tasking/agent-side-coding/socks",
+                              "customizing/payload-type-development/create_tasking/agent-side-coding/rpfwd",
+                              "customizing/payload-type-development/create_tasking/agent-side-coding/delegates",
+                              "customizing/payload-type-development/create_tasking/agent-side-coding/8.-interactive-tasking"
+                            ]
+                          }
+                        ]
+                      },
+                      "customizing/payload-type-development/browser-scripting",
+                      "customizing/payload-type-development/dynamic-parameter-values",
+                      "customizing/payload-type-development/sub-tasking-task-callbacks",
+                      "customizing/payload-type-development/opsec-checking",
+                      "customizing/payload-type-development/translation-containers",
+                      "customizing/payload-type-development/process-response",
+                      "customizing/payload-type-development/12-typedarray-parse-function",
+                      "customizing/payload-type-development/socks",
+                      "customizing/payload-type-development/reverse-portfwd",
+                      "customizing/payload-type-development/15.-interactive-tasking"
+                    ]
+                  },
+                  {
+                    "group": "2. C2 Development",
+                    "pages": [
+                      "customizing/c2-related-development",
+                      {
+                        "group": "Docker & Server Config",
+                        "pages": [
+                          "customizing/c2-related-development/server-side-coding",
+                          "customizing/c2-related-development/server-side-coding/c2-docker-containers",
+                          "customizing/c2-related-development/server-side-coding/c2-configuration-files",
+                          "customizing/c2-related-development/server-side-coding/opsec-checks-for-c2-profiles",
+                          "customizing/c2-related-development/server-side-coding/configuration-checks",
+                          "customizing/c2-related-development/server-side-coding/5.-sample-message",
+                          "customizing/c2-related-development/server-side-coding/6.-file-hosting",
+                          "customizing/c2-related-development/server-side-coding/redirect-rules",
+                          "customizing/c2-related-development/server-side-coding/8.-get-ioc",
+                          "customizing/c2-related-development/server-side-coding/9.-push-c2"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "group": "3. Consuming Containers",
+                    "pages": [
+                      "customizing/3.-consuming-containers",
+                      "customizing/3.-consuming-containers/webhooks",
+                      "customizing/3.-consuming-containers/logging",
+                      {
+                        "group": "Eventing",
+                        "pages": [
+                          "customizing/3.-consuming-containers/eventing",
+                          "customizing/3.-consuming-containers/eventing/operator-context-run_as",
+                          "customizing/3.-consuming-containers/eventing/workflow-triggers",
+                          "customizing/3.-consuming-containers/eventing/steps"
+                        ]
+                      },
+                      "customizing/3.-consuming-containers/auth"
+                    ]
+                  },
+                  "customizing/4.-extending-agent-commands",
+                  "customizing/mythic-ui-development"
+                ]
+              }
+            ]
+          },
+          {"tab":  "MythicRPC",
+            "groups": [
+              {
+                "group": "Overview",
+                "pages": [
+                  "mythicrpc/mythicrpc"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "version": "version 3.0",
+        "tabs": [
+          {
+            "tab": "Documentation",
+            "groups": [
+              {
+                "group": "",
+                "pages": [
+                  "version-3.0/version-3.0",
+                  "version-3.0/operators",
+                  {
+                    "group": "Installation",
+                    "pages": [
+                      "version-3.0/installation",
+                      "version-3.0/installation/connecting",
+                      "version-3.0/installation/a-note-about-containers",
+                      "version-3.0/installation/offline-installation",
+                      "version-3.0/installation/updating-mythic"
+                    ]
+                  },
+                  "version-3.0/internal-documentation",
+                  "version-3.0/quick-usage",
+                  {
+                    "group": "Operational Pieces",
+                    "pages": [
+                      "version-3.0/operational-pieces",
+                      "version-3.0/operational-pieces/mitre-att-and-ck",
+                      "version-3.0/operational-pieces/operations",
+                      "version-3.0/operational-pieces/browser-scripts",
+                      "version-3.0/operational-pieces/active-callbacks",
+                      "version-3.0/operational-pieces/files",
+                      "version-3.0/operational-pieces/search",
+                      "version-3.0/operational-pieces/file-browser",
+                      "version-3.0/operational-pieces/socks-proxy",
+                      "version-3.0/operational-pieces/credentials",
+                      "version-3.0/operational-pieces/comments",
+                      "version-3.0/operational-pieces/tags",
+                      "version-3.0/operational-pieces/split-callbacks",
+                      "version-3.0/operational-pieces/screenshots",
+                      "version-3.0/operational-pieces/event-feed",
+                      {
+                        "group": "Understanding Commands",
+                        "pages": [
+                          "version-3.0/operational-pieces/understanding-commands",
+                          "version-3.0/operational-pieces/understanding-commands/basic-information",
+                          "version-3.0/operational-pieces/understanding-commands/parameters",
+                          "version-3.0/operational-pieces/understanding-commands/mitre-att-and-ck"
+                        ]
+                      },
+                      {
+                        "group": "Payload Types",
+                        "pages": [
+                          "version-3.0/operational-pieces/payload-types",
+                          "version-3.0/operational-pieces/payload-types/containers"
+                        ]
+                      },
+                      {
+                        "group": "C2 Profiles",
+                        "pages": [
+                          "version-3.0/operational-pieces/c2-profiles",
+                          "version-3.0/operational-pieces/c2-profiles/opsec-checks",
+                          "version-3.0/operational-pieces/c2-profiles/egress-vs-p2p",
+                          "version-3.0/operational-pieces/c2-profiles/http",
+                          "version-3.0/operational-pieces/c2-profiles/dynamichttp",
+                          "version-3.0/operational-pieces/c2-profiles/save-parameters"
+                        ]
+                      },
+                      "version-3.0/operational-pieces/api-tokens"
+                    ]
+                  },
+                  {
+                    "group": "Message Flow",
+                    "pages": [
+                      "version-3.0/message-flow",
+                      "version-3.0/message-flow/building-payloads",
+                      "version-3.0/message-flow/agent-sends-message",
+                      "version-3.0/message-flow/file-upload-mythic-greater-than-agent",
+                      "version-3.0/message-flow/file-download-agent-greater-than-mythic",
+                      "version-3.0/message-flow/p2p-messages",
+                      "version-3.0/message-flow/operator-submits-tasking"
+                    ]
+                  },
+                  "version-3.0/database-schema",
+                  {
+                    "group": "Reporting",
+                    "pages": [
+                      "version-3.0/reporting",
+                      "version-3.0/reporting/artifacts",
+                      "version-3.0/reporting/mitre-att-and-ck",
+                      "version-3.0/reporting/reports"
+                    ]
+                  },
+                  "version-3.0/scripting",
+                  "version-3.0/presentations-webinars",
+                  "version-3.0/common-errors",
+                  "version-3.0/mythictips"
+                ]
+              },
+              {
+                "group": "Customizing",
+                "pages": [
+                  {
+                    "group": "Hooking Features",
+                    "pages": [
+                      "version-3.0/customizing/hooking-features",
+                      "version-3.0/customizing/hooking-features/actions",
+                      {
+                        "group": "Linking Agents",
+                        "pages": [
+                          "version-3.0/customizing/hooking-features/linking-agents",
+                          "version-3.0/customizing/hooking-features/linking-agents/action-p2p_info"
+                        ]
+                      },
+                      "version-3.0/customizing/hooking-features/process_list",
+                      "version-3.0/customizing/hooking-features/artifacts",
+                      "version-3.0/customizing/hooking-features/credentials",
+                      "version-3.0/customizing/hooking-features/download",
+                      "version-3.0/customizing/hooking-features/action-upload",
+                      "version-3.0/customizing/hooking-features/screenshots",
+                      "version-3.0/customizing/hooking-features/commands",
+                      "version-3.0/customizing/hooking-features/keylog",
+                      "version-3.0/customizing/hooking-features/file-browser",
+                      "version-3.0/customizing/hooking-features/tokens",
+                      "version-3.0/customizing/hooking-features/alerts",
+                      "version-3.0/customizing/hooking-features/socks",
+                      "version-3.0/customizing/hooking-features/rpfwd",
+                      "version-3.0/customizing/hooking-features/interactive-tasking",
+                      "version-3.0/customizing/hooking-features/task-status"
+                    ]
+                  },
+                  {
+                    "group": "1. Payload Type Development",
+                    "pages": [
+                      "version-3.0/customizing/payload-type-development",
+                      {
+                        "group": "2. Payload Type Definition",
+                        "pages": [
+                          "version-3.0/customizing/payload-type-development/payload-type-info/container-syncing",
+                          "version-3.0/customizing/payload-type-development/payload-type-info/turning-a-vm-into-a-container"
+                        ]
+                      },
+                      {
+                        "group": "3. Adding Commands",
+                        "pages": [
+                          "version-3.0/customizing/payload-type-development/adding-commands",
+                          "version-3.0/customizing/payload-type-development/adding-commands/commands"
+                        ]
+                      },
+                      {
+                        "group": "4. Create Tasking & Comms Format",
+                        "pages": [
+                          "version-3.0/customizing/payload-type-development/create_tasking",
+                          {
+                            "group": "Agent Messages",
+                            "pages": [
+                              "version-3.0/customizing/payload-type-development/create_tasking/agent-side-coding",
+                              "version-3.0/customizing/payload-type-development/create_tasking/agent-side-coding/agent-message-format",
+                              "version-3.0/customizing/payload-type-development/create_tasking/agent-side-coding/initial-checkin",
+                              "version-3.0/customizing/payload-type-development/create_tasking/agent-side-coding/action_get_tasking",
+                              "version-3.0/customizing/payload-type-development/create_tasking/agent-side-coding/action-post_response",
+                              "version-3.0/customizing/payload-type-development/create_tasking/agent-side-coding/socks",
+                              "version-3.0/customizing/payload-type-development/create_tasking/agent-side-coding/rpfwd",
+                              "version-3.0/customizing/payload-type-development/create_tasking/agent-side-coding/delegates",
+                              "version-3.0/customizing/payload-type-development/create_tasking/agent-side-coding/8.-interactive-tasking"
+                            ]
+                          }
+                        ]
+                      },
+                      "version-3.0/customizing/payload-type-development/browser-scripting",
+                      "version-3.0/customizing/payload-type-development/dynamic-parameter-values",
+                      "version-3.0/customizing/payload-type-development/sub-tasking-task-callbacks",
+                      "version-3.0/customizing/payload-type-development/opsec-checking",
+                      "version-3.0/customizing/payload-type-development/translation-containers",
+                      "version-3.0/customizing/payload-type-development/process-response",
+                      "version-3.0/customizing/payload-type-development/12-typedarray-parse-function",
+                      "version-3.0/customizing/payload-type-development/socks",
+                      "version-3.0/customizing/payload-type-development/reverse-portfwd",
+                      "version-3.0/customizing/payload-type-development/15.-interactive-tasking"
+                    ]
+                  },
+                  {
+                    "group": "2. C2 Development",
+                    "pages": [
+                      "version-3.0/customizing/c2-related-development",
+                      {
+                        "group": "Docker & Server Config",
+                        "pages": [
+                          "version-3.0/customizing/c2-related-development/server-side-coding",
+                          "version-3.0/customizing/c2-related-development/server-side-coding/c2-docker-containers",
+                          "version-3.0/customizing/c2-related-development/server-side-coding/c2-configuration-files",
+                          "version-3.0/customizing/c2-related-development/server-side-coding/opsec-checks-for-c2-profiles",
+                          "version-3.0/customizing/c2-related-development/server-side-coding/configuration-checks",
+                          "version-3.0/customizing/c2-related-development/server-side-coding/5.-sample-message",
+                          "version-3.0/customizing/c2-related-development/server-side-coding/6.-file-hosting",
+                          "version-3.0/customizing/c2-related-development/server-side-coding/redirect-rules",
+                          "version-3.0/customizing/c2-related-development/server-side-coding/8.-get-ioc",
+                          "version-3.0/customizing/c2-related-development/server-side-coding/9.-push-c2"
+                        ]
+                      }
+                    ]
+                  },
+                  "version-3.0/customizing/mythic-ui-development"
+                ]
+              },
+              {
+                "group": "Common Questions and Answers",
+                "pages": [
+                  "version-3.0/common-qa/faq-troubleshooting-tips",
+                  "version-3.0/common-qa/change-log",
+                  "version-3.0/common-qa/tip-of-the-week"
+                ]
+              },
+              {
+                "group": "Updating",
+                "pages": [
+                  {
+                    "group": "Mythic 2.1 -> 2.2 Updates",
+                    "pages": [
+                      "version-3.0/updating/mythic-2.1-greater-than-2.2-updates",
+                      {
+                        "group": "Agents 2.1.* -> 2.2.8",
+                        "pages": [
+                          "version-3.0/updating/mythic-2.1-greater-than-2.2-updates/agents-2.1.-greater-than-2.2.2",
+                          "version-3.0/updating/mythic-2.1-greater-than-2.2-updates/agents-2.1.-greater-than-2.2.2/mythicrpc"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "group": "Mythic 2.2 -> 2.3 Updates",
+                    "pages": [
+                      "version-3.0/updating/mythic-2.2-greater-than-2.3-updates",
+                      "version-3.0/updating/mythic-2.2-greater-than-2.3-updates/agents-2.2-greater-than-2.3"
+                    ]
+                  },
+                  {
+                    "group": "Mythic 2.3 -> 3.0 Updates",
+                    "pages": [
+                      "version-3.0/updating/mythic-2.3-greater-than-3.0-updates",
+                      "version-3.0/updating/mythic-2.3-greater-than-3.0-updates/agents-2.3-greater-than-3.0"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "version": "version 2.3",
+        "tabs": [
+          {
+            "tab": "Documentation",
+            "groups": [
+              {
+                "group": "",
+                "pages": [
+                  "version-2.3/version-2.3",
+                  "version-2.3/operators",
+                  {
+                    "group": "Installation",
+                    "pages": [
+                      "version-2.3/installation",
+                      "version-2.3/installation/connecting",
+                      "version-2.3/installation/a-note-about-containers",
+                      "version-2.3/installation/offline-installation",
+                      "version-2.3/installation/updating-mythic"
+                    ]
+                  },
+                  "version-2.3/internal-documentation",
+                  "version-2.3/quick-usage",
+                  {
+                    "group": "Operational Pieces",
+                    "pages": [
+                      "version-2.3/operational-pieces",
+                      "version-2.3/operational-pieces/mitre-att-and-ck",
+                      "version-2.3/operational-pieces/operations",
+                      "version-2.3/operational-pieces/browser-scripts",
+                      "version-2.3/operational-pieces/active-callbacks",
+                      "version-2.3/operational-pieces/files",
+                      "version-2.3/operational-pieces/search",
+                      "version-2.3/operational-pieces/file-browser",
+                      "version-2.3/operational-pieces/socks-proxy",
+                      "version-2.3/operational-pieces/credentials",
+                      "version-2.3/operational-pieces/comments",
+                      "version-2.3/operational-pieces/tags",
+                      "version-2.3/operational-pieces/split-callbacks",
+                      "version-2.3/operational-pieces/screenshots",
+                      "version-2.3/operational-pieces/event-feed",
+                      "version-2.3/operational-pieces/api-tokens"
+                    ]
+                  },
+                  {
+                    "group": "Message Flow",
+                    "pages": [
+                      "version-2.3/message-flow",
+                      "version-2.3/message-flow/building-payloads",
+                      "version-2.3/message-flow/agent-sends-message",
+                      "version-2.3/message-flow/file-upload-mythic-greater-than-agent",
+                      "version-2.3/message-flow/file-download-agent-greater-than-mythic",
+                      "version-2.3/message-flow/p2p-messages",
+                      "version-2.3/message-flow/operator-submits-tasking"
+                    ]
+                  },
+                  "version-2.3/database-schema",
+                  {
+                    "group": "Understanding Commands",
+                    "pages": [
+                      "version-2.3/understanding-commands",
+                      "version-2.3/understanding-commands/basic-information",
+                      "version-2.3/understanding-commands/parameters",
+                      "version-2.3/understanding-commands/mitre-att-and-ck"
+                    ]
+                  },
+                  {
+                    "group": "Payload Types",
+                    "pages": [
+                      "version-2.3/payload-types",
+                      "version-2.3/payload-types/configuration",
+                      "version-2.3/payload-types/containers"
+                    ]
+                  },
+                  {
+                    "group": "C2 Profiles",
+                    "pages": [
+                      "version-2.3/c2-profiles",
+                      "version-2.3/c2-profiles/opsec-checks",
+                      "version-2.3/c2-profiles/egress-vs-p2p",
+                      "version-2.3/c2-profiles/http",
+                      "version-2.3/c2-profiles/dynamichttp",
+                      "version-2.3/c2-profiles/save-parameters"
+                    ]
+                  },
+                  {
+                    "group": "Reporting",
+                    "pages": [
+                      "version-2.3/reporting",
+                      "version-2.3/reporting/artifacts",
+                      "version-2.3/reporting/mitre-att-and-ck",
+                      "version-2.3/reporting/reports"
+                    ]
+                  },
+                  "version-2.3/scripting",
+                  "version-2.3/presentations-webinars",
+                  "version-2.3/common-errors"
+                ]
+              },
+              {
+                "group": "Customizing",
+                "pages": [
+                  {
+                    "group": "Hooking Features",
+                    "pages": [
+                      "version-2.3/customizing/hooking-features",
+                      "version-2.3/customizing/hooking-features/actions",
+                      "version-2.3/customizing/hooking-features/linking-agents",
+                      "version-2.3/customizing/hooking-features/action-p2p_info",
+                      "version-2.3/customizing/hooking-features/process_list",
+                      "version-2.3/customizing/hooking-features/artifacts",
+                      "version-2.3/customizing/hooking-features/credentials",
+                      "version-2.3/customizing/hooking-features/download",
+                      "version-2.3/customizing/hooking-features/action-upload",
+                      "version-2.3/customizing/hooking-features/screenshots",
+                      "version-2.3/customizing/hooking-features/commands",
+                      "version-2.3/customizing/hooking-features/keylog",
+                      "version-2.3/customizing/hooking-features/file-browser",
+                      "version-2.3/customizing/hooking-features/tokens",
+                      "version-2.3/customizing/hooking-features/task-status"
+                    ]
+                  },
+                  {
+                    "group": "Payload Type Development",
+                    "pages": [
+                      "version-2.3/customizing/payload-type-development",
+                      "version-2.3/customizing/payload-type-development/translation-containers",
+                      "version-2.3/customizing/payload-type-development/first-steps",
+                      "version-2.3/customizing/payload-type-development/container-syncing",
+                      "version-2.3/customizing/payload-type-development/payload-type-info",
+                      "version-2.3/customizing/payload-type-development/commands",
+                      "version-2.3/customizing/payload-type-development/browser-scripting",
+                      "version-2.3/customizing/payload-type-development/dynamic-parameter-values",
+                      "version-2.3/customizing/payload-type-development/create_tasking",
+                      "version-2.3/customizing/payload-type-development/opsec-checking",
+                      "version-2.3/customizing/payload-type-development/sub-tasking-task-callbacks",
+                      "version-2.3/customizing/payload-type-development/process-response",
+                      "version-2.3/customizing/payload-type-development/socks",
+                      "version-2.3/customizing/payload-type-development/reverse-portfwd",
+                      "version-2.3/customizing/payload-type-development/adding-commands"
+                    ]
+                  },
+                  {
+                    "group": "C2 Related Development",
+                    "pages": [
+                      "version-2.3/customizing/c2-related-development",
+                      {
+                        "group": "C2 Profile Code",
+                        "pages": [
+                          "version-2.3/customizing/c2-related-development/c2-profile-code",
+                          {
+                            "group": "Agent Side Coding",
+                            "pages": [
+                              "version-2.3/customizing/c2-related-development/c2-profile-code/agent-side-coding",
+                              "version-2.3/customizing/c2-related-development/c2-profile-code/agent-side-coding/delegates",
+                              "version-2.3/customizing/c2-related-development/c2-profile-code/agent-side-coding/agent-message-format",
+                              "version-2.3/customizing/c2-related-development/c2-profile-code/agent-side-coding/initial-checkin",
+                              "version-2.3/customizing/c2-related-development/c2-profile-code/agent-side-coding/action_get_tasking",
+                              "version-2.3/customizing/c2-related-development/c2-profile-code/agent-side-coding/action-post_response",
+                              "version-2.3/customizing/c2-related-development/c2-profile-code/agent-side-coding/socks",
+                              "version-2.3/customizing/c2-related-development/c2-profile-code/agent-side-coding/rpfwd"
+                            ]
+                          },
+                          {
+                            "group": "Server Side Coding",
+                            "pages": [
+                              "version-2.3/customizing/c2-related-development/c2-profile-code/server-side-coding",
+                              "version-2.3/customizing/c2-related-development/c2-profile-code/server-side-coding/opsec-checks-for-c2-profiles",
+                              "version-2.3/customizing/c2-related-development/c2-profile-code/server-side-coding/configuration-checks",
+                              "version-2.3/customizing/c2-related-development/c2-profile-code/server-side-coding/redirect-rules",
+                              "version-2.3/customizing/c2-related-development/c2-profile-code/server-side-coding/c2-docker-containers",
+                              "version-2.3/customizing/c2-related-development/c2-profile-code/server-side-coding/c2-configuration-files"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "version-2.3/customizing/mythic-ui-development"
+                ]
+              },
+              {
+                "group": "Common Questions and Answers",
+                "pages": [
+                  "version-2.3/common-qa/faq-troubleshooting-tips",
+                  "version-2.3/common-qa/change-log",
+                  "version-2.3/common-qa/next_release",
+                  "version-2.3/common-qa/tip-of-the-week"
+                ]
+              },
+              {
+                "group": "Updating",
+                "pages": [
+                  {
+                    "group": "Mythic 2.1 -> 2.2 Updates",
+                    "pages": [
+                      "version-2.3/updating/mythic-2.1-greater-than-2.2-updates",
+                      {
+                        "group": "Agents 2.1.* -> 2.2.8",
+                        "pages": [
+                          "version-2.3/updating/mythic-2.1-greater-than-2.2-updates/agents-2.1.-greater-than-2.2.2",
+                          "version-2.3/updating/mythic-2.1-greater-than-2.2-updates/agents-2.1.-greater-than-2.2.2/mythicrpc"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "group": "Mythic 2.2 -> 2.3 Updates",
+                    "pages": [
+                      "version-2.3/updating/mythic-2.2-greater-than-2.3-updates",
+                      "version-2.3/updating/mythic-2.2-greater-than-2.3-updates/agents-2.2-greater-than-2.3"
+                    ]
+                  },
+                  {
+                    "group": "Mythic 2.3 -> 3.0 Updates",
+                    "pages": [
+                      "version-2.3/updating/mythic-2.3-greater-than-3.0-updates",
+                      "version-2.3/updating/mythic-2.3-greater-than-3.0-updates/agents-2.3-greater-than-3.0"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "global": {
+      "anchors": [
+        {
+          "anchor": "GitHub",
+          "href": "https://github.com/its-a-feature/Mythic",
+          "icon": "github"
+        },
+        {
+          "anchor": "#mythic Community",
+          "href": "https://slack.specterops.io",
+          "icon": "slack"
+        }
+      ]
+    }
+  },
+  "thumbnails": {
+    "appearance": "dark",
+    "background": "logo/thumbnail.png"
+  },
+  "logo": {
+    "light": "logo/mythic.png",
+    "dark": "logo/mythic.png",
+    "href": "https://wiki.mythic-c2.net/"
+  },
+  "appearance": {
+    "default": "dark"
+  },
+  "styling": {
+    "codeblocks": "system"
+  },
+  "background": {
+    "decoration": "windows"
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "Get the Code",
+        "href": "https://github.com/its-a-feature/Mythic"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Issues",
+      "href": "https://github.com/its-a-feature/Mythic/issues"
+    }
+  },
+  "footer": {
+    "socials": {
+      "x": "https://twitter.com/its_a_feature_",
+      "github": "https://github.com/its-a-feature/Mythic",
+      "slack": "https://slack.specterops.io"
+    }
+  },
+  "fonts": {
+    "heading": {
+      "family": "Nunito Sans",
+      "weight": 900,
+      "format": "woff2",
+      "source": "https://fonts.gstatic.com/s/nunitosans/v15/pe0TMImSLYBIv1o4X1M8ce2xCx3yop4tQpF_MeTm0lfGWVpNn64CL7U8upHZIbMV51Q42ptCp7t1R-s.woff2"
+    }
+  }
+}

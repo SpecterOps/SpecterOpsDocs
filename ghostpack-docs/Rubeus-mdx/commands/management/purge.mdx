@@ -1,0 +1,85 @@
+---
+title: 'purge'
+description: 'Purge Kerberos tickets from the current or specified logon session'
+icon: 'trash'
+sidebarTitle: 'purge'
+---
+
+## Overview
+
+Purge Kerberos tickets from the current logon session or a specific LUID. This command removes all cached tickets, effectively clearing the authentication state for cleanup or operational security purposes.
+
+## Syntax
+
+```bash
+Rubeus.exe purge [options]
+```
+
+## Optional Parameters
+
+<ParamField path="luid" type="string">
+  Target specific logon session ID (requires elevation)
+</ParamField>
+
+## Examples
+
+<CodeGroup>
+```bash Basic Purging
+# Purge tickets from current session
+Rubeus.exe purge
+
+# Purge tickets from specific LUID (requires admin)
+Rubeus.exe purge /luid:0x12345
+
+# Verify tickets are purged
+Rubeus.exe klist
+```
+</CodeGroup>
+
+## Use Cases
+
+<Accordion title="Operational Cleanup">
+  **Post-Operation Cleanup:**
+  - Remove injected tickets after operations
+  - Clean authentication state
+  - Restore original session state
+
+  **Evidence Removal:**
+  - Clear traces of ticket manipulation
+  - Remove forged or stolen tickets
+  - Reset authentication cache
+</Accordion>
+
+<Accordion title="Session Management">
+  **Authentication Reset:**
+  - Clear corrupted ticket cache
+  - Force fresh authentication
+  - Resolve ticket conflicts
+
+  **Testing and Development:**
+  - Reset state between tests
+  - Clear test tickets
+  - Validate clean authentication
+</Accordion>
+
+## Session Targeting
+
+<Accordion title="Current Session (Default)">
+  **Standard Operation:**
+  - Purges tickets from current user session
+  - Requires no special privileges
+  - Affects only current authentication state
+</Accordion>
+
+<Accordion title="Specific LUID Targeting">
+  **Elevated Operations:**
+  - Requires administrative privileges
+  - Can target any logon session
+  - Useful for system-wide cleanup
+</Accordion>
+
+## Related Commands
+
+- [`klist`](/GhostPack/Rubeus-mdx/commands/extraction/klist) - Verify ticket state after purging
+- [`ptt`](/GhostPack/Rubeus-mdx/commands/management/ptt) - Inject tickets after purging
+- [`logonsession`](/GhostPack/Rubeus-mdx/commands/miscellaneous/logonsession) - Identify target LUIDs

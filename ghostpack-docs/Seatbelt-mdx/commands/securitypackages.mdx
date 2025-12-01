@@ -1,0 +1,92 @@
+---
+title: 'SecurityPackages'
+description: 'Enumerates the security packages currently available using EnumerateSecurityPackagesA()'
+icon: 'box'
+---
+
+## Overview
+
+The SecurityPackages command enumerates available security packages (SSPs - Security Support Providers) using the EnumerateSecurityPackagesA() API. These packages provide authentication services and include Kerberos, NTLM, Negotiate, and others. Understanding available security packages helps assess authentication capabilities and potential attack vectors.
+
+## Syntax
+
+```bash
+Seatbelt.exe SecurityPackages
+```
+
+<Note>
+This command does **not** support remote execution.
+</Note>
+
+## Output
+
+Returns security package information:
+- Package name
+- Comment/Description
+- Capabilities flags
+- Version
+- RPC ID
+- Maximum token size
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Identify available authentication packages
+    - Determine SSP capabilities
+    - Assess authentication protocol support
+    - Plan credential access techniques
+  </Tab>
+  <Tab title="Blue Team">
+    - Audit available security packages
+    - Verify expected SSPs are present
+    - Detect unauthorized SSPs
+    - Validate authentication configuration
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== SecurityPackages ======
+
+Name        : Kerberos
+Comment     : Microsoft Kerberos V1.0
+Capabilities: 0x000F3BBF
+Version     : 1
+RPCID       : 16
+MaxToken    : 48000
+
+Name        : NTLM
+Comment     : NTLM Security Package
+Capabilities: 0x00082B37
+Version     : 1
+RPCID       : 10
+MaxToken    : 2888
+
+Name        : Negotiate
+Comment     : Microsoft Package Negotiator
+Capabilities: 0x000F3BBF
+Version     : 1
+RPCID       : 9
+MaxToken    : 48000
+```
+
+## Remote Execution
+
+<Warning>
+This command does **NOT support remote execution**.
+</Warning>
+
+## Detection Considerations
+
+<Info>
+Minimal detection risk - queries available security packages via API.
+</Info>
+
+## Related Commands
+
+- [LSASettings](/commands/lsasettings) - LSA configuration including auth packages
+- [NTLMSettings](/commands/ntlmsettings) - NTLM authentication settings
+- [CredGuard](/commands/credguard) - Credential Guard status
+- [LogonSessions](/commands/logonsessions) - Active logon sessions

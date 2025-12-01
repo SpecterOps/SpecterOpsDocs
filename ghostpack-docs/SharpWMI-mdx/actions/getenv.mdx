@@ -1,0 +1,292 @@
+---
+title: 'getenv'
+description: 'Retrieve environment variables from local and remote systems'
+icon: 'eye'
+---
+
+## Overview
+
+The `getenv` action retrieves environment variable values from local and remote systems by querying the `Win32_Environment` WMI class. It can retrieve all environment variables or specific variables by name.
+
+## Syntax
+
+```bash
+SharpWMI.exe action=getenv [name=VARIABLE_NAME[,NAME2,...]] [computername=HOST[,HOST2,...]] [username=DOMAIN\user] [password=Password]
+```
+
+## Parameters
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `action` | Yes | Must be `getenv` |
+| `name` | No | Variable name(s), comma-separated. If omitted, retrieves all |
+| `computername` | No | Target host(s), comma-separated. Defaults to localhost |
+| `username` | No | Username for authentication |
+| `password` | No | Password for authentication |
+
+## Usage Examples
+
+### Get All Environment Variables
+
+<CodeGroup>
+```bash Local System
+SharpWMI.exe action=getenv
+```
+
+```bash Remote System
+SharpWMI.exe action=getenv computername=target.domain.com
+```
+
+```bash With Credentials
+SharpWMI.exe action=getenv computername=target.domain.com username="DOMAIN\admin" password="Password123!"
+```
+</CodeGroup>
+
+### Get Specific Variables
+
+<CodeGroup>
+```bash Single Variable
+SharpWMI.exe action=getenv name=PATH computername=target.domain.com
+```
+
+```bash Multiple Variables
+SharpWMI.exe action=getenv name=USERNAME,COMPUTERNAME,USERDOMAIN computername=target.domain.com
+```
+
+```bash Common Variables
+SharpWMI.exe action=getenv name=PATH,TEMP,APPDATA,USERPROFILE computername=target.domain.com
+```
+</CodeGroup>
+
+### Example Output
+
+```
+  Scope: \\target.domain.com\root\cimv2
+  Query: "select Name,VariableValue,UserName From Win32_Environment WHERE Name='PATH'"
+
+                          Name : PATH
+                 VariableValue : C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem
+                      UserName : <SYSTEM>
+
+                          Name : PATH
+                 VariableValue : C:\Users\jdoe\AppData\Local\Microsoft\WindowsApps
+                      UserName : DOMAIN\jdoe
+```
+
+## Environment Variable Scope
+
+Environment variables have different scopes:
+
+| Scope | UserName Value | Description |
+|-------|----------------|-------------|
+| System | `<SYSTEM>` | System-wide variables |
+| User | `DOMAIN\username` | User-specific variables |
+| Volatile | Varies | Temporary session variables |
+
+## Operational Use Cases
+
+### Scenario 1: Information Gathering
+
+```bash
+# Get user context information
+SharpWMI.exe action=getenv name=USERNAME,USERDOMAIN,COMPUTERNAME computername=target.domain.com
+
+# Get file paths
+SharpWMI.exe action=getenv name=TEMP,APPDATA,PROGRAMFILES computername=target.domain.com
+
+# Get system info
+SharpWMI.exe action=getenv name=OS,PROCESSOR_ARCHITECTURE,NUMBER_OF_PROCESSORS computername=target.domain.com
+```
+
+### Scenario 2: Detect Security Tools
+
+```bash
+# Check PATH for security tool directories
+SharpWMI.exe action=getenv name=PATH computername=target.domain.com
+```
+
+Look for:
+- AV installation paths
+- EDR agent directories
+- Security monitoring tools
+- Defensive software
+
+### Scenario 3: Credential Hunting
+
+```bash
+# Check for credential-related variables
+SharpWMI.exe action=getenv computername=target.domain.com
+```
+
+Look for:
+- Custom credential variables
+- API keys in environment
+- Database connection strings
+- Service account info
+
+### Scenario 4: Exfiltration Channel
+
+```bash
+# Store data in environment variable (using setenv)
+SharpWMI.exe action=setenv name=DATA value="<exfiltrated_data>" computername=target.domain.com
+
+# Retrieve stored data
+SharpWMI.exe action=getenv name=DATA computername=target.domain.com
+
+# Clean up
+SharpWMI.exe action=delenv name=DATA computername=target.domain.com
+```
+
+## Common Environment Variables
+
+### System Information
+
+| Variable | Description |
+|----------|-------------|
+| `COMPUTERNAME` | Computer name |
+| `USERDOMAIN` | User's domain |
+| `USERNAME` | Current username |
+| `OS` | Operating system |
+| `PROCESSOR_ARCHITECTURE` | CPU architecture |
+| `NUMBER_OF_PROCESSORS` | Processor count |
+
+### Paths
+
+| Variable | Description |
+|----------|-------------|
+| `PATH` | Executable search paths |
+| `TEMP` / `TMP` | Temporary directory |
+| `APPDATA` | Application data directory |
+| `LOCALAPPDATA` | Local application data |
+| `USERPROFILE` | User profile directory |
+| `PROGRAMFILES` | Program Files directory |
+| `SystemRoot` | Windows directory |
+
+### User Session
+
+| Variable | Description |
+|----------|-------------|
+| `SESSIONNAME` | Session name (Console, RDP) |
+| `LOGONSERVER` | Domain controller used for logon |
+| `USERDNSDOMAIN` | User's DNS domain |
+
+## Remote vs Local Usage
+
+<Tabs>
+  <Tab title="Local Query">
+    ```bash
+    SharpWMI.exe action=getenv name=PATH
+    ```
+
+    **Advantages:**
+    - No network traffic
+    - No authentication required
+    - Immediate results
+  </Tab>
+
+  <Tab title="Remote Query">
+    ```bash
+    SharpWMI.exe action=getenv name=PATH computername=target.domain.com
+    ```
+
+    **Requirements:**
+    - Admin privileges on target
+    - WMI access over network
+  </Tab>
+</Tabs>
+
+## Detection Considerations
+
+<AccordionGroup>
+  <Accordion title="WMI Detection" icon="radar">
+    - WMI queries for `Win32_Environment` class
+    - Event ID 5857: WMI activity
+    - Sysmon Event ID 19-21: WMI operations
+  </Accordion>
+
+  <Accordion title="Unusual Queries" icon="magnifying-glass">
+    - Environment variable enumeration from unusual sources
+    - Bulk environment queries across systems
+    - Queries for sensitive variables
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Operational Security" icon="user-secret">
+    - Limit query frequency
+    - Blend with legitimate admin activity
+    - Use specific variable names when possible
+    - Avoid bulk enumeration
+  </Card>
+
+  <Card title="Data Analysis" icon="chart-line">
+    - Filter system variables
+    - Focus on user-specific values
+    - Look for credentials in variables
+    - Identify security tool paths
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Variable Not Found">
+    **Cause:** Variable doesn't exist
+
+    **Solution:**
+    - Check variable name spelling
+    - Variable may be user-specific
+    - Run without `name` parameter to see all variables
+  </Accordion>
+
+  <Accordion title="Access Denied">
+    **Cause:** Insufficient privileges
+
+    **Solution:**
+    - Use `username` and `password` parameters
+    - Verify admin rights on target
+  </Accordion>
+
+  <Accordion title="Empty Results">
+    **Cause:** No matching variables
+
+    **Solution:**
+    - Verify WMI service is running
+    - Check variable scope (system vs user)
+    - Try querying all variables first
+  </Accordion>
+</AccordionGroup>
+
+## Related Actions
+
+<CardGroup cols={2}>
+  <Card title="setenv" icon="pencil" href="/ghostpack-docs/SharpWMI-mdx/actions/setenv">
+    Set environment variable values
+  </Card>
+  <Card title="delenv" icon="trash" href="/ghostpack-docs/SharpWMI-mdx/actions/delenv">
+    Delete environment variables
+  </Card>
+  <Card title="query" icon="database" href="/ghostpack-docs/SharpWMI-mdx/actions/query">
+    Custom WMI queries
+  </Card>
+  <Card title="ps" icon="list" href="/ghostpack-docs/SharpWMI-mdx/actions/ps">
+    List processes
+  </Card>
+</CardGroup>
+
+## Alternative Query
+
+<Accordion title="Custom WMI Query">
+  ```bash
+  # Get all environment variables
+  SharpWMI.exe action=query query="SELECT Name,VariableValue,UserName FROM Win32_Environment" computername=target
+
+  # Get specific variable
+  SharpWMI.exe action=query query="SELECT Name,VariableValue,UserName FROM Win32_Environment WHERE Name='PATH'" computername=target
+
+  # Get user-specific variables
+  SharpWMI.exe action=query query="SELECT Name,VariableValue FROM Win32_Environment WHERE UserName LIKE '%username%'" computername=target
+  ```
+</Accordion>

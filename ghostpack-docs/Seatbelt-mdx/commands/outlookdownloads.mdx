@@ -1,0 +1,128 @@
+---
+title: 'OutlookDownloads'
+description: 'List files downloaded by Outlook'
+icon: 'envelope-open-text'
+---
+
+## Overview
+
+The OutlookDownloads command enumerates files that have been downloaded via Microsoft Outlook. When users download attachments from emails, Outlook tracks these downloads in specific locations. This command identifies these downloaded files, which may contain sensitive documents, executables, or other artifacts useful for investigation or reconnaissance.
+
+## Syntax
+
+```
+Seatbelt.exe OutlookDownloads
+```
+
+This command does not accept arguments.
+
+## Output
+
+The command returns:
+- Downloaded file path
+- Original filename
+- File size
+- Download timestamp
+- File extension/type
+- Associated email sender (if available)
+
+## Use Cases
+
+### Red Team
+- Identify downloaded documents and sensitive files
+- Locate downloaded executables and scripts
+- Find credentials or configuration files in attachments
+- Identify phishing attack vectors and entry points
+- Discover downloaded tools and utilities
+- Locate files that may contain sensitive information
+- Identify patterns of file downloads for social engineering
+
+### Blue Team
+- Investigate phishing and malware delivery
+- Track downloaded malicious attachments
+- Audit file downloads from external sources
+- Identify potential data exfiltration via email
+- Correlate email attachments with security incidents
+- Detect suspicious file download patterns
+- Validate email security policy compliance
+- Identify users downloading risky file types
+- Support forensic investigations of email-based attacks
+- Track distribution of sensitive documents via email
+
+## Example Output
+
+```
+====== OutlookDownloads ======
+
+  File     : C:\Users\john\AppData\Local\Microsoft\Windows\INetCache\Content.Outlook\ABC123\Invoice.pdf
+  Original : Invoice.pdf
+  Size     : 245,678 bytes
+  Downloaded: 10/19/2023 2:15:43 PM
+  Type     : PDF Document
+
+  File     : C:\Users\john\AppData\Local\Microsoft\Windows\INetCache\Content.Outlook\DEF456\report.xlsx
+  Original : Q3_Financial_Report.xlsx
+  Size     : 1,234,567 bytes
+  Downloaded: 10/18/2023 9:30:21 AM
+  Type     : Excel Spreadsheet
+
+  File     : C:\Users\john\AppData\Local\Microsoft\Windows\INetCache\Content.Outlook\GHI789\setup.exe
+  Original : software_installer.exe
+  Size     : 5,678,901 bytes
+  Downloaded: 10/17/2023 3:45:18 PM
+  Type     : Executable
+
+  File     : C:\Users\john\Downloads\credentials.txt
+  Original : credentials.txt
+  Size     : 1,234 bytes
+  Downloaded: 10/15/2023 11:22:33 AM
+  Type     : Text Document
+```
+
+## Performance Considerations
+
+This command has minimal performance impact as it searches specific Outlook cache directories and user download folders. Execution time depends on:
+- Number of files in Outlook cache directories
+- Number of user profiles on the system
+- Disk I/O performance
+- Size of download history
+
+Typically completes in seconds.
+
+## Remote Execution
+
+This command supports remote execution via WMI. Use the `-computername` parameter to enumerate Outlook downloads on remote systems:
+
+```
+Seatbelt.exe OutlookDownloads -computername=TARGET.domain.com
+Seatbelt.exe OutlookDownloads -computername=WORKSTATION01 -username=DOMAIN\admin -password=Pass123
+```
+
+## Detection Considerations
+
+### Indicators
+- File access to Outlook cache directories
+- Read operations on `%LOCALAPPDATA%\Microsoft\Windows\INetCache\Content.Outlook\`
+- Enumeration of user download folders
+- Access to Outlook temporary file locations
+- Sequential file metadata queries in Outlook directories
+
+### Defensive Recommendations
+- Monitor for unauthorized access to Outlook cache directories
+- Alert on mass file enumeration in email cache locations
+- Log file access to Outlook temporary folders
+- Implement least privilege to restrict cache directory access
+- Use AppLocker or similar to control execution of enumeration tools
+- Enable file system auditing on Outlook directories
+- Monitor for unusual processes reading Outlook cache
+- Correlate file access with email security events
+- Track downloads of suspicious file types
+- Implement email attachment sandboxing
+
+## Related Commands
+
+- **InterestingFiles** - "Interesting" files matching various patterns
+- **FileInfo** - Information about specific files
+- **dir** - Lists files/folders in specified directories
+- **RecycleBin** - Items in the Recycle Bin
+- **OfficeMRUs** - Office most recently used file list

@@ -1,0 +1,90 @@
+---
+title: 'SCCM'
+description: 'System Center Configuration Manager (SCCM) settings, if applicable'
+icon: 'sitemap'
+---
+
+## Overview
+
+The SCCM command enumerates System Center Configuration Manager (SCCM/ConfigMgr) client configuration and settings. SCCM is Microsoft's enterprise management solution, and its configuration can reveal network topology, management servers, and potential attack vectors through management infrastructure.
+
+## Syntax
+
+```bash
+Seatbelt.exe SCCM
+```
+
+### Remote Execution
+```bash
+Seatbelt.exe SCCM -computername=TARGET.domain.com [-username=DOMAIN\user -password=pass]
+```
+
+## Output
+
+Returns SCCM configuration:
+- SCCM client installation status
+- Management Point (MP) servers
+- Distribution Point (DP) servers
+- Site code
+- Client version
+- Last successful policy retrieval
+- Assigned site
+- Cache location
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Identify SCCM management servers
+    - Discover lateral movement paths via SCCM
+    - Locate SCCM cache for credential/data access
+    - Identify SCCM attack surface (NAA accounts, etc.)
+    - Map enterprise management infrastructure
+  </Tab>
+  <Tab title="Blue Team">
+    - Audit SCCM client deployment
+    - Verify management point connectivity
+    - Validate SCCM configuration
+    - Ensure proper site assignment
+    - Monitor for SCCM abuse
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== SCCM ======
+
+[*] SCCM Client Installed: True
+
+Site Code               : PS1
+Client Version          : 5.00.9078.1000
+Management Point        : sccm-mp01.corp.local
+Distribution Points     : sccm-dp01.corp.local, sccm-dp02.corp.local
+Last Policy Request     : 10/15/2024 8:00:00 AM
+Cache Location          : C:\Windows\ccmcache
+Cache Size              : 5120 MB
+
+Boundaries:
+  Type                  : AD Site
+  Value                 : Default-First-Site-Name
+```
+
+## Remote Execution
+
+<Check>
+This command **supports remote execution** using the `-computername` parameter.
+</Check>
+
+## Detection Considerations
+
+<Info>
+Low detection risk - queries SCCM WMI namespace and registry.
+</Info>
+
+## Related Commands
+
+- [WSUS](/commands/wsus) - WSUS configuration
+- [NetworkShares](/commands/networkshares) - Network shares
+- [Services](/commands/services) - Windows services
+- [Processes](/commands/processes) - Running processes

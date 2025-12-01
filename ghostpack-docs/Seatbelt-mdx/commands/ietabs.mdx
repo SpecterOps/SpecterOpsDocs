@@ -1,0 +1,113 @@
+---
+title: 'IETabs'
+description: 'Open Internet Explorer tabs'
+icon: 'window-restore'
+---
+
+## Overview
+
+The `IETabs` command enumerates currently open Internet Explorer tabs and windows. This provides real-time insight into what users are actively viewing, which can reveal sensitive information, internal applications in use, and current user activities.
+
+**Important:** User commands run for the current user if not elevated and for ALL users if elevated.
+
+## Syntax
+
+```
+Seatbelt.exe IETabs
+```
+
+No additional arguments are supported.
+
+## Output
+
+The command returns:
+- URLs of currently open IE tabs
+- Page titles
+- Window handles
+- Active/inactive tab status
+- User session context
+
+## Use Cases
+
+### Red Team
+- **Real-Time Intelligence**: Identify active web applications and portals
+- **Session Hijacking**: Discover authenticated sessions to web applications
+- **Credential Harvesting Opportunities**: Identify login pages with potential credentials
+- **Situational Awareness**: Understand what the user is actively doing
+- **Target Prioritization**: Find high-value web applications currently in use
+
+### Blue Team
+- **Incident Response**: Capture user browsing context during security events
+- **Insider Threat Detection**: Monitor for access to unauthorized or suspicious sites
+- **Data Loss Prevention**: Identify users accessing sensitive web applications
+- **Compliance Monitoring**: Ensure web application usage aligns with policies
+- **Forensic Analysis**: Document active browsing sessions during investigations
+
+## Example Output
+
+```
+====== IETabs ======
+
+User: john.doe
+
+  Process ID: 4532
+
+  Tab 1
+    Title             : SharePoint - Finance Department
+    URL               : https://contoso.sharepoint.com/sites/Finance
+    Status            : Active
+
+  Tab 2
+    Title             : Outlook Web App
+    URL               : https://outlook.office365.com/mail/inbox
+    Status            : Background
+
+  Tab 3
+    Title             : VPN Portal - Login
+    URL               : https://vpn.contoso.com/login.aspx
+    Status            : Background
+```
+
+## Privilege Context
+
+- **Non-Elevated**: Returns open IE tabs for the current user's session only
+- **Elevated**: Returns open IE tabs for all users with active IE sessions on the system
+
+## Remote Execution
+
+This command does **not** support remote execution (not marked with + in the command list).
+
+## Detection Considerations
+
+### Indicators
+- COM automation with Internet Explorer objects
+- Process enumeration for iexplore.exe
+- Querying IE window handles and properties
+- Reading active tab URLs and titles
+
+### Defensive Monitoring
+- Monitor COM automation calls to Internet Explorer
+- Alert on processes enumerating IE tabs from external applications
+- Track unauthorized access to browser session data
+- Log automated tools querying active browser tabs
+- Detect reconnaissance of active web sessions
+
+### Operational Notes
+- Requires Internet Explorer to be running
+- Only captures tabs at the moment of execution
+- Does not capture browser history, only current tabs
+- May miss tabs in separate IE processes
+
+### Privacy Considerations
+- Reveals real-time user browsing activity
+- May capture sensitive or personal web sessions
+- Can expose authenticated session information
+- Consider user privacy and operational security
+
+## Related Commands
+
+- **IEFavorites**: Lists Internet Explorer bookmarked sites
+- **IEUrls**: Shows Internet Explorer typed URL history
+- **ChromiumPresence**: Checks for Chromium browser presence
+- **FirefoxPresence**: Checks for Firefox browser presence
+- **Processes**: Lists running processes including browsers

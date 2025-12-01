@@ -1,0 +1,78 @@
+---
+title: 'ESC11 - NTLM Relay to AD CS RPC Interfaces'
+description: 'Exploit unprotected certificate authority RPC interfaces by relaying NTLM authentication to the ICertPassage interface'
+icon: 'ethernet'
+sidebarTitle: 'ESC11'
+---
+
+ESC11 is a misconfiguration in Active Directory Certificate Services (AD CS), which stems from an insufficiently protected certificate authority RPC interface. Specifically, if the `ICertPassage` (MS-ICPR) RPC interface does not enforce encryption, NTLM authentication attempts in the domain network can be relayed to the RPC interface to request certificates for other domain principals.
+
+<Info>
+The misconfiguration was disclosed by [Sylvain Heiniger](https://x.com/sploutchy) in [this blogpost](https://blog.compass-security.com/2022/11/relaying-to-ad-certificate-services-over-rpc/).
+</Info>
+
+## Vulnerability Details
+
+According to the research, the ESC11 vulnerability is present if the `IF_ENFORCEENCRYPTICERTREQUEST` interface flag is not set on the certificate authority.
+
+## Detection
+
+While Certify does not facilitate abuse-functions for this vulnerability type, we can search for certificate authorities with an unprotected RPC interface using the `enum-cas --filter-vulnerable` command from Certify. For more information about the command and its parameters, please refer to the [Command Overview](./1-command-overview) page.
+
+<CodeGroup>
+```bash Command
+Certify.exe enum-cas --filter-vulnerable --hide-admins
+```
+
+```diff Output
+   _____          _   _  __
+  / ____|        | | (_)/ _|
+ | |     ___ _ __| |_ _| |_ _   _
+ | |    / _ \ '__| __| |  _| | | |
+ | |___|  __/ |  | |_| | | | |_| |
+  \_____\___|_|   \__|_|_|  \__, |
+                             __/ |
+                            |___./
+  v2.0.0
+
+[*] Action: Find certificate authorities
+[*] Using the search base 'CN=Configuration,DC=corp,DC=local'
+[*] Classifying vulnerabilities in the context of built-in low-privileged domain groups.
+
+[*] Root CAs
+
+    ...
+
+[*] NTAuthCertificates - Certificates that enable authentication:
+
+    ...
+
+[*] Enterprise/enrollment certificate authorities:
+
+    Enterprise CA Name            : CORP-CA01-CA
+    DNS Hostname                  : ca01.corp.local
+    FullName                      : ca01.corp.local\CORP-CA01-CA
+    Flags                         : SUPPORTS_NT_AUTHENTICATION, CA_SERVERTYPE_ADVANCED
+    Cert SubjectName              : CN=CORP-CA01-CA, DC=corp, DC=local
+    Cert Thumbprint               : CFBDC6826AC074EF86BE7774F959A2FF5F322DDC
+    Cert Serial                   : 12D3E574A63DE7854A9E5A1F4CD56490
+    Cert Start Date               : 21/05/2025 12.13.47
+    Cert End Date                 : 21/05/2030 12.23.46
+    Cert Chain                    : CN=CORP-CA01-CA,DC=corp,DC=local
+    User Specifies SAN            : Disabled
++   RPC Request Encryption        : Disabled
+    Vulnerabilities
++     ESC11                       : The CA does not enforce encryption on the ICertPassage RPC interface.
+    CA Permissions
+      Owner: BUILTIN\Administrators             S-1-5-32-544
+
+      Access Rights                                     Principal
+      Allow  Enroll                                     NT AUTHORITY\Authenticated Users   S-1-5-11
+    Enrollment Agent Restrictions : None
+
+    Enabled Certificate Templates:
+        ...
+
+Certify completed in 00:00:00.5554340
+```
+</CodeGroup>

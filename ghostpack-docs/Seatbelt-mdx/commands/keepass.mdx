@@ -1,0 +1,117 @@
+---
+title: 'KeePass'
+description: 'Finds KeePass configuration files'
+icon: 'vault'
+---
+
+## Overview
+
+The `KeePass` command searches for KeePass password manager configuration files on the system. KeePass is a popular password manager, and finding its configuration files can reveal database locations, recent file lists, and configuration settings that may aid in accessing stored credentials.
+
+**Important:** User commands run for the current user if not elevated and for ALL users if elevated.
+
+## Syntax
+
+```
+Seatbelt.exe KeePass
+```
+
+No additional arguments are supported. This command supports remote execution.
+
+## Output
+
+The command returns:
+- KeePass configuration file locations
+- Recent database file paths
+- KeePass.config.xml contents
+- Database last access times
+- Master key file locations (if configured)
+- User context for each configuration
+
+## Use Cases
+
+### Red Team
+- **Credential Access**: Locate KeePass databases for offline cracking attempts
+- **Intelligence Gathering**: Identify users using password managers
+- **Target Prioritization**: Find high-value credential stores
+- **Attack Planning**: Prepare for memory dumping or master password capture
+- **Persistence**: Target KeePass databases for long-term credential access
+
+### Blue Team
+- **Security Audit**: Inventory password manager usage across the organization
+- **Compliance Checking**: Ensure KeePass usage aligns with security policies
+- **Incident Response**: Identify potentially compromised password databases
+- **User Education**: Promote proper password manager configuration
+- **Risk Assessment**: Evaluate credential store security posture
+
+## Example Output
+
+```
+====== KeePass ======
+
+User: john.doe
+
+  ConfigFile        : C:\Users\john.doe\AppData\Roaming\KeePass\KeePass.config.xml
+
+  Recent Databases:
+    C:\Users\john.doe\Documents\Passwords.kdbx
+      LastAccessed    : 2024-10-20 08:30:00
+
+    \\fileserver\shared\team-passwords.kdbx
+      LastAccessed    : 2024-10-18 14:15:22
+
+  Configuration:
+    MasterKeyFile     : C:\Users\john.doe\Documents\keepass.key
+    AutoSave          : Enabled
+    BackupOnSave      : Enabled
+```
+
+## Privilege Context
+
+- **Non-Elevated**: Searches for KeePass configuration files for the current user only
+- **Elevated**: Searches for KeePass configuration files for ALL users on the system, providing comprehensive password database discovery
+
+## Remote Execution
+
+This command **supports** remote execution (marked with + in the command list).
+
+Remote syntax:
+```
+Seatbelt.exe KeePass -computername=TARGET.domain.com -username=DOMAIN\user -password=pass
+```
+
+## Detection Considerations
+
+### Indicators
+- File system enumeration in KeePass configuration directories
+- Access to AppData\Roaming\KeePass folders
+- Reading KeePass.config.xml files
+- Pattern-based searching for .kdbx database files
+- Enumeration across multiple user profiles
+
+### Defensive Monitoring
+- Monitor access to KeePass configuration directories by non-KeePass processes
+- Alert on automated enumeration of password manager files
+- Track processes reading KeePass configuration files
+- Log access to .kdbx database files
+- Detect credential dumping tools targeting KeePass
+- Monitor for unauthorized copying of KeePass databases
+- Alert on network transfer of .kdbx files
+
+### Security Recommendations
+- Use strong master passwords for KeePass databases
+- Enable two-factor authentication where supported
+- Store KeePass databases on encrypted volumes
+- Avoid storing key files alongside databases
+- Regularly audit KeePass database access
+- Implement file integrity monitoring on .kdbx files
+- Consider using KeePass memory protection features
+
+## Related Commands
+
+- **WindowsVault**: Enumerates Windows Vault credentials
+- **CredEnum**: Lists saved credentials using Windows API
+- **WindowsCredentialFiles**: Finds Windows credential DPAPI blobs
+- **DpapiMasterKeys**: Lists DPAPI master keys
+- **FileZilla**: Finds FileZilla credentials
+- **PuttySessions**: Enumerates saved Putty credentials

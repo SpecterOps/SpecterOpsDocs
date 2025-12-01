@@ -1,0 +1,142 @@
+---
+title: "list"
+description: "List all available models from a selected provider"
+---
+
+## Summary
+
+List all available models from a selected AI provider. This command helps you discover which models are accessible with your current credentials.
+
+- Needs Admin: False
+- Version: 0
+- Author: @Ne0nd0g
+
+### Arguments
+
+#### provider
+
+- Description: The model provider to list models from
+- Required: False (uses build parameters, user secrets, or environment variables if not specified)
+- Type: Choose One
+- Choices: Anthropic, Bedrock, OpenAI, ollama, OpenWebUI
+
+#### API_ENDPOINT
+
+- Description: The API endpoint to use for the selected provider
+- Required: False
+- Type: String
+
+#### API_KEY
+
+- Description: The API key to authenticate with the provider
+- Required: False
+- Type: String
+
+#### AWS_ACCESS_KEY_ID
+
+- Description: AWS Access Key ID for Bedrock
+- Required: False
+- Type: String
+
+#### AWS_SECRET_ACCESS_KEY
+
+- Description: AWS Secret Access Key for Bedrock
+- Required: False
+- Type: String
+
+#### AWS_SESSION_TOKEN
+
+- Description: AWS Session Token for Bedrock
+- Required: False
+- Type: String
+
+#### AWS_DEFAULT_REGION
+
+- Description: AWS Region for Bedrock
+- Required: False
+- Type: String
+
+## Usage
+
+```
+list
+list -provider Anthropic
+list -provider Bedrock
+list -provider OpenAI -API_ENDPOINT https://api.openai.com/v1
+list -provider ollama -API_ENDPOINT http://127.0.0.1:11434/v1
+```
+
+## Detailed Summary
+
+The `list` command queries the specified provider and returns a list of available models. This is useful for discovering model names, verifying access, and understanding what options are available.
+
+### Provider-Specific Behavior
+
+**Bedrock**
+Returns foundational models available in your AWS account and region:
+- Lists all Bedrock-accessible models
+- Shows model ARNs and identifiers
+- Filters based on your AWS permissions
+- Currently only Anthropic Claude models are supported by Sage
+
+**OpenAI**
+Returns models from the OpenAI API or compatible endpoint:
+- Shows model IDs and metadata
+- Includes deprecated models if accessible
+- Works with ollama when using OpenAI-compatible endpoint
+
+**ollama**
+Lists locally available models:
+- Shows downloaded and ready-to-use models
+- Displays model names and tags
+- Indicates model sizes
+
+**OpenWebUI**
+Lists models accessible through OpenWebUI:
+- Shows aggregated models from multiple sources
+- May include custom model configurations
+
+**Anthropic**
+Currently returns available Claude models:
+- Lists accessible Claude variants
+- Shows model identifiers for use in chat/query
+
+### Use Cases
+
+**Discovery**
+- Find the correct model identifier for your queries
+- Explore available model options
+- Verify API access is working
+
+**Validation**
+- Confirm credentials have proper permissions
+- Check that models are deployed and accessible
+- Verify endpoint connectivity
+
+**Planning**
+- Compare available models for task requirements
+- Identify which provider has needed capabilities
+- Select appropriate models for different scenarios
+
+### Output Format
+
+The command returns a simple list of model identifiers, one per line. Use these identifiers with the `chat` or `query` commands.
+
+Example output for Bedrock:
+```
+us.anthropic.claude-3-5-sonnet-20241022-v2:0
+us.anthropic.claude-3-haiku-20240307-v1:0
+us.anthropic.claude-3-opus-20240229-v1:0
+```
+
+Example output for ollama:
+```
+llama3:latest
+mistral:latest
+codellama:7b
+```
+
+<Info>
+If the list command returns an error, verify your credentials and network connectivity to the provider. For Bedrock, ensure your AWS credentials have the necessary permissions.
+</Info>
+

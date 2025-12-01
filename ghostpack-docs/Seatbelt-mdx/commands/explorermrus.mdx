@@ -1,0 +1,113 @@
+---
+title: 'ExplorerMRUs'
+description: 'Explorer most recently used files (last 7 days, argument == last X days)'
+icon: 'clock-rotate-left'
+---
+
+## Overview
+
+The `ExplorerMRUs` command enumerates Windows Explorer's Most Recently Used (MRU) files list. By default, it shows files accessed in the last 7 days, but this can be customized with an argument. This provides insight into user file access patterns and recent activity.
+
+**Important:** User commands run for the current user if not elevated and for ALL users if elevated.
+
+## Syntax
+
+```
+Seatbelt.exe ExplorerMRUs
+Seatbelt.exe "ExplorerMRUs [days]"
+```
+
+### Arguments
+
+- **days**: Number of days to look back (default: 7)
+
+## Output
+
+The command returns:
+- Recently accessed file paths
+- Last access timestamps
+- File types and extensions
+- Network paths and local files
+- User context for each MRU entry
+
+## Use Cases
+
+### Red Team
+- **User Activity Profiling**: Understand what files and locations users have recently accessed
+- **Target Identification**: Discover sensitive files or network shares the user has opened
+- **Intelligence Gathering**: Map user work patterns and frequently accessed resources
+- **Network Mapping**: Identify network shares and remote resources in use
+- **Reconnaissance**: Find paths to interesting files or directories
+
+### Blue Team
+- **Incident Response**: Track file access during security investigations
+- **User Behavior Analysis**: Identify anomalous file access patterns
+- **Forensic Analysis**: Reconstruct user activity timelines
+- **Data Loss Prevention**: Identify access to sensitive files
+- **Compliance Auditing**: Verify appropriate file access patterns
+
+## Example Output
+
+```
+====== ExplorerMRUs ======
+
+User: john.doe
+
+  Application: Excel
+    File              : \\fileserver\finance\Q4-Budget.xlsx
+    LastAccessed      : 2024-10-19 15:30:22
+
+  Application: Word
+    File              : C:\Users\john.doe\Documents\Passwords.docx
+    LastAccessed      : 2024-10-18 11:45:10
+
+  Application: Explorer
+    Folder            : \\dc01\SYSVOL\contoso.com\scripts
+    LastAccessed      : 2024-10-17 09:15:30
+```
+
+### Example with Argument
+
+Show files accessed in the last 30 days:
+```
+Seatbelt.exe "ExplorerMRUs 30"
+```
+
+## Privilege Context
+
+- **Non-Elevated**: Returns Explorer MRU entries for the current user only
+- **Elevated**: Returns Explorer MRU entries for ALL users on the system, providing comprehensive visibility of file access patterns
+
+## Remote Execution
+
+This command does **not** support remote execution (not marked with + in the command list).
+
+## Detection Considerations
+
+### Indicators
+- Registry enumeration of MRU keys
+- Access to user-specific registry hives
+- Reading Explorer shell bag data
+- Pattern-based searching for recent file access
+
+### Defensive Monitoring
+- Monitor registry access to MRU keys (HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer)
+- Alert on automated enumeration of MRU data
+- Track processes accessing user activity registry keys
+- Log unusual access to Explorer history data
+- Detect reconnaissance tools querying recent file access
+- Monitor for bulk MRU enumeration across multiple users
+
+### Privacy Considerations
+- MRU data reveals detailed user activity
+- Can expose sensitive file locations and network paths
+- May contain personally identifiable information
+- Consider user privacy when collecting MRU data
+
+## Related Commands
+
+- **ExplorerRunCommands**: Shows recent Explorer "run" commands
+- **OfficeMRUs**: Lists Office application recently used files
+- **IEUrls**: Shows Internet Explorer typed URLs
+- **dir**: Lists files in user directories
+- **RecentFiles**: General recent file access information

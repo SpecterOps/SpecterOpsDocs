@@ -1,0 +1,153 @@
+---
+title: 'local query'
+description: 'Execute a given WQL query on the local system'
+icon: 'code'
+sidebarTitle: 'query'
+---
+
+## Overview
+
+Execute a given WQL (WMI Query Language) query on the local system. This command provides direct access to WMI data through custom queries, offering maximum flexibility for data extraction and analysis.
+
+<Info>
+  ACLs are applied at the object class and instance level, so query results may vary depending on your privileges.
+</Info>
+
+## Syntax
+
+```bash
+SharpSCCM local query <query> [options]
+```
+
+## Parameters
+
+<ParamField path="query" type="string" required>
+  The WQL query to execute (must be properly quoted)
+</ParamField>
+
+<ParamField path="wmi-namespace" type="string">
+  The WMI namespace to query (default: "root\CCM")
+</ParamField>
+
+## Examples
+
+<CodeGroup>
+```bash Basic Query
+# Query SMS_Authority class
+SharpSCCM local query "SELECT * FROM SMS_Authority"
+```
+
+```bash Filtered Query
+# Query with WHERE condition
+SharpSCCM local query "SELECT Name,Version FROM CCM_InstalledComponent WHERE Name='SmsClient'"
+```
+
+```bash Custom Namespace
+# Query a different namespace
+SharpSCCM local query "SELECT * FROM Win32_ComputerSystem" -n "root\cimv2"
+```
+
+```bash Specific Properties
+# Select only specific properties
+SharpSCCM local query "SELECT CurrentManagementPoint,Name FROM SMS_Authority"
+```
+</CodeGroup>
+
+## WQL Syntax Reference
+
+<Accordion title="Basic SELECT Statement">
+```sql
+SELECT [properties] FROM [class_name] [WHERE condition]
+```
+- Use `*` to select all properties
+- Specify individual properties separated by commas
+- Use WHERE clause for filtering
+</Accordion>
+
+<Accordion title="WHERE Conditions">
+```sql
+-- String comparison
+WHERE Name = 'SmsClient'
+WHERE Name LIKE '%Client%'
+
+-- Numeric comparison
+WHERE ResourceID > 1000
+WHERE Version >= 5
+
+-- Boolean values
+WHERE IsNull = TRUE
+WHERE IsNull IS NULL
+```
+</Accordion>
+
+<Accordion title="Advanced Operators">
+- **LIKE** - Pattern matching with wildcards (% and _)
+- **IS NULL** / **IS NOT NULL** - Check for null values
+- **AND** / **OR** - Combine conditions
+- **IN** - Match against a list of values
+</Accordion>
+
+## Common SCCM WQL Queries
+
+<CodeGroup>
+```sql Site Information
+SELECT CurrentManagementPoint, Name FROM SMS_Authority
+```
+
+```sql Client Components
+SELECT Name, Version FROM CCM_InstalledComponent
+```
+
+```sql Policy Information
+SELECT * FROM CCM_Policy_Policy5
+```
+
+```sql Network Configuration
+SELECT * FROM CCM_NetworkProxy
+```
+</CodeGroup>
+
+## Output Format
+
+Query results are displayed in a structured format:
+
+```text
+[+] Connecting to \\127.0.0.1\root\CCM
+[+] Executing WQL query: SELECT * FROM SMS_Authority
+-----------------------------------
+Capabilities: <Capabilities SchemaVersion="1.0"><Property Name="SSLState" Value="0"/>
+CurrentManagementPoint: ATLAS.APERTURE.SCI
+Index: 1
+Name: SMS:PS1
+PolicyOrder: 100
+-----------------------------------
+```
+
+## Use Cases
+
+<Accordion title="Custom Data Extraction">
+  Create targeted queries to extract specific information not available through other SharpSCCM commands.
+</Accordion>
+
+<Accordion title="Advanced Reconnaissance">
+  Combine multiple properties and conditions to build comprehensive intelligence about the SCCM environment.
+</Accordion>
+
+<Accordion title="Troubleshooting and Analysis">
+  Query specific WMI classes to diagnose client issues or understand configuration details.
+</Accordion>
+
+## Error Handling
+
+<Warning>
+  Common query errors include:
+  - **Invalid class names** - Verify the class exists using `local classes`
+  - **Permission denied** - Some classes require elevated privileges
+  - **Syntax errors** - Ensure proper WQL syntax and quoting
+</Warning>
+
+## Related Commands
+
+- [`local classes`](/sharpsccm/commands/local/classes) - List available WMI classes for querying
+- [`local class-properties`](/sharpsccm/commands/local/class-properties) - Get properties for query planning
+- [`local class-instances`](/sharpsccm/commands/local/class-instances) - Simplified class querying with built-in options

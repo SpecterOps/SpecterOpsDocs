@@ -1,0 +1,71 @@
+---
+title: 'local classes'
+description: 'Get a list of local WMI classes'
+icon: 'list'
+sidebarTitle: 'classes'
+---
+
+## Overview
+
+Get a list of local WMI classes in a specified namespace. This command is useful for WMI reconnaissance and understanding what classes are available for querying on the local SCCM client.
+
+## Syntax
+
+```bash
+SharpSCCM local classes [options]
+```
+
+## Parameters
+
+<ParamField path="wmi-namespace" type="string">
+  The WMI namespace to query (default: "root\CCM")
+</ParamField>
+
+## Examples
+
+<CodeGroup>
+```bash Default Namespace
+# Query the local WMI repository for classes in the default root\CCM namespace
+SharpSCCM local classes
+```
+
+```bash Custom Namespace
+# Query a different WMI namespace
+SharpSCCM local classes -n "root\cimv2"
+```
+</CodeGroup>
+
+## Output Format
+
+The command outputs a list of available WMI classes:
+
+```text
+[+] Connecting to \\127.0.0.1\root\CCM
+[+] Executing WQL query: SELECT * FROM meta_class
+__AbsoluteTimerInstruction
+__ACE
+__AggregateEvent
+CCM_Authority
+CCM_Client
+CCM_ClientIdentificationInformation
+SMS_Authority
+SMS_Client
+SMS_LocalMP
+[+] Completed execution in 00:00:00.3168148
+```
+
+## Common Use Cases
+
+<Accordion title="WMI Reconnaissance">
+  Use this command to discover available WMI classes before performing more specific queries with other local commands.
+</Accordion>
+
+<Accordion title="Namespace Exploration">
+  Explore different WMI namespaces to understand the full scope of available data on the SCCM client.
+</Accordion>
+
+## Related Commands
+
+- [`local class-instances`](/sharpsccm/commands/local/class-instances) - Get instances of a specific WMI class
+- [`local class-properties`](/sharpsccm/commands/local/class-properties) - Get properties of a WMI class
+- [`local query`](/sharpsccm/commands/local/query) - Execute custom WQL queries

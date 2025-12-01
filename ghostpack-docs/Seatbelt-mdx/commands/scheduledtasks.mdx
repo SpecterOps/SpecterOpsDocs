@@ -1,0 +1,192 @@
+---
+title: 'ScheduledTasks'
+description: 'Scheduled tasks (via WMI) that are not authored by Microsoft'
+icon: 'calendar-clock'
+---
+
+## Overview
+
+The ScheduledTasks command enumerates Windows Scheduled Tasks using WMI. By default, it filters out tasks authored by Microsoft to focus on potentially interesting third-party or custom tasks. Scheduled tasks are a common persistence mechanism for both legitimate software and malware, making this command valuable for identifying suspicious automated activities.
+
+## Syntax
+
+```
+Seatbelt.exe ScheduledTasks
+```
+
+To display all scheduled tasks including Microsoft-authored tasks:
+
+```
+Seatbelt.exe ScheduledTasks -full
+```
+
+### Arguments
+
+- **-full** (optional) - Display all scheduled tasks without filtering Microsoft-authored tasks
+
+### Examples
+
+```
+Seatbelt.exe ScheduledTasks        # Non-Microsoft tasks only (default)
+Seatbelt.exe ScheduledTasks -full  # All scheduled tasks
+```
+
+## Output
+
+The command returns:
+- Task name
+- Task path (folder location)
+- Task state (Ready, Running, Disabled, etc.)
+- Author/Creator
+- Description
+- Actions (executable, arguments, working directory)
+- Triggers (schedule type, timing)
+- Principal (user context)
+- Run level (Highest, Limited)
+- Last run time
+- Next run time
+- Task status
+
+## Use Cases
+
+### Red Team
+- Identify persistence mechanisms
+- Discover scheduled tasks for privilege escalation
+- Find tasks running with elevated privileges
+- Locate tasks with weak permissions for DLL hijacking
+- Identify custom administrative tasks
+- Discover backup and maintenance tasks
+- Find tasks executing scripts or binaries
+- Identify tasks for credential harvesting
+- Locate tasks with modifiable paths
+- Discover reconnaissance opportunities
+
+### Blue Team
+- Audit scheduled tasks for unauthorized entries
+- Detect malicious persistence mechanisms
+- Identify suspicious task configurations
+- Validate least privilege for scheduled tasks
+- Monitor for unauthorized task creation
+- Detect tasks running as SYSTEM or Administrator
+- Identify tasks with unusual schedules
+- Audit task actions for suspicious executables
+- Correlate scheduled task activity with security incidents
+- Detect Living off the Land techniques via tasks
+- Identify tasks with insecure permissions
+- Validate task author and digital signatures
+
+## Example Output
+
+```
+====== ScheduledTasks (Non-Microsoft Tasks) ======
+
+  Name        : BackupScript
+  Path        : \Custom\BackupScript
+  State       : Ready
+  Author      : CORP\administrator
+  Description : Daily database backup
+  Last Run    : 10/19/2023 2:00:00 AM
+  Next Run    : 10/20/2023 2:00:00 AM
+  Principal   : CORP\svc_backup
+  Run Level   : Highest
+
+  Actions:
+    - Execute: C:\Scripts\backup.ps1
+      Arguments: -Database Production
+      WorkDir: C:\Scripts
+
+  Triggers:
+    - Daily at 2:00 AM
+
+====== ScheduledTasks (Non-Microsoft Tasks) ======
+
+  Name        : UpdateChecker
+  Path        : \
+  State       : Ready
+  Author      : Unknown
+  Description :
+  Last Run    : 10/19/2023 8:15:32 AM
+  Next Run    : 10/19/2023 8:45:32 AM
+  Principal   : SYSTEM
+  Run Level   : Highest
+
+  Actions:
+    - Execute: C:\Users\Public\update.exe
+      Arguments:
+      WorkDir: C:\Users\Public
+
+  Triggers:
+    - Every 30 minutes
+
+====== ScheduledTasks (Non-Microsoft Tasks) ======
+
+  Name        : MaintenanceTask
+  Path        : \Admin\
+  State       : Running
+  Author      : CORP\ITAdmin
+  Description : System maintenance and cleanup
+  Last Run    : 10/19/2023 9:00:00 AM
+  Next Run    : 10/20/2023 9:00:00 AM
+  Principal   : Administrators
+  Run Level   : Highest
+
+  Actions:
+    - Execute: powershell.exe
+      Arguments: -ExecutionPolicy Bypass -File C:\Admin\cleanup.ps1
+      WorkDir: C:\Admin
+
+  Triggers:
+    - Daily at 9:00 AM
+```
+
+## Performance Considerations
+
+This command has minimal to moderate performance impact as it queries scheduled tasks via WMI. Performance depends on:
+- Number of scheduled tasks on the system
+- WMI service responsiveness
+- Whether -full option is used (more tasks = longer execution)
+- System performance
+
+Typically completes within seconds.
+
+## Remote Execution
+
+This command supports remote execution via WMI. Use the `-computername` parameter to enumerate scheduled tasks on remote systems:
+
+```
+Seatbelt.exe ScheduledTasks -computername=TARGET.domain.com
+Seatbelt.exe ScheduledTasks -full -computername=SERVER01 -username=DOMAIN\admin -password=Pass123
+```
+
+## Detection Considerations
+
+### Indicators
+- WMI queries to Schedule.Service class
+- Access to Task Scheduler service
+- Enumeration of C:\Windows\System32\Tasks
+- Registry access to HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache
+- Sequential task enumeration queries
+
+### Defensive Recommendations
+- Enable Task Scheduler auditing (Event IDs 4698, 4699, 4700, 4701, 4702)
+- Monitor for unauthorized task creation or modification
+- Alert on tasks created with SYSTEM or Administrator privileges
+- Track WMI queries to scheduled task classes
+- Implement least privilege for task creation
+- Use AppLocker or similar to control execution of enumeration tools
+- Monitor for tasks executing from unusual locations
+- Validate digital signatures of task executables
+- Restrict task folder permissions
+- Audit task modifications via Event Log
+- Correlate task creation with user logon events
+- Baseline normal scheduled task inventory
+- Alert on tasks with suspicious naming patterns
+
+## Related Commands
+
+- **AutoRuns** - Auto run executables/scripts/programs
+- **Services** - Services with file info
+- **Processes** - Running processes with file info
+- **ProcessCreationEvents** - Process creation logs with sensitive data
+- **LogonEvents** - Logon events from the security event log
+- **InterestingProcesses** - "Interesting" processes including admin tools

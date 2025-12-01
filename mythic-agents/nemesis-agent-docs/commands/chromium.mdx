@@ -1,0 +1,51 @@
+---
+title: "chromium"
+description: "Get Chromium browser information from Nemesis including logins, history, and downloads"
+---
+
+## Summary
+
+Query Nemesis for Chromium-based browser data that has been extracted and processed from uploaded files. This includes Chrome, Edge, Brave, and other Chromium-based browsers.
+
+- Needs Admin: False
+- Version: 2
+- Author: @its_a_feature_
+
+### Arguments
+
+No arguments required. Data is automatically filtered by the current operation/project.
+
+## Usage
+
+```
+chromium
+```
+
+## MITRE ATT&CK Mapping
+
+## Detailed Summary
+
+This command queries Nemesis's GraphQL API for Chromium browser data including:
+
+### Logins
+- Browser type
+- Username and password values (decrypted)
+- Signon realm (URL/domain)
+- Source file path
+- User data directory
+
+### History (Last 50 entries)
+- URLs visited
+- Page titles
+- Visit counts and last visit times
+- Typed counts (manually entered URLs)
+- Associated username
+
+### Downloads
+- Download URLs
+- Download paths
+- File sizes
+- Timestamps
+- Associated browser and username
+
+All data is automatically scoped to the current Mythic operation/project and sourced from files that have been uploaded to Nemesis for processing.

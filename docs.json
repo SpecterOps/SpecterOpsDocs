@@ -1,0 +1,2459 @@
+{
+    "$schema": "https://mintlify.com/schema.json",
+    "name": "SpecterOps Open Source",
+    "theme": "mint",
+    "logo": {
+        "dark": "/logo/dark.svg",
+        "light": "/logo/light.svg"
+    },
+    "favicon": "/favicon.png",
+    "colors": {
+        "primary": "#2c2677",
+        "light": "#5465ff",
+        "dark": "#2c2677"
+    },
+    "navigation": {
+        "versions": [
+            {
+                "version": "Home",
+                "anchors": [
+                    {
+                        "anchor": "Home",
+                        "icon": "book",
+                        "pages": [
+                            "index"
+                        ]
+                    },
+                    {
+                        "anchor": "Mythic",
+                        "icon": "hydra",
+                        "href": "https://demine-83c68b7f.mintlify.app/mythic-docs/home"
+                    },
+                    {
+                        "anchor": "Mythic Agents",
+                        "icon": "swords",
+                        "href": "https://demine-83c68b7f.mintlify.app/mythic-agents/"
+                    },
+                    {
+                        "anchor": "GhostWriter",
+                        "icon": "ghost",
+                        "href": "https://demine-83c68b7f.mintlify.app/ghostwriter-docs/home"
+                    },
+                    {
+                        "anchor": "Merlin",
+                        "icon": "hat-wizard",
+                        "href": "https://demine-83c68b7f.mintlify.app/merlin-docs/introduction"
+                    },
+                    {
+                        "anchor": "SharpSCCM",
+                        "icon": "swords",
+                        "href": "https://demine-83c68b7f.mintlify.app/sharpsccm-docs/overview"
+                    },
+                    {
+                        "anchor": "SCCMHunter",
+                        "icon": "user-bounty-hunter",
+                        "href": "https://demine-83c68b7f.mintlify.app/sccmhunter-docs/overview"
+                    },
+                    {
+                        "anchor": "Misconfiguration Manager",
+                        "icon": "books",
+                        "href": "https://demine-83c68b7f.mintlify.app/misconfiguration-manager-docs/README"
+                    },
+                    {
+                        "anchor": "Nemesis",
+                        "icon": "skull",
+                        "href": "https://demine-83c68b7f.mintlify.app/nemesis-docs/docs/"
+                    },
+                    {
+                        "anchor": "Ghostpack",
+                        "icon": "ghost",
+                        "href": "https://demine-83c68b7f.mintlify.app/ghostpack-docs/index"
+                    },
+                    {
+                        "anchor": "Atlas Reaper",
+                        "icon": "scythe",
+                        "href": "https://demine-83c68b7f.mintlify.app/atlasreaper-docs/overview"
+                    },
+                    {
+                        "anchor": "Phisherman's Tacklebox",
+                        "icon": "fish",
+                        "href": "https://demine-83c68b7f.mintlify.app/cuddlephish-docs/overview"
+                    },
+                    {
+                        "anchor": "Community",
+                        "icon": "slack",
+                        "href": "http://ghst.ly/BHSlack"
+                    }
+                ]
+            },
+            {
+                "version": "Mythic",
+                "tabs": [
+                    {
+                        "tab": "Documentation",
+                        "groups": [
+                            {
+                                "group": "Overview",
+                                "pages": [
+                                    "mythic-docs/home",
+                                    "mythic-docs/operators",
+                                    {
+                                        "group": "Installation",
+                                        "pages": [
+                                            "mythic-docs/installation",
+                                            "mythic-docs/installation/connecting",
+                                            "mythic-docs/installation/a-note-about-containers",
+                                            "mythic-docs/installation/offline-installation",
+                                            "mythic-docs/installation/updating-mythic"
+                                        ]
+                                    },
+                                    "mythic-docs/internal-documentation",
+                                    "mythic-docs/quick-usage",
+                                    {
+                                        "group": "Operational Pieces",
+                                        "pages": [
+                                            "mythic-docs/operational-pieces",
+                                            "mythic-docs/operational-pieces/mitre-att-and-ck",
+                                            "mythic-docs/operational-pieces/operations",
+                                            "mythic-docs/operational-pieces/browser-scripts",
+                                            "mythic-docs/operational-pieces/active-callbacks",
+                                            "mythic-docs/operational-pieces/files",
+                                            "mythic-docs/operational-pieces/search",
+                                            "mythic-docs/operational-pieces/file-browser",
+                                            "mythic-docs/operational-pieces/socks-proxy",
+                                            "mythic-docs/operational-pieces/credentials",
+                                            "mythic-docs/operational-pieces/comments",
+                                            "mythic-docs/operational-pieces/tags",
+                                            "mythic-docs/operational-pieces/split-callbacks",
+                                            "mythic-docs/operational-pieces/screenshots",
+                                            "mythic-docs/operational-pieces/event-feed",
+                                            {
+                                                "group": "Understanding Commands",
+                                                "pages": [
+                                                    "mythic-docs/operational-pieces/understanding-commands",
+                                                    "mythic-docs/operational-pieces/understanding-commands/basic-information",
+                                                    "mythic-docs/operational-pieces/understanding-commands/parameters",
+                                                    "mythic-docs/operational-pieces/understanding-commands/mitre-att-and-ck"
+                                                ]
+                                            },
+                                            {
+                                                "group": "Payload Types",
+                                                "pages": [
+                                                    "mythic-docs/operational-pieces/payload-types",
+                                                    "mythic-docs/operational-pieces/payload-types/containers"
+                                                ]
+                                            },
+                                            {
+                                                "group": "C2 Profiles",
+                                                "pages": [
+                                                    "mythic-docs/operational-pieces/c2-profiles",
+                                                    "mythic-docs/operational-pieces/c2-profiles/opsec-checks",
+                                                    "mythic-docs/operational-pieces/c2-profiles/egress-vs-p2p",
+                                                    "mythic-docs/operational-pieces/c2-profiles/http",
+                                                    "mythic-docs/operational-pieces/c2-profiles/save-parameters"
+                                                ]
+                                            },
+                                            "mythic-docs/operational-pieces/api-tokens"
+                                        ]
+                                    },
+                                    {
+                                        "group": "Message Flow",
+                                        "pages": [
+                                            "mythic-docs/message-flow",
+                                            "mythic-docs/message-flow/building-payloads",
+                                            "mythic-docs/message-flow/agent-sends-message",
+                                            "mythic-docs/message-flow/file-upload-mythic-greater-than-agent",
+                                            "mythic-docs/message-flow/file-download-agent-greater-than-mythic",
+                                            "mythic-docs/message-flow/p2p-messages",
+                                            "mythic-docs/message-flow/operator-submits-tasking"
+                                        ]
+                                    },
+                                    "mythic-docs/database-schema",
+                                    {
+                                        "group": "Reporting",
+                                        "pages": [
+                                            "mythic-docs/reporting",
+                                            "mythic-docs/reporting/artifacts",
+                                            "mythic-docs/reporting/mitre-att-and-ck",
+                                            "mythic-docs/reporting/reports"
+                                        ]
+                                    },
+                                    "mythic-docs/presentations-webinars",
+                                    "mythic-docs/common-errors"
+                                ]
+                            },
+                            {
+                                "group": "Common Questions and Answers",
+                                "pages": [
+                                    "mythic-docs/common-questions-and-answers/faq-troubleshooting-tips",
+                                    "mythic-docs/common-questions-and-answers/change-log"
+                                ]
+                            },
+                            {
+                                "group": "Updating",
+                                "pages": [
+                                    {
+                                        "group": "Mythic 2.1 -> 2.2 Updates",
+                                        "pages": [
+                                            "mythic-docs/updating/mythic-2.1-greater-than-2.2-updates",
+                                            {
+                                                "group": "Agents 2.1.* -> 2.2.8",
+                                                "pages": [
+                                                    "mythic-docs/updating/mythic-2.1-greater-than-2.2-updates/agents-2.1.-greater-than-2.2.2",
+                                                    "mythic-docs/updating/mythic-2.1-greater-than-2.2-updates/agents-2.1.-greater-than-2.2.2/mythicrpc"
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "group": "Mythic 2.2 -> 2.3 Updates",
+                                        "pages": [
+                                            "mythic-docs/updating/mythic-2.2-greater-than-2.3-updates",
+                                            "mythic-docs/updating/mythic-2.2-greater-than-2.3-updates/agents-2.2-greater-than-2.3"
+                                        ]
+                                    },
+                                    {
+                                        "group": "Mythic 2.3 -> 3.0 Updates",
+                                        "pages": [
+                                            "mythic-docs/updating/mythic-2.3-greater-than-3.0-updates",
+                                            "mythic-docs/updating/mythic-2.3-greater-than-3.0-updates/agents-2.3-greater-than-3.0"
+                                        ]
+                                    },
+                                    "mythic-docs/updating/mythic-3.2-greater-than-3.3-updates"
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "tab": "GraphQL API",
+                        "groups": [
+                            {
+                                "group": "Overview",
+                                "pages": [
+                                    "mythic-docs/scripting/home",
+                                    "mythic-docs/scripting/hasura"
+                                ]
+                            },
+                            {
+                                "group": "Scripting",
+                                "pages": [
+                                    "mythic-docs/scripting/scripting"
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "tab": "Development",
+                        "groups": [
+                            {
+                                "group": "overview",
+                                "pages": [
+                                    "mythic-docs/customizing/customizing-public-agent",
+                                    {
+                                        "group": "Hooking Features",
+                                        "pages": [
+                                            "mythic-docs/customizing/hooking-features",
+                                            "mythic-docs/customizing/hooking-features/actions",
+                                            {
+                                                "group": "Linking Agents",
+                                                "pages": [
+                                                    "mythic-docs/customizing/hooking-features/linking-agents",
+                                                    "mythic-docs/customizing/hooking-features/linking-agents/action-p2p_info"
+                                                ]
+                                            },
+                                            "mythic-docs/customizing/hooking-features/process_list",
+                                            "mythic-docs/customizing/hooking-features/artifacts",
+                                            "mythic-docs/customizing/hooking-features/credentials",
+                                            "mythic-docs/customizing/hooking-features/download",
+                                            "mythic-docs/customizing/hooking-features/action-upload",
+                                            "mythic-docs/customizing/hooking-features/screenshots",
+                                            "mythic-docs/customizing/hooking-features/commands",
+                                            "mythic-docs/customizing/hooking-features/keylog",
+                                            "mythic-docs/customizing/hooking-features/file-browser",
+                                            "mythic-docs/customizing/hooking-features/tokens",
+                                            "mythic-docs/customizing/hooking-features/alerts",
+                                            "mythic-docs/customizing/hooking-features/socks",
+                                            "mythic-docs/customizing/hooking-features/rpfwd",
+                                            "mythic-docs/customizing/hooking-features/interactive-tasking",
+                                            "mythic-docs/customizing/hooking-features/task-status",
+                                            "mythic-docs/customizing/hooking-features/oncontainerstart",
+                                            "mythic-docs/customizing/hooking-features/context-tracking"
+                                        ]
+                                    },
+                                    {
+                                        "group": "1. Payload Type Development",
+                                        "pages": [
+                                            "mythic-docs/customizing/payload-type-development",
+                                            {
+                                                "group": "2. Payload Type Definition",
+                                                "pages": [
+                                                    "mythic-docs/customizing/payload-type-development/payload-type-info/container-syncing",
+                                                    "mythic-docs/customizing/payload-type-development/payload-type-info/turning-a-vm-into-a-container"
+                                                ]
+                                            },
+                                            {
+                                                "group": "3. Adding Commands",
+                                                "pages": [
+                                                    "mythic-docs/customizing/payload-type-development/adding-commands",
+                                                    "mythic-docs/customizing/payload-type-development/adding-commands/commands"
+                                                ]
+                                            },
+                                            {
+                                                "group": "4. Create Tasking & Comms Format",
+                                                "pages": [
+                                                    "mythic-docs/customizing/payload-type-development/create_tasking",
+                                                    {
+                                                        "group": "Agent Messages",
+                                                        "pages": [
+                                                            "mythic-docs/customizing/payload-type-development/create_tasking/agent-side-coding",
+                                                            "mythic-docs/customizing/payload-type-development/create_tasking/agent-side-coding/agent-message-format",
+                                                            "mythic-docs/customizing/payload-type-development/create_tasking/agent-side-coding/initial-checkin",
+                                                            "mythic-docs/customizing/payload-type-development/create_tasking/agent-side-coding/action_get_tasking",
+                                                            "mythic-docs/customizing/payload-type-development/create_tasking/agent-side-coding/action-post_response",
+                                                            "mythic-docs/customizing/payload-type-development/create_tasking/agent-side-coding/socks",
+                                                            "mythic-docs/customizing/payload-type-development/create_tasking/agent-side-coding/rpfwd",
+                                                            "mythic-docs/customizing/payload-type-development/create_tasking/agent-side-coding/delegates",
+                                                            "mythic-docs/customizing/payload-type-development/create_tasking/agent-side-coding/8.-interactive-tasking"
+                                                        ]
+                                                    }
+                                                ]
+                                            },
+                                            "mythic-docs/customizing/payload-type-development/browser-scripting",
+                                            "mythic-docs/customizing/payload-type-development/dynamic-parameter-values",
+                                            "mythic-docs/customizing/payload-type-development/sub-tasking-task-callbacks",
+                                            "mythic-docs/customizing/payload-type-development/opsec-checking",
+                                            "mythic-docs/customizing/payload-type-development/translation-containers",
+                                            "mythic-docs/customizing/payload-type-development/process-response",
+                                            "mythic-docs/customizing/payload-type-development/12-typedarray-parse-function",
+                                            "mythic-docs/customizing/payload-type-development/socks",
+                                            "mythic-docs/customizing/payload-type-development/reverse-portfwd",
+                                            "mythic-docs/customizing/payload-type-development/15.-interactive-tasking"
+                                        ]
+                                    },
+                                    {
+                                        "group": "2. C2 Development",
+                                        "pages": [
+                                            "mythic-docs/customizing/c2-related-development",
+                                            {
+                                                "group": "Docker & Server Config",
+                                                "pages": [
+                                                    "mythic-docs/customizing/c2-related-development/server-side-coding",
+                                                    "mythic-docs/customizing/c2-related-development/server-side-coding/c2-docker-containers",
+                                                    "mythic-docs/customizing/c2-related-development/server-side-coding/c2-configuration-files",
+                                                    "mythic-docs/customizing/c2-related-development/server-side-coding/opsec-checks-for-c2-profiles",
+                                                    "mythic-docs/customizing/c2-related-development/server-side-coding/configuration-checks",
+                                                    "mythic-docs/customizing/c2-related-development/server-side-coding/5.-sample-message",
+                                                    "mythic-docs/customizing/c2-related-development/server-side-coding/6.-file-hosting",
+                                                    "mythic-docs/customizing/c2-related-development/server-side-coding/redirect-rules",
+                                                    "mythic-docs/customizing/c2-related-development/server-side-coding/8.-get-ioc",
+                                                    "mythic-docs/customizing/c2-related-development/server-side-coding/9.-push-c2"
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "group": "3. Consuming Containers",
+                                        "pages": [
+                                            "mythic-docs/customizing/3.-consuming-containers",
+                                            "mythic-docs/customizing/3.-consuming-containers/webhooks",
+                                            "mythic-docs/customizing/3.-consuming-containers/logging",
+                                            {
+                                                "group": "Eventing",
+                                                "pages": [
+                                                    "mythic-docs/customizing/3.-consuming-containers/eventing",
+                                                    "mythic-docs/customizing/3.-consuming-containers/eventing/operator-context-run_as",
+                                                    "mythic-docs/customizing/3.-consuming-containers/eventing/workflow-triggers",
+                                                    "mythic-docs/customizing/3.-consuming-containers/eventing/steps"
+                                                ]
+                                            },
+                                            "mythic-docs/customizing/3.-consuming-containers/auth"
+                                        ]
+                                    },
+                                    "mythic-docs/customizing/4.-extending-agent-commands",
+                                    "mythic-docs/customizing/mythic-ui-development"
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "tab": "MythicRPC",
+                        "groups": [
+                            {
+                                "group": "Overview",
+                                "pages": [
+                                    "mythic-docs/mythicrpc/mythicrpc"
+                                ]
+                            },
+                            {
+                                "group": "API Reference",
+                                "pages": [
+                                    "mythic-docs/mythicrpc/api-reference"
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "version": "GhostWriter",
+                "tabs": [
+                    {
+                        "tab": "Home",
+                        "groups": [
+                            {
+                                "group": "Home",
+                                "pages": [
+                                    "ghostwriter-docs/home"
+                                ]
+                            },
+                            {
+                                "group": "Getting Started",
+                                "pages": [
+                                    "ghostwriter-docs/getting-started/quickstart",
+                                    "ghostwriter-docs/getting-started/updating-ghostwriter",
+                                    {
+                                        "group": "Managing the Server with Ghostwriter CLI",
+                                        "pages": [
+                                            "ghostwriter-docs/getting-started/managing-the-server-with-ghostwriter-cli",
+                                            "ghostwriter-docs/getting-started/managing-the-server-with-ghostwriter-cli/managing-logon-sessions",
+                                            "ghostwriter-docs/getting-started/managing-the-server-with-ghostwriter-cli/creating-and-managing-backups"
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                "group": "Configuring Global Settings",
+                                "pages": [
+                                    "ghostwriter-docs/configuring-global-settings/introduction-to-command-center",
+                                    "ghostwriter-docs/configuring-global-settings/personalizing-company-information",
+                                    "ghostwriter-docs/configuring-global-settings/configuring-global-report-options",
+                                    "ghostwriter-docs/configuring-global-settings/configuring-the-announcement-banner",
+                                    {
+                                        "group": "Configuring APIs",
+                                        "pages": [
+                                            "ghostwriter-docs/configuring-global-settings/configuring-apis",
+                                            "ghostwriter-docs/configuring-global-settings/configuring-apis/configuring-slack",
+                                            "ghostwriter-docs/configuring-global-settings/configuring-apis/configuring-virustotal",
+                                            "ghostwriter-docs/configuring-global-settings/configuring-apis/configuring-namecheap",
+                                            "ghostwriter-docs/configuring-global-settings/configuring-apis/configuring-cloud-services"
+                                        ]
+                                    },
+                                    "ghostwriter-docs/configuring-global-settings/configuring-extra-fields"
+                                ]
+                            },
+                            {
+                                "group": "Features",
+                                "pages": [
+                                    {
+                                        "group": "Access, Authentication, & Session Controls",
+                                        "pages": [
+                                            "ghostwriter-docs/features/access-authentication-and-session-controls",
+                                            "ghostwriter-docs/features/access-authentication-and-session-controls/single-sign-on",
+                                            "ghostwriter-docs/features/access-authentication-and-session-controls/two-factor-authentication",
+                                            "ghostwriter-docs/features/access-authentication-and-session-controls/role-based-access-controls",
+                                            "ghostwriter-docs/features/access-authentication-and-session-controls/session-management"
+                                        ]
+                                    },
+                                    {
+                                        "group": "Client & Project Management",
+                                        "pages": [
+                                            "ghostwriter-docs/features/client-and-project-management",
+                                            "ghostwriter-docs/features/client-and-project-management/client-dashboard",
+                                            {
+                                                "group": "Project Dashboard",
+                                                "pages": [
+                                                    "ghostwriter-docs/features/client-and-project-management/project-dashboard",
+                                                    "ghostwriter-docs/features/client-and-project-management/project-dashboard/project-points-of-contact-and-assignments",
+                                                    "ghostwriter-docs/features/client-and-project-management/project-dashboard/scope-tracking",
+                                                    "ghostwriter-docs/features/client-and-project-management/project-dashboard/objective-tracking",
+                                                    "ghostwriter-docs/features/client-and-project-management/project-dashboard/deconfliction-tracking",
+                                                    "ghostwriter-docs/features/client-and-project-management/project-dashboard/white-card-tracking"
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "group": "Findings Library",
+                                        "pages": [
+                                            "ghostwriter-docs/features/findings-library",
+                                            "ghostwriter-docs/features/findings-library/populating-the-findings-library",
+                                            "ghostwriter-docs/features/findings-library/finding-keywords"
+                                        ]
+                                    },
+                                    "ghostwriter-docs/features/observations-library",
+                                    {
+                                        "group": "Infrastructure Management",
+                                        "pages": [
+                                            "ghostwriter-docs/features/infrastructure-management",
+                                            {
+                                                "group": "Server Management",
+                                                "pages": [
+                                                    "ghostwriter-docs/features/infrastructure-management/server-management",
+                                                    "ghostwriter-docs/features/infrastructure-management/server-management/populating-the-server-library",
+                                                    "ghostwriter-docs/features/infrastructure-management/server-management/server-management",
+                                                    "ghostwriter-docs/features/infrastructure-management/server-management/monitoring-servers"
+                                                ]
+                                            },
+                                            {
+                                                "group": "Domains Management",
+                                                "pages": [
+                                                    "ghostwriter-docs/features/infrastructure-management/domains-management",
+                                                    "ghostwriter-docs/features/infrastructure-management/domains-management/populating-the-domain-library",
+                                                    "ghostwriter-docs/features/infrastructure-management/domains-management/domain-checkout-1",
+                                                    "ghostwriter-docs/features/infrastructure-management/domains-management/monitoring-domains"
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "group": "Operation Logs",
+                                        "pages": [
+                                            "ghostwriter-docs/features/operation-logs",
+                                            "ghostwriter-docs/features/operation-logs/creating-a-new-oplog",
+                                            "ghostwriter-docs/features/operation-logs/create-a-new-entry",
+                                            "ghostwriter-docs/features/operation-logs/setting-up-automated-logging",
+                                            "ghostwriter-docs/features/operation-logs/exporting-importing-oplogs"
+                                        ]
+                                    },
+                                    {
+                                        "group": "Reporting",
+                                        "pages": [
+                                            "ghostwriter-docs/features/reporting",
+                                            {
+                                                "group": "Report Types",
+                                                "pages": [
+                                                    "ghostwriter-docs/features/reporting/report-types",
+                                                    "ghostwriter-docs/features/reporting/report-types/word-document-customization",
+                                                    "ghostwriter-docs/features/reporting/report-types/powerpoint-deck-customization",
+                                                    "ghostwriter-docs/features/reporting/report-types/excel-spreadsheet-customization"
+                                                ]
+                                            },
+                                            {
+                                                "group": "Report Templates",
+                                                "pages": [
+                                                    "ghostwriter-docs/features/reporting/report-templates",
+                                                    "ghostwriter-docs/features/reporting/report-templates/report-template-linting",
+                                                    "ghostwriter-docs/features/reporting/report-templates/word-template-variables",
+                                                    "ghostwriter-docs/features/reporting/report-templates/word-template-styles",
+                                                    "ghostwriter-docs/features/reporting/report-templates/troubleshooting-word-templates"
+                                                ]
+                                            },
+                                            "ghostwriter-docs/features/reporting/templating-and-rich-text-fields",
+                                            "ghostwriter-docs/features/reporting/jinja2-tips-and-tricks"
+                                        ]
+                                    },
+                                    {
+                                        "group": "Background Tasks",
+                                        "pages": [
+                                            "ghostwriter-docs/features/background-tasks",
+                                            "ghostwriter-docs/features/background-tasks/scheduled-tasks",
+                                            "ghostwriter-docs/features/background-tasks/prebuilt-tasks"
+                                        ]
+                                    },
+                                    "ghostwriter-docs/features/health-monitoring"
+                                ]
+                            },
+                            {
+                                "group": "Getting Help",
+                                "pages": [
+                                    "ghostwriter-docs/getting-help/faq",
+                                    "ghostwriter-docs/getting-help/getting-help-with-a-problem",
+                                    "ghostwriter-docs/getting-help/reporting-a-security-issue"
+                                ]
+                            },
+                            {
+                                "group": "Workflow & Usage",
+                                "pages": [
+                                    "ghostwriter-docs/workflow/basic-usage",
+                                    {
+                                        "group": "The Workflow",
+                                        "pages": [
+                                            "ghostwriter-docs/workflow/basic-usage",
+                                            "ghostwriter-docs/workflow/basic-usage/finding-review-workflow"
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                "group": "Coding Style Guide",
+                                "pages": [
+                                    "ghostwriter-docs/coding-style-guide/style-guide",
+                                    {
+                                        "group": "Form Layouts & Design",
+                                        "pages": [
+                                            "ghostwriter-docs/coding-style-guide/form-layouts-and-design",
+                                            "ghostwriter-docs/coding-style-guide/form-layouts-and-design/formset-layout-and-design",
+                                            "ghostwriter-docs/coding-style-guide/form-layouts-and-design/custom-layout-objects"
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                "group": "Development",
+                                "pages": [
+                                    "ghostwriter-docs/development/stack-overview",
+                                    {
+                                        "group": "Stack Overview",
+                                        "pages": [
+                                            "ghostwriter-docs/development/stack-overview",
+                                            "ghostwriter-docs/development/stack-overview/behind-the-scenes"
+                                        ]
+                                    },
+                                    {
+                                        "group": "Modifying Code",
+                                        "pages": [
+                                            "ghostwriter-docs/development/modifying-code",
+                                            "ghostwriter-docs/development/modifying-code/modifying-environment-variables"
+                                        ]
+                                    },
+                                    "ghostwriter-docs/development/testing-code",
+                                    {
+                                        "group": "Contributing to the Project",
+                                        "pages": [
+                                            "ghostwriter-docs/development/contributing-to-the-project",
+                                            "ghostwriter-docs/development/contributing-to-the-project/pre-release-checklist"
+                                        ]
+                                    },
+                                    {
+                                        "group": "Database Models",
+                                        "pages": [
+                                            "ghostwriter-docs/development/database-models",
+                                            "ghostwriter-docs/development/database-models/api-models",
+                                            "ghostwriter-docs/development/database-models/rolodex-models",
+                                            "ghostwriter-docs/development/database-models/configuration-models",
+                                            "ghostwriter-docs/development/database-models/home-models",
+                                            "ghostwriter-docs/development/database-models/infrastructure-models",
+                                            "ghostwriter-docs/development/database-models/oplog-models",
+                                            "ghostwriter-docs/development/database-models/reporting-models"
+                                        ]
+                                    },
+                                    "ghostwriter-docs/development/expected-services-and-processes"
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "tab": "GraphQL API",
+                        "groups": [
+                            {
+                                "group": "Features",
+                                "pages": [
+                                    {
+                                        "group": "GraphQL API",
+                                        "pages": [
+                                            "ghostwriter-docs/features/graphql-api/graphql-api",
+                                            "ghostwriter-docs/features/graphql-api/authentication",
+                                            "ghostwriter-docs/features/graphql-api/common-api-actions",
+                                            "ghostwriter-docs/features/graphql-api/using-the-hasura-console",
+                                            {
+                                                "group": "GraphQL Usage Examples",
+                                                "pages": [
+                                                    "ghostwriter-docs/features/graphql-api/graphql-usage-examples",
+                                                    "ghostwriter-docs/features/graphql-api/graphql-usage-examples/recording-cloud-server-deployments",
+                                                    "ghostwriter-docs/features/graphql-api/graphql-usage-examples/integrating-with-bloodhound-for-reporting"
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "version": "SharpSCCM",
+                "anchors": [
+                    {
+                        "anchor": "Documentation",
+                        "icon": "book",
+                        "pages": [
+                            "sharpsccm-docs/overview",
+                            {
+                                "group": "Getting Started",
+                                "pages": [
+                                    "sharpsccm-docs/resources/Build-Instructions",
+                                    "sharpsccm-docs/resources/Command-Line-Usage"
+                                ]
+                            },
+                            {
+                                "group": "Information Gathering",
+                                "pages": [
+                                    {
+                                        "group": "Site Discovery",
+                                        "pages": [
+                                            "sharpsccm-docs/commands/get/site-info",
+                                            "sharpsccm-docs/commands/get/site-push-settings",
+                                            "sharpsccm-docs/commands/get/admins"
+                                        ]
+                                    },
+                                    {
+                                        "group": "Asset Enumeration",
+                                        "pages": [
+                                            "sharpsccm-docs/commands/get/devices",
+                                            "sharpsccm-docs/commands/get/users",
+                                            "sharpsccm-docs/commands/get/collections",
+                                            "sharpsccm-docs/commands/get/collection-members",
+                                            "sharpsccm-docs/commands/get/primary-users"
+                                        ]
+                                    },
+                                    {
+                                        "group": "Applications",
+                                        "pages": [
+                                            "sharpsccm-docs/commands/get/applications",
+                                            "sharpsccm-docs/commands/get/deployments"
+                                        ]
+                                    },
+                                    {
+                                        "group": "WMI Operations",
+                                        "pages": [
+                                            "sharpsccm-docs/commands/get/classes",
+                                            "sharpsccm-docs/commands/get/class-instances",
+                                            "sharpsccm-docs/commands/get/class-properties"
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                "group": "Credential Extraction",
+                                "pages": [
+                                    {
+                                        "group": "Remote Extraction",
+                                        "pages": [
+                                            "sharpsccm-docs/commands/creds/get-secrets",
+                                            "sharpsccm-docs/commands/creds/get-naa",
+                                            "sharpsccm-docs/commands/creds/get-collection-variables",
+                                            "sharpsccm-docs/commands/creds/get-task-sequences"
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                "group": "Lateral Movement",
+                                "pages": [
+                                    "sharpsccm-docs/commands/exec",
+                                    "sharpsccm-docs/commands/invoke"
+                                ]
+                            },
+                            {
+                                "group": "Local Operations",
+                                "pages": [
+                                    "sharpsccm-docs/commands/local",
+                                    {
+                                        "group": "WMI Inspection",
+                                        "pages": [
+                                            "sharpsccm-docs/commands/local/classes",
+                                            "sharpsccm-docs/commands/local/class-instances",
+                                            "sharpsccm-docs/commands/local/class-properties",
+                                            "sharpsccm-docs/commands/local/query"
+                                        ]
+                                    },
+                                    {
+                                        "group": "Information Gathering",
+                                        "pages": [
+                                            "sharpsccm-docs/commands/local/client-info",
+                                            "sharpsccm-docs/commands/local/site-info",
+                                            "sharpsccm-docs/commands/local/user-sid",
+                                            "sharpsccm-docs/commands/local/triage"
+                                        ]
+                                    },
+                                    {
+                                        "group": "File Operations",
+                                        "pages": [
+                                            "sharpsccm-docs/commands/local/grep",
+                                            "sharpsccm-docs/commands/local/secrets"
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                "group": "Infrastructure Management",
+                                "pages": [
+                                    "sharpsccm-docs/commands/new",
+                                    "sharpsccm-docs/commands/remove"
+                                ]
+                            },
+                            {
+                                "group": "Advanced Operations",
+                                "pages": [
+                                    "sharpsccm-docs/commands/deob"
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "anchor": "GitHub",
+                        "icon": "github",
+                        "href": "https://github.com/Mayyhem/SharpSCCM"
+                    },
+                    {
+                        "anchor": "Research",
+                        "icon": "newspaper",
+                        "href": "https://specterops.io/blog/category/research/page/2/?s=sccm"
+                    },
+                    {
+                        "anchor": "Slack",
+                        "icon": "slack",
+                        "href": "http://ghst.ly/BHSlack"
+                    }
+                ]
+            },
+            {
+                "version": "SCCMHunter",
+                "anchors": [
+                    {
+                        "anchor": "Documentation",
+                        "icon": "book",
+                        "pages": [
+                            "sccmhunter-docs/overview",
+                            {
+                                "group": "Getting Started",
+                                "pages": [
+                                    "sccmhunter-docs/getting-started/installation",
+                                    "sccmhunter-docs/getting-started/quick-start",
+                                    "sccmhunter-docs/admin"
+                                ]
+                            },
+                            {
+                                "group": "Enumeration",
+                                "pages": [
+                                    "sccmhunter-docs/enumeration/find",
+                                    "sccmhunter-docs/enumeration/smb",
+                                    "sccmhunter-docs/enumeration/show"
+                                ]
+                            },
+                            {
+                                "group": "Exploitation",
+                                "pages": [
+                                    "sccmhunter-docs/exploitation/http",
+                                    "sccmhunter-docs/exploitation/mssql",
+                                    "sccmhunter-docs/exploitation/dpapi"
+                                ]
+                            },
+                            {
+                                "group": "Post-Exploitation",
+                                "pages": [
+                                    "sccmhunter-docs/post-exploitation/admin-overview",
+                                    "sccmhunter-docs/post-exploitation/credential-extraction",
+                                    "sccmhunter-docs/post-exploitation/database-queries",
+                                    "sccmhunter-docs/post-exploitation/administrative-tasks",
+                                    "sccmhunter-docs/post-exploitation/situational-awareness",
+                                    "sccmhunter-docs/post-exploitation/interface-commands"
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "anchor": "GitHub",
+                        "icon": "github",
+                        "href": "https://github.com/garrettfoster13/sccmhunter"
+                    },
+                    {
+                        "anchor": "Research",
+                        "icon": "newspaper",
+                        "href": "https://specterops.io/blog/category/research/page/2/?s=sccm"
+                    },
+                    {
+                        "anchor": "Slack",
+                        "icon": "slack",
+                        "href": "http://ghst.ly/BHSlack"
+                    },
+                    {
+                        "anchor": "Author",
+                        "icon": "x-twitter",
+                        "href": "https://twitter.com/garrfoster"
+                    }
+                ]
+            },
+            {
+                "version": "Misconfiguration Manager",
+                "anchors": [
+                    {
+                        "anchor": "Documentation",
+                        "icon": "book",
+                        "tabs": [
+                            {
+                                "tab": "Documentation",
+                                "icon": "book-open",
+                                "pages": [
+                                    "misconfiguration-manager-docs/README",
+                                    "misconfiguration-manager-docs/RESOURCES"
+                                ]
+                            },
+                            {
+                                "tab": "Attack Techniques",
+                                "icon": "swords",
+                                "groups": [
+                                    {
+                                        "group": "Techniques",
+                                        "pages": [
+                                            "misconfiguration-manager-docs/attack-techniques/README",
+                                            {
+                                                "group": "Coercion Attacks",
+                                                "pages": [
+                                                    "misconfiguration-manager-docs/attack-techniques/COERCE/COERCE-1/coerce-1_description",
+                                                    "misconfiguration-manager-docs/attack-techniques/COERCE/COERCE-2/coerce-2_description"
+                                                ]
+                                            },
+                                            {
+                                                "group": "Credential Attacks",
+                                                "pages": [
+                                                    "misconfiguration-manager-docs/attack-techniques/CRED/CRED-1/cred-1_description",
+                                                    "misconfiguration-manager-docs/attack-techniques/CRED/CRED-2/cred-2_description",
+                                                    "misconfiguration-manager-docs/attack-techniques/CRED/CRED-3/cred-3_description",
+                                                    "misconfiguration-manager-docs/attack-techniques/CRED/CRED-4/cred-4_description",
+                                                    "misconfiguration-manager-docs/attack-techniques/CRED/CRED-5/cred-5_description",
+                                                    "misconfiguration-manager-docs/attack-techniques/CRED/CRED-6/cred-6_description",
+                                                    "misconfiguration-manager-docs/attack-techniques/CRED/CRED-7/cred-7_description"
+                                                ]
+                                            },
+                                            {
+                                                "group": "Elevation Attacks",
+                                                "pages": [
+                                                    "misconfiguration-manager-docs/attack-techniques/ELEVATE/ELEVATE-1/ELEVATE-1_description",
+                                                    "misconfiguration-manager-docs/attack-techniques/ELEVATE/ELEVATE-2/ELEVATE-2_description",
+                                                    "misconfiguration-manager-docs/attack-techniques/ELEVATE/ELEVATE-3/ELEVATE-3_description",
+                                                    "misconfiguration-manager-docs/attack-techniques/ELEVATE/ELEVATE-4/ELEVATE-4_description",
+                                                    "misconfiguration-manager-docs/attack-techniques/ELEVATE/ELEVATE-5/ELEVATE-5_description"
+                                                ]
+                                            },
+                                            {
+                                                "group": "Execution Attacks",
+                                                "pages": [
+                                                    "misconfiguration-manager-docs/attack-techniques/EXEC/EXEC-1/exec-1_description",
+                                                    "misconfiguration-manager-docs/attack-techniques/EXEC/EXEC-2/exec-2_description"
+                                                ]
+                                            },
+                                            {
+                                                "group": "Reconnaissance",
+                                                "pages": [
+                                                    "misconfiguration-manager-docs/attack-techniques/RECON/RECON-1/recon-1_description",
+                                                    "misconfiguration-manager-docs/attack-techniques/RECON/RECON-2/recon-2_description",
+                                                    "misconfiguration-manager-docs/attack-techniques/RECON/RECON-3/recon-3_description",
+                                                    "misconfiguration-manager-docs/attack-techniques/RECON/RECON-4/recon-4_description",
+                                                    "misconfiguration-manager-docs/attack-techniques/RECON/RECON-5/recon-5_description",
+                                                    "misconfiguration-manager-docs/attack-techniques/RECON/RECON-6/recon-6_description",
+                                                    "misconfiguration-manager-docs/attack-techniques/RECON/RECON-7/recon-7_description"
+                                                ]
+                                            },
+                                            {
+                                                "group": "Takeover Attacks",
+                                                "pages": [
+                                                    "misconfiguration-manager-docs/attack-techniques/TAKEOVER/TAKEOVER-1/takeover-1_description",
+                                                    "misconfiguration-manager-docs/attack-techniques/TAKEOVER/TAKEOVER-2/takeover-2_description",
+                                                    "misconfiguration-manager-docs/attack-techniques/TAKEOVER/TAKEOVER-3/takeover-3_description",
+                                                    "misconfiguration-manager-docs/attack-techniques/TAKEOVER/TAKEOVER-4/takeover-4_description",
+                                                    "misconfiguration-manager-docs/attack-techniques/TAKEOVER/TAKEOVER-5/takeover-5_description",
+                                                    "misconfiguration-manager-docs/attack-techniques/TAKEOVER/TAKEOVER-6/takeover-6_description",
+                                                    "misconfiguration-manager-docs/attack-techniques/TAKEOVER/TAKEOVER-7/takeover-7_description",
+                                                    "misconfiguration-manager-docs/attack-techniques/TAKEOVER/TAKEOVER-8/takeover-8_description",
+                                                    "misconfiguration-manager-docs/attack-techniques/TAKEOVER/TAKEOVER-9/takeover-9_description"
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                "tab": "Defensive Techniques",
+                                "icon": "shield",
+                                "groups": [
+                                    {
+                                        "group": "Techniques",
+                                        "pages": [
+                                            "misconfiguration-manager-docs/defense-techniques/README",
+                                            {
+                                                "group": "Canary",
+                                                "pages": [
+                                                    "misconfiguration-manager-docs/defense-techniques/CANARY/CANARY-1/canary-1_description"
+                                                ]
+                                            },
+                                            {
+                                                "group": "Detect",
+                                                "pages": [
+                                                    "misconfiguration-manager-docs/defense-techniques/DETECT/DETECT-1/detect-1_description",
+                                                    "misconfiguration-manager-docs/defense-techniques/DETECT/DETECT-2/detect-2_description",
+                                                    "misconfiguration-manager-docs/defense-techniques/DETECT/DETECT-3/detect-3_description",
+                                                    "misconfiguration-manager-docs/defense-techniques/DETECT/DETECT-4/detect-4_description",
+                                                    "misconfiguration-manager-docs/defense-techniques/DETECT/DETECT-5/detect-5_description",
+                                                    "misconfiguration-manager-docs/defense-techniques/DETECT/DETECT-6/detect-6_description",
+                                                    "misconfiguration-manager-docs/defense-techniques/DETECT/DETECT-7/detect-7_description",
+                                                    "misconfiguration-manager-docs/defense-techniques/DETECT/DETECT-8/detect-8_description",
+                                                    "misconfiguration-manager-docs/defense-techniques/DETECT/DETECT-9/detect-9_description"
+                                                ]
+                                            },
+                                            {
+                                                "group": "Prevent",
+                                                "pages": [
+                                                    "misconfiguration-manager-docs/defense-techniques/PREVENT/PREVENT-1/prevent-1_description",
+                                                    "misconfiguration-manager-docs/defense-techniques/PREVENT/PREVENT-2/prevent-2_description",
+                                                    "misconfiguration-manager-docs/defense-techniques/PREVENT/PREVENT-3/prevent-3_description",
+                                                    "misconfiguration-manager-docs/defense-techniques/PREVENT/PREVENT-4/prevent-4_description",
+                                                    "misconfiguration-manager-docs/defense-techniques/PREVENT/PREVENT-5/prevent-5_description",
+                                                    "misconfiguration-manager-docs/defense-techniques/PREVENT/PREVENT-6/prevent-6_description",
+                                                    "misconfiguration-manager-docs/defense-techniques/PREVENT/PREVENT-7/prevent-7_description",
+                                                    "misconfiguration-manager-docs/defense-techniques/PREVENT/PREVENT-8/prevent-8_description",
+                                                    "misconfiguration-manager-docs/defense-techniques/PREVENT/PREVENT-9/prevent-9_description",
+                                                    "misconfiguration-manager-docs/defense-techniques/PREVENT/PREVENT-10/prevent-10_description",
+                                                    "misconfiguration-manager-docs/defense-techniques/PREVENT/PREVENT-11/prevent-11_description",
+                                                    "misconfiguration-manager-docs/defense-techniques/PREVENT/PREVENT-12/prevent-12_description",
+                                                    "misconfiguration-manager-docs/defense-techniques/PREVENT/PREVENT-13/prevent-13_description",
+                                                    "misconfiguration-manager-docs/defense-techniques/PREVENT/PREVENT-14/prevent-14_description",
+                                                    "misconfiguration-manager-docs/defense-techniques/PREVENT/PREVENT-15/prevent-15_description",
+                                                    "misconfiguration-manager-docs/defense-techniques/PREVENT/PREVENT-16/prevent-16_description",
+                                                    "misconfiguration-manager-docs/defense-techniques/PREVENT/PREVENT-17/prevent-17_description",
+                                                    "misconfiguration-manager-docs/defense-techniques/PREVENT/PREVENT-18/prevent-18_description",
+                                                    "misconfiguration-manager-docs/defense-techniques/PREVENT/PREVENT-19/prevent-19_description",
+                                                    "misconfiguration-manager-docs/defense-techniques/PREVENT/PREVENT-20/prevent-20_description",
+                                                    "misconfiguration-manager-docs/defense-techniques/PREVENT/PREVENT-21/prevent-21_description",
+                                                    "misconfiguration-manager-docs/defense-techniques/PREVENT/PREVENT-22/prevent-22_description"
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "anchor": "GitHub",
+                        "icon": "github",
+                        "href": "https://github.com/subat0mik/Misconfiguration-Manager"
+                    },
+                    {
+                        "anchor": "Research",
+                        "icon": "newspaper",
+                        "href": "https://specterops.io/blog/category/research/page/2/?s=sccm"
+                    },
+                    {
+                        "anchor": "Slack",
+                        "icon": "slack",
+                        "href": "http://ghst.ly/BHSlack"
+                    },
+                    {
+                        "anchor": "Author",
+                        "icon": "x-twitter",
+                        "href": "https://twitter.com/subat0mik"
+                    }
+                ]
+            },
+            {
+                "version": "Nemesis",
+                "anchors": [
+                    {
+                        "anchor": "Documentation",
+                        "icon": "book",
+                        "tabs": [
+                            {
+                                "tab": "Overview",
+                                "icon": "book-open",
+                                "pages": [
+                                    "nemesis-docs/docs/index",
+                                    "nemesis-docs/docs/overview",
+                                    "nemesis-docs/docs/quickstart"
+                                ]
+                            },
+                            {
+                                "tab": "Documentation",
+                                "icon": "swords",
+                                "groups": [
+                                    {
+                                        "group": "Usage",
+                                        "pages": [
+                                            {
+                                                "group": "Nemesis Usage Guide",
+                                                "pages": [
+                                                    "nemesis-docs/docs/usage_guide",
+                                                    "nemesis-docs/docs/cli",
+                                                    "nemesis-docs/docs/performance",
+                                                    "nemesis-docs/docs/troubleshooting",
+                                                    "nemesis-docs/docs/yara"
+                                                ]
+                                            },
+                                            {
+                                                "group": "Services",
+                                                "pages": [
+                                                    "nemesis-docs/docs/dapr",
+                                                    "nemesis-docs/docs/hasura",
+                                                    "nemesis-docs/docs/jupyter",
+                                                    "nemesis-docs/docs/housekeeping"
+                                                ]
+                                            },
+                                            {
+                                                "group": "Developer",
+                                                "pages": [
+                                                    "nemesis-docs/docs/file_enrichment_modules",
+                                                    "nemesis-docs/docs/noseyparker_rules",
+                                                    "nemesis-docs/docs/odr",
+                                                    "nemesis-docs/docs/docker_compose"
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                "tab": "Nemesis API",
+                                "openapi": "nemesis-docs/docs/nemesis-api.json"
+                            }
+                        ]
+                    },
+                    {
+                        "anchor": "GitHub",
+                        "icon": "github",
+                        "href": "https://github.com/SpecterOps/Nemesis"
+                    },
+                    {
+                        "anchor": "Slack",
+                        "icon": "slack",
+                        "href": "http://ghst.ly/BHSlack"
+                    }
+                ]
+            },
+            {
+                "version": "GhostPack",
+                "tabs": [
+                    {
+                        "tab": "Overview",
+                        "icon": "ghost",
+                        "pages": [
+                            "ghostpack-docs/index"
+                        ]
+                    },
+                    {
+                        "tab": "Certify",
+                        "icon": "certificate",
+                        "groups": [
+                            {
+                                "group": "Getting Started",
+                                "pages": [
+                                    "ghostpack-docs/Certify.wik-mdx/overview",
+                                    "ghostpack-docs/Certify.wik-mdx/1-command-overview"
+                                ]
+                            },
+                            {
+                                "group": "Account Persistence",
+                                "pages": [
+                                    "ghostpack-docs/Certify.wik-mdx/2-account-persistence-techniques",
+                                    "ghostpack-docs/Certify.wik-mdx/persist1-user-persistence-via-certificates",
+                                    "ghostpack-docs/Certify.wik-mdx/persist2-machine-persistence-via-certificates",
+                                    "ghostpack-docs/Certify.wik-mdx/persist3-account-persistence-via-certificate-renewal"
+                                ]
+                            },
+                            {
+                                "group": "Domain Persistence",
+                                "pages": [
+                                    "ghostpack-docs/Certify.wik-mdx/3-domain-persistence-techniques",
+                                    "ghostpack-docs/Certify.wik-mdx/dpersist1-forging-certificates-with-stolen-ca",
+                                    "ghostpack-docs/Certify.wik-mdx/dpersist2-trusting-rogue-ca-certificates",
+                                    "ghostpack-docs/Certify.wik-mdx/dpersist3-malicious-misconfiguration"
+                                ]
+                            },
+                            {
+                                "group": "Privilege Escalation",
+                                "pages": [
+                                    "ghostpack-docs/Certify.wik-mdx/4-escalation-techniques",
+                                    "ghostpack-docs/Certify.wik-mdx/esc1-misconfigured-client-authentication",
+                                    "ghostpack-docs/Certify.wik-mdx/esc2-misconfigured-any-purpose",
+                                    "ghostpack-docs/Certify.wik-mdx/esc3-misconfigured-certificate-request-agent",
+                                    "ghostpack-docs/Certify.wik-mdx/esc4-vulnerable-certificate-template-access-control",
+                                    "ghostpack-docs/Certify.wik-mdx/esc5-vulnerable-pki-object-access-control",
+                                    "ghostpack-docs/Certify.wik-mdx/esc6-request-attribute-san-editf-attributesubjectaltname2",
+                                    "ghostpack-docs/Certify.wik-mdx/esc7-vulnerable-certificate-authority-access-control",
+                                    "ghostpack-docs/Certify.wik-mdx/esc8-ntlm-relay-to-ad-cs-http-endpoints",
+                                    "ghostpack-docs/Certify.wik-mdx/esc9-security-extension-disabled-on-certificate-template",
+                                    "ghostpack-docs/Certify.wik-mdx/esc10-schannel-weak-certificate-mapping",
+                                    "ghostpack-docs/Certify.wik-mdx/esc11-ntlm-relay-to-ad-cs-rpc-interfaces",
+                                    "ghostpack-docs/Certify.wik-mdx/esc12-yubihsm2",
+                                    "ghostpack-docs/Certify.wik-mdx/esc13-authentication-mechanism-assurance-ama",
+                                    "ghostpack-docs/Certify.wik-mdx/esc14-explicit-certificate-mapping",
+                                    "ghostpack-docs/Certify.wik-mdx/esc15-ekuwu-application-policy-injection",
+                                    "ghostpack-docs/Certify.wik-mdx/esc16-security-extension-disabled-on-certificate-authority"
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "tab": "Rubeus",
+                        "icon": "ticket",
+                        "groups": [
+                            {
+                                "group": "Getting Started",
+                                "pages": [
+                                    "ghostpack-docs/Rubeus-mdx/overview",
+                                    "ghostpack-docs/Rubeus-mdx/resources/compilation"
+                                ]
+                            },
+                            {
+                                "group": "Ticket Operations",
+                                "pages": [
+                                    {
+                                        "group": "Ticket Requests",
+                                        "pages": [
+                                            "ghostpack-docs/Rubeus-mdx/commands/ticket-requests/asktgt",
+                                            "ghostpack-docs/Rubeus-mdx/commands/ticket-requests/asktgs",
+                                            "ghostpack-docs/Rubeus-mdx/commands/ticket-requests/renew",
+                                            "ghostpack-docs/Rubeus-mdx/commands/ticket-requests/brute",
+                                            "ghostpack-docs/Rubeus-mdx/commands/ticket-requests/preauthscan"
+                                        ]
+                                    },
+                                    {
+                                        "group": "Ticket Management",
+                                        "pages": [
+                                            "ghostpack-docs/Rubeus-mdx/commands/management/ptt",
+                                            "ghostpack-docs/Rubeus-mdx/commands/management/purge",
+                                            "ghostpack-docs/Rubeus-mdx/commands/management/describe"
+                                        ]
+                                    },
+                                    {
+                                        "group": "Ticket Extraction",
+                                        "pages": [
+                                            "ghostpack-docs/Rubeus-mdx/commands/extraction/triage",
+                                            "ghostpack-docs/Rubeus-mdx/commands/extraction/klist",
+                                            "ghostpack-docs/Rubeus-mdx/commands/extraction/dump",
+                                            "ghostpack-docs/Rubeus-mdx/commands/extraction/tgtdeleg",
+                                            "ghostpack-docs/Rubeus-mdx/commands/extraction/monitor",
+                                            "ghostpack-docs/Rubeus-mdx/commands/extraction/harvest"
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                "group": "Attack Techniques",
+                                "pages": [
+                                    {
+                                        "group": "Credential Attacks",
+                                        "pages": [
+                                            "ghostpack-docs/Rubeus-mdx/commands/roasting/kerberoast",
+                                            "ghostpack-docs/Rubeus-mdx/commands/roasting/asreproast"
+                                        ]
+                                    },
+                                    {
+                                        "group": "Delegation Abuse",
+                                        "pages": [
+                                            "ghostpack-docs/Rubeus-mdx/commands/delegation/s4u"
+                                        ]
+                                    },
+                                    {
+                                        "group": "Ticket Forgery",
+                                        "pages": [
+                                            "ghostpack-docs/Rubeus-mdx/commands/forgery/golden",
+                                            "ghostpack-docs/Rubeus-mdx/commands/forgery/silver",
+                                            "ghostpack-docs/Rubeus-mdx/commands/forgery/diamond"
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                "group": "Miscellaneous",
+                                "pages": [
+                                    "ghostpack-docs/Rubeus-mdx/commands/miscellaneous/createnetonly",
+                                    "ghostpack-docs/Rubeus-mdx/commands/miscellaneous/changepw",
+                                    "ghostpack-docs/Rubeus-mdx/commands/miscellaneous/hash",
+                                    "ghostpack-docs/Rubeus-mdx/commands/miscellaneous/tgssub",
+                                    "ghostpack-docs/Rubeus-mdx/commands/miscellaneous/currentluid",
+                                    "ghostpack-docs/Rubeus-mdx/commands/miscellaneous/logonsession",
+                                    "ghostpack-docs/Rubeus-mdx/commands/miscellaneous/asrep2kirbi",
+                                    "ghostpack-docs/Rubeus-mdx/commands/miscellaneous/kirbi"
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "tab": "SharpDPAPI",
+                        "icon": "key",
+                        "groups": [
+                            {
+                                "group": "Getting Started",
+                                "pages": [
+                                    "ghostpack-docs/SharpDPAPI-mdx/overview",
+                                    "ghostpack-docs/SharpDPAPI-mdx/compilation"
+                                ]
+                            },
+                            {
+                                "group": "User Triage Commands",
+                                "pages": [
+                                    "ghostpack-docs/SharpDPAPI-mdx/commands/triage",
+                                    "ghostpack-docs/SharpDPAPI-mdx/commands/masterkeys",
+                                    "ghostpack-docs/SharpDPAPI-mdx/commands/credentials",
+                                    "ghostpack-docs/SharpDPAPI-mdx/commands/vaults",
+                                    "ghostpack-docs/SharpDPAPI-mdx/commands/rdg",
+                                    "ghostpack-docs/SharpDPAPI-mdx/commands/keepass",
+                                    "ghostpack-docs/SharpDPAPI-mdx/commands/certificates",
+                                    "ghostpack-docs/SharpDPAPI-mdx/commands/ps"
+                                ]
+                            },
+                            {
+                                "group": "Machine Triage Commands",
+                                "pages": [
+                                    "ghostpack-docs/SharpDPAPI-mdx/commands/machinetriage",
+                                    "ghostpack-docs/SharpDPAPI-mdx/commands/machinemasterkeys",
+                                    "ghostpack-docs/SharpDPAPI-mdx/commands/machinecredentials",
+                                    "ghostpack-docs/SharpDPAPI-mdx/commands/machinevaults"
+                                ]
+                            },
+                            {
+                                "group": "Utility Commands",
+                                "pages": [
+                                    "ghostpack-docs/SharpDPAPI-mdx/commands/backupkey",
+                                    "ghostpack-docs/SharpDPAPI-mdx/commands/blob",
+                                    "ghostpack-docs/SharpDPAPI-mdx/commands/search",
+                                    "ghostpack-docs/SharpDPAPI-mdx/commands/sccm"
+                                ]
+                            },
+                            {
+                                "group": "SharpChrome",
+                                "pages": [
+                                    "ghostpack-docs/SharpDPAPI-mdx/sharpchrome-overview",
+                                    "ghostpack-docs/SharpDPAPI-mdx/sharpchrome-logins",
+                                    "ghostpack-docs/SharpDPAPI-mdx/sharpchrome-cookies",
+                                    "ghostpack-docs/SharpDPAPI-mdx/sharpchrome-statekeys"
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "tab": "SharpUp",
+                        "icon": "arrow-up",
+                        "groups": [
+                            {
+                                "group": "Getting Started",
+                                "pages": [
+                                    "ghostpack-docs/SharpUp-mdx/overview",
+                                    "ghostpack-docs/SharpUp-mdx/compilation",
+                                    "ghostpack-docs/SharpUp-mdx/usage"
+                                ]
+                            },
+                            {
+                                "group": "Service Checks",
+                                "pages": [
+                                    "ghostpack-docs/SharpUp-mdx/checks/modifiableservices",
+                                    "ghostpack-docs/SharpUp-mdx/checks/modifiableservicebinaries",
+                                    "ghostpack-docs/SharpUp-mdx/checks/modifiableserviceregistrykeys",
+                                    "ghostpack-docs/SharpUp-mdx/checks/unquotedservicepath",
+                                    "ghostpack-docs/SharpUp-mdx/checks/modifiablescheduledtask"
+                                ]
+                            },
+                            {
+                                "group": "Registry Checks",
+                                "pages": [
+                                    "ghostpack-docs/SharpUp-mdx/checks/alwaysinstallelevated",
+                                    "ghostpack-docs/SharpUp-mdx/checks/registryautologons",
+                                    "ghostpack-docs/SharpUp-mdx/checks/registryautoruns"
+                                ]
+                            },
+                            {
+                                "group": "Credential Checks",
+                                "pages": [
+                                    "ghostpack-docs/SharpUp-mdx/checks/unattendedinstallfiles",
+                                    "ghostpack-docs/SharpUp-mdx/checks/cachedgpppassword",
+                                    "ghostpack-docs/SharpUp-mdx/checks/domaingpppassword",
+                                    "ghostpack-docs/SharpUp-mdx/checks/mcafeesitelistfiles"
+                                ]
+                            },
+                            {
+                                "group": "DLL & Path Checks",
+                                "pages": [
+                                    "ghostpack-docs/SharpUp-mdx/checks/hijackablepaths",
+                                    "ghostpack-docs/SharpUp-mdx/checks/processdllhijack"
+                                ]
+                            },
+                            {
+                                "group": "Token & Privileges",
+                                "pages": [
+                                    "ghostpack-docs/SharpUp-mdx/checks/tokenprivileges"
+                                ]
+                            },
+                            {
+                                "group": "Remediation",
+                                "pages": [
+                                    "ghostpack-docs/SharpUp-mdx/remediation"
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "tab": "SharpWMI",
+                        "icon": "network-wired",
+                        "groups": [
+                            {
+                                "group": "Getting Started",
+                                "pages": [
+                                    "ghostpack-docs/SharpWMI-mdx/overview",
+                                    "ghostpack-docs/SharpWMI-mdx/compilation",
+                                    "ghostpack-docs/SharpWMI-mdx/usage"
+                                ]
+                            },
+                            {
+                                "group": "Enumeration Actions",
+                                "pages": [
+                                    "ghostpack-docs/SharpWMI-mdx/actions/query",
+                                    "ghostpack-docs/SharpWMI-mdx/actions/loggedon",
+                                    "ghostpack-docs/SharpWMI-mdx/actions/firewall",
+                                    "ghostpack-docs/SharpWMI-mdx/actions/ps"
+                                ]
+                            },
+                            {
+                                "group": "Execution Actions",
+                                "pages": [
+                                    "ghostpack-docs/SharpWMI-mdx/actions/exec",
+                                    "ghostpack-docs/SharpWMI-mdx/actions/executevbs",
+                                    "ghostpack-docs/SharpWMI-mdx/actions/terminate"
+                                ]
+                            },
+                            {
+                                "group": "File Operations",
+                                "pages": [
+                                    "ghostpack-docs/SharpWMI-mdx/actions/upload",
+                                    "ghostpack-docs/SharpWMI-mdx/actions/install"
+                                ]
+                            },
+                            {
+                                "group": "Environment Variables",
+                                "pages": [
+                                    "ghostpack-docs/SharpWMI-mdx/actions/getenv",
+                                    "ghostpack-docs/SharpWMI-mdx/actions/setenv",
+                                    "ghostpack-docs/SharpWMI-mdx/actions/delenv"
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "tab": "Seatbelt",
+                        "icon": "list-check",
+                        "groups": [
+                            {
+                                "group": "Getting Started",
+                                "pages": [
+                                    "ghostpack-docs/Seatbelt-mdx/overview",
+                                    "ghostpack-docs/Seatbelt-mdx/compilation",
+                                    "ghostpack-docs/Seatbelt-mdx/usage"
+                                ]
+                            },
+                            {
+                                "group": "System - OS & Environment",
+                                "pages": [
+                                    "ghostpack-docs/Seatbelt-mdx/commands/osinfo",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/dotnet",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/environmentvariables",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/environmentpath",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/hotfixes",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/lastshutdown",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/optionalfeatures"
+                                ]
+                            },
+                            {
+                                "group": "System - Security Configuration",
+                                "pages": [
+                                    "ghostpack-docs/Seatbelt-mdx/commands/applocker",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/uac",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/laps",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/credguard",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/secureboot",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/windowsdefender",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/windowsfirewall",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/windowsautologon",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/windowseventforwarding"
+                                ]
+                            },
+                            {
+                                "group": "System - Authentication & Access",
+                                "pages": [
+                                    "ghostpack-docs/Seatbelt-mdx/commands/ntlmsettings",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/lsasettings",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/auditpolicies",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/auditpolicyregistry",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/tokenprivileges",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/userrightsassignments",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/logonsessions",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/localusers",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/localgroups",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/localgpos"
+                                ]
+                            },
+                            {
+                                "group": "System - Network",
+                                "pages": [
+                                    "ghostpack-docs/Seatbelt-mdx/commands/arptable",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/tcpconnections",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/udpconnections",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/dnscache",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/networkshares",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/networkprofiles",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/wifiprofile",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/rdpsessions",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/rdpsettings"
+                                ]
+                            },
+                            {
+                                "group": "System - Monitoring & Enterprise",
+                                "pages": [
+                                    "ghostpack-docs/Seatbelt-mdx/commands/sysmon",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/amsiproviders",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/antivirus",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/sccm",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/wsus",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/interestingprocesses",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/processes",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/services",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/namedpipes"
+                                ]
+                            },
+                            {
+                                "group": "System - Advanced",
+                                "pages": [
+                                    "ghostpack-docs/Seatbelt-mdx/commands/autoruns",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/certificates",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/certificatethumbprints",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/internetsettings",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/mcafeeconfigs",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/poweredonevents",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/powershell",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/pssessionsettings",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/securitypackages",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/wmi",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/wmieventconsumer",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/wmieventfilter",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/wmifilterbinding"
+                                ]
+                            },
+                            {
+                                "group": "User - Credentials",
+                                "pages": [
+                                    "ghostpack-docs/Seatbelt-mdx/commands/credenum",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/dpapimasterkeys",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/windowsvault",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/windowscredentialfiles",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/secpackagecreds",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/tokengroups",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/keepass",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/idletime"
+                                ]
+                            },
+                            {
+                                "group": "User - Browser Data",
+                                "pages": [
+                                    "ghostpack-docs/Seatbelt-mdx/commands/chromiumpresence",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/firefoxpresence",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/iefavorites",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/ietabs",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/ieurls"
+                                ]
+                            },
+                            {
+                                "group": "User - Cloud & Remote Access",
+                                "pages": [
+                                    "ghostpack-docs/Seatbelt-mdx/commands/azuread",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/cloudcredentials",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/cloudsyncproviders",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/filezilla",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/puttyhostkeys",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/puttysessions",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/superputty",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/mtputty",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/rdcmanfiles",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/rdpsavedconnections",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/oraclesqldeveloper",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/mappeddrives"
+                                ]
+                            },
+                            {
+                                "group": "User - Recent Activity",
+                                "pages": [
+                                    "ghostpack-docs/Seatbelt-mdx/commands/powershellhistory",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/explorermrus",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/explorerruncommands",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/officemrus",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/onenote",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/dir"
+                                ]
+                            },
+                            {
+                                "group": "User - Communication",
+                                "pages": [
+                                    "ghostpack-docs/Seatbelt-mdx/commands/slackpresence",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/slackdownloads",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/slackworkspaces"
+                                ]
+                            },
+                            {
+                                "group": "Misc - Event Logs",
+                                "pages": [
+                                    "ghostpack-docs/Seatbelt-mdx/commands/logonevents",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/explicitlogonevents",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/processcreationevents",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/powershellevents",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/sysmonevents"
+                                ]
+                            },
+                            {
+                                "group": "Misc - Browser History",
+                                "pages": [
+                                    "ghostpack-docs/Seatbelt-mdx/commands/chromiumbookmarks",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/chromiumhistory",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/firefoxhistory"
+                                ]
+                            },
+                            {
+                                "group": "Misc - File & Registry",
+                                "pages": [
+                                    "ghostpack-docs/Seatbelt-mdx/commands/fileinfo",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/interestingfiles",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/lolbas",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/recyclebin",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/reg",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/searchindex"
+                                ]
+                            },
+                            {
+                                "group": "Misc - System Details",
+                                "pages": [
+                                    "ghostpack-docs/Seatbelt-mdx/commands/installedproducts",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/microsoftupdates",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/printers",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/processowners",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/scheduledtasks",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/rpcmappedendpoints",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/mcafeesitelist",
+                                    "ghostpack-docs/Seatbelt-mdx/commands/outlookdownloads"
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "version": "AtlasReaper",
+                "tabs": [
+                    {
+                        "tab": "Overview",
+                        "icon": "magnifying-glass-chart",
+                        "pages": [
+                            "atlasreaper-docs/overview",
+                            "atlasreaper-docs/usage"
+                        ]
+                    },
+                    {
+                        "tab": "Confluence",
+                        "icon": "book",
+                        "groups": [
+                            {
+                                "group": "Commands",
+                                "pages": [
+                                    "atlasreaper-docs/confluence/listspaces",
+                                    "atlasreaper-docs/confluence/listpages",
+                                    "atlasreaper-docs/confluence/listattachments",
+                                    "atlasreaper-docs/confluence/search",
+                                    "atlasreaper-docs/confluence/download",
+                                    "atlasreaper-docs/confluence/attach",
+                                    "atlasreaper-docs/confluence/link",
+                                    "atlasreaper-docs/confluence/embed"
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "tab": "Jira",
+                        "icon": "list-check",
+                        "groups": [
+                            {
+                                "group": "Commands",
+                                "pages": [
+                                    "atlasreaper-docs/jira/listprojects",
+                                    "atlasreaper-docs/jira/listissues",
+                                    "atlasreaper-docs/jira/listattachments",
+                                    "atlasreaper-docs/jira/listusers",
+                                    "atlasreaper-docs/jira/searchissues",
+                                    "atlasreaper-docs/jira/createissue",
+                                    "atlasreaper-docs/jira/addcomment",
+                                    "atlasreaper-docs/jira/attach",
+                                    "atlasreaper-docs/jira/download"
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "version": "Phisherman's Tacklebox",
+                "icon": "fish",
+                "anchors": [
+                    {
+                        "anchor": "Documentation",
+                        "icon": "book",
+                        "tabs": [
+                            {
+                                "tab": "CuddlePhish",
+                                "icon": "fish",
+                                "pages": [
+                                    "cuddlephish-docs/overview",
+                                    "cuddlephish-docs/installation",
+                                    "cuddlephish-docs/usage",
+                                    "cuddlephish-docs/architecture",
+                                    "cuddlephish-docs/troubleshooting"
+                                ]
+                            },
+                            {
+                                "tab": "Phishmonger",
+                                "icon": "envelope",
+                                "pages": [
+                                    "phishmonger-docs/overview",
+                                    "phishmonger-docs/installation",
+                                    "phishmonger-docs/usage",
+                                    "phishmonger-docs/configuration",
+                                    "phishmonger-docs/campaigns",
+                                    "phishmonger-docs/templates",
+                                    "phishmonger-docs/targets",
+                                    "phishmonger-docs/tracking",
+                                    "phishmonger-docs/integrations",
+                                    "phishmonger-docs/api",
+                                    "phishmonger-docs/troubleshooting"
+                                ]
+                            },
+                            {
+                                "tab": "Phishmonger API",
+                                "openapi": "phishmonger-docs/phishmonger-openapi.json"
+                            },
+                            {
+                                "tab": "Ghost Scout",
+                                "icon": "ghost",
+                                "pages": [
+                                    "ghostscout-docs/overview",
+                                    "ghostscout-docs/installation",
+                                    "ghostscout-docs/usage"
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "anchor": "GitHub",
+                        "icon": "github",
+                        "href": "https://github.com/fkasler/cuddlephish"
+                    },
+                    {
+                        "anchor": "Slack",
+                        "icon": "slack",
+                        "href": "http://ghst.ly/BHSlack"
+                    },
+                    {
+                        "anchor": "Author",
+                        "icon": "x-twitter",
+                        "href": "https://x.com/fkasler"
+                    }
+                ]
+            },
+            {
+                "version": "Merlin",
+                "anchors": [
+                    {
+                        "anchor": "Documentation",
+                        "icon": "book",
+                        "groups": [
+                            {
+                                "group": "Get Started",
+                                "pages": [
+                                    "merlin-docs/introduction",
+                                    "merlin-docs/quickstart"
+                                ]
+                            },
+                            {
+                                "group": "FAQ",
+                                "pages": [
+                                    "merlin-docs/faq/general"
+                                ]
+                            },
+                            {
+                                "group": "Merlin Agent",
+                                "pages": [
+                                    "merlin-docs/agent/command-line-flags",
+                                    "merlin-docs/agent/dll",
+                                    "merlin-docs/agent/custom"
+                                ]
+                            },
+                            {
+                                "group": "Merlin CLI",
+                                "pages": [
+                                    "merlin-docs/cli/overview",
+                                    "merlin-docs/cli/faq",
+                                    "merlin-docs/cli/tls",
+                                    "merlin-docs/cli/listeners",
+                                    "merlin-docs/cli/commands",
+                                    "merlin-docs/cli/logging",
+                                    "merlin-docs/cli/menu/main",
+                                    "merlin-docs/cli/menu/agents",
+                                    "merlin-docs/cli/menu/listeners",
+                                    "merlin-docs/cli/menu/modules"
+                                ]
+                            },
+                            {
+                                "group": "Merlin Server",
+                                "pages": [
+                                    "merlin-docs/server/server",
+                                    "merlin-docs/server/logging",
+                                    "merlin-docs/server/x509"
+                                ]
+                            },
+                            {
+                                "group": "Modules",
+                                "pages": [
+                                    "merlin-docs/modules/build"
+                                ]
+                            },
+                            {
+                                "group": "Miscellaneous",
+                                "pages": [
+                                    "merlin-docs/misc/blogs",
+                                    "merlin-docs/misc/contrib"
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "anchor": "GitHub",
+                        "icon": "github",
+                        "href": "https://github.com/Ne0nd0g/merlin"
+                    },
+                    {
+                        "anchor": "Slack",
+                        "icon": "slack",
+                        "href": "http://ghst.ly/BHSlack"
+                    },
+                    {
+                        "anchor": "Author",
+                        "icon": "x-twitter",
+                        "href": "https://x.com/Ne0nd0g"
+                    }
+                ]
+            },
+            {
+                "version": "Mythic Agents",
+                "anchors": [
+                    {
+                        "anchor": "Overview",
+                        "pages": [
+                            "mythic-agents/index"
+                        ]
+                    },
+                    {
+                        "anchor": "Apollo",
+                        "href": "http://159.65.255.104:3000/mythic-agents/apollo-docs/documentation-payload/apollo/_index"
+                    },
+                    {
+                        "anchor": "Poseidon",
+                        "href": "http://159.65.255.104:3000/mythic-agents/poseidon-docs/home"
+                    },
+                    {
+                        "anchor": "Apfell",
+                        "href": "http://159.65.255.104:3000/mythic-agents/apfell-docs/home"
+                    },
+                    {
+                        "anchor": "Arachne",
+                        "href": "http://159.65.255.104:3000/mythic-agents/arachne-docs/home"
+                    },
+                    {
+                        "anchor": "Bloodhound",
+                        "href": "http://159.65.255.104:3000/mythic-agents/bloodhound-agent-docs/home"
+                    },
+                    {
+                        "anchor": "Nemesis",
+                        "href": "http://159.65.255.104:3000/mythic-agents/nemesis-agent-docs/home"
+                    },
+                    {
+                        "anchor": "Ghostwriter",
+                        "href": "http://159.65.255.104:3000/mythic-agents/ghostwriter-agent-docs/home"
+                    },
+                    {
+                        "anchor": "Sage",
+                        "href": "http://159.65.255.104:3000/mythic-agents/sage-docs/home"
+                    },
+                    {
+                        "anchor": "Forge",
+                        "href": "http://159.65.255.104:3000/mythic-agents/forge-docs/home"
+                    },
+                    {
+                        "anchor": "Merlin",
+                        "href": "http://159.65.255.104:3000/mythic-agents/merlin-agent-docs/home"
+                    }
+                ]
+            },
+            {
+                "version": "Mythic Agent: Apollo",
+                "tabs": [
+                    {
+                        "tab": "Overview",
+                        "icon": "book-open",
+                        "pages": [
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/_index"
+                        ]
+                    },
+                    {
+                        "tab": "Commands",
+                        "icon": "swords",
+                        "pages": [
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/_index",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/assembly_inject",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/blockdlls",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/cat",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/cd",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/cp",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/dcsync",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/download",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/execute_assembly",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/execute_coff",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/execute_pe",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/exit",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/get_injection_techniques",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/getprivs",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/ifconfig",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/inject",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/inline_assembly",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/jobkill",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/jobs",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/keylog_inject",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/kill",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/link",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/listpipes",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/ls",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/make_token",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/mimikatz",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/mkdir",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/mv",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/net_dclist",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/net_localgroup",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/net_localgroup_member",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/net_shares",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/netstat",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/powerpick",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/powershell",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/powershell_import",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/ppid",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/printspoofer",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/ps",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/psinject",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/pth",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/pwd",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/reg_query",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/reg_write_value",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/register_assembly",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/register_coff",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/register_file",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/rev2self",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/rm",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/run",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/sc",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/screenshot",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/screenshot_inject",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/set_injection_technique",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/shell",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/shinject",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/sleep",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/socks",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/spawn",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/spawnto_x64",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/spawnto_x86",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/steal_token",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/ticket_cache_add",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/ticket_cache_extract",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/ticket_cache_list",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/ticket_cache_purge",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/ticket_store_add",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/ticket_store_list",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/ticket_store_purge",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/unlink",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/upload",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/whoami",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/commands/wmi_execute"
+                        ]
+                    },
+                    {
+                        "tab": "C2 Profiles",
+                        "icon": "phone",
+                        "pages": [
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/c2_profiles/_index",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/c2_profiles/HTTP",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/c2_profiles/SMB",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/c2_profiles/TCP",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/c2_profiles/websocket"
+                        ]
+                    },
+                    {
+                        "tab": "OPSEC",
+                        "icon": "skull",
+                        "pages": [
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/opsec/_index",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/opsec/evasion",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/opsec/apiresolvers",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/opsec/forkandrun",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/opsec/injection"
+                        ]
+                    },
+                    {
+                        "tab": "Contributing",
+                        "icon": "pencil",
+                        "pages": [
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/contributing/_index",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/contributing/apiresolvers",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/contributing/C2 Profiles",
+                            "mythic-agents/apollo-docs/documentation-payload/apollo/contributing/Tasks"
+                        ]
+                    }
+                ]
+            },
+            {
+                "version": "Mythic Agent: Poseidon",
+                "tabs": [
+                    {
+                        "tab": "Overview",
+                        "icon": "book-open",
+                        "pages": [
+                            "mythic-agents/poseidon-docs/home",
+                            "mythic-agents/poseidon-docs/development",
+                            "mythic-agents/poseidon-docs/opsec"
+                        ]
+                    },
+                    {
+                        "tab": "Commands",
+                        "icon": "swords",
+                        "pages": [
+                            "mythic-agents/poseidon-docs/commands",
+                            "mythic-agents/poseidon-docs/commands/cat",
+                            "mythic-agents/poseidon-docs/commands/cd",
+                            "mythic-agents/poseidon-docs/commands/clipboard",
+                            "mythic-agents/poseidon-docs/commands/clipboard_monitor",
+                            "mythic-agents/poseidon-docs/commands/cp",
+                            "mythic-agents/poseidon-docs/commands/curl",
+                            "mythic-agents/poseidon-docs/commands/curl_env_clear",
+                            "mythic-agents/poseidon-docs/commands/curl_env_get",
+                            "mythic-agents/poseidon-docs/commands/curl_env_set",
+                            "mythic-agents/poseidon-docs/commands/download",
+                            "mythic-agents/poseidon-docs/commands/drives",
+                            "mythic-agents/poseidon-docs/commands/execute_library",
+                            "mythic-agents/poseidon-docs/commands/exit",
+                            "mythic-agents/poseidon-docs/commands/getenv",
+                            "mythic-agents/poseidon-docs/commands/getuser",
+                            "mythic-agents/poseidon-docs/commands/jobkill",
+                            "mythic-agents/poseidon-docs/commands/jobs",
+                            "mythic-agents/poseidon-docs/commands/jxa",
+                            "mythic-agents/poseidon-docs/commands/keylog",
+                            "mythic-agents/poseidon-docs/commands/keys",
+                            "mythic-agents/poseidon-docs/commands/kill",
+                            "mythic-agents/poseidon-docs/commands/libinject",
+                            "mythic-agents/poseidon-docs/commands/link_tcp",
+                            "mythic-agents/poseidon-docs/commands/list_entitlements",
+                            "mythic-agents/poseidon-docs/commands/listtasks",
+                            "mythic-agents/poseidon-docs/commands/ls",
+                            "mythic-agents/poseidon-docs/commands/lsopen",
+                            "mythic-agents/poseidon-docs/commands/mkdir",
+                            "mythic-agents/poseidon-docs/commands/mv",
+                            "mythic-agents/poseidon-docs/commands/persist_launchd",
+                            "mythic-agents/poseidon-docs/commands/persist_loginitem",
+                            "mythic-agents/poseidon-docs/commands/portscan",
+                            "mythic-agents/poseidon-docs/commands/ps",
+                            "mythic-agents/poseidon-docs/commands/pty",
+                            "mythic-agents/poseidon-docs/commands/pwd",
+                            "mythic-agents/poseidon-docs/commands/rm",
+                            "mythic-agents/poseidon-docs/commands/run",
+                            "mythic-agents/poseidon-docs/commands/screencapture",
+                            "mythic-agents/poseidon-docs/commands/setenv",
+                            "mythic-agents/poseidon-docs/commands/shell",
+                            "mythic-agents/poseidon-docs/commands/sleep",
+                            "mythic-agents/poseidon-docs/commands/socks",
+                            "mythic-agents/poseidon-docs/commands/sshauth",
+                            "mythic-agents/poseidon-docs/commands/triagedirectory",
+                            "mythic-agents/poseidon-docs/commands/unlink_tcp",
+                            "mythic-agents/poseidon-docs/commands/unsetenv",
+                            "mythic-agents/poseidon-docs/commands/upload",
+                            "mythic-agents/poseidon-docs/commands/xpc_load",
+                            "mythic-agents/poseidon-docs/commands/xpc_manageruid",
+                            "mythic-agents/poseidon-docs/commands/xpc_procinfo",
+                            "mythic-agents/poseidon-docs/commands/xpc_send",
+                            "mythic-agents/poseidon-docs/commands/xpc_service",
+                            "mythic-agents/poseidon-docs/commands/xpc_submit",
+                            "mythic-agents/poseidon-docs/commands/xpc_unload"
+                        ]
+                    },
+                    {
+                        "tab": "C2 Profiles",
+                        "icon": "phone",
+                        "pages": [
+                            "mythic-agents/poseidon-docs/c2_profiles",
+                            "mythic-agents/poseidon-docs/c2_profiles/HTTP",
+                            "mythic-agents/poseidon-docs/c2_profiles/Poseidon_TCP",
+                            "mythic-agents/poseidon-docs/c2_profiles/websocket"
+                        ]
+                    }
+                ]
+            },
+            {
+                "version": "Mythic Agent: Apfell",
+                "tabs": [
+                    {
+                        "tab": "Overview",
+                        "icon": "book-open",
+                        "pages": [
+                            "mythic-agents/apfell-docs/home",
+                            "mythic-agents/apfell-docs/development",
+                            "mythic-agents/apfell-docs/opsec"
+                        ]
+                    },
+                    {
+                        "tab": "Commands",
+                        "icon": "swords",
+                        "pages": [
+                            "mythic-agents/apfell-docs/commands",
+                            "mythic-agents/apfell-docs/commands/add_user",
+                            "mythic-agents/apfell-docs/commands/cat",
+                            "mythic-agents/apfell-docs/commands/cd",
+                            "mythic-agents/apfell-docs/commands/chrome_bookmarks",
+                            "mythic-agents/apfell-docs/commands/chrome_js",
+                            "mythic-agents/apfell-docs/commands/chrome_tabs",
+                            "mythic-agents/apfell-docs/commands/clipboard",
+                            "mythic-agents/apfell-docs/commands/current_user",
+                            "mythic-agents/apfell-docs/commands/download",
+                            "mythic-agents/apfell-docs/commands/exit",
+                            "mythic-agents/apfell-docs/commands/get_config",
+                            "mythic-agents/apfell-docs/commands/hostname",
+                            "mythic-agents/apfell-docs/commands/iTerm",
+                            "mythic-agents/apfell-docs/commands/ifconfig",
+                            "mythic-agents/apfell-docs/commands/jscript",
+                            "mythic-agents/apfell-docs/commands/jsimport",
+                            "mythic-agents/apfell-docs/commands/jsimport_call",
+                            "mythic-agents/apfell-docs/commands/launchapp",
+                            "mythic-agents/apfell-docs/commands/list_apps",
+                            "mythic-agents/apfell-docs/commands/list_users",
+                            "mythic-agents/apfell-docs/commands/load",
+                            "mythic-agents/apfell-docs/commands/ls",
+                            "mythic-agents/apfell-docs/commands/persist_emond",
+                            "mythic-agents/apfell-docs/commands/persist_folderaction",
+                            "mythic-agents/apfell-docs/commands/persist_launch",
+                            "mythic-agents/apfell-docs/commands/persist_loginitem_allusers",
+                            "mythic-agents/apfell-docs/commands/plist",
+                            "mythic-agents/apfell-docs/commands/prompt",
+                            "mythic-agents/apfell-docs/commands/pwd",
+                            "mythic-agents/apfell-docs/commands/rm",
+                            "mythic-agents/apfell-docs/commands/run",
+                            "mythic-agents/apfell-docs/commands/run_perl",
+                            "mythic-agents/apfell-docs/commands/run_python",
+                            "mythic-agents/apfell-docs/commands/run_ruby",
+                            "mythic-agents/apfell-docs/commands/screenshot",
+                            "mythic-agents/apfell-docs/commands/security_info",
+                            "mythic-agents/apfell-docs/commands/shell",
+                            "mythic-agents/apfell-docs/commands/shell_elevated",
+                            "mythic-agents/apfell-docs/commands/sleep",
+                            "mythic-agents/apfell-docs/commands/spawn_download_cradle",
+                            "mythic-agents/apfell-docs/commands/spawn_drop_and_execute",
+                            "mythic-agents/apfell-docs/commands/system_info",
+                            "mythic-agents/apfell-docs/commands/terminals_read",
+                            "mythic-agents/apfell-docs/commands/terminals_send",
+                            "mythic-agents/apfell-docs/commands/test_password",
+                            "mythic-agents/apfell-docs/commands/upload"
+                        ]
+                    },
+                    {
+                        "tab": "C2 Profiles",
+                        "icon": "phone",
+                        "pages": [
+                            "mythic-agents/apfell-docs/c2_profiles",
+                            "mythic-agents/apfell-docs/c2_profiles/HTTP",
+                            "mythic-agents/apfell-docs/c2_profiles/dynamicHTTP"
+                        ]
+                    }
+                ]
+            },
+            {
+                "version": "Mythic Agent: Arachne",
+                "tabs": [
+                    {
+                        "tab": "Overview",
+                        "icon": "book-open",
+                        "pages": [
+                            "mythic-agents/arachne-docs/home"
+                        ]
+                    },
+                    {
+                        "tab": "Commands",
+                        "icon": "swords",
+                        "pages": [
+                            "mythic-agents/arachne-docs/commands",
+                            "mythic-agents/arachne-docs/commands/cd",
+                            "mythic-agents/arachne-docs/commands/checkin",
+                            "mythic-agents/arachne-docs/commands/download",
+                            "mythic-agents/arachne-docs/commands/execute_assembly",
+                            "mythic-agents/arachne-docs/commands/ls",
+                            "mythic-agents/arachne-docs/commands/pwd",
+                            "mythic-agents/arachne-docs/commands/rm",
+                            "mythic-agents/arachne-docs/commands/shell",
+                            "mythic-agents/arachne-docs/commands/upload"
+                        ]
+                    },
+                    {
+                        "tab": "C2 Profiles",
+                        "icon": "phone",
+                        "pages": [
+                            "mythic-agents/arachne-docs/c2_profiles",
+                            "mythic-agents/arachne-docs/c2_profiles/Webshell"
+                        ]
+                    }
+                ]
+            },
+            {
+                "version": "Mythic Agent: Bloodhound",
+                "tabs": [
+                    {
+                        "tab": "Overview",
+                        "icon": "book-open",
+                        "pages": [
+                            "mythic-agents/bloodhound-agent-docs/home"
+                        ]
+                    },
+                    {
+                        "tab": "Commands",
+                        "icon": "swords",
+                        "pages": [
+                            "mythic-agents/bloodhound-agent-docs/commands",
+                            "mythic-agents/bloodhound-agent-docs/commands/controllables",
+                            "mythic-agents/bloodhound-agent-docs/commands/cypher",
+                            "mythic-agents/bloodhound-agent-docs/commands/cypher_create_saved",
+                            "mythic-agents/bloodhound-agent-docs/commands/cypher_delete_saved",
+                            "mythic-agents/bloodhound-agent-docs/commands/cypher_list_saved",
+                            "mythic-agents/bloodhound-agent-docs/commands/cypher_predefined",
+                            "mythic-agents/bloodhound-agent-docs/commands/cypher_saved",
+                            "mythic-agents/bloodhound-agent-docs/commands/get_domains",
+                            "mythic-agents/bloodhound-agent-docs/commands/get_domains_foreign_users",
+                            "mythic-agents/bloodhound-agent-docs/commands/get_group",
+                            "mythic-agents/bloodhound-agent-docs/commands/get_group_members",
+                            "mythic-agents/bloodhound-agent-docs/commands/get_group_memberships",
+                            "mythic-agents/bloodhound-agent-docs/commands/get_object",
+                            "mythic-agents/bloodhound-agent-docs/commands/get_owned",
+                            "mythic-agents/bloodhound-agent-docs/commands/get_user",
+                            "mythic-agents/bloodhound-agent-docs/commands/get_user_memberships",
+                            "mythic-agents/bloodhound-agent-docs/commands/graph_search",
+                            "mythic-agents/bloodhound-agent-docs/commands/mark_owned",
+                            "mythic-agents/bloodhound-agent-docs/commands/search",
+                            "mythic-agents/bloodhound-agent-docs/commands/shortest_path",
+                            "mythic-agents/bloodhound-agent-docs/commands/upload",
+                            "mythic-agents/bloodhound-agent-docs/commands/upload_status",
+                            "mythic-agents/bloodhound-agent-docs/commands/whoami"
+                        ]
+                    },
+                    {
+                        "tab": "Contributing",
+                        "icon": "pencil",
+                        "pages": [
+                            "mythic-agents/bloodhound-agent-docs/contributing",
+                            "mythic-agents/bloodhound-agent-docs/contributing/Tasks"
+                        ]
+                    }
+                ]
+            },
+            {
+                "version": "Mythic Agent: Nemesis",
+                "tabs": [
+                    {
+                        "tab": "Overview",
+                        "icon": "book-open",
+                        "pages": [
+                            "mythic-agents/nemesis-agent-docs/home"
+                        ]
+                    },
+                    {
+                        "tab": "Commands",
+                        "icon": "swords",
+                        "pages": [
+                            "mythic-agents/nemesis-agent-docs/commands",
+                            "mythic-agents/nemesis-agent-docs/commands/upload",
+                            "mythic-agents/nemesis-agent-docs/commands/chromium",
+                            "mythic-agents/nemesis-agent-docs/commands/hashes",
+                            "mythic-agents/nemesis-agent-docs/commands/credentials",
+                            "mythic-agents/nemesis-agent-docs/commands/triage"
+                        ]
+                    }
+                ]
+            },
+            {
+                "version": "Mythic Agent: Ghostwriter",
+                "tabs": [
+                    {
+                        "tab": "Overview",
+                        "icon": "book-open",
+                        "pages": [
+                            "mythic-agents/ghostwriter-agent-docs/home"
+                        ]
+                    },
+                    {
+                        "tab": "Commands",
+                        "icon": "swords",
+                        "pages": [
+                            "mythic-agents/ghostwriter-agent-docs/commands",
+                            "mythic-agents/ghostwriter-agent-docs/commands/project",
+                            "mythic-agents/ghostwriter-agent-docs/commands/whoami",
+                            "mythic-agents/ghostwriter-agent-docs/commands/findings_get",
+                            "mythic-agents/ghostwriter-agent-docs/commands/findings_search",
+                            "mythic-agents/ghostwriter-agent-docs/commands/findings_create_blank",
+                            "mythic-agents/ghostwriter-agent-docs/commands/findings_update",
+                            "mythic-agents/ghostwriter-agent-docs/commands/findings_delete",
+                            "mythic-agents/ghostwriter-agent-docs/commands/findings_attach",
+                            "mythic-agents/ghostwriter-agent-docs/commands/evidence_get",
+                            "mythic-agents/ghostwriter-agent-docs/commands/evidence_create",
+                            "mythic-agents/ghostwriter-agent-docs/commands/evidence_create_blank",
+                            "mythic-agents/ghostwriter-agent-docs/commands/evidence_update",
+                            "mythic-agents/ghostwriter-agent-docs/commands/evidence_delete",
+                            "mythic-agents/ghostwriter-agent-docs/commands/objectives_get",
+                            "mythic-agents/ghostwriter-agent-docs/commands/objectives_create",
+                            "mythic-agents/ghostwriter-agent-docs/commands/objectives_update",
+                            "mythic-agents/ghostwriter-agent-docs/commands/objectives_delete",
+                            "mythic-agents/ghostwriter-agent-docs/commands/objectives_create_subtask",
+                            "mythic-agents/ghostwriter-agent-docs/commands/objectives_update_subtask",
+                            "mythic-agents/ghostwriter-agent-docs/commands/objectives_delete_subtask",
+                            "mythic-agents/ghostwriter-agent-docs/commands/oplog_create",
+                            "mythic-agents/ghostwriter-agent-docs/commands/oplog_update",
+                            "mythic-agents/ghostwriter-agent-docs/commands/oplog_search",
+                            "mythic-agents/ghostwriter-agent-docs/commands/reports_get",
+                            "mythic-agents/ghostwriter-agent-docs/commands/reports_artifacts",
+                            "mythic-agents/ghostwriter-agent-docs/commands/project_notes",
+                            "mythic-agents/ghostwriter-agent-docs/commands/project_notes_create",
+                            "mythic-agents/ghostwriter-agent-docs/commands/project_notes_update",
+                            "mythic-agents/ghostwriter-agent-docs/commands/project_notes_delete"
+                        ]
+                    }
+                ]
+            },
+            {
+                "version": "Mythic Agent: Sage",
+                "tabs": [
+                    {
+                        "tab": "Overview",
+                        "icon": "book-open",
+                        "pages": [
+                            "mythic-agents/sage-docs/home"
+                        ]
+                    },
+                    {
+                        "tab": "Commands",
+                        "icon": "swords",
+                        "pages": [
+                            "mythic-agents/sage-docs/commands",
+                            "mythic-agents/sage-docs/commands/chat",
+                            "mythic-agents/sage-docs/commands/query",
+                            "mythic-agents/sage-docs/commands/list",
+                            "mythic-agents/sage-docs/commands/mcp-connect"
+                        ]
+                    }
+                ]
+            },
+            {
+                "version": "Mythic Agent: Forge",
+                "tabs": [
+                    {
+                        "tab": "Overview",
+                        "icon": "book-open",
+                        "pages": [
+                            "mythic-agents/forge-docs/home"
+                        ]
+                    },
+                    {
+                        "tab": "Commands",
+                        "icon": "swords",
+                        "pages": [
+                            "mythic-agents/forge-docs/commands",
+                            "mythic-agents/forge-docs/commands/forge_collections",
+                            "mythic-agents/forge-docs/commands/forge_create",
+                            "mythic-agents/forge-docs/commands/forge_download",
+                            "mythic-agents/forge-docs/commands/forge_register",
+                            "mythic-agents/forge-docs/commands/forge_support"
+                        ]
+                    },
+                    {
+                        "tab": "Additional Info",
+                        "icon": "circle-info",
+                        "pages": [
+                            "mythic-agents/forge-docs/development",
+                            "mythic-agents/forge-docs/opsec"
+                        ]
+                    }
+                ]
+            },
+            {
+                "version": "Mythic Agent: Merlin",
+                "tabs": [
+                    {
+                        "tab": "Overview",
+                        "icon": "book-open",
+                        "pages": [
+                            "mythic-agents/merlin-agent-docs/home"
+                        ]
+                    },
+                    {
+                        "tab": "Commands",
+                        "icon": "swords",
+                        "pages": [
+                            "mythic-agents/merlin-agent-docs/commands",
+                            "mythic-agents/merlin-agent-docs/commands/cd",
+                            "mythic-agents/merlin-agent-docs/commands/createprocess",
+                            "mythic-agents/merlin-agent-docs/commands/donut",
+                            "mythic-agents/merlin-agent-docs/commands/download",
+                            "mythic-agents/merlin-agent-docs/commands/execute-assembly",
+                            "mythic-agents/merlin-agent-docs/commands/execute-pe",
+                            "mythic-agents/merlin-agent-docs/commands/execute-shellcode",
+                            "mythic-agents/merlin-agent-docs/commands/exit",
+                            "mythic-agents/merlin-agent-docs/commands/ja3",
+                            "mythic-agents/merlin-agent-docs/commands/killdate",
+                            "mythic-agents/merlin-agent-docs/commands/ls",
+                            "mythic-agents/merlin-agent-docs/commands/make_token",
+                            "mythic-agents/merlin-agent-docs/commands/maxretry",
+                            "mythic-agents/merlin-agent-docs/commands/memfd",
+                            "mythic-agents/merlin-agent-docs/commands/memory",
+                            "mythic-agents/merlin-agent-docs/commands/mimikatz",
+                            "mythic-agents/merlin-agent-docs/commands/nslookup",
+                            "mythic-agents/merlin-agent-docs/commands/parrot",
+                            "mythic-agents/merlin-agent-docs/commands/pwd",
+                            "mythic-agents/merlin-agent-docs/commands/rev2self",
+                            "mythic-agents/merlin-agent-docs/commands/rm",
+                            "mythic-agents/merlin-agent-docs/commands/run",
+                            "mythic-agents/merlin-agent-docs/commands/runas",
+                            "mythic-agents/merlin-agent-docs/commands/sharpgen",
+                            "mythic-agents/merlin-agent-docs/commands/shell",
+                            "mythic-agents/merlin-agent-docs/commands/skew",
+                            "mythic-agents/merlin-agent-docs/commands/sleep",
+                            "mythic-agents/merlin-agent-docs/commands/socks",
+                            "mythic-agents/merlin-agent-docs/commands/srdi",
+                            "mythic-agents/merlin-agent-docs/commands/ssh",
+                            "mythic-agents/merlin-agent-docs/commands/steal_token",
+                            "mythic-agents/merlin-agent-docs/commands/token"
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    "appearance": {
+        "default": "dark"
+    },
+    "background": {
+        "decoration": "gradient"
+    },
+    "navbar": {
+        "links": [
+            {
+                "label": "Toolkit Hub",
+                "href": "https://github.com/SpecterOps"
+            }
+        ],
+        "primary": {
+            "type": "button",
+            "label": "Contact Us",
+            "href": "https://specterops.io/contact/"
+        }
+    },
+    "footer": {
+        "socials": {
+            "x": "https://x.com/specterops",
+            "website": "https://infosec.exchange/@SpecterOps",
+            "github": "https://github.com/SpecterOps/BloodHound",
+            "linkedin": "https://www.linkedin.com/company/specterops",
+            "slack": "https://slack.specterops.io/",
+            "instagram": "https://www.instagram.com/specterops.io/",
+            "youtube": "https://www.youtube.com/channel/UCWMKKqCCQkUjU8dIyiL1yhQ"
+        }
+    }
+}

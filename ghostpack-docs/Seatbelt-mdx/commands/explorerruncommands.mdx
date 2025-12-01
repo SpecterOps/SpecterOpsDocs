@@ -1,0 +1,107 @@
+---
+title: 'ExplorerRunCommands'
+description: 'Recent Explorer "run" commands'
+icon: 'terminal'
+---
+
+## Overview
+
+The `ExplorerRunCommands` command enumerates recent commands executed via the Windows Explorer "Run" dialog (Win+R). This reveals commands, scripts, and applications that users have recently launched, providing insight into user activities and system usage patterns.
+
+**Important:** User commands run for the current user if not elevated and for ALL users if elevated.
+
+## Syntax
+
+```
+Seatbelt.exe ExplorerRunCommands
+```
+
+No additional arguments are supported. This command supports remote execution.
+
+## Output
+
+The command returns:
+- Commands executed via the Run dialog
+- Full command strings including arguments
+- Execution order (MRU ranking)
+- User context for each command
+- Paths to executables, scripts, or network resources
+
+## Use Cases
+
+### Red Team
+- **Command History**: Discover administrative tools and scripts users have executed
+- **Credential Discovery**: Find commands that may have included passwords or sensitive data
+- **Network Mapping**: Identify network shares and remote systems accessed via Run
+- **Tool Detection**: Discover security tools or monitoring software in use
+- **Lateral Movement**: Find remote system access patterns and administrative commands
+
+### Blue Team
+- **Security Auditing**: Review commands for suspicious or unauthorized activity
+- **Incident Response**: Track user actions during security events
+- **Compliance Monitoring**: Ensure commands align with security policies
+- **User Training**: Identify users executing risky commands
+- **Threat Hunting**: Search for malicious command patterns or indicators of compromise
+
+## Example Output
+
+```
+====== ExplorerRunCommands ======
+
+User: john.doe
+
+  [1] cmd.exe
+  [2] \\fileserver\share$\admin-tools\psexec.exe
+  [3] mstsc /v:10.10.10.50
+  [4] powershell -ep bypass
+  [5] \\dc01\c$
+  [6] control admintools
+  [7] %appdata%
+  [8] regedit
+```
+
+## Privilege Context
+
+- **Non-Elevated**: Returns Run command history for the current user only
+- **Elevated**: Returns Run command history for ALL users on the system, providing comprehensive visibility of executed commands across all user accounts
+
+## Remote Execution
+
+This command **supports** remote execution (marked with + in the command list).
+
+Remote syntax:
+```
+Seatbelt.exe ExplorerRunCommands -computername=TARGET.domain.com -username=DOMAIN\user -password=pass
+```
+
+## Detection Considerations
+
+### Indicators
+- Registry enumeration of RunMRU keys
+- Access to user registry hives (HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\RunMRU)
+- Reading command history data
+- Enumeration across multiple user profiles
+
+### Defensive Monitoring
+- Monitor registry access to RunMRU keys
+- Alert on automated enumeration of command history
+- Track processes reading Run dialog history
+- Log unusual access patterns to Explorer MRU data
+- Detect reconnaissance tools querying command history
+- Monitor for suspicious command patterns in Run history
+- Alert on commands containing credentials or sensitive data
+
+### Suspicious Command Indicators
+- Commands with encoded or obfuscated content
+- PowerShell with execution policy bypass flags
+- Remote execution tools (psexec, wmic, etc.)
+- Network path access to administrative shares
+- Registry editor or system tool access
+- Commands accessing sensitive directories
+
+## Related Commands
+
+- **ExplorerMRUs**: Shows recently used files in Explorer
+- **PowerShellHistory**: Searches PowerShell console history
+- **ProcessCreationEvents**: Shows process creation event logs
+- **EnvironmentVariables**: May reveal command paths and configurations

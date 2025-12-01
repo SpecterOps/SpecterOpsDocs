@@ -1,0 +1,114 @@
+---
+title: 'currentluid'
+description: 'Display the current logon session identifier (LUID)'
+icon: 'id-card'
+sidebarTitle: 'currentluid'
+---
+
+## Overview
+
+Display the current logon session identifier (LUID) for the active process. This utility command helps identify the current session context for targeting ticket operations and session management.
+
+## Syntax
+
+```bash
+Rubeus.exe currentluid
+```
+
+## Examples
+
+<CodeGroup>
+```bash Basic Usage
+# Display current LUID
+Rubeus.exe currentluid
+
+# Example output
+# [*] Current LUID : 0x12345
+```
+</CodeGroup>
+
+## LUID Information
+
+<Accordion title="Logon Session Identifier">
+  **LUID Characteristics:**
+  - Unique identifier for each logon session
+  - Assigned by Local Security Authority (LSA)
+  - Hexadecimal format (e.g., 0x12345)
+  - Used for session-specific operations
+
+  **Session Types:**
+  - Interactive logons (user desktop sessions)
+  - Network logons (remote authentication)
+  - Service logons (service account sessions)
+  - System sessions (SYSTEM account)
+</Accordion>
+
+## Use Cases
+
+<Accordion title="Session Identification">
+  **Operational Context:**
+  - Identify current session for ticket operations
+  - Target specific sessions for credential extraction
+  - Understand session context for privilege operations
+  - Plan cross-session ticket injection
+
+  **Session Targeting:**
+  - Use LUID for targeted dump operations
+  - Specify session for ticket injection
+  - Identify sessions for monitoring
+  - Plan session-specific operations
+</Accordion>
+
+## Integration Workflows
+
+<Accordion title="Session-Aware Operations">
+  **Complete Workflow:**
+  ```bash
+  # 1. Get current session LUID
+  Rubeus.exe currentluid
+  # Output: [*] Current LUID : 0x12345
+
+  # 2. Use LUID for targeted operations
+  Rubeus.exe dump /luid:0x12345
+
+  # 3. Inject tickets into specific session
+  Rubeus.exe ptt /ticket:admin.kirbi /luid:0x12345
+  ```
+</Accordion>
+
+<Accordion title="Session Analysis">
+  **Multi-Session Operations:**
+  ```bash
+  # 1. Check current session
+  Rubeus.exe currentluid
+
+  # 2. Enumerate all sessions
+  Rubeus.exe logonsession
+
+  # 3. Compare with current session context
+  # Plan operations based on session relationships
+  ```
+</Accordion>
+
+## Session Context
+
+<Accordion title="Session Information">
+  **LUID Significance:**
+  - Each logon creates unique LUID
+  - Sessions maintain separate credential caches
+  - Cross-session operations require elevation
+  - LUID persists for session lifetime
+
+  **Common LUID Values:**
+  - 0x3e7: SYSTEM session
+  - 0x3e4: LOCAL SERVICE session
+  - 0x3e5: NETWORK SERVICE session
+  - Higher values: User sessions
+</Accordion>
+
+## Related Commands
+
+- [`logonsession`](/commands/miscellaneous/logonsession) - Enumerate all logon sessions
+- [`dump`](/commands/extraction/dump) - Extract tickets from specific LUID
+- [`ptt`](/commands/management/ptt) - Inject tickets into specific LUID
+- [`klist`](/commands/extraction/klist) - List tickets for specific LUID

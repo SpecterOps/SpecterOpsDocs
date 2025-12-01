@@ -1,0 +1,212 @@
+---
+title: 'describe'
+description: 'Parse and display detailed information about Kerberos tickets'
+icon: 'magnifying-glass'
+sidebarTitle: 'describe'
+---
+
+## Overview
+
+Parse and display detailed information about Kerberos tickets. This command analyzes ticket structure, encryption details, service information, and validity periods for both TGTs and service tickets.
+
+## Syntax
+
+```bash
+Rubeus.exe describe /ticket:TICKET [options]
+```
+
+## Required Parameters
+
+<ParamField path="ticket" type="string" required>
+  Base64-encoded ticket data or path to .kirbi file to analyze
+</ParamField>
+
+## Optional Parameters
+
+<ParamField path="servicekey" type="string">
+  Service key to decrypt ticket (RC4/AES128/AES256)
+</ParamField>
+
+<ParamField path="krbkey" type="string">
+  KRB-CRED key to decrypt tickets
+</ParamField>
+
+<ParamField path="asrekey" type="string">
+  AS-REP key for decrypting AS-REP tickets
+</ParamField>
+
+## Examples
+
+<CodeGroup>
+```bash Basic Analysis
+# Analyze ticket structure
+Rubeus.exe describe /ticket:doIFuj...
+
+# Analyze ticket from file
+Rubeus.exe describe /ticket:C:\temp\admin.kirbi
+
+# Decrypt ticket with service key
+Rubeus.exe describe /ticket:ticket.kirbi /servicekey:hash
+```
+
+```bash Advanced Decryption
+# Decrypt with AS-REP key
+Rubeus.exe describe /ticket:asrep.kirbi /asrekey:user_hash
+
+# Decrypt KRB-CRED structure
+Rubeus.exe describe /ticket:cred.kirbi /krbkey:session_key
+```
+</CodeGroup>
+
+## Ticket Information
+
+<Accordion title="Basic Ticket Details">
+  **Structure Information:**
+  - Ticket version and message type
+  - Encryption algorithm used
+  - Service principal name (SPN)
+  - Client principal name
+
+  **Validity Information:**
+  - Start time (authtime)
+  - End time (endtime)
+  - Renew-till time (if renewable)
+  - Current validity status
+</Accordion>
+
+<Accordion title="Flags and Attributes">
+  **Ticket Flags:**
+  - Forwardable, Forwarded
+  - Proxiable, Proxy
+  - Renewable, Initial
+  - Pre-authent, HW-authent
+  - Transited-policy-checked
+
+  **Security Attributes:**
+  - Encryption type details
+  - Key version number (kvno)
+  - Authorization data presence
+  - Delegation information
+</Accordion>
+
+## Use Cases
+
+<Accordion title="Ticket Validation">
+  **Pre-Injection Analysis:**
+  - Verify ticket validity before PTT
+  - Check encryption compatibility
+  - Validate service targeting
+  - Confirm expiration status
+
+  **Quality Assessment:**
+  - Identify forged vs legitimate tickets
+  - Check for proper flag settings
+  - Validate encryption strength
+  - Assess operational security
+</Accordion>
+
+<Accordion title="Forensic Analysis">
+  **Incident Response:**
+  - Analyze suspicious tickets
+  - Identify attack indicators
+  - Trace ticket origins
+  - Document evidence details
+
+  **Reverse Engineering:**
+  - Understand ticket structure
+  - Analyze custom implementations
+  - Debug authentication issues
+  - Research new techniques
+</Accordion>
+
+## Decryption Capabilities
+
+<Accordion title="Service Key Decryption">
+  **When Available:**
+  - Service account password/hash known
+  - Machine account credentials obtained
+  - Service key extracted from memory
+
+  **Information Revealed:**
+  - Encrypted ticket portion contents
+  - Authorization data details
+  - Session key information
+  - Extended attributes
+</Accordion>
+
+<Accordion title="KRB-CRED Analysis">
+  **Credential Structures:**
+  - Multiple ticket analysis
+  - Session key extraction
+  - Credential forwarding data
+  - Delegation chain information
+
+  **Advanced Features:**
+  - Cross-realm ticket analysis
+  - Trust relationship validation
+  - Complex delegation scenarios
+  - Multi-hop authentication
+</Accordion>
+
+## Output Analysis
+
+<Accordion title="Understanding Output">
+  **Key Information:**
+  ```bash
+  # Example output sections
+  [*] Target SPN             : krbtgt/CORP.LOCAL
+  [*] Client Name            : admin
+  [*] Client Realm           : CORP.LOCAL
+  [*] Server Name            : krbtgt
+  [*] Server Realm           : CORP.LOCAL
+  [*] Start Time             : 1/1/2024 9:00:00 AM
+  [*] End Time               : 1/1/2024 7:00:00 PM
+  [*] Renew Till             : 1/8/2024 9:00:00 AM
+  [*] Flags                  : name_canonicalize, pre_authent, renewable, forwarded
+  [*] Key Type               : aes256_cts_hmac_sha1
+  [*] Base64(key)            : base64_encoded_session_key
+  ```
+
+  **Critical Fields:**
+  - Service targeting accuracy
+  - Validity window analysis
+  - Encryption strength assessment
+  - Flag configuration review
+</Accordion>
+
+## Integration Workflows
+
+<Accordion title="Pre-Attack Analysis">
+  **Ticket Preparation:**
+  ```bash
+  # 1. Analyze extracted ticket
+  Rubeus.exe describe /ticket:extracted.kirbi
+
+  # 2. Verify compatibility
+  # Check encryption type, validity, flags
+
+  # 3. Proceed with injection if valid
+  Rubeus.exe ptt /ticket:extracted.kirbi
+  ```
+</Accordion>
+
+<Accordion title="Post-Forgery Verification">
+  **Quality Control:**
+  ```bash
+  # 1. Create forged ticket
+  Rubeus.exe golden /user:admin /domain:corp.local /sid:S-1-5-21... /krbtgt:hash
+
+  # 2. Analyze forged ticket
+  Rubeus.exe describe /ticket:golden.kirbi
+
+  # 3. Verify realistic attributes
+  # Check flags, times, encryption
+  ```
+</Accordion>
+
+## Related Commands
+
+- [`ptt`](/GhostPack/Rubeus-mdx/commands/management/ptt) - Inject analyzed tickets
+- [`dump`](/GhostPack/Rubeus-mdx/commands/extraction/dump) - Extract tickets for analysis
+- [`golden`](/GhostPack/Rubeus-mdx/commands/forgery/golden) - Create tickets to analyze
+- [`silver`](/GhostPack/Rubeus-mdx/commands/forgery/silver) - Create service tickets to analyze

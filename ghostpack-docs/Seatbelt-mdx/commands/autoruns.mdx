@@ -1,0 +1,133 @@
+---
+title: 'AutoRuns'
+description: 'Auto run executables/scripts/programs'
+icon: 'rotate'
+---
+
+## Overview
+
+The AutoRuns command enumerates programs, scripts, and executables configured to run automatically on system startup or user logon. This identifies persistence mechanisms and provides visibility into what code executes during various system events.
+
+This command checks numerous autorun locations including registry keys, startup folders, scheduled tasks, services, and other persistence mechanisms commonly used by both legitimate software and malware.
+
+## Syntax
+
+```bash
+Seatbelt.exe AutoRuns
+```
+
+### Remote Execution
+```bash
+Seatbelt.exe AutoRuns -computername=TARGET.domain.com [-username=DOMAIN\user -password=pass]
+```
+
+## Output
+
+The command enumerates autorun entries from multiple locations:
+
+- Registry Run/RunOnce keys (HKLM and HKCU)
+- Startup folders
+- Scheduled tasks
+- Services
+- Winlogon entries
+- AppInit DLLs
+- Image File Execution Options
+- Browser Helper Objects
+- Explorer Shell Extensions
+- Boot Execute entries
+- Logon scripts
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Identify existing persistence mechanisms
+    - Find writable autorun locations for persistence
+    - Discover security products that auto-start
+    - Identify DLL hijacking opportunities
+    - Locate trusted executables for Living off the Land
+    - Understand system startup behavior
+  </Tab>
+  <Tab title="Blue Team">
+    - Detect unauthorized persistence mechanisms
+    - Audit auto-start locations for malware
+    - Identify suspicious or unsigned executables
+    - Validate legitimate software installations
+    - Hunt for malware persistence
+    - Generate baseline of expected autoruns
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== AutoRuns ======
+
+HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run
+  SecurityHealth : C:\Windows\system32\SecurityHealthSystray.exe
+  VMware User Process : "C:\Program Files\VMware\VMware Tools\vmtoolsd.exe" -n vmusr
+
+HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Run
+  OneDrive : "C:\Program Files\Microsoft OneDrive\OneDrive.exe" /background
+
+Startup Folder (All Users):
+  C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Startup\
+
+Startup Folder (Current User):
+  C:\Users\admin\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\
+    update.bat
+
+Services (Non-Microsoft):
+  Name: CustomService
+  Path: C:\Program Files\Custom\service.exe
+  Start Mode: Auto
+```
+
+## Remote Execution
+
+<Check>
+This command **supports remote execution** using the `-computername` parameter.
+</Check>
+
+Remote execution queries registry keys and file system paths via WMI on the target system.
+
+## Detection Considerations
+
+<Warning>
+This command may generate the following detection opportunities:
+</Warning>
+
+- **Registry Enumeration**: Queries multiple registry autorun locations
+- **File System Access**: Checks startup folders and file paths
+- **WMI Activity**: Remote queries generate WMI events
+- **Event Logs**:
+  - Registry access events (4656/4663)
+  - File system access events (4663)
+  - WMI activity (5857-5861)
+
+### Defensive Recommendations
+
+<Accordion title="Monitoring Strategies">
+**Registry Monitoring:**
+- Monitor access to Run/RunOnce keys
+- Alert on enumeration of multiple autorun registry locations
+- Track changes to autorun entries
+
+**File System Monitoring:**
+- Monitor Startup folder access
+- Track creation of new autorun files
+- Alert on modifications to existing autorun executables
+
+**Behavioral Detection:**
+- Baseline normal autorun configurations
+- Alert on new or suspicious autorun entries
+- Correlate with other reconnaissance activities
+</Accordion>
+
+## Related Commands
+
+- [Services](/commands/services) - Enumerate running services
+- [ScheduledTasks](/commands/scheduledtasks) - Scheduled task enumeration
+- [LocalGPOs](/commands/localgpos) - Local Group Policy settings
+- [InterestingProcesses](/commands/interestingprocesses) - Security and admin tools
+- [Processes](/commands/processes) - Running processes

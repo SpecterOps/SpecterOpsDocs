@@ -1,0 +1,135 @@
+---
+title: 'AuditPolicies'
+description: 'Enumerates classic and advanced audit policy settings'
+icon: 'clipboard-list'
+---
+
+## Overview
+
+The AuditPolicies command enumerates both classic and advanced audit policy settings configured on the system. These policies determine what security events are logged by Windows, providing crucial insight into what activities will be visible to defenders through event logs.
+
+Understanding audit policies helps assess the visibility and logging posture of a target system, indicating what actions might be detected or remain unlogged.
+
+## Syntax
+
+```bash
+Seatbelt.exe AuditPolicies
+```
+
+<Note>
+This command does **not** support remote execution. Use [AuditPolicyRegistry](/commands/auditpolicyregistry) for remote enumeration.
+</Note>
+
+## Output
+
+The command returns audit policy configuration including:
+
+- Classic audit policies (9 categories)
+- Advanced audit policies (subcategories)
+- Success/Failure audit settings
+- Policy enforcement status
+- Category-specific settings
+
+### Audit Categories
+
+<Accordion title="Classic Audit Policy Categories">
+- System
+- Logon/Logoff
+- Object Access
+- Privilege Use
+- Detailed Tracking
+- Policy Change
+- Account Management
+- Directory Service Access
+- Account Logon
+</Accordion>
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Identify which activities will generate event logs
+    - Discover logging blind spots for stealthy operations
+    - Plan actions to minimize forensic footprint
+    - Assess detection surface before executing techniques
+    - Understand which credential theft methods might be logged
+    - Determine if process creation is audited
+  </Tab>
+  <Tab title="Blue Team">
+    - Verify audit policy compliance with security baselines
+    - Ensure critical security events are being logged
+    - Identify gaps in logging coverage
+    - Validate detection capabilities
+    - Audit configuration across multiple systems
+    - Ensure proper event forwarding setup
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== AuditPolicies ======
+
+Classic Audit Policies:
+  Audit System Events              : Success and Failure
+  Audit Logon Events               : Success and Failure
+  Audit Object Access              : No Auditing
+  Audit Privilege Use              : No Auditing
+  Audit Process Tracking           : Success
+  Audit Policy Change              : Success
+  Audit Account Management         : Success and Failure
+  Audit Directory Service Access   : No Auditing
+  Audit Account Logon Events       : Success and Failure
+
+Advanced Audit Policies:
+  Credential Validation            : Success and Failure
+  Kerberos Authentication Service  : Success and Failure
+  Process Creation                 : Success
+  Logon                            : Success and Failure
+  Special Logon                    : Success
+  Security Group Management        : Success
+```
+
+## Remote Execution
+
+<Warning>
+This command does **NOT support remote execution**.
+</Warning>
+
+For remote audit policy enumeration, use the [AuditPolicyRegistry](/commands/auditpolicyregistry) command instead, which reads audit settings from the registry and supports the `-computername` parameter.
+
+## Detection Considerations
+
+<Info>
+This command has limited detection surface:
+</Info>
+
+- **API Calls**: Uses `AuditQuerySystemPolicy` and `AuditEnumerateCategories` APIs
+- **Privilege Level**: Typically requires local administrator privileges
+- **Event Logs**: May generate Security event 4719 (System audit policy changed) if policy is modified
+- **EDR Telemetry**: Security products may log API calls to audit policy functions
+
+### Defensive Recommendations
+
+<Warning>
+While enumeration itself is low-risk, it often precedes malicious activity:
+</Warning>
+
+- Monitor for execution of reconnaissance tools
+- Alert on multiple enumeration commands from single process
+- Track access to security policy APIs
+- Correlate with other suspicious activities
+- Enable process creation logging (Event ID 4688)
+- Consider application whitelisting to prevent unauthorized tools
+
+<Tip>
+Attackers often check audit policies early in the reconnaissance phase to understand their detection risk. This activity combined with other enumeration is a strong indicator of reconnaissance.
+</Tip>
+
+## Related Commands
+
+- [AuditPolicyRegistry](/commands/auditpolicyregistry) - Registry-based audit policy enumeration (supports remote execution)
+- [LocalGPOs](/commands/localgpos) - Local Group Policy settings
+- [Sysmon](/commands/sysmon) - Sysmon configuration and logging
+- [WindowsEventForwarding](/commands/windowseventforwarding) - WEF configuration
+- [SecurityPackages](/commands/securitypackages) - Security package enumeration

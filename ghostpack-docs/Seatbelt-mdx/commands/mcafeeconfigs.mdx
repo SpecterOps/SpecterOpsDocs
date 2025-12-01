@@ -1,0 +1,73 @@
+---
+title: 'McAfeeConfigs'
+description: 'Finds McAfee configuration files'
+icon: 'file-code'
+---
+
+## Overview
+
+The McAfeeConfigs command searches for McAfee antivirus configuration files on the system. These configuration files may contain valuable information about security settings, exclusions, and deployment configurations.
+
+## Syntax
+
+```bash
+Seatbelt.exe McAfeeConfigs
+```
+
+<Note>
+This command does **not** support remote execution.
+</Note>
+
+## Output
+
+Returns information about McAfee configuration files:
+- File paths
+- Configuration file locations
+- SiteList.xml locations (if present)
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Identify McAfee exclusion paths
+    - Discover security product configuration
+    - Find potential evasion opportunities
+    - Locate encrypted credentials in SiteList.xml
+  </Tab>
+  <Tab title="Blue Team">
+    - Audit McAfee deployment configuration
+    - Verify security settings
+    - Validate exclusion policies
+    - Detect configuration tampering
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== McAfeeConfigs ======
+
+Found McAfee configuration files:
+
+C:\ProgramData\McAfee\Agent\Config\config.xml
+C:\ProgramData\McAfee\Common Framework\SiteList.xml
+C:\ProgramData\McAfee\DesktopProtection\policies.xml
+```
+
+## Remote Execution
+
+<Warning>
+This command does **NOT support remote execution**.
+</Warning>
+
+## Detection Considerations
+
+<Info>
+Low detection risk - file system enumeration.
+</Info>
+
+## Related Commands
+
+- [AntiVirus](/commands/antivirus) - Registered antivirus products
+- [InterestingProcesses](/commands/interestingprocesses) - Security product processes
+- [WindowsDefender](/commands/windowsdefender) - Windows Defender settings

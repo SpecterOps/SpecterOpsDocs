@@ -1,0 +1,377 @@
+---
+title: 'search'
+description: 'Search Confluence content with wildcard support to discover sensitive information'
+icon: 'magnifying-glass'
+---
+
+## Overview
+
+The `confluence search` command performs full-text searches across Confluence content, including pages, comments, and attachments. This command supports wildcard searches, making it particularly powerful for discovering specific patterns like URLs, credentials, API keys, email addresses, and other sensitive information embedded in Confluence content.
+
+This is one of AtlasReaper's most versatile reconnaissance commands, enabling targeted discovery of specific content without enumerating all pages.
+
+## Syntax
+
+```bash
+.\AtlasReaper.exe confluence search [options]
+```
+
+## Required Parameters
+
+<ParamField path="--url" type="string" required>
+  The base URL of the Confluence instance (e.g., `https://example.atlassian.net`)
+</ParamField>
+
+<ParamField path="--query" type="string" required>
+  The search query string. Supports wildcards (`*`) for flexible pattern matching (e.g., `http*example.com*`, `password*`, `api_key*`)
+</ParamField>
+
+## Optional Parameters
+
+<ParamField path="--cookie" type="string">
+  Authentication cookie (`cloud.session.token` or `tenant.session.token`). If omitted, the command will attempt anonymous access (if enabled on the target)
+</ParamField>
+
+<ParamField path="--all" type="boolean" default="false">
+  Return all search results, overriding the limit parameter
+</ParamField>
+
+<ParamField path="--limit" type="string" default="250">
+  Maximum number of search results to return. Default is 250
+</ParamField>
+
+<ParamField path="--output" type="string">
+  Save command output to a specified file for offline analysis and processing
+</ParamField>
+
+## Examples
+
+<Tabs>
+  <Tab title="Basic Keyword Search">
+    ```bash
+    .\AtlasReaper.exe confluence search \
+      --query "password" \
+      --limit 100 \
+      --url https://example.atlassian.net \
+      --cookie "cloud.session.token=abc123..."
+    ```
+    Searches for pages containing the word "password".
+  </Tab>
+
+  <Tab title="Wildcard URL Pattern">
+    ```bash
+    .\AtlasReaper.exe confluence search \
+      --query "http*example.com*" \
+      --all \
+      --url https://example.atlassian.net \
+      --cookie "cloud.session.token=abc123..."
+    ```
+    Finds all references to URLs containing "example.com" (http/https variations).
+  </Tab>
+
+  <Tab title="API Key Discovery">
+    ```bash
+    .\AtlasReaper.exe confluence search \
+      --query "api*key*" \
+      --output "api_keys.txt" \
+      --url https://example.atlassian.net \
+      --cookie "cloud.session.token=abc123..."
+    ```
+    Searches for content containing API key references with wildcard matching.
+  </Tab>
+
+  <Tab title="Credential Hunting">
+    ```bash
+    .\AtlasReaper.exe confluence search \
+      --query "username*password" \
+      --all \
+      --output "credentials.txt" \
+      --url https://example.atlassian.net \
+      --cookie "cloud.session.token=abc123..."
+    ```
+    Hunts for pages containing both username and password references.
+  </Tab>
+
+  <Tab title="Internal Domain Discovery">
+    ```bash
+    .\AtlasReaper.exe confluence search \
+      --query "*.internal.company.com*" \
+      --all \
+      --url https://example.atlassian.net \
+      --cookie "cloud.session.token=abc123..."
+    ```
+    Discovers internal domains and hostnames documented in Confluence.
+  </Tab>
+
+  <Tab title="SSH/Config File Hunt">
+    ```bash
+    .\AtlasReaper.exe confluence search \
+      --query "ssh*config" \
+      --limit 500 \
+      --output "ssh_configs.txt" \
+      --url https://example.atlassian.net \
+      --cookie "cloud.session.token=abc123..."
+    ```
+    Searches for SSH configuration documentation.
+  </Tab>
+
+  <Tab title="Cloud Service Credentials">
+    ```bash
+    .\AtlasReaper.exe confluence search \
+      --query "aws*access*key*" \
+      --all \
+      --url https://example.atlassian.net \
+      --cookie "cloud.session.token=abc123..."
+    ```
+    Hunts for AWS access keys or credential documentation.
+  </Tab>
+
+  <Tab title="VPN and Remote Access">
+    ```bash
+    .\AtlasReaper.exe confluence search \
+      --query "vpn*credentials" \
+      --output "vpn_info.txt" \
+      --url https://example.atlassian.net \
+      --cookie "cloud.session.token=abc123..."
+    ```
+    Searches for VPN setup and credential information.
+  </Tab>
+</Tabs>
+
+## Use Cases
+
+<AccordionGroup>
+  <Accordion title="Red Team Perspectives" icon="user-secret">
+    **Credential and Secret Discovery**
+    - Find credentials hardcoded in documentation (passwords, API keys, tokens)
+    - Locate service account credentials and authentication details
+    - Discover SSH keys, certificates, and other authentication materials
+    - Hunt for cloud provider credentials (AWS, Azure, GCP access keys)
+    - Find database connection strings with embedded credentials
+
+    **Infrastructure Reconnaissance**
+    - Discover internal domains, hostnames, and IP addresses
+    - Identify network architecture and topology information
+    - Find documentation about internal services and applications
+    - Locate VPN, remote access, and jump host information
+    - Map infrastructure through documented server names and addresses
+
+    **Targeted Information Gathering**
+    - Search for specific technologies, products, or services in use
+    - Find vulnerability documentation and security assessments
+    - Discover incident response procedures and playbooks
+    - Locate security tool configurations and detection capabilities
+    - Identify administrative procedures and privileged access methods
+
+    **Social Engineering Intelligence**
+    - Gather information about projects, initiatives, and organizational priorities
+    - Find communication patterns and organizational terminology
+    - Identify key personnel and their roles from documentation
+    - Discover upcoming events or changes to reference in pretexts
+    - Locate email addresses and contact information
+
+    **Privilege Escalation Opportunities**
+    - Search for documentation about administrative access
+    - Find runbooks that may contain privileged credentials
+    - Discover backup and recovery procedures with sensitive information
+    - Locate documentation about security controls and monitoring gaps
+    - Identify service accounts and their purposes
+
+    **Lateral Movement Intelligence**
+    - Find documentation about system interconnections and trust relationships
+    - Discover shared credentials across multiple systems
+    - Locate network segmentation and firewall rule documentation
+    - Identify systems with known vulnerabilities documented in Confluence
+  </Accordion>
+
+  <Accordion title="Blue Team Perspectives" icon="shield-halved">
+    **Security Posture Assessment**
+    - Search for hardcoded credentials in documentation (proactive remediation)
+    - Identify API keys, tokens, and secrets that should be in vaults
+    - Find sensitive infrastructure information that shouldn't be documented
+    - Discover compliance violations (PII, PHI, financial data in Confluence)
+    - Audit for security misconfigurations documented in pages
+
+    **Data Loss Prevention**
+    - Identify regulated data stored inappropriately in Confluence
+    - Find personal information (SSN, credit cards, health data)
+    - Discover financial information requiring protection
+    - Locate intellectual property and trade secrets
+    - Audit for data classification policy violations
+
+    **Threat Hunting**
+    - Search for indicators of compromise documented by attackers
+    - Find suspicious content added by compromised accounts
+    - Identify malicious URLs or domains embedded in pages
+    - Discover evidence of reconnaissance or enumeration activities
+    - Hunt for command and control communication artifacts
+
+    **Incident Response**
+    - During compromise, search for what information attacker may have discovered
+    - Identify credentials that need rotation based on exposure
+    - Determine scope of information disclosure
+    - Find evidence of attacker activity in page content
+    - Prioritize remediation based on search results
+
+    **Detection Indicators**
+    - Monitor for suspicious search queries (credential-related terms, wildcard patterns)
+    - Alert on bulk searches (high volume of search API calls)
+    - Track accounts performing searches they don't typically conduct
+    - Identify searches for security tools, detection systems, or monitoring
+    - Flag searches from external IP addresses or unusual geolocations
+
+    **Vulnerability Management**
+    - Search for documented vulnerabilities and security issues
+    - Identify systems with known weaknesses
+    - Find security assessment results and penetration test reports
+    - Discover security debt and unpatched systems
+    - Audit documentation of security exceptions and accepted risks
+  </Accordion>
+</AccordionGroup>
+
+## Output
+
+The command returns search results with context about matches:
+
+- Page title and page ID
+- Space key and space name
+- Excerpt showing the matched content with context
+- Match relevance score
+- Last modified date
+- URL to the page
+- Content type (page, blogpost, comment, attachment)
+
+Example output structure:
+```
+[+] Searching Confluence for: "password"
+
+Result 1:
+  Title: Database Setup Guide
+  Page ID: 123456
+  Space: IT
+  Type: page
+  URL: https://example.atlassian.net/wiki/spaces/IT/pages/123456
+  Last Modified: 2024-10-15
+  Excerpt: "...the database using the admin username and password.
+           Default credentials are: username: admin, password: P@ssw0rd123..."
+
+Result 2:
+  Title: VPN Configuration
+  Page ID: 789012
+  Space: Network
+  Type: page
+  URL: https://example.atlassian.net/wiki/spaces/NET/pages/789012
+  Last Modified: 2024-09-20
+  Excerpt: "...connect to the VPN, use your network password. If you've
+           forgotten your password, contact IT support..."
+
+[+] Total results found: 2
+```
+
+The excerpt provides context around the matched terms, helping identify whether the result is relevant.
+
+## Detection Considerations
+
+<Warning>
+  Search operations are logged and suspicious searches can trigger alerts:
+</Warning>
+
+**Confluence Audit Logs**
+- All search queries are logged with the search terms used
+- Audit logs include username, timestamp, query string, and IP address
+- Sensitive search terms (password, credential, api_key) may trigger alerts
+
+**Search Query Monitoring**
+- Security teams may monitor for credential-related search terms
+- Wildcard searches with suspicious patterns are particularly noticeable
+- Bulk searches (many queries in short time) create distinct patterns
+
+**Behavioral Analytics**
+- UEBA solutions flag unusual search behavior
+- Searches for security-related terms by non-security personnel are suspicious
+- Accounts that don't typically use search suddenly performing many queries
+- Search patterns inconsistent with the user's role
+
+**API Request Monitoring**
+- Search API calls generate web server logs
+- High-volume search operations may trigger rate limiting
+- Automated search patterns differ from human search behavior
+
+**Content Security Alerts**
+- Searches returning sensitive content may trigger DLP alerts
+- Security teams may receive notifications when sensitive pages are accessed via search
+- Search results containing regulated data may be monitored
+
+## OPSEC Considerations
+
+<Tip>
+  Minimize detection risk with these operational security best practices:
+</Tip>
+
+1. **Query Selection and Phrasing**
+   - Avoid obviously malicious search terms (password, credential, api_key in isolation)
+   - Use more natural search queries when possible
+   - Consider business context that would justify the search
+   - Be aware that search queries are logged and may be reviewed
+
+2. **Wildcard Usage Strategy**
+   - Wildcards are powerful but create distinctive search patterns
+   - Overly broad wildcards may return too many results and take too long
+   - Balance specificity with operational security
+   - Consider whether wildcard searches are more suspicious than specific queries
+
+3. **Timing and Rate**
+   - Perform searches during business hours when activity is normal
+   - Space out searches to mimic human research patterns
+   - Avoid rapid-fire searches that indicate automated enumeration
+   - Consider the compromised account's typical work schedule
+
+4. **Account Context**
+   - Ensure search queries match the account's role and responsibilities
+   - Security/IT accounts searching for credentials is less suspicious
+   - Marketing accounts searching for infrastructure is highly suspicious
+   - Consider whether the search fits the user's job function
+
+5. **Scope and Volume**
+   - Use targeted searches rather than blanket reconnaissance
+   - Limit result sets when possible to reduce API call volume
+   - Avoid excessive use of --all flag
+   - Balance intelligence requirements with operational security
+
+6. **Output Management**
+   - Always use --output for sensitive searches to avoid re-running them
+   - Process results offline to minimize interactive time
+   - Secure output files as they may contain highly sensitive information
+   - Delete temporary files securely after operations
+
+7. **Result Processing**
+   - Review search results to identify false positives
+   - Prioritize high-value results for further investigation
+   - Use search results to guide targeted page/attachment access
+   - Avoid accessing every search result (may be logged)
+
+8. **Alternative Approaches**
+   - Consider whether enumeration + offline grep is less conspicuous
+   - Evaluate if social engineering could obtain the same information
+   - Use public sources before internal searches when possible
+   - Determine if search is necessary given existing intelligence
+
+9. **Operational Planning**
+   - Plan search queries carefully before execution
+   - Have a clear intelligence requirement driving each search
+   - Understand what you're looking for and why
+   - Map search results to next-stage operations (download, exfiltration)
+
+10. **Legal and Ethical Considerations**
+    - Ensure proper authorization for search operations
+    - Be aware that searches may expose sensitive personal information
+    - Consider privacy implications of search queries
+    - Document approval and scope for offensive operations
+
+## Related Commands
+
+- [confluence listpages](/confluence/listpages) - Alternative reconnaissance method via enumeration
+- [confluence download](/confluence/download) - Download attachments identified through search
+- [confluence listattachments](/confluence/listattachments) - Find attachments after identifying target pages via search
+- [confluence listspaces](/confluence/listspaces) - Identify spaces before conducting targeted searches
+- [jira searchissues](/jira/searchissues) - Similar search functionality for Jira

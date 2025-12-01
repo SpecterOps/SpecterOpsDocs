@@ -1,0 +1,137 @@
+---
+title: 'local site-info'
+description: 'Get the current management point and site code for the local host via WMI'
+icon: 'server'
+sidebarTitle: 'site-info'
+---
+
+## Overview
+
+Get the current management point and site code for the local host via WMI. This command provides essential SCCM site configuration information that is fundamental for most other SharpSCCM operations.
+
+## Syntax
+
+```bash
+SharpSCCM local site-info [options]
+```
+
+## Parameters
+
+This command requires no additional parameters beyond the standard debug and help options.
+
+## Examples
+
+<CodeGroup>
+```bash Basic Usage
+# Get current management point and site code
+SharpSCCM local site-info
+```
+</CodeGroup>
+
+## Output Format
+
+The command outputs current site configuration:
+
+```text
+[+] Connecting to \\127.0.0.1\root\CCM
+[+] Executing WQL query: SELECT Name,CurrentManagementPoint FROM SMS_Authority
+-----------------------------------
+SMS_Authority
+-----------------------------------
+CurrentManagementPoint: ATLAS.APERTURE.SCI
+Name: SMS:PS1
+-----------------------------------
+```
+
+## Output Components
+
+<Accordion title="Management Point">
+  - **FQDN or NetBIOS name** of the primary management point
+  - **Primary contact** for SCCM client communications
+  - **Entry point** for most SCCM operations and reconnaissance
+</Accordion>
+
+<Accordion title="Site Code">
+  - **Three-character identifier** for the SCCM site
+  - **Required parameter** for most SharpSCCM commands
+  - **Hierarchical identifier** in multi-site environments
+</Accordion>
+
+## Site Information Analysis
+
+<Accordion title="Site Code Format">
+  Site codes follow specific patterns:
+  - **Primary Sites**: Usually alphanumeric (PS1, CAS, P01)
+  - **Secondary Sites**: Inherit from parent primary site
+  - **Central Administration**: Often use CAS or similar identifiers
+</Accordion>
+
+<Accordion title="Management Point Role">
+  The management point serves as:
+  - **Policy distribution point** for client configurations
+  - **Inventory collection point** for hardware/software data
+  - **Client communication hub** for status reporting
+  - **Authentication gateway** for client operations
+</Accordion>
+
+## Common Use Cases
+
+<Accordion title="Initial Reconnaissance">
+  First command to run when discovering SCCM infrastructure - provides essential targeting information for subsequent operations.
+</Accordion>
+
+<Accordion title="Multi-Site Environments">
+  Identify which site the current client belongs to in complex SCCM hierarchies with multiple sites.
+</Accordion>
+
+<Accordion title="Parameter Discovery">
+  Obtain the management point and site code values required for other SharpSCCM commands targeting remote operations.
+</Accordion>
+
+## Integration with Other Commands
+
+Most SharpSCCM commands require the management point and site code discovered by this command:
+
+<CodeGroup>
+```bash Using Discovered Values
+# After running site-info and finding MP: ATLAS.APERTURE.SCI, Site: PS1
+
+# Use in remote operations
+SharpSCCM get collections -mp ATLAS.APERTURE.SCI -sc PS1
+
+# Use in credential operations
+SharpSCCM get naa -mp ATLAS.APERTURE.SCI -sc PS1
+
+# Use in enumeration
+SharpSCCM get devices -mp ATLAS.APERTURE.SCI -sc PS1
+```
+</CodeGroup>
+
+## Troubleshooting
+
+<Accordion title="No Site Information">
+  If no site information is returned:
+  - SCCM client may not be properly installed
+  - Client may not be assigned to a site
+  - WMI repository may be corrupted
+</Accordion>
+
+<Accordion title="Multiple Management Points">
+  In some configurations, clients may have multiple management points configured for redundancy. This command shows the current active one.
+</Accordion>
+
+## Security Considerations
+
+<Info>
+  The management point information revealed by this command:
+  - Identifies key SCCM infrastructure for targeting
+  - Provides entry points for further reconnaissance
+  - May reveal internal network topology and naming conventions
+</Info>
+
+## Related Commands
+
+- [`local client-info`](/sharpsccm/commands/local/client-info) - Get SCCM client version information
+- [`local triage`](/sharpsccm/commands/local/triage) - Comprehensive site information gathering
+- [`get collections`](/sharpsccm/commands/get/collections) - Use site info for remote collection enumeration
+- [`get devices`](/sharpsccm/commands/get/devices) - Use site info for device enumeration

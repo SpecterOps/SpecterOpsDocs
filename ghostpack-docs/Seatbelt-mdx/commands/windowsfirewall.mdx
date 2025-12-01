@@ -1,0 +1,177 @@
+---
+title: 'WindowsFirewall'
+description: 'Non-standard firewall rules, "-full" dumps all (arguments == allow/deny/tcp/udp/in/out/domain/private/public)'
+icon: 'fire'
+---
+
+## Overview
+
+The WindowsFirewall command enumerates Windows Firewall rules. By default, it shows non-standard rules (filtering out default Windows rules) to highlight custom configurations. The `-full` flag displays all rules, and additional arguments allow filtering by action, protocol, direction, and profile.
+
+## Syntax
+
+```bash
+# Show non-standard rules only (default)
+Seatbelt.exe WindowsFirewall
+
+# Show all rules
+Seatbelt.exe WindowsFirewall -full
+
+# Filter by specific criteria
+Seatbelt.exe "WindowsFirewall allow"     # Allow rules only
+Seatbelt.exe "WindowsFirewall deny"      # Deny rules only
+Seatbelt.exe "WindowsFirewall tcp"       # TCP rules
+Seatbelt.exe "WindowsFirewall udp"       # UDP rules
+Seatbelt.exe "WindowsFirewall in"        # Inbound rules
+Seatbelt.exe "WindowsFirewall out"       # Outbound rules
+Seatbelt.exe "WindowsFirewall domain"    # Domain profile rules
+Seatbelt.exe "WindowsFirewall private"   # Private profile rules
+Seatbelt.exe "WindowsFirewall public"    # Public profile rules
+```
+
+### Remote Execution
+```bash
+Seatbelt.exe WindowsFirewall -computername=TARGET.domain.com [-username=DOMAIN\user -password=pass]
+```
+
+## Output
+
+Returns firewall rule information:
+- Rule name
+- Rule group
+- Direction (Inbound/Outbound)
+- Action (Allow/Block)
+- Protocol (TCP/UDP/Any)
+- Local/Remote ports
+- Local/Remote addresses
+- Application path
+- Profile (Domain/Private/Public)
+- Enabled status
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Identify allowed inbound connections
+    - Find firewall exceptions for C2 channels
+    - Discover allowed applications
+    - Locate weak firewall rules
+    - Plan network-based attacks
+    - Identify egress filtering gaps
+  </Tab>
+  <Tab title="Blue Team">
+    - Audit firewall rule configurations
+    - Identify overly permissive rules
+    - Detect unauthorized rule additions
+    - Validate security baseline compliance
+    - Ensure proper network segmentation
+    - Review application exceptions
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== WindowsFirewall ======
+
+[*] Enumerating non-standard firewall rules...
+
+Rule Name       : Custom RDP Access
+Description     : Allow RDP from management subnet
+Enabled         : True
+Direction       : Inbound
+Action          : Allow
+Protocol        : TCP
+LocalPort       : 3389
+RemoteAddress   : 10.0.1.0/24
+Application     : System
+Profile         : Domain, Private
+
+Rule Name       : Block Outbound DNS
+Description     : Prevent DNS tunneling
+Enabled         : True
+Direction       : Outbound
+Action          : Block
+Protocol        : UDP
+LocalPort       : Any
+RemotePort      : 53
+RemoteAddress   : Any
+Profile         : Domain, Private, Public
+
+Rule Name       : Allow Custom App
+Description     :
+Enabled         : True
+Direction       : Inbound
+Action          : Allow
+Protocol        : TCP
+LocalPort       : 8080
+Application     : C:\CustomApp\app.exe
+Profile         : Domain
+[!] Custom application allowed through firewall
+```
+
+## Remote Execution
+
+<Check>
+This command **supports remote execution** using the `-computername` parameter.
+</Check>
+
+## Detection Considerations
+
+<Info>
+Low detection risk - queries firewall configuration.
+</Info>
+
+- **API Access**: Queries Windows Firewall API
+- **WMI Activity**: Remote execution uses WMI
+- **Registry Access**: May read firewall configuration from registry
+- **Event Logs**: Firewall policy changes generate Event ID 4946-4947
+
+### Firewall Profiles Explained
+
+<Accordion title="Profile Types">
+**Domain Profile:**
+- Applied when connected to domain network
+- Typically most permissive for internal access
+- Should allow domain services
+
+**Private Profile:**
+- Applied on private/home networks
+- Moderate restrictions
+- User-designated as trusted
+
+**Public Profile:**
+- Applied on public networks (default for unknown)
+- Should be most restrictive
+- Maximum protection recommended
+</Accordion>
+
+### Dangerous Rule Patterns
+
+<Accordion title="Security Anti-Patterns">
+**Overly Permissive Rules:**
+- Any/Any rules (all ports, all addresses)
+- Inbound allow from Any
+- Disabled outbound filtering
+- Broad port ranges (1-65535)
+
+**Common Misconfigurations:**
+- RDP allowed from anywhere
+- SMB exposed to internet
+- WinRM without IP restrictions
+- Administrative tools unrestricted
+
+**Suspicious Custom Rules:**
+- High-numbered ports (backdoors)
+- Unusual protocols
+- Recently created rules
+- Rules for temp/user directories
+</Accordion>
+
+## Related Commands
+
+- [TcpConnections](/commands/tcpconnections) - Active TCP connections
+- [UdpConnections](/commands/udpconnections) - Active UDP listeners
+- [NetworkShares](/commands/networkshares) - Exposed network shares
+- [RDPsettings](/commands/rdpsettings) - RDP configuration
+- [PSSessionSettings](/commands/pssessionsettings) - WinRM configuration

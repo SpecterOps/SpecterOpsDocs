@@ -1,0 +1,625 @@
+---
+title: 'Usage Guide'
+description: 'Practical examples and scenarios for using Seatbelt'
+icon: 'terminal'
+---
+
+## Basic Usage
+
+### Getting Help
+
+```bash
+# Display help and available commands
+Seatbelt.exe
+
+# Show command list with remote capability indicators
+Seatbelt.exe --help
+```
+
+### Running Single Commands
+
+```bash
+# Run one command
+Seatbelt.exe OSInfo
+
+# Run multiple commands
+Seatbelt.exe OSInfo LocalUsers AntiVirus
+
+# Run command with full output (no filtering)
+Seatbelt.exe Processes -full
+```
+
+## Command Groups
+
+### System Enumeration
+
+```bash
+# Run all system checks
+Seatbelt.exe -group=system
+
+# System checks with full output
+Seatbelt.exe -group=system -full
+
+# System checks to file
+Seatbelt.exe -group=system -outputfile="C:\Temp\system.txt"
+```
+
+### User Enumeration
+
+```bash
+# Run all user checks (current user if not elevated)
+Seatbelt.exe -group=user
+
+# User checks for ALL users (requires elevation)
+runas /user:Administrator "Seatbelt.exe -group=user"
+
+# User checks with JSON output
+Seatbelt.exe -group=user -outputfile="C:\Temp\user.json"
+```
+
+### Comprehensive Enumeration
+
+```bash
+# Run ALL checks
+Seatbelt.exe -group=all
+
+# Run ALL checks with full output
+Seatbelt.exe -group=all -full
+
+# Quiet mode with JSON output
+Seatbelt.exe -group=all -q -outputfile="C:\Temp\all.json"
+```
+
+### Selective Group Execution
+
+```bash
+# Run all checks EXCEPT specific commands
+Seatbelt.exe -group=all -AuditPolicies -Hotfixes
+
+# Run system group except slow commands
+Seatbelt.exe -group=system -ScheduledTasks -Services
+```
+
+## Commands with Arguments
+
+Many commands accept arguments to customize behavior:
+
+### Time-Based Commands
+
+```bash
+# Logon events for last 30 days
+Seatbelt.exe "LogonEvents 30"
+
+# Explicit logon events for last 14 days
+Seatbelt.exe "ExplicitLogonEvents 14"
+
+# PowerShell events for last 7 days
+Seatbelt.exe "PowerShellEvents 7"
+
+# Process creation events for last 3 days
+Seatbelt.exe "ProcessCreationEvents 3"
+```
+
+### Directory Listing
+
+```bash
+# List files in directory
+Seatbelt.exe "dir C:\Users"
+
+# Directory with max depth
+Seatbelt.exe "dir C:\Users\Public 2"
+
+# Directory with regex filter
+Seatbelt.exe "dir C:\Users 3 .*password.*"
+
+# Directory with depth, regex, and error handling
+Seatbelt.exe "dir C:\\ 2 .*config.* false"
+```
+
+### Registry Queries
+
+```bash
+# Query registry key
+Seatbelt.exe "reg HKLM\Software"
+
+# Query with depth
+Seatbelt.exe "reg HKLM\Software 2"
+
+# Query with depth and regex filter
+Seatbelt.exe "reg \"HKLM\SOFTWARE\Microsoft\Windows Defender\" 3 .*defini.*"
+
+# Query with all options
+Seatbelt.exe "reg \"HKLM\SOFTWARE\Microsoft\" 2 .*security.* true"
+```
+
+### File Information
+
+```bash
+# Get info about single file
+Seatbelt.exe "FileInfo C:\Windows\System32\cmd.exe"
+
+# Get info about multiple files
+Seatbelt.exe "FileInfo C:\Windows\System32\cmd.exe C:\Windows\System32\powershell.exe"
+```
+
+### Search Index
+
+```bash
+# Search with default term (password)
+Seatbelt.exe SearchIndex
+
+# Search with custom terms
+Seatbelt.exe "SearchIndex C:\ password,credential,secret"
+
+# Search specific location
+Seatbelt.exe "SearchIndex C:\Users\Admin password,key,token"
+```
+
+## Remote Enumeration
+
+### Basic Remote Execution
+
+```bash
+# Run single command remotely
+Seatbelt.exe OSInfo -computername=192.168.1.100
+
+# Run multiple commands remotely
+Seatbelt.exe OSInfo LocalUsers -computername=WORKSTATION01
+```
+
+### Authenticated Remote Execution
+
+```bash
+# With domain credentials
+Seatbelt.exe -group=remote -computername=DC01.domain.com -username=DOMAIN\admin -password="P@ssw0rd"
+
+# With local credentials
+Seatbelt.exe LocalUsers -computername=WORKSTATION01 -username=.\Administrator -password="AdminPass123"
+
+# Password with special characters (use quotes)
+Seatbelt.exe OSInfo -computername=TARGET -username=DOMAIN\user -password="yum \"po-ta-toes\""
+```
+
+### Remote Command Groups
+
+```bash
+# Run remote-optimized checks
+Seatbelt.exe -group=remote -computername=192.168.230.209
+
+# Remote system enumeration with credentials
+Seatbelt.exe -group=remote -computername=SERVER01 -username=DOMAIN\svc_account -password="ServicePass"
+
+# Remote with output file
+Seatbelt.exe -group=remote -computername=TARGET -username=DOMAIN\user -password=PASS -outputfile="C:\Temp\remote.json"
+```
+
+## Output Options
+
+### Console Output
+
+```bash
+# Default console output
+Seatbelt.exe OSInfo
+
+# Quiet mode (minimal console output)
+Seatbelt.exe -group=user -q
+```
+
+### Text File Output
+
+```bash
+# Output to text file
+Seatbelt.exe -group=system -outputfile="C:\Temp\output.txt"
+
+# Multiple groups to file
+Seatbelt.exe -group=system -group=user -outputfile="C:\results.txt"
+```
+
+### JSON Output
+
+```bash
+# JSON output (file extension must be .json)
+Seatbelt.exe -group=all -outputfile="C:\Temp\results.json"
+
+# Quiet JSON output
+Seatbelt.exe -group=user -q -outputfile="C:\output.json"
+
+# JSON for parsing
+Seatbelt.exe OSInfo LocalUsers Processes -outputfile="C:\enum.json"
+```
+
+## Practical Scenarios
+
+### Initial Compromise Enumeration
+
+After gaining initial access, enumerate system context:
+
+<Steps>
+  <Step title="Basic System Info">
+    ```bash
+    Seatbelt.exe OSInfo
+    ```
+    Determine OS version, domain membership, architecture
+  </Step>
+
+  <Step title="Current User Context">
+    ```bash
+    Seatbelt.exe TokenGroups TokenPrivileges
+    ```
+    Understand current privileges and group membership
+  </Step>
+
+  <Step title="Quick Wins">
+    ```bash
+    Seatbelt.exe WindowsAutoLogon CredEnum WindowsVault
+    ```
+    Look for easy credential wins
+  </Step>
+
+  <Step title="Defensive Products">
+    ```bash
+    Seatbelt.exe AntiVirus WindowsDefender Sysmon AMSIProviders
+    ```
+    Identify defensive tools
+  </Step>
+</Steps>
+
+### Privilege Escalation Enumeration
+
+Looking for privilege escalation vectors:
+
+```bash
+# User context and credentials
+Seatbelt.exe TokenPrivileges LocalUsers LocalGroups WindowsAutoLogon
+
+# Saved credentials
+Seatbelt.exe CredEnum DpapiMasterKeys WindowsVault PowerShellHistory
+
+# Configuration issues
+Seatbelt.exe UAC LAPS RegistryAutoLogons Services ScheduledTasks
+
+# Network and access
+Seatbelt.exe NetworkShares MappedDrives RDPSessions LogonSessions
+```
+
+### Post-Exploitation Enumeration
+
+Comprehensive enumeration after privilege escalation:
+
+```bash
+# Full system enumeration
+Seatbelt.exe -group=all -full -outputfile="C:\Windows\Temp\full_enum.json"
+
+# Targeted high-value data
+Seatbelt.exe ChromiumHistory FirefoxHistory PowerShellHistory OfficeMRUs
+
+# Domain information
+Seatbelt.exe OSInfo LocalUsers LocalGroups LogonSessions
+
+# Credential hunting
+Seatbelt.exe -group=user DpapiMasterKeys WindowsCredentialFiles
+```
+
+### Network Enumeration
+
+Understand network positioning:
+
+```bash
+# Network configuration
+Seatbelt.exe OSInfo NetworkProfiles NetworkShares ARPTable
+
+# Connections
+Seatbelt.exe TcpConnections UdpConnections RDPSessions
+
+# DNS and routing
+Seatbelt.exe DNSCache ARPTable
+```
+
+### Credential Hunting
+
+Focused credential enumeration:
+
+```bash
+# Saved credentials
+Seatbelt.exe CredEnum WindowsVault SecPackageCreds
+
+# DPAPI
+Seatbelt.exe DpapiMasterKeys WindowsCredentialFiles
+
+# Browser credentials
+Seatbelt.exe -group=chromium FirefoxPresence IEUrls
+
+# Application credentials
+Seatbelt.exe FileZilla PuttySessions SuperPutty RDCManFiles KeePass
+
+# PowerShell history
+Seatbelt.exe PowerShellHistory
+
+# Registry autologon
+Seatbelt.exe WindowsAutoLogon RegistryAutoLogons
+```
+
+### Defensive Assessment
+
+Security posture evaluation:
+
+```bash
+# Security products
+Seatbelt.exe AntiVirus WindowsDefender Sysmon AMSIProviders
+
+# Security configuration
+Seatbelt.exe UAC AppLocker CredGuard SecureBoot LAPS
+
+# Logging and monitoring
+Seatbelt.exe AuditPolicies WindowsEventForwarding Sysmon
+
+# Network security
+Seatbelt.exe WindowsFirewall NTLMSettings
+
+# Patch level
+Seatbelt.exe Hotfixes OSInfo
+```
+
+### Lateral Movement Planning
+
+Identify lateral movement opportunities:
+
+```bash
+# Local accounts
+Seatbelt.exe LocalUsers LocalGroups
+
+# Network shares
+Seatbelt.exe NetworkShares MappedDrives
+
+# Sessions
+Seatbelt.exe LogonSessions RDPSessions
+
+# Credentials
+Seatbelt.exe CredEnum WindowsVault
+
+# Network connections
+Seatbelt.exe TcpConnections RDPSessions
+```
+
+### Remote System Triage
+
+Quickly assess remote systems:
+
+```bash
+# Basic remote triage
+Seatbelt.exe OSInfo LocalUsers AntiVirus -computername=TARGET -username=DOMAIN\user -password=PASS
+
+# Remote credential hunt
+Seatbelt.exe WindowsAutoLogon DpapiMasterKeys CredEnum -computername=TARGET -username=DOMAIN\user -password=PASS
+
+# Remote defensive assessment
+Seatbelt.exe AntiVirus WindowsDefender Sysmon AppLocker -computername=TARGET -username=DOMAIN\user -password=PASS
+```
+
+## Automation and Integration
+
+### PowerShell Wrapper
+
+```powershell
+# Run Seatbelt and parse JSON output
+function Invoke-SeatbeltEnum {
+    param(
+        [string]$Group = "all",
+        [string]$OutputPath = "$env:TEMP\seatbelt_$(Get-Date -Format 'yyyyMMdd_HHmmss').json"
+    )
+
+    & .\Seatbelt.exe -group=$Group -q -outputfile=$OutputPath
+
+    if (Test-Path $OutputPath) {
+        $results = Get-Content $OutputPath | ConvertFrom-Json
+        return $results
+    }
+}
+
+# Use the function
+$enumResults = Invoke-SeatbeltEnum -Group "system"
+```
+
+### Batch Script
+
+```batch
+@echo off
+REM Automated Seatbelt enumeration script
+
+set TIMESTAMP=%date:~-4,4%%date:~-10,2%%date:~-7,2%_%time:~0,2%%time:~3,2%%time:~6,2%
+set OUTPUT_DIR=C:\Temp\Seatbelt_%TIMESTAMP%
+
+mkdir %OUTPUT_DIR%
+
+echo Running system checks...
+Seatbelt.exe -group=system -outputfile="%OUTPUT_DIR%\system.json"
+
+echo Running user checks...
+Seatbelt.exe -group=user -outputfile="%OUTPUT_DIR%\user.json"
+
+echo Running misc checks...
+Seatbelt.exe -group=misc -outputfile="%OUTPUT_DIR%\misc.json"
+
+echo Enumeration complete! Results in %OUTPUT_DIR%
+```
+
+### Python Parser
+
+```python
+import json
+import subprocess
+
+def run_seatbelt(group="all", output_file="output.json"):
+    """Run Seatbelt and return parsed results"""
+    cmd = f'Seatbelt.exe -group={group} -q -outputfile={output_file}'
+    subprocess.run(cmd, shell=True, check=True)
+
+    with open(output_file, 'r') as f:
+        return json.load(f)
+
+# Usage
+results = run_seatbelt(group="system")
+print(f"Found {len(results)} results")
+```
+
+## Performance Considerations
+
+### Fast Enumeration
+
+For quick checks, avoid time-intensive commands:
+
+```bash
+# Fast system checks (avoid LOLBAS, InterestingFiles, SearchIndex)
+Seatbelt.exe OSInfo LocalUsers LocalGroups AntiVirus WindowsDefender
+
+# Quick user enum
+Seatbelt.exe CredEnum DpapiMasterKeys TokenGroups
+```
+
+### Time-Intensive Commands
+
+Commands that take significant time:
+
+- `InterestingFiles` - Searches entire file system
+- `LOLBAS` - Searches for Living Off The Land binaries
+- `SearchIndex` - Queries Windows Search index
+- `ScheduledTasks -full` - Enumerates all scheduled tasks
+- `Services -full` - Enumerates all services
+- `Processes -full` - Detailed process enumeration
+
+<Warning>
+  Use `-full` flag sparingly in operational environments as it increases runtime and output volume significantly.
+</Warning>
+
+## OPSEC Considerations
+
+### Stealthy Enumeration
+
+<AccordionGroup>
+  <Accordion title="Binary Naming" icon="signature">
+    Rename the executable:
+    ```bash
+    copy Seatbelt.exe C:\Windows\Temp\update.exe
+    C:\Windows\Temp\update.exe OSInfo
+    ```
+  </Accordion>
+
+  <Accordion title="Selective Commands" icon="filter">
+    Run only necessary commands to reduce noise:
+    ```bash
+    # Instead of -group=all
+    Seatbelt.exe OSInfo TokenPrivileges WindowsAutoLogon
+    ```
+  </Accordion>
+
+  <Accordion title="Output Redirection" icon="file-export">
+    Write to disk instead of console:
+    ```bash
+    Seatbelt.exe -group=system -q -outputfile="C:\Windows\Temp\log.txt"
+    ```
+  </Accordion>
+
+  <Accordion title="Remote Execution" icon="satellite-dish">
+    Execute remotely to avoid local logging:
+    ```bash
+    # From different system
+    Seatbelt.exe -group=remote -computername=TARGET -username=USER -password=PASS
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Detection Risk by Command
+
+**Low Risk:**
+- OSInfo, TokenGroups, TokenPrivileges (normal system calls)
+
+**Medium Risk:**
+- LocalUsers, LocalGroups, Processes (standard enumeration)
+
+**High Risk:**
+- LOLBAS, InterestingFiles (extensive file system access)
+- Event log queries (security log access may be monitored)
+- Credential commands (accessing sensitive resources)
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Access Denied Errors" icon="lock">
+    **Symptoms:** Commands fail with "Access Denied"
+
+    **Solutions:**
+    - Run with elevated privileges
+    - Check user permissions for specific resources
+    - Use appropriate credentials for remote execution
+  </Accordion>
+
+  <Accordion title="Remote Execution Failures" icon="network-wired">
+    **Symptoms:** Remote commands timeout or fail
+
+    **Solutions:**
+    - Verify network connectivity (test WMI access)
+    - Check Windows Firewall on target
+    - Ensure WMI service is running
+    - Verify credentials have appropriate permissions
+  </Accordion>
+
+  <Accordion title="Command Not Found" icon="question">
+    **Symptoms:** Specific command doesn't exist
+
+    **Solutions:**
+    - Check Seatbelt version (some commands added in newer versions)
+    - Verify command name spelling
+    - Run without arguments to see available commands
+  </Accordion>
+
+  <Accordion title="Large Output Files" icon="file">
+    **Symptoms:** Output files are unexpectedly large
+
+    **Solutions:**
+    - Avoid `-full` flag unless necessary
+    - Use selective commands instead of groups
+    - Filter output after generation
+    - Use text output instead of JSON for human reading
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+<Steps>
+  <Step title="Start Small">
+    Begin with basic commands before running full groups
+  </Step>
+
+  <Step title="Document Version">
+    Track which Seatbelt version was used for reproducibility
+  </Step>
+
+  <Step title="Save Output">
+    Always save results to file for offline analysis
+  </Step>
+
+  <Step title="Use JSON for Automation">
+    JSON output enables programmatic parsing and integration
+  </Step>
+
+  <Step title="Clean Up">
+    Remove output files and binaries after use
+  </Step>
+</Steps>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Command Reference" icon="list" href="/ghostpack-docs/Seatbelt-mdx/commands/osinfo">
+    Explore individual commands
+  </Card>
+  <Card title="Compilation Guide" icon="hammer" href="/ghostpack-docs/Seatbelt-mdx/compilation">
+    Build from source
+  </Card>
+  <Card title="GitHub Repository" icon="github" href="https://github.com/ghostpack-docs/Seatbelt">
+    Source code and issues
+  </Card>
+  <Card title="GhostPack Tools" icon="ghost" href="/ghostpack-docs/index">
+    Other GhostPack tools
+  </Card>
+</CardGroup>

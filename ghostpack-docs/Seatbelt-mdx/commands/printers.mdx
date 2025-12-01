@@ -1,0 +1,144 @@
+---
+title: 'Printers'
+description: 'Installed Printers (via WMI)'
+icon: 'print'
+---
+
+## Overview
+
+The Printers command enumerates all installed printers on the system using Windows Management Instrumentation (WMI). This includes local printers, network printers, virtual printers, and print servers. Printer information can reveal network topology, print servers, shared resources, and potential targets for reconnaissance or attack.
+
+## Syntax
+
+```
+Seatbelt.exe Printers
+```
+
+This command does not accept arguments.
+
+## Output
+
+The command returns:
+- Printer name
+- Printer status (Online, Offline, Error, etc.)
+- Printer type (Local, Network, Virtual)
+- Port name
+- Driver name
+- Server name (for network printers)
+- Share name (for shared printers)
+- Default printer status
+- Print queue status
+- Location description (if configured)
+
+## Use Cases
+
+### Red Team
+- Identify network print servers and infrastructure
+- Map network topology through printer connections
+- Discover shared network resources
+- Identify potential lateral movement targets
+- Locate printers for print job interception
+- Find network segments and subnets via printer IPs
+- Identify domain controllers hosting print services
+- Discover administrative shares via print server connections
+
+### Blue Team
+- Audit printer inventory across the network
+- Identify unauthorized or rogue printers
+- Validate printer security configurations
+- Track network printer deployment
+- Identify printers with insecure configurations
+- Audit printer driver installations for vulnerabilities
+- Monitor print server access and usage
+- Detect suspicious printer installations
+- Validate printer access control policies
+- Identify printers requiring security updates
+
+## Example Output
+
+```
+====== Printers ======
+
+  Name         : HP LaserJet 4000 - Accounting
+  Status       : Idle
+  Type         : Network
+  Port         : \\PRINTSERVER01\HP4000_Accounting
+  Driver       : HP Universal Printing PCL 6
+  Server       : PRINTSERVER01.corp.internal
+  Share Name   : HP4000_Accounting
+  Default      : No
+  Location     : Building A, Floor 3, Room 305
+
+  Name         : Microsoft Print to PDF
+  Status       : Idle
+  Type         : Local
+  Port         : PORTPROMPT:
+  Driver       : Microsoft Print To PDF
+  Server       :
+  Share Name   :
+  Default      : Yes
+  Location     :
+
+  Name         : Canon ImageRunner Finance
+  Status       : Offline
+  Type         : Network
+  Port         : 192.168.1.50
+  Driver       : Canon Generic Plus PCL6
+  Server       : 192.168.1.50
+  Share Name   :
+  Default      : No
+  Location     : Finance Department
+
+  Name         : Adobe PDF
+  Status       : Idle
+  Type         : Local
+  Port         : Adobe PDF Port
+  Driver       : Adobe PDF Converter
+  Server       :
+  Share Name   :
+  Default      : No
+  Location     :
+```
+
+## Performance Considerations
+
+This command has minimal performance impact as it queries WMI for printer information. Execution time depends on:
+- Number of installed printers
+- Network connectivity to print servers
+- WMI service responsiveness
+- Network printer enumeration timeouts
+
+Typically completes in seconds.
+
+## Remote Execution
+
+This command does not support remote execution in the standard implementation. Printer enumeration must be performed on the local system.
+
+## Detection Considerations
+
+### Indicators
+- WMI queries to Win32_Printer class
+- WMI queries to Win32_PrinterDriver class
+- Access to printer configuration registry keys
+- Queries to HKLM\SYSTEM\CurrentControlSet\Control\Print
+- Network connections to print servers for enumeration
+
+### Defensive Recommendations
+- Monitor for WMI queries to printer classes
+- Alert on mass printer enumeration across multiple systems
+- Track unusual processes querying printer information
+- Implement least privilege for WMI access
+- Use AppLocker or similar to control execution of enumeration tools
+- Log WMI activity for forensic analysis
+- Monitor print server access logs
+- Restrict printer installation to authorized users
+- Audit printer driver installations for malicious drivers
+- Implement network segmentation for print servers
+
+## Related Commands
+
+- **NetworkShares** - Network shares exposed by the machine
+- **MappedDrives** - Users' mapped drives
+- **NetworkProfiles** - Windows network profiles
+- **TcpConnections** - Current TCP connections and associated processes
+- **InterestingProcesses** - "Interesting" processes including admin tools

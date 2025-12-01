@@ -1,0 +1,124 @@
+---
+title: 'UAC'
+description: 'UAC system policies via the registry'
+icon: 'shield-halved'
+---
+
+## Overview
+
+The UAC command enumerates User Account Control (UAC) settings from the registry. UAC is a Windows security feature that helps prevent unauthorized changes by prompting for elevation. Understanding UAC configuration is crucial for assessing privilege escalation difficulty and planning bypass techniques.
+
+## Syntax
+
+```bash
+Seatbelt.exe UAC
+```
+
+
+### Remote Execution
+```bash
+Seatbelt.exe UAC -computername=TARGET.domain.com [-username=DOMAIN\user -password=pass]
+```
+
+## Output
+
+Returns UAC configuration:
+- UAC enabled/disabled status
+- Consent prompt behavior for administrators
+- Consent prompt behavior for standard users
+- Admin Approval Mode status
+- Elevation prompt for standard users
+- Secure desktop for elevation prompts
+- Virtualization enabled status
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Assess UAC bypass difficulty
+    - Determine elevation prompt behavior
+    - Plan privilege escalation approach
+    - Identify UAC auto-elevation opportunities
+    - Check if UAC is disabled
+  </Tab>
+  <Tab title="Blue Team">
+    - Verify UAC is properly configured
+    - Ensure secure desktop is enabled
+    - Validate elevation policies
+    - Detect UAC weakening or bypass attempts
+    - Audit security baseline compliance
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== UAC ======
+
+ConsentPromptBehaviorAdmin    : 5 (Prompt for consent for non-Windows binaries)
+EnableLUA (UAC Enabled)       : 1 (Enabled)
+LocalAccountTokenFilterPolicy : 0 (Filtering enabled)
+FilterAdministratorToken      : 0 (Default RID 500 admin filtering)
+
+ConsentPromptBehaviorUser     : 3 (Prompt for credentials)
+EnableInstallerDetection      : 1 (Enabled)
+ValidateAdminCodeSignatures   : 0 (Disabled)
+EnableSecureUIAPaths          : 1 (Enabled)
+EnableUIADesktopToggle        : 0 (Disabled)
+PromptOnSecureDesktop         : 1 (Enabled)
+EnableVirtualization          : 1 (Enabled)
+
+[*] UAC is ENABLED with secure configuration
+[*] Elevation will prompt on secure desktop
+```
+
+Example with weak UAC:
+```
+====== UAC ======
+
+ConsentPromptBehaviorAdmin    : 0 (Elevate without prompting)
+EnableLUA (UAC Enabled)       : 0 (Disabled) [!]
+LocalAccountTokenFilterPolicy : 1 (Filtering disabled) [!]
+
+[!] WARNING: UAC is DISABLED
+[!] WARNING: Remote UAC restrictions disabled
+```
+
+## Remote Execution
+
+<Check>
+This command **supports remote execution** using the `-computername` parameter.
+</Check>
+
+## Detection Considerations
+
+<Info>
+Low detection risk - reads UAC registry settings.
+</Info>
+
+- **Registry Access**: Queries `HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System`
+- **WMI Activity**: Remote execution generates WMI events
+
+### UAC Settings Explained
+
+<Accordion title="ConsentPromptBehaviorAdmin Values">
+**0** - Elevate without prompting (least secure)
+**1** - Prompt for credentials on secure desktop
+**2** - Prompt for consent on secure desktop
+**3** - Prompt for credentials
+**4** - Prompt for consent
+**5** - Prompt for consent for non-Windows binaries (default)
+</Accordion>
+
+<Accordion title="ConsentPromptBehaviorUser Values">
+**0** - Automatically deny elevation requests
+**1** - Prompt for credentials on secure desktop (default)
+**3** - Prompt for credentials
+</Accordion>
+
+## Related Commands
+
+- [LocalGroups](/commands/localgroups) - Local admin group membership
+- [TokenPrivileges](/commands/tokenprivileges) - Current token privileges
+- [AppLocker](/commands/applocker) - AppLocker configuration
+- [LocalGPOs](/commands/localgpos) - Local Group Policy settings

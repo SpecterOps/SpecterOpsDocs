@@ -1,0 +1,193 @@
+---
+title: 'Phishmonger'
+description: 'Phishing platform designed for penetration testers'
+icon: 'envelope'
+---
+
+Phishmonger is a phishing platform designed for penetration testers that provides granular control over SMTP and email delivery. This tool allows operators to craft phishing emails in Outlook, clone them quickly, automatically template them for mass distribution, test email templates, schedule phishing campaigns, and track phishing results in real-time.
+
+<Warning>
+  **For Authorized Use Only**: This is a social engineering tool intended exclusively for authorized security testing and penetration testing. Always obtain proper authorization before deployment.
+</Warning>
+
+## What is Phishmonger?
+
+Phishmonger is not just another GoPhish clone. Unlike traditional phishing frameworks, Phishmonger itself functions as a mail server, allowing operators to send emails directly to target mail servers without requiring a separate mail relay. This design provides:
+
+- Direct server-to-server SMTP communication
+- Full control over SMTP protocol and message headers
+- Support for DMARC and DKIM signing
+- Real-time results using WebSockets
+- Email capture and templating from Outlook
+- Integrated campaign management and event tracking
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Built-in SMTP Server" icon="server">
+    Phishmonger includes both SMTP server and client capabilities, allowing direct mail delivery without external relays
+  </Card>
+
+  <Card title="Email Capture" icon="inbox">
+    Capture emails sent from Outlook on port 25, automatically parsing MIME sections for templating
+  </Card>
+
+  <Card title="Real-Time Tracking" icon="chart-line">
+    WebSocket-based event tracking provides real-time campaign monitoring without page refreshes
+  </Card>
+
+  <Card title="DKIM & DMARC Support" icon="shield-check">
+    Built-in DKIM signing and DMARC-aware configuration to improve email deliverability
+  </Card>
+
+  <Card title="Campaign Scheduling" icon="clock">
+    Schedule campaigns to start at specific times with configurable delays between emails
+  </Card>
+
+  <Card title="Template Management" icon="file-lines">
+    Save and reuse email templates with automatic placeholder substitutions
+  </Card>
+
+  <Card title="Target Management" icon="users">
+    Manage target lists with custom fields including first name, last name, position, and custom attributes
+  </Card>
+
+  <Card title="Integration Support" icon="plug">
+    Integrate with Humble Chameleon for payload delivery and credential harvesting
+  </Card>
+</CardGroup>
+
+## How It Works
+
+Phishmonger operates through a multi-component architecture:
+
+1. **Web Interface**: Fastify-based web server providing admin interface and API endpoints
+2. **SMTP Server**: Built-in SMTP server for capturing emails sent from Outlook
+3. **SMTP Client**: Nodemailer-based client for sending phishing emails with full SMTP control
+4. **Database**: SQLite database storing campaigns, templates, targets, and events
+5. **WebSocket Server**: Real-time event delivery to connected clients
+6. **API**: RESTful API with OpenAPI documentation for programmatic access
+
+## Comparison with GoPhish
+
+| Feature | Phishmonger | GoPhish |
+|---------|-------------|---------|
+| Built-in Mail Server | Yes (SMTP server & client) | No (requires external SMTP) |
+| SMTP Control | Granular control over protocol and headers | Limited SMTP configuration |
+| DKIM Signing | Built-in support | Requires external configuration |
+| DMARC Support | Yes | Limited |
+| Real-Time Updates | WebSockets (no refresh needed) | Polling (requires refresh) |
+| Email Templating | Capture from Outlook with MIME parsing | HTML editor |
+| Direct Server-to-Server | Yes | Through configured relay only |
+
+## Architecture Overview
+
+### Core Components
+
+**Server-Side (Node.js)**
+- **index.js**: Main Fastify server handling HTTP routes, WebSocket connections, and database operations
+- **SMTP Server**: `smtp-server` package for receiving emails on port 25
+- **SMTP Client**: `nodemailer` for sending emails with full protocol control
+- **Database**: `better-sqlite3` for campaign and event storage
+- **WebSocket**: `fastify-socket.io` for real-time event streaming
+
+**Setup Scripts**
+- **gandi_setup.js**: Automated DNS configuration for Gandi domains (A, MX, TXT, DKIM records)
+- **domain_setup.sh**: NGINX reverse proxy configuration with Let's Encrypt certificates
+
+**Web Interface**
+- **admin.html**: Campaign management dashboard
+- **create_campaign.html**: Email capture and campaign creation interface
+- **edit_campaign.html**: Campaign modification interface
+- **track_campaign.html**: Real-time campaign monitoring with event graphs
+- **edit_targets.html**: Target list management
+- **search_events.html**: Event search and filtering
+
+### Database Schema
+
+Phishmonger uses SQLite with four main tables:
+
+**campaigns**
+- Campaign configuration (name, email content, SMTP settings, scheduling)
+
+**templates**
+- Reusable email templates
+
+**targets**
+- Target list with email addresses and metadata
+
+**events**
+- Campaign events (EMAIL_SENT, CLICK, POST_DATA, ERROR, etc.)
+
+## Technology Stack
+
+**Backend**
+- **Node.js**: Server runtime environment
+- **Fastify**: High-performance web framework
+- **Socket.io**: Real-time bidirectional WebSocket communication
+- **better-sqlite3**: Embedded database
+- **nodemailer**: SMTP client for email delivery
+- **smtp-server**: SMTP server for email capture
+- **bunyan**: Structured logging
+
+**Frontend**
+- **jQuery**: DOM manipulation and AJAX requests
+- **Bootstrap**: UI framework
+- **Chart.js**: Campaign analytics and event visualization
+
+**Infrastructure**
+- **NGINX**: Reverse proxy with TLS termination
+- **Let's Encrypt**: TLS certificate management
+
+## String Substitutions
+
+Phishmonger supports automatic string substitutions in email templates:
+
+- **SuppliedPhishingLink**: Replaced with the campaign's phishing URL plus tracking parameter
+- **SuppliedFirstName**: Target's first name
+- **SuppliedLastName**: Target's last name
+- **SuppliedPosition**: Target's job title
+- **SuppliedCustomReplacement**: Custom per-target field
+- **SuppliedToAddress**: Target's email address
+- **DateTimeStamp**: Timestamp in RFC 2822 format
+
+## Event Types
+
+Phishmonger tracks various event types:
+
+- **EMAIL_SENT**: Email successfully sent to target
+- **CLICK**: Target clicked phishing link (from Humble Chameleon)
+- **POST_DATA**: Target submitted form data (from Humble Chameleon)
+- **COOKIE_DATA**: Session cookies captured (from Humble Chameleon)
+- **DIRECT_DOWNLOAD**: File downloaded by target
+- **ERROR**: Email delivery failure
+
+## Requirements
+
+### System Requirements
+- **Operating System**: Linux (Debian/Ubuntu recommended)
+- **Node.js**: Version 12 or higher
+- **npm**: Node package manager
+- **Public IP**: Required for receiving emails and hosting
+- **Domain**: Registered domain with DNS control
+
+### Network Requirements
+- **Port 25**: SMTP (inbound for email capture, outbound for sending)
+- **Port 80**: HTTP (for Let's Encrypt certificate validation)
+- **Port 443**: HTTPS (web interface)
+- **Port 4005**: Node.js application (behind reverse proxy)
+
+### DNS Requirements
+- A record pointing to server IP
+- MX record for mail delivery
+- SPF TXT record for sender authentication
+- DKIM TXT record for email signing
+- DMARC TXT record for policy enforcement
+
+## Project Information
+
+**Repository**: [https://github.com/fkasler/phishmonger](https://github.com/fkasler/phishmonger)
+
+**Author**: ph3eds [@fkasler](https://github.com/fkasler)
+
+**License**: ISC

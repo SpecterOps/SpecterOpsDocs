@@ -1,0 +1,134 @@
+---
+title: 'McAfeeSiteList'
+description: 'Decrypt any found McAfee SiteList.xml configuration files'
+icon: 'shield-halved'
+---
+
+## Overview
+
+The McAfeeSiteList command searches for and decrypts McAfee SiteList.xml configuration files. These files contain sensitive information including McAfee ePolicy Orchestrator (ePO) server addresses, authentication credentials, and configuration settings. The credentials stored in SiteList.xml are encrypted but use a static encryption key, making them retrievable. This command is valuable for identifying McAfee infrastructure and potentially obtaining privileged credentials.
+
+## Syntax
+
+```
+Seatbelt.exe McAfeeSiteList
+```
+
+This command does not accept arguments.
+
+## Output
+
+The command returns:
+- SiteList.xml file path
+- ePO server name/address
+- Server port
+- Server type
+- Authentication credentials (decrypted)
+  - Username
+  - Password
+  - Domain
+- Site name
+- HTTP/HTTPS protocol
+- Additional configuration parameters
+
+## Use Cases
+
+### Red Team
+- Obtain credentials for McAfee ePO servers
+- Identify enterprise security infrastructure
+- Map antivirus management architecture
+- Gain administrative access to security management platforms
+- Identify network segments with centralized AV management
+- Locate ePO servers for further exploitation
+- Obtain domain credentials stored in AV configurations
+- Identify service accounts used for AV management
+
+### Blue Team
+- Audit credential storage in McAfee configurations
+- Identify exposed ePO server credentials
+- Validate security of antivirus management infrastructure
+- Assess risk of credential exposure in SiteList.xml
+- Verify proper encryption and credential management
+- Identify systems with McAfee agent installations
+- Audit ePO server access and authentication
+- Detect unauthorized access to SiteList.xml files
+- Validate least privilege for AV management accounts
+
+## Example Output
+
+```
+====== McAfeeSiteList ======
+
+  File Path    : C:\ProgramData\McAfee\Agent\DB\SiteList.xml
+
+  Server Name  : epo-server.corp.internal
+  Server Port  : 8443
+  Protocol     : HTTPS
+  Site Name    : Production ePO
+
+  Username     : CORP\epo_admin
+  Password     : P@ssw0rd123!
+  Domain       : CORP
+
+  Server Type  : Distributed
+  Last Updated : 10/15/2023 8:42:15 AM
+
+====== McAfeeSiteList ======
+
+  File Path    : C:\Program Files\McAfee\Agent\DB\SiteList.xml
+
+  Server Name  : 192.168.1.100
+  Server Port  : 443
+  Protocol     : HTTPS
+  Site Name    : Corporate ePO
+
+  Username     : svc_mcafee
+  Password     : McAfee2023Secure
+  Domain       : CORP
+
+  Server Type  : Standalone
+  Last Updated : 9/20/2023 2:15:43 PM
+```
+
+## Performance Considerations
+
+This command has minimal performance impact as it only searches for and decrypts specific XML configuration files. Execution time depends on:
+- Number of McAfee installations on the system
+- File system search performance
+- Presence of SiteList.xml files
+
+Typically completes in seconds.
+
+## Remote Execution
+
+This command does not support remote execution. McAfeeSiteList enumeration must be performed on the local system where McAfee agents are installed.
+
+## Detection Considerations
+
+### Indicators
+- File access to SiteList.xml in McAfee directories
+- Read operations on `C:\ProgramData\McAfee\Agent\DB\SiteList.xml`
+- Access to `C:\Program Files\McAfee\Agent\DB\SiteList.xml`
+- Unusual processes reading McAfee configuration files
+- XML parsing of SiteList.xml by non-McAfee processes
+
+### Defensive Recommendations
+- Monitor file access to SiteList.xml files
+- Alert on access to McAfee configuration directories by unauthorized processes
+- Implement least privilege to restrict access to McAfee directories
+- Use File Integrity Monitoring (FIM) on SiteList.xml
+- Restrict permissions on McAfee configuration folders
+- Rotate ePO credentials regularly
+- Use dedicated service accounts with minimal privileges for ePO
+- Enable file system auditing on McAfee directories
+- Monitor for credential usage from SiteList.xml
+- Implement network segmentation for ePO servers
+- Use strong authentication for ePO access
+
+## Related Commands
+
+- **McAfeeConfigs** - Finds McAfee configuration files
+- **AntiVirus** - Registered antivirus via WMI
+- **InterestingFiles** - "Interesting" files matching various patterns
+- **InstalledProducts** - Installed products via the registry
+- **InterestingProcesses** - "Interesting" processes including defensive products

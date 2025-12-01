@@ -1,0 +1,62 @@
+---
+title: 'ESC5 - Vulnerable PKI Object Access Control'
+description: 'Exploit overly permissive access controls on PKI-related domain objects including CA computers, containers, and enrollment services'
+icon: 'server'
+sidebarTitle: 'ESC5'
+---
+
+ESC5 is a misconfiguration in Active Directory Certificate Services (AD CS), which stems from overly permissive access controls on PKI-related domain objects. Specifically, if a principal has the privileges to control a PKI-related domain object, they can potentially compromise the object and elevate their privileges in the domain.
+
+<Warning>
+The severity of this vulnerability depends largely on the vulnerable object type.
+</Warning>
+
+## Vulnerable Object Types
+
+The following object types, if misconfigured, can comprise an ESC5 vulnerability:
+
+<Accordion title="PKI Object Types Vulnerable to ESC5">
+- **The CA server's computer domain object**
+- **The CA server's RPC/DCOM server**
+- **Any descendant object in the PKI container** (`CN=Public Key Services,CN=Services,CN=Configuration,DC=CORP,DC=LOCAL`)
+  - The `Certificate Templates` container
+  - The `Certification Authorities` container
+  - The `Enrollment Services` container
+  - The `NTAuthCertificates` object
+</Accordion>
+
+## Detection
+
+While Certify does not facilitate abuse-functions for most of these cases, we can search for misconfigured access controls in PKI-related objects using the `enum-pkiobjects` command from Certify. For more information about the command and its parameters, please refer to the [Command Overview](./1-command-overview) page.
+
+<CodeGroup>
+```bash Command
+Certify.exe enum-pkiobjects
+```
+
+```diff Output
+   _____          _   _  __
+  / ____|        | | (_)/ _|
+ | |     ___ _ __| |_ _| |_ _   _
+ | |    / _ \ '__| __| |  _| | | |
+ | |___|  __/ |  | |_| | | | |_| |
+  \_____\___|_|   \__|_|_|  \__, |
+                             __/ |
+                            |___./
+  v2.0.0
+
+[*] Action: Find PKI object controllers
+[*] Using the search base 'CN=Configuration,DC=corp,DC=local'
+
+[*] PKI Object Controllers:
+
++   CORP\Domain Users (S-1-5-21-976219687-1556195986-4104514715-513)
++       GenericAll         LDAP://CN=Certificate Templates,CN=Public Key Services,CN=Services,CN=Configuration,DC=corp,DC=local
+
+Certify completed in 00:00:00.6567520
+```
+</CodeGroup>
+
+<Info>
+The above output shows that the `Domain Users` group has full control over all descendants of the `Certificate Templates` container.
+</Info>

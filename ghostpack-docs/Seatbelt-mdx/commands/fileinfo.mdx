@@ -1,0 +1,171 @@
+---
+title: 'FileInfo'
+description: 'Information about a file (version information, timestamps, basic PE info, etc. argument(s) == file path(s)'
+icon: 'file-circle-info'
+---
+
+## Overview
+
+The FileInfo command retrieves detailed information about one or more files on the system. It extracts file metadata including version information, timestamps, digital signatures, basic Portable Executable (PE) information, and file attributes. This is useful for identifying suspicious executables, verifying file authenticity, and gathering forensic information.
+
+## Syntax
+
+```
+Seatbelt.exe "FileInfo <file_path>"
+```
+
+To analyze multiple files:
+
+```
+Seatbelt.exe "FileInfo <file_path1> <file_path2> <file_path3>"
+```
+
+### Arguments
+
+- **file_path** (required) - Full path to the file(s) to analyze. Multiple paths can be specified separated by spaces.
+
+### Examples
+
+```
+Seatbelt.exe "FileInfo C:\Windows\System32\cmd.exe"
+Seatbelt.exe "FileInfo C:\Windows\System32\notepad.exe C:\Windows\System32\calc.exe"
+Seatbelt.exe "FileInfo C:\temp\suspicious.exe"
+```
+
+## Output
+
+The command returns:
+- File path
+- File size
+- File creation time
+- File last access time
+- File last write time
+- File attributes (Hidden, System, ReadOnly, etc.)
+- File version information
+  - Product name
+  - Product version
+  - File version
+  - Company name
+  - Copyright
+  - Original filename
+  - File description
+- Digital signature status
+- Signer information (if signed)
+- Basic PE information (for executables)
+  - PE type (32-bit/64-bit)
+  - Compilation timestamp
+  - Import Address Table (IAT) details
+
+## Use Cases
+
+### Red Team
+- Verify authenticity of system binaries before exploitation
+- Identify legitimate signed binaries for Living off the Land attacks
+- Analyze target executable characteristics for exploitation planning
+- Identify unsigned or suspicious executables
+- Gather intelligence on installed software versions
+- Identify vulnerable software based on version information
+- Verify DLL hijacking targets
+
+### Blue Team
+- Investigate suspicious executables during incident response
+- Verify file integrity and digital signatures
+- Identify tampered or malicious system files
+- Gather forensic evidence about file origins
+- Validate software inventory and versions
+- Detect unsigned executables in sensitive directories
+- Identify files with suspicious metadata or timestamps
+- Correlate file information with malware indicators
+- Verify patch levels of critical system components
+
+## Example Output
+
+```
+====== FileInfo ======
+
+  File Path        : C:\Windows\System32\cmd.exe
+  Size             : 289,792 bytes
+  Created          : 7/16/2021 2:51:35 AM
+  Modified         : 7/16/2021 2:51:35 AM
+  Accessed         : 10/19/2023 3:15:42 PM
+  Attributes       : Archive
+
+  Product Name     : Microsoft® Windows® Operating System
+  Product Version  : 10.0.19041.1
+  File Version     : 10.0.19041.1 (WinBuild.160101.0800)
+  Company          : Microsoft Corporation
+  Copyright        : © Microsoft Corporation. All rights reserved.
+  Original Name    : Cmd.Exe
+  Description      : Windows Command Processor
+
+  Signed           : Yes
+  Signer           : Microsoft Windows
+  Signature Valid  : Yes
+
+  PE Type          : 64-bit
+  Compiled         : 7/16/2021 2:39:12 AM
+
+====== FileInfo ======
+
+  File Path        : C:\temp\suspicious.exe
+  Size             : 45,056 bytes
+  Created          : 10/15/2023 11:22:18 PM
+  Modified         : 10/15/2023 11:22:18 PM
+  Accessed         : 10/19/2023 2:15:42 AM
+  Attributes       : Archive
+
+  Product Name     :
+  Product Version  :
+  File Version     :
+  Company          :
+  Copyright        :
+  Original Name    :
+  Description      :
+
+  Signed           : No
+  Signer           : N/A
+  Signature Valid  : N/A
+
+  PE Type          : 32-bit
+  Compiled         : 10/14/2023 8:45:33 PM
+```
+
+## Performance Considerations
+
+This command has minimal performance impact when analyzing a small number of files. Performance depends on:
+- Number of files specified
+- File sizes being analyzed
+- Whether files are digitally signed (signature verification takes additional time)
+- Disk I/O performance
+
+Analyzing large numbers of files or performing deep PE analysis may take longer.
+
+## Remote Execution
+
+This command does not support remote execution. File analysis must be performed on the local system where the files reside.
+
+## Detection Considerations
+
+### Indicators
+- File access operations on executables and system binaries
+- Reading of file metadata and version information
+- Digital signature verification attempts
+- Access to PE headers of executable files
+- Unusual processes reading multiple executable files
+
+### Defensive Recommendations
+- Monitor for mass file metadata enumeration
+- Alert on access to sensitive system binaries by unauthorized processes
+- Log file access patterns for forensic analysis
+- Implement least privilege to restrict file system access
+- Use AppLocker or similar to control execution of enumeration tools
+- Monitor for unusual reads of executable file headers
+- Track processes performing signature validation on multiple files
+
+## Related Commands
+
+- **InterestingFiles** - "Interesting" files matching various patterns in the user's folder
+- **LOLBAS** - Locates Living Off The Land Binaries and Scripts on the system
+- **Processes** - Running processes with file info company names
+- **Services** - Services with file info company names
+- **dir** - Lists files/folders in specified directories

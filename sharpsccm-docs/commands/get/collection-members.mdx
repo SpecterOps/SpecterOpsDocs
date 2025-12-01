@@ -1,0 +1,223 @@
+---
+title: 'get collection-members'
+description: 'List members of specific collections'
+icon: 'users-gear'
+sidebarTitle: 'collection-members'
+---
+
+## Overview
+
+List members of specific collections to understand deployment targets and organizational groupings. This command reveals which devices or users belong to collections, providing insight into administrative structure and deployment patterns.
+
+## Syntax
+
+```bash
+SharpSCCM get collection-members [options]
+```
+
+## Parameters
+
+<ParamField path="sms-provider" type="string">
+  The IP address, FQDN, or NetBIOS name of the SMS Provider to connect to
+</ParamField>
+
+<ParamField path="site-code" type="string">
+  The three-character site code (e.g., "PS1")
+</ParamField>
+
+<ParamField path="collection-name" type="string">
+  Filter by collection name (supports partial matching)
+</ParamField>
+
+<ParamField path="collection-id" type="string">
+  Filter by specific collection ID (e.g., "SMS00001")
+</ParamField>
+
+<ParamField path="device" type="string">
+  Find collections containing specific device
+</ParamField>
+
+<ParamField path="properties" type="string">
+  Specify properties to retrieve (can be used multiple times)
+</ParamField>
+
+<ParamField path="where-condition" type="string">
+  Custom WQL WHERE clause for advanced filtering
+</ParamField>
+
+<ParamField path="count" type="boolean">
+  Return count of results only
+</ParamField>
+
+<ParamField path="verbose" type="boolean">
+  Display all member properties
+</ParamField>
+
+## Examples
+
+<CodeGroup>
+```bash Basic Usage
+# Get members by collection name
+SharpSCCM get collection-members -n "All Systems" -sms SCCM01.corp.local -sc PS1
+
+# Get members by collection ID
+SharpSCCM get collection-members -i "SMS00001" -sms SCCM01.corp.local -sc PS1
+```
+
+```bash Device Analysis
+# Find collections containing specific device
+SharpSCCM get collection-members -d "WORKSTATION01" -sms SCCM01.corp.local -sc PS1
+
+# Count members in collection
+SharpSCCM get collection-members -i "PS100001" -c -sms SCCM01.corp.local -sc PS1
+```
+
+```bash Advanced Queries
+# Active members only
+SharpSCCM get collection-members -n "Domain Computers" -w "IsActive = True" -sms SCCM01.corp.local -sc PS1
+
+# Specific properties
+SharpSCCM get collection-members -n "Servers" -p Name -p Domain -p IsClient -sms SCCM01.corp.local -sc PS1
+```
+</CodeGroup>
+
+## Key Properties
+
+| Property | Description | Use Case |
+|----------|-------------|----------|
+| `Name` | Member name | Primary identifier |
+| `ResourceID` | Unique identifier | Cross-referencing |
+| `IsClient` | SCCM client status | Management verification |
+| `Domain` | Active Directory domain | Domain analysis |
+| `CollectionID` | Parent collection | Collection mapping |
+| `IsActive` | Member activity status | Active member filtering |
+| `ResourceType` | Resource type | Device vs user distinction |
+
+## Required Permissions
+
+<Info>
+  **SMS Admins local group** membership on the SMS Provider server
+</Info>
+
+## Collection Intelligence
+
+<Accordion title="Membership Analysis">
+  **Device Collections:**
+  - Workstations, servers, and specialized systems
+  - Administrative and infrastructure systems
+  - Department or location-based groupings
+
+  **User Collections:**
+  - Administrative users and service accounts
+  - Department or role-based groupings
+  - Application access groups
+</Accordion>
+
+<Accordion title="Organizational Structure">
+  **Administrative Boundaries:**
+  - High-privilege collections (admin workstations, servers)
+  - Department-specific collections
+  - Geographic or site-based collections
+
+  **Deployment Targets:**
+  - Application deployment targets
+  - Security update deployment groups
+  - Operating system deployment collections
+</Accordion>
+
+## Strategic Analysis
+
+<Accordion title="High-Value Collections">
+  **Administrative Collections:**
+  ```bash
+  # Find admin-related collections
+  SharpSCCM get collection-members -n "admin" -sms SCCM01.corp.local -sc PS1
+  SharpSCCM get collection-members -n "server" -sms SCCM01.corp.local -sc PS1
+  ```
+
+  **Infrastructure Collections:**
+  ```bash
+  # Critical infrastructure
+  SharpSCCM get collection-members -n "DC" -sms SCCM01.corp.local -sc PS1
+  SharpSCCM get collection-members -n "SQL" -sms SCCM01.corp.local -sc PS1
+  ```
+</Accordion>
+
+<Accordion title="Attack Planning">
+  **Target Identification:**
+  - Members of administrative collections
+  - High-value systems and users
+  - Critical infrastructure components
+
+  **Lateral Movement:**
+  - Device relationships and groupings
+  - Administrative access patterns
+  - Cross-collection membership analysis
+</Accordion>
+
+## Common Queries
+
+<CodeGroup>
+```sql Active Members
+IsActive = True
+```
+
+```sql SCCM Clients
+IsClient = True
+```
+
+```sql Device Members
+ResourceType = 5
+```
+
+```sql User Members
+ResourceType = 4
+```
+</CodeGroup>
+
+## Use Cases
+
+<Accordion title="Target Discovery">
+  **High-Value Targets:**
+  - Admin workstations and servers
+  - Domain controllers and infrastructure
+  - Systems with privileged user access
+
+  **Deployment Analysis:**
+  - Understanding deployment scopes
+  - Identifying deployment targets
+  - Analyzing organizational structure
+</Accordion>
+
+<Accordion title="Lateral Movement Planning">
+  **System Relationships:**
+  - Collections reveal system groupings
+  - Administrative boundaries and access
+  - Potential lateral movement paths
+
+  **Privilege Escalation:**
+  - Administrative collection membership
+  - High-privilege system identification
+  - Service account usage patterns
+</Accordion>
+
+## Output Analysis
+
+<Accordion title="Membership Patterns">
+  **Collection Size:**
+  - Large collections (100+): Broad deployment targets
+  - Medium collections (10-100): Departmental or functional groups
+  - Small collections (1-10): Specialized or test groups
+
+  **Member Types:**
+  - Mixed collections: Both devices and users
+  - Device-only collections: System management
+  - User-only collections: Policy assignment
+</Accordion>
+
+## Related Commands
+
+- [`get collections`](/commands/get/collections) - List and analyze collections
+- [`get devices`](/commands/get/devices) - Enumerate managed devices
+- [`get users`](/commands/get/users) - Enumerate user accounts
+- [`get deployments`](/commands/get/deployments) - Analyze deployments to collections

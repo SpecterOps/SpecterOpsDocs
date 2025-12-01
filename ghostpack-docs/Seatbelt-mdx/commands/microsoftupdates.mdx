@@ -1,0 +1,137 @@
+---
+title: 'MicrosoftUpdates'
+description: 'All Microsoft updates (via COM)'
+icon: 'arrows-rotate'
+---
+
+## Overview
+
+The MicrosoftUpdates command enumerates all Microsoft updates installed on the system by querying the Windows Update Agent via COM interfaces. This provides a comprehensive list of all installed updates including security patches, feature updates, and cumulative updates. The information is useful for patch management verification, vulnerability assessment, and compliance auditing.
+
+## Syntax
+
+```
+Seatbelt.exe MicrosoftUpdates
+```
+
+This command does not accept arguments.
+
+## Output
+
+The command returns:
+- Update title
+- KB number (Knowledge Base article)
+- Update ID (GUID)
+- Installation date
+- Update type (Security Update, Critical Update, Update, etc.)
+- Category
+- Support URL
+- Description
+
+## Use Cases
+
+### Red Team
+- Identify missing security patches for exploitation
+- Determine system vulnerability based on patch level
+- Identify vulnerable software versions
+- Map patch deployment timelines
+- Identify systems with delayed patching
+- Find exploitable vulnerabilities based on missing updates
+- Determine if specific CVE patches are installed
+- Identify systems suitable for privilege escalation exploits
+
+### Blue Team
+- Audit patch compliance across systems
+- Verify security update deployment
+- Identify missing critical updates
+- Track patch installation history
+- Generate compliance reports for audits
+- Validate patch management processes
+- Identify systems requiring immediate patching
+- Correlate patch status with vulnerability scans
+- Verify WSUS/SCCM deployment effectiveness
+- Investigate patch-related system issues
+- Validate update rollback status
+
+## Example Output
+
+```
+====== MicrosoftUpdates ======
+
+  Title        : 2023-10 Cumulative Update for Windows 10 Version 22H2 (KB5031356)
+  KB           : KB5031356
+  Update ID    : ABC12345-6789-4DEF-GHIJ-KLMNOPQRSTUV
+  Installed    : 10/11/2023
+  Type         : Security Update
+  Category     : Windows 10, version 1903 and later
+  Description  : Install this update to resolve issues in Windows. For a complete listing of the issues that are included in this update, see the associated Microsoft Knowledge Base article.
+  URL          : https://support.microsoft.com/kb/5031356
+
+  Title        : Security Update for Microsoft .NET Framework 4.8 (KB5030329)
+  KB           : KB5030329
+  Update ID    : DEF45678-9ABC-4DEF-0123-456789ABCDEF
+  Installed    : 9/13/2023
+  Type         : Security Update
+  Category     : .NET Framework 4.8
+  Description  : A security issue has been identified in a Microsoft software product that could affect your system.
+  URL          : https://support.microsoft.com/kb/5030329
+
+  Title        : Update for Windows Defender Antivirus (KB2267602)
+  KB           : KB2267602
+  Update ID    : GHI78901-2345-6789-ABCD-EF0123456789
+  Installed    : 10/19/2023
+  Type         : Definition Update
+  Category     : Windows Defender
+  Description  : Install this update to revise the definition files that are used to detect viruses, spyware, and other potentially unwanted software.
+  URL          : https://support.microsoft.com/kb/2267602
+
+  Title        : 2023-08 Servicing Stack Update for Windows 10 (KB5029331)
+  KB           : KB5029331
+  Update ID    : JKL23456-7890-1234-5678-90ABCDEF1234
+  Installed    : 8/9/2023
+  Type         : Update
+  Category     : Servicing Stack Updates
+  Description  : Install this update to resolve issues in Windows.
+  URL          : https://support.microsoft.com/kb/5029331
+```
+
+## Performance Considerations
+
+This command has moderate performance impact as it queries the Windows Update Agent via COM interfaces. Performance depends on:
+- Number of installed updates (can be hundreds)
+- Windows Update service responsiveness
+- System performance and available resources
+- COM interface overhead
+
+Typically completes within seconds to a minute on most systems.
+
+## Remote Execution
+
+This command does not support remote execution. Microsoft Updates enumeration must be performed on the local system.
+
+## Detection Considerations
+
+### Indicators
+- COM interface queries to Windows Update Agent
+- Access to Windows Update service components
+- WMI queries related to update status
+- Process interaction with wuaueng.dll
+- Queries to IUpdateSearcher interface
+
+### Defensive Recommendations
+- Monitor for unusual processes querying Windows Update COM interfaces
+- Alert on mass update enumeration across multiple systems
+- Track processes accessing Windows Update components
+- Implement least privilege to restrict update information access
+- Use AppLocker or similar to control execution of enumeration tools
+- Log COM interface usage for forensic analysis
+- Monitor for reconnaissance patterns related to patch status
+- Correlate update enumeration with other suspicious activities
+
+## Related Commands
+
+- **Hotfixes** - Installed hotfixes via WMI
+- **InstalledProducts** - Installed products via the registry
+- **OptionalFeatures** - List Optional Features/Roles via WMI
+- **OSInfo** - Basic OS info including version
+- **WSUS** - Windows Server Update Services (WSUS) settings

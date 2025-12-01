@@ -1,0 +1,233 @@
+---
+title: 'listusers'
+description: 'List Atlassian users in a Jira instance'
+icon: 'users'
+---
+
+## Overview
+
+The `jira listusers` command enumerates all Atlassian users accessible in a Jira instance, providing email addresses, display names, account IDs, and account status. This reconnaissance command is critical for user enumeration, building target lists for phishing campaigns, obtaining user IDs for @mentions in issues and comments, and mapping organizational structure.
+
+## Syntax
+
+```bash
+.\AtlasReaper.exe jira listusers [options]
+```
+
+## Required Parameters
+
+<ParamField path="--url" type="string" required>
+  The base URL of the target Jira instance (e.g., `https://company.atlassian.net`)
+</ParamField>
+
+## Optional Parameters
+
+<ParamField path="--cookie" type="string">
+  Authentication cookie (`cloud.session.token` or `tenant.session.token`). Required for accessing user information in most instances
+</ParamField>
+
+<ParamField path="--full" type="boolean" default="false">
+  Return comprehensive user information including display name, user ID, and active status. When false, only displays email addresses
+</ParamField>
+
+<ParamField path="--output" type="string">
+  Save command output to a specified file
+</ParamField>
+
+## Examples
+
+### Basic User Enumeration
+
+List all users with email addresses only:
+
+```bash
+.\AtlasReaper.exe jira listusers \
+  --url https://company.atlassian.net \
+  --cookie $cookie
+```
+
+### Comprehensive User Information
+
+List all users with full details:
+
+```bash
+.\AtlasReaper.exe jira listusers \
+  --url https://company.atlassian.net \
+  --full \
+  --cookie $cookie
+```
+
+### Save User List to File
+
+Export user listing for offline analysis:
+
+```bash
+.\AtlasReaper.exe jira listusers \
+  --url https://company.atlassian.net \
+  --full \
+  --output jira_users.txt \
+  --cookie $cookie
+```
+
+### Build Phishing Target List
+
+Extract email addresses for phishing campaign:
+
+```bash
+.\AtlasReaper.exe jira listusers \
+  --url https://company.atlassian.net \
+  --output phishing_targets.txt \
+  --cookie $cookie
+```
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    ### Offensive Security Applications
+
+    - **Phishing Target Lists**: Build email lists for phishing and social engineering campaigns
+    - **User ID Collection**: Obtain account IDs for @mentions in `createissue` and `addcomment` attacks
+    - **Organizational Mapping**: Understand company structure through email domains and naming conventions
+    - **Password Spraying**: Generate username lists for password spraying attacks
+    - **Social Engineering**: Identify high-value targets based on email patterns (executives, admins)
+    - **Credential Validation**: Verify compromised credentials against known user list
+    - **Active User Detection**: Identify active users for targeted attacks (using `--full`)
+    - **Email Pattern Discovery**: Learn organizational email format for generating additional targets
+  </Tab>
+
+  <Tab title="Blue Team">
+    ### Defensive Monitoring
+
+    - **User Access Audit**: Verify who has access to the Jira instance
+    - **Deactivation Review**: Identify accounts that should be deactivated
+    - **External User Detection**: Find external or contractor accounts
+    - **Compliance Auditing**: Ensure user accounts comply with security policies
+    - **Anomaly Detection**: Monitor for suspicious user enumeration activity
+    - **Incident Response**: Investigate user enumeration during security events
+    - **Access Control Validation**: Verify appropriate user access levels
+    - **Security Awareness**: Understand attack surface from user enumeration perspective
+  </Tab>
+</Tabs>
+
+## Output
+
+### Default Output (Email Only)
+
+When `--full` is not specified, returns sorted email addresses:
+
+```
+User Email: admin@company.com
+
+User Email: alice.smith@company.com
+
+User Email: bob.jones@company.com
+
+User Email: charlie.wilson@company.com
+```
+
+### Full Output (With --full Flag)
+
+When `--full` is specified, returns comprehensive user information:
+
+```
+User Name : Alice Smith
+User Id   : 5d9e8c7f2a3b1c0d4e5f6789
+Active    : True
+User Email: alice.smith@company.com
+
+User Name : Bob Jones
+User Id   : 6e0f9d8g3b4c2d1e5f6g7890
+Active    : True
+User Email: bob.jones@company.com
+
+User Name : Charlie Wilson (Deactivated)
+User Id   : 7f1g0e9h4c5d3e2f6g7h8901
+Active    : False
+User Email: charlie.wilson@company.com
+```
+
+### Output Information
+
+Basic mode:
+- **User Email**: Email address of each user (sorted alphabetically)
+
+Full mode (`--full`):
+- **User Name**: Display name of the user
+- **User Id**: Atlassian account ID (use this for @mentions with `--at` parameter)
+- **Active**: Whether the account is currently active (True/False)
+- **User Email**: Email address
+
+## Detection Considerations
+
+<Warning>
+**Detection Indicators**
+
+Security teams should monitor for:
+
+- User enumeration requests to `/rest/api/3/users/search`
+- Large numbers of paginated user listing requests (200 users per page)
+- User enumeration from unusual IP addresses or geographic locations
+- User listing outside normal business hours
+- Enumeration from accounts that don't typically access Jira
+- Anonymous user enumeration attempts
+- Correlation with subsequent phishing campaigns targeting listed users
+- Correlation with password spraying attacks
+- User listing shortly after credential compromise
+- Repeated user listing requests (reconnaissance activity)
+</Warning>
+
+### Jira Audit Log Entries
+
+This command generates the following audit log events:
+- User search/enumeration operations may be logged
+- API access to user endpoints
+- Includes: User ID (requester), timestamp, IP address, user agent
+
+### Network Indicators
+
+- HTTP GET requests to `/rest/api/3/users/search?maxResults=200&startAt={offset}`
+- Multiple sequential requests (increments of 200) until all users are retrieved
+- Pattern: startAt=0, startAt=200, startAt=400, etc.
+- Large response sizes containing user data
+
+## OPSEC Considerations
+
+<Tip>
+**Operational Security Tips**
+
+To reduce detection risk when using this command:
+
+1. **Timing**: Execute during business hours when legitimate Jira access is common
+2. **Single Execution**: Only enumerate users once and save results (use `--output`)
+3. **Account Context**: Use cookies from accounts that may legitimately need user information
+4. **Rate Limiting**: The tool automatically paginates; be aware this generates multiple requests
+5. **Delayed Use**: Don't immediately use enumerated data (space out phishing/spraying attacks)
+6. **IP Considerations**: Be aware of geographic IP inconsistencies
+7. **Correlation Prevention**: Avoid enumerating users immediately before phishing campaigns
+8. **Anonymous Restrictions**: Anonymous user enumeration typically disabled or very limited
+9. **Data Handling**: Securely handle exported user lists containing PII
+10. **Operational Use**: Use enumerated data judiciously to avoid pattern detection
+</Tip>
+
+### Enumeration Behavior
+
+- The tool automatically paginates through all users in batches of 200
+- Enumeration continues until fewer than 200 users are returned (indicating the last page)
+- Output is sorted alphabetically by email address for easier analysis
+- Users without email addresses are excluded from results
+
+### User ID Usage
+
+User IDs obtained with `--full` can be used with:
+- `jira createissue --at {userId}` - Mention user in new issues
+- `jira addcomment --at {userId}` - Mention user in comments
+
+Example user ID: `5d9e8c7f2a3b1c0d4e5f6789`
+
+## Related Commands
+
+- [jira createissue](/jira/createissue) - Create issues with user mentions (use `--at` with user IDs from this command)
+- [jira addcomment](/jira/addcomment) - Add comments with user mentions (use `--at` with user IDs)
+- [jira listprojects](/jira/listprojects) - List projects to understand organizational structure
+- [jira listissues](/jira/listissues) - List issues showing creator and assignee information

@@ -1,0 +1,58 @@
+---
+title: "hashes"
+description: "Get extracted hash information from Nemesis including crack status and plaintext values"
+---
+
+## Summary
+
+Query Nemesis for hashes that have been extracted from uploaded files, along with their crack status and plaintext values if available.
+
+- Needs Admin: False
+- Version: 2
+- Author: @its_a_feature_
+
+### Arguments
+
+No arguments required. Data is automatically filtered by the current operation/project.
+
+## Usage
+
+```
+hashes
+```
+
+## MITRE ATT&CK Mapping
+
+## Detailed Summary
+
+This command retrieves hash information from Nemesis including:
+
+### Hash Details
+- Hash type (NTLM, SHA1, etc.)
+- Hash value
+- MD5 hash of the hash value (for deduplication)
+- Formatted values for Hashcat and John the Ripper
+- Source file/location
+
+### Crack Status
+- Whether the hash has been submitted to a cracker
+- Whether the hash has been checked against top password lists
+- Crack submission and completion timestamps
+- Is cracked status
+- Plaintext value (if cracked)
+
+### Metadata
+- Agent ID that uploaded the source file
+- Originating object ID (the file containing the hash)
+- Project ID
+- Timestamps and expiration
+- Unique database ID
+
+Nemesis automatically extracts hashes from:
+- SAM/NTDS databases
+- Kerberos tickets
+- Configuration files
+- Memory dumps
+- And other supported file types
+
+The platform can automatically submit hashes to configured cracking services and update the status when plaintext values are discovered.

@@ -1,0 +1,85 @@
+---
+title: 'EnvironmentVariables'
+description: 'Current environment variables'
+icon: 'list'
+---
+
+## Overview
+
+The EnvironmentVariables command enumerates all environment variables for the system and current user. Environment variables often contain sensitive information like paths, credentials, API keys, proxy settings, and application configurations.
+
+## Syntax
+
+```bash
+Seatbelt.exe EnvironmentVariables
+```
+
+### Remote Execution
+```bash
+Seatbelt.exe EnvironmentVariables -computername=TARGET.domain.com [-username=DOMAIN\user -password=pass]
+```
+
+## Output
+
+Returns environment variables including:
+- Variable name
+- Variable value
+- Scope (System/User)
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Discover credentials in environment variables
+    - Find API keys and tokens
+    - Identify proxy configurations
+    - Locate application paths
+    - Discover cloud credentials (AWS_ACCESS_KEY, etc.)
+  </Tab>
+  <Tab title="Blue Team">
+    - Audit for exposed credentials
+    - Validate secure configuration practices
+    - Identify security misconfigurations
+    - Detect unauthorized environment modifications
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== EnvironmentVariables ======
+
+System Environment Variables:
+  COMPUTERNAME         : WORKSTATION01
+  OS                   : Windows_NT
+  PATH                 : C:\Windows\system32;C:\Windows;...
+  PROCESSOR_ARCHITECTURE : AMD64
+  SystemRoot           : C:\Windows
+  TEMP                 : C:\Windows\TEMP
+  TMP                  : C:\Windows\TEMP
+
+User Environment Variables:
+  APPDATA             : C:\Users\admin\AppData\Roaming
+  LOCALAPPDATA        : C:\Users\admin\AppData\Local
+  TEMP                : C:\Users\admin\AppData\Local\Temp
+  USERNAME            : admin
+  USERPROFILE         : C:\Users\admin
+```
+
+## Remote Execution
+
+<Check>
+This command **supports remote execution** using the `-computername` parameter.
+</Check>
+
+## Detection Considerations
+
+<Info>
+Low detection risk - queries environment variables via WMI.
+</Info>
+
+## Related Commands
+
+- [EnvironmentPath](/commands/environmentpath) - PATH variable with permissions
+- [OSInfo](/commands/osinfo) - Operating system information
+- [LocalUsers](/commands/localusers) - Local user accounts

@@ -1,0 +1,251 @@
+---
+title: 'get class-properties'
+description: 'Examine WMI class properties'
+icon: 'info'
+sidebarTitle: 'class-properties'
+---
+
+## Overview
+
+Examine the properties and structure of WMI classes to understand available data fields and plan targeted queries. This command is essential for understanding class schemas before performing detailed data extraction.
+
+## Syntax
+
+```bash
+SharpSCCM get class-properties <wmi-class> [options]
+```
+
+## Parameters
+
+<ParamField path="wmi-class" type="string" required>
+  The WMI class to examine (e.g., "SMS_R_System")
+</ParamField>
+
+<ParamField path="sms-provider" type="string">
+  The IP address, FQDN, or NetBIOS name of the SMS Provider to connect to
+</ParamField>
+
+<ParamField path="site-code" type="string">
+  The three-character site code (e.g., "PS1")
+</ParamField>
+
+## Examples
+
+<CodeGroup>
+```bash Basic Usage
+# Get properties of system class
+SharpSCCM get class-properties SMS_R_System -sms SCCM01.corp.local -sc PS1
+
+# Examine admin class structure
+SharpSCCM get class-properties SMS_Admin -sms SCCM01.corp.local -sc PS1
+```
+
+```bash Common Classes
+# Collection class properties
+SharpSCCM get class-properties SMS_Collection -sms SCCM01.corp.local -sc PS1
+
+# Application class properties
+SharpSCCM get class-properties SMS_Application -sms SCCM01.corp.local -sc PS1
+```
+</CodeGroup>
+
+## Required Permissions
+
+<Info>
+  **SMS Admins local group** membership on the SMS Provider server
+</Info>
+
+## Output Format
+
+The command displays properties with their data types and characteristics:
+
+```text
+-----------------------------------
+SMS_R_System
+-----------------------------------
+Name (String, Key)
+ResourceID (UInt32, Key)
+LastLogonUserName (String)
+LastLogonTimestamp (DateTime)
+IPAddresses (String Array)
+OperatingSystemNameandVersion (String)
+-----------------------------------
+```
+
+## Property Analysis
+
+<Accordion title="Data Types">
+  **String Types:**
+  - Text data and identifiers
+  - User and system names
+  - Network addresses and paths
+
+  **Numeric Types:**
+  - UInt32: Resource IDs and counts
+  - DateTime: Timestamps and dates
+  - Boolean: True/false flags
+
+  **Array Types:**
+  - String arrays: Multiple values (IP addresses, software)
+  - Numeric arrays: Collections of numbers
+</Accordion>
+
+<Accordion title="Property Characteristics">
+  **Key Properties:**
+  - Unique identifiers for instances
+  - Used for object relationships
+  - Critical for data correlation
+
+  **Indexed Properties:**
+  - Optimized for searching and filtering
+  - Better query performance
+  - Common filter targets
+
+  **Required vs Optional:**
+  - Required properties always have values
+  - Optional properties may be null
+  - Impact filtering and data quality
+</Accordion>
+
+## Common Class Properties
+
+<Accordion title="SMS_R_System Properties">
+  **Identity Properties:**
+  - `Name`: NetBIOS computer name
+  - `ResourceID`: Unique system identifier
+  - `SMSID`: SCCM unique identifier
+
+  **User Information:**
+  - `LastLogonUserName`: Last logged-on user
+  - `LastLogonTimestamp`: Last logon time
+  - `PrimaryUserName`: Primary user assignment
+
+  **Network Information:**
+  - `IPAddresses`: Network IP addresses
+  - `MACAddresses`: Hardware MAC addresses
+  - `IPSubnets`: Network subnet information
+
+  **System Information:**
+  - `OperatingSystemNameandVersion`: OS details
+  - `Architecture`: System architecture
+  - `Domain`: Active Directory domain
+</Accordion>
+
+<Accordion title="SMS_Admin Properties">
+  **Account Information:**
+  - `LogonName`: Domain\username
+  - `DisplayName`: Friendly display name
+  - `AdminSid`: Security identifier
+
+  **Role Information:**
+  - `RoleNames`: Assigned security roles
+  - `Permissions`: Effective permissions
+  - `SecurityScopes`: Administrative scopes
+
+  **Metadata:**
+  - `CreatedDate`: Account creation
+  - `LastModifiedDate`: Last modification
+  - `SourceSite`: Site where defined
+</Accordion>
+
+<Accordion title="SMS_Collection Properties">
+  **Collection Identity:**
+  - `Name`: Collection display name
+  - `CollectionID`: Unique identifier
+  - `Comment`: Description or notes
+
+  **Collection Configuration:**
+  - `CollectionType`: 1 (User) or 2 (Device)
+  - `MemberCount`: Number of members
+  - `IsBuiltIn`: Microsoft default collection
+
+  **Relationship Properties:**
+  - `LimitToCollectionID`: Parent collection
+  - `RefreshType`: Refresh schedule type
+  - `LastRefreshTime`: Last refresh timestamp
+</Accordion>
+
+## Query Planning
+
+<Accordion title="Property Selection">
+  **Essential Properties:**
+  - Key properties for identification
+  - Security-relevant properties
+  - Relationship properties for correlation
+
+  **Performance Considerations:**
+  - Select only needed properties
+  - Use indexed properties for filtering
+  - Avoid large array properties when possible
+</Accordion>
+
+<Accordion title="Filtering Strategies">
+  **String Properties:**
+  - Use LIKE for pattern matching
+  - Case-insensitive comparisons
+  - Wildcard and substring matching
+
+  **Numeric Properties:**
+  - Range comparisons `(>, <, BETWEEN)`
+  - Equality and inequality tests
+  - NULL checks for optional properties
+
+  **Date Properties:**
+  - Date range filtering
+  - Recent activity analysis
+  - Timeline-based queries
+</Accordion>
+
+## Use Cases
+
+<Accordion title="Query Development">
+  **Schema Understanding:**
+  - Identify available data fields
+  - Understand data types and formats
+  - Plan efficient query structures
+
+  **Data Validation:**
+  - Verify expected properties exist
+  - Understand property relationships
+  - Validate data quality assumptions
+</Accordion>
+
+<Accordion title="Security Analysis">
+  **Sensitive Data Identification:**
+  - User authentication properties
+  - Network configuration data
+  - Administrative role information
+  - System identification details
+
+  **Attack Surface Mapping:**
+  - Available data for reconnaissance
+  - Properties useful for targeting
+  - Information disclosure opportunities
+</Accordion>
+
+## Property Examples by Category
+
+<CodeGroup>
+```text Identity Properties
+Name, ResourceID, SMSID, CollectionID
+```
+
+```text Security Properties
+LastLogonUserName, AdminSid, RoleNames, Permissions
+```
+
+```text Network Properties
+IPAddresses, MACAddresses, IPSubnets, Domain
+```
+
+```text Temporal Properties
+LastLogonTimestamp, CreatedDate, LastRefreshTime
+```
+</CodeGroup>
+
+## Related Commands
+
+- [`get classes`](/commands/get/classes) - List available WMI classes
+- [`get class-instances`](/commands/get/class-instances) - Query class instances with discovered properties
+- [`local class-properties`](/commands/local/class-properties) - Examine local WMI class properties
+- [`local query`](/commands/local/query) - Execute queries using property information

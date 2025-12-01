@@ -1,0 +1,80 @@
+---
+title: 'OptionalFeatures'
+description: 'List Optional Features/Roles (via WMI)'
+icon: 'toggle-on'
+---
+
+## Overview
+
+The OptionalFeatures command enumerates Windows optional features and roles installed on the system via WMI. These features include server roles, administrative tools, and optional Windows components that may affect the system's attack surface.
+
+## Syntax
+
+```bash
+Seatbelt.exe OptionalFeatures
+```
+
+### Remote Execution
+```bash
+Seatbelt.exe OptionalFeatures -computername=TARGET.domain.com [-username=DOMAIN\user -password=pass]
+```
+
+## Output
+
+Returns optional feature information:
+- Feature name
+- Installation state (Enabled/Disabled)
+- Feature description
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Identify installed server roles
+    - Discover administrative features
+    - Find potential attack vectors
+    - Determine system purpose (web server, file server, etc.)
+  </Tab>
+  <Tab title="Blue Team">
+    - Audit installed features for compliance
+    - Identify unnecessary features
+    - Reduce attack surface
+    - Validate server hardening
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== OptionalFeatures ======
+
+Name        : IIS-WebServer
+State       : Enabled
+Description : Web Server (IIS)
+
+Name        : TelnetClient
+State       : Disabled
+Description : Telnet Client
+
+Name        : SMB1Protocol
+State       : Disabled
+Description : SMB 1.0/CIFS File Sharing Support
+```
+
+## Remote Execution
+
+<Check>
+This command **supports remote execution** using the `-computername` parameter.
+</Check>
+
+## Detection Considerations
+
+<Info>
+Low detection risk - queries WMI for feature information.
+</Info>
+
+## Related Commands
+
+- [OSInfo](/commands/osinfo) - Operating system information
+- [Services](/commands/services) - Running services
+- [WindowsFirewall](/commands/windowsfirewall) - Firewall configuration

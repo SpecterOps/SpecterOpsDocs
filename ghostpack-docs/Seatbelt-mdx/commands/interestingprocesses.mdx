@@ -1,0 +1,100 @@
+---
+title: 'InterestingProcesses'
+description: '"Interesting" processes - defensive products and admin tools'
+icon: 'binoculars'
+---
+
+## Overview
+
+The InterestingProcesses command identifies running processes that are considered "interesting" from a security perspective, including defensive security products (AV, EDR, monitoring tools) and administrative utilities. This helps assess the defensive posture and identify potential obstacles.
+
+## Syntax
+
+```bash
+Seatbelt.exe InterestingProcesses
+```
+
+### Remote Execution
+```bash
+Seatbelt.exe InterestingProcesses -computername=TARGET.domain.com [-username=DOMAIN\user -password=pass]
+```
+
+## Output
+
+Returns information about interesting processes:
+- Process name
+- Process ID (PID)
+- Company name
+- Description
+- Version
+- File path
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Identify security products (AV, EDR, monitoring)
+    - Discover admin tools that might detect activity
+    - Plan evasion strategies
+    - Identify potential process injection targets
+    - Assess defensive capabilities
+  </Tab>
+  <Tab title="Blue Team">
+    - Verify security tool deployment
+    - Identify unauthorized admin tools
+    - Audit monitoring coverage
+    - Detect malicious processes
+    - Validate security stack
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== InterestingProcesses ======
+
+ProcessName        : MsMpEng.exe
+PID                : 2156
+CompanyName        : Microsoft Corporation
+Description        : Antimalware Service Executable
+Version            : 4.18.2108.7
+Path               : C:\ProgramData\Microsoft\Windows Defender\Platform\4.18.2108.7-0\MsMpEng.exe
+
+ProcessName        : SenseIR.exe
+PID                : 3492
+CompanyName        : Microsoft Corporation
+Description        : Windows Defender Advanced Threat Protection
+Version            : 10.8210.19041.1
+Path               : C:\Program Files\Windows Defender Advanced Threat Protection\SenseIR.exe
+
+ProcessName        : sysmon64.exe
+PID                : 1844
+CompanyName        : Sysinternals - www.sysinternals.com
+Description        : System Monitor service
+Version            : 14.13
+Path               : C:\Windows\sysmon64.exe
+```
+
+## Remote Execution
+
+<Check>
+This command **supports remote execution** using the `-computername` parameter.
+</Check>
+
+## Detection Considerations
+
+<Warning>
+Process enumeration is a common reconnaissance activity.
+</Warning>
+
+- **WMI Queries**: Remote execution generates WMI events
+- **API Calls**: Uses process enumeration APIs
+- **EDR Telemetry**: Security products may log this activity
+- **Pattern Detection**: Multiple enumerations may trigger alerts
+
+## Related Commands
+
+- [Processes](/commands/processes) - All running processes
+- [AntiVirus](/commands/antivirus) - Registered AV products
+- [Services](/commands/services) - Running services
+- [Sysmon](/commands/sysmon) - Sysmon configuration

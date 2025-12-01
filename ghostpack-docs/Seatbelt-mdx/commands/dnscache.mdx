@@ -1,0 +1,90 @@
+---
+title: 'DNSCache'
+description: 'DNS cache entries (via WMI)'
+icon: 'server'
+---
+
+## Overview
+
+The DNSCache command enumerates DNS resolver cache entries, revealing recently resolved hostnames and IP addresses. This provides insight into recent network activity and can identify interesting targets for lateral movement or data exfiltration destinations.
+
+## Syntax
+
+```bash
+Seatbelt.exe DNSCache
+```
+
+### Remote Execution
+```bash
+Seatbelt.exe DNSCache -computername=TARGET.domain.com [-username=DOMAIN\user -password=pass]
+```
+
+## Output
+
+Returns DNS cache entries including:
+- Hostname/FQDN
+- IP address(es)
+- Record type (A, AAAA, CNAME, etc.)
+- Time to live (TTL)
+- Data length
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Discover internal infrastructure
+    - Identify recently accessed systems
+    - Find file servers, databases, web servers
+    - Map network topology
+    - Locate data exfiltration targets
+    - Discover domain controllers
+  </Tab>
+  <Tab title="Blue Team">
+    - Investigate suspicious DNS queries
+    - Detect C2 infrastructure communication
+    - Identify unauthorized external connections
+    - Correlate with network logs
+    - Hunt for DNS tunneling
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== DNSCache ======
+
+Entry              : dc01.corp.local
+Data               : 10.0.0.10
+Type               : A
+
+Entry              : fileserver.corp.local
+Data               : 10.0.0.50
+Type               : A
+
+Entry              : mail.google.com
+Data               : 142.250.80.101
+Type               : A
+
+Entry              : suspicious-c2.com
+Data               : 185.220.101.50
+Type               : A
+```
+
+## Remote Execution
+
+<Check>
+This command **supports remote execution** using the `-computername` parameter.
+</Check>
+
+## Detection Considerations
+
+<Warning>
+May generate WMI activity logs during remote execution.
+</Warning>
+
+## Related Commands
+
+- [ARPTable](/commands/arptable) - ARP cache entries
+- [TcpConnections](/commands/tcpconnections) - Active TCP connections
+- [NetworkProfiles](/commands/networkprofiles) - Network profiles
+- [NetworkShares](/commands/networkshares) - Network shares

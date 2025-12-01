@@ -1,0 +1,125 @@
+---
+title: 'IEUrls'
+description: 'Internet Explorer typed URLs (last 7 days, argument == last X days)'
+icon: 'link'
+---
+
+## Overview
+
+The `IEUrls` command enumerates Internet Explorer's typed URL history - URLs that users manually typed into the address bar. By default, it shows URLs from the last 7 days, but this can be customized. This provides insight into user browsing patterns and manually accessed resources.
+
+**Important:** User commands run for the current user if not elevated and for ALL users if elevated.
+
+## Syntax
+
+```
+Seatbelt.exe IEUrls
+Seatbelt.exe "IEUrls [days]"
+```
+
+### Arguments
+
+- **days**: Number of days to look back (default: 7)
+
+## Output
+
+The command returns:
+- Typed URLs from IE address bar
+- Timestamps of when URLs were typed
+- URL patterns revealing user interests
+- Internal and external web resources
+- User context for each URL entry
+
+## Output
+
+The command supports remote execution (marked with + in the command list).
+
+## Use Cases
+
+### Red Team
+- **Infrastructure Discovery**: Identify manually accessed internal web applications
+- **Network Mapping**: Discover IP addresses and hostnames from typed URLs
+- **User Profiling**: Understand user roles and responsibilities based on accessed sites
+- **Target Identification**: Find admin panels, VPN portals, and management interfaces
+- **Intelligence Gathering**: Collect URLs that may not appear in bookmarks or full history
+
+### Blue Team
+- **Incident Response**: Track manually accessed URLs during security investigations
+- **Insider Threat Detection**: Identify suspicious or unauthorized site access
+- **User Behavior Analysis**: Understand manual browsing patterns
+- **Security Audit**: Review typed URLs for policy violations
+- **Forensic Analysis**: Reconstruct user activity timelines from typed URLs
+
+## Example Output
+
+```
+====== IEUrls ======
+
+User: john.doe
+
+  Typed URLs (Last 7 Days)
+
+  https://vpn.contoso.com
+    LastTyped         : 2024-10-20 08:30:15
+
+  http://192.168.1.100
+    LastTyped         : 2024-10-19 14:22:30
+
+  https://admin.router.local
+    LastTyped         : 2024-10-18 16:45:00
+
+  https://mail.google.com
+    LastTyped         : 2024-10-17 09:15:20
+```
+
+### Example with Argument
+
+Show typed URLs from the last 30 days:
+```
+Seatbelt.exe "IEUrls 30"
+```
+
+## Privilege Context
+
+- **Non-Elevated**: Returns typed URLs for the current user only
+- **Elevated**: Returns typed URLs for ALL users on the system, providing comprehensive visibility of manually accessed sites
+
+## Remote Execution
+
+This command **supports** remote execution (marked with + in the command list).
+
+Remote syntax:
+```
+Seatbelt.exe IEUrls -computername=TARGET.domain.com -username=DOMAIN\user -password=pass
+```
+
+## Detection Considerations
+
+### Indicators
+- Registry enumeration of TypedURLs keys
+- Access to user registry hives (HKCU\Software\Microsoft\Internet Explorer\TypedURLs)
+- Reading browser history data
+- Enumeration across multiple user profiles
+
+### Defensive Monitoring
+- Monitor registry access to TypedURLs keys
+- Alert on automated enumeration of browser history
+- Track processes reading IE history data
+- Log unusual access patterns to browser registry keys
+- Detect reconnaissance tools querying typed URLs
+- Monitor for bulk enumeration across multiple users
+
+### What Typed URLs Reveal
+- Direct access to admin interfaces suggests privileged users
+- IP address typing indicates technical knowledge or internal systems
+- VPN/remote access URLs show remote connectivity methods
+- Internal application URLs reveal organizational infrastructure
+- Pattern of manual URL entry suggests specific workflows
+
+## Related Commands
+
+- **IEFavorites**: Lists Internet Explorer bookmarked sites
+- **IETabs**: Shows currently open Internet Explorer tabs
+- **ChromiumHistory**: Parses Chromium browser history
+- **FirefoxHistory**: Parses Firefox browser history
+- **ExplorerMRUs**: Shows recently accessed files

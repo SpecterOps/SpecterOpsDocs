@@ -1,0 +1,318 @@
+---
+title: 'link'
+description: 'Add a hyperlink to a Confluence page for phishing and credential harvesting'
+icon: 'link'
+---
+
+## Overview
+
+The `confluence link` command adds a hyperlink to a Confluence page, pointing to an attacker-controlled server or phishing site. This technique is used for social engineering attacks, credential phishing, malware distribution, and directing users to external attacker infrastructure.
+
+Unlike the embed command which uses invisible pixels, this approach adds a visible clickable link that can be accompanied by social engineering text to encourage users to click.
+
+## Syntax
+
+```bash
+.\AtlasReaper.exe confluence link [options]
+```
+
+## Required Parameters
+
+<ParamField path="--url" type="string" required>
+  The base URL of the Confluence instance (e.g., `https://example.atlassian.net`)
+</ParamField>
+
+<ParamField path="--page" type="string" required>
+  The page ID where the hyperlink will be added. Page IDs can be discovered using the `confluence listpages` command
+</ParamField>
+
+<ParamField path="--link" type="string" required>
+  The target URL where the hyperlink will point (e.g., `https://attacker-phishing-site.com` or `http://malware-delivery.com/payload`)
+</ParamField>
+
+## Optional Parameters
+
+<ParamField path="--cookie" type="string">
+  Authentication cookie (`cloud.session.token` or `tenant.session.token`). If omitted, the command will attempt anonymous access (if enabled on the target)
+</ParamField>
+
+<ParamField path="--text" type="string" default="Here">
+  The visible text of the hyperlink that users will see and click. Default is "Here"
+</ParamField>
+
+<ParamField path="--message" type="string">
+  Context message to add to the page alongside the link (e.g., "I need you to take a look at this"). This provides social engineering context
+</ParamField>
+
+<ParamField path="--at" type="string">
+  User ID to mention (@) on the page, generating a notification to increase the likelihood of engagement. User IDs can be obtained using the `jira listusers` command
+</ParamField>
+
+<ParamField path="--output" type="string">
+  Save command output to a specified file
+</ParamField>
+
+## Examples
+
+<Tabs>
+  <Tab title="Basic Link Addition">
+    ```bash
+    .\AtlasReaper.exe confluence link \
+      --page "12345" \
+      --link "https://phishing.example.com" \
+      --text "Click here" \
+      --url https://target.atlassian.net \
+      --cookie "cloud.session.token=abc123..."
+    ```
+    Adds a simple hyperlink with custom text to a Confluence page.
+  </Tab>
+
+  <Tab title="Credential Phishing">
+    ```bash
+    .\AtlasReaper.exe confluence link \
+      --page "12345" \
+      --link "https://target-atlassian.phishing-site.com/login" \
+      --text "Verify your account" \
+      --message "Your session has expired. Please re-authenticate to continue accessing this page." \
+      --url https://target.atlassian.net \
+      --cookie "cloud.session.token=abc123..."
+    ```
+    Creates a phishing scenario prompting users to "re-authenticate" via a fake login page.
+  </Tab>
+
+  <Tab title="Targeted Social Engineering">
+    ```bash
+    .\AtlasReaper.exe confluence link \
+      --page "67890" \
+      --link "https://sharepoint-clone.attacker.com/quarterly-report.xlsx" \
+      --text "Q4 Financial Report" \
+      --message "Hi team, the Q4 financial report is now available. Please review before tomorrow's meeting." \
+      --at "557058:f1234567-89ab-cdef-0123-456789abcdef" \
+      --url https://target.atlassian.net \
+      --cookie "cloud.session.token=abc123..."
+    ```
+    Combines link, message, and user mention for a convincing social engineering attack.
+  </Tab>
+
+  <Tab title="Malware Distribution">
+    ```bash
+    .\AtlasReaper.exe confluence link \
+      --page "12345" \
+      --link "https://updates.attacker-cdn.com/SecurityPatch_KB2024.exe" \
+      --text "Download Critical Security Patch" \
+      --message "IT Security Alert: Critical vulnerability detected. Download and install the patch immediately." \
+      --url https://target.atlassian.net \
+      --cookie "cloud.session.token=abc123..."
+    ```
+    Distributes malware disguised as a legitimate security update.
+  </Tab>
+
+  <Tab title="Internal Tool Impersonation">
+    ```bash
+    .\AtlasReaper.exe confluence link \
+      --page "54321" \
+      --link "https://internal-portal.attacker.com/reset-password" \
+      --text "Reset Password Portal" \
+      --message "Password policy update: All users must reset their passwords by Friday. Use the portal below." \
+      --url https://target.atlassian.net \
+      --cookie "cloud.session.token=abc123..."
+    ```
+    Impersonates an internal password reset portal to harvest credentials.
+  </Tab>
+</Tabs>
+
+## Use Cases
+
+<AccordionGroup>
+  <Accordion title="Red Team Perspectives" icon="user-secret">
+    **Credential Phishing Operations**
+    - Create fake login pages mimicking Confluence, Jira, or other corporate systems
+    - Harvest corporate credentials, SSO tokens, or multi-factor authentication details
+    - Target high-value users (admins, executives) with personalized phishing links
+    - Clone legitimate authentication portals to maximize success rate
+
+    **Malware Distribution**
+    - Distribute payloads disguised as legitimate software updates or business documents
+    - Leverage organizational trust in Confluence as a distribution mechanism
+    - Host exploits targeting specific vulnerabilities in target software
+    - Deliver remote access tools (RATs) or backdoors to establish persistence
+
+    **Social Engineering Campaigns**
+    - Reference real projects, meetings, or initiatives to build credibility
+    - Impersonate IT, HR, or Security teams with authority-based pretexts
+    - Create urgency ("immediate action required") to bypass critical thinking
+    - Use @mentions to target specific individuals and ensure link visibility
+
+    **Reconnaissance and Tracking**
+    - Track which users click links to identify potential targets for further exploitation
+    - Fingerprint browsers and systems of users who click the link
+    - Identify active users and their access patterns
+    - Correlate clicked links with subsequent actions in the environment
+
+    **C2 Communication**
+    - Use links to redirect compromised systems to command and control infrastructure
+    - Distribute configuration updates or new payloads via trusted Confluence pages
+    - Establish covert channels by having malware check Confluence pages for instructions
+  </Accordion>
+
+  <Accordion title="Blue Team Perspectives" icon="shield-halved">
+    **Threat Detection Indicators**
+    - Links to external domains not on approved/whitelist
+    - Recently registered domains or domains with suspicious naming patterns
+    - Links with URL shorteners or redirects that obscure the true destination
+    - Pages modified to include links by accounts with suspicious activity
+    - Links combined with urgent language or authority-based social engineering
+
+    **Hunting Opportunities**
+    - Search Confluence content for external links added recently
+    - Review audit logs for page modifications that add external hyperlinks
+    - Monitor web proxy logs for clicks on suspicious domains from Confluence users
+    - Identify patterns of external link additions correlated with phishing campaigns
+    - Track accounts that add links to multiple pages (potential compromise indicator)
+
+    **Security Controls**
+    - Implement URL filtering to warn users before navigating to external links
+    - Deploy link analysis tools that scan URLs for malicious content
+    - Configure Confluence to display external link warnings
+    - Require approval for adding external links to sensitive spaces
+    - Enable SafeLinks or similar URL rewriting/scanning services
+    - Implement DMARC, SPF, DKIM to prevent email spoofing in notifications
+
+    **User Awareness**
+    - Train users to verify link destinations before clicking
+    - Educate about phishing tactics and social engineering techniques
+    - Implement reporting mechanisms for suspicious links
+    - Conduct simulated phishing exercises using similar techniques
+    - Provide clear guidance on identifying legitimate vs. malicious links
+
+    **Incident Response**
+    - Identify all users who clicked the malicious link (web proxy logs)
+    - Determine if credentials were entered on phishing sites (check authentication failures)
+    - Review the page edit history to identify when the link was added
+    - Assess the privileges of the account that added the link
+    - Remove the malicious link and restore page to previous version
+    - Reset credentials for affected users and notify security awareness team
+  </Accordion>
+</AccordionGroup>
+
+## Output
+
+The command returns information about the link addition operation:
+
+- Confirmation that the link was successfully added
+- Page ID where the link was inserted
+- The target URL of the link
+- The visible link text
+- Any message or @mention information
+
+Example output structure:
+```
+[+] Successfully added link to page
+    Page ID: 12345
+    Link URL: https://phishing.example.com
+    Link Text: Click here to verify
+    Message: Your session has expired. Please re-authenticate.
+    User mentioned: @john.doe
+```
+
+## Detection Considerations
+
+<Warning>
+  Link additions to Confluence pages generate audit trails and may trigger security controls:
+</Warning>
+
+**Confluence Audit Logs**
+- Page edit events are logged with timestamp, username, and change details
+- Audit logs include page ID, the account making the change, and IP address
+- External link additions may generate specific event types in security logging
+
+**User Notifications**
+- Users mentioned with @ will receive email and in-app notifications
+- Notification content may be reviewed by security teams during investigations
+- Mass notifications or notifications to high-value targets may trigger alerts
+
+**Link Analysis and Scanning**
+- Security tools may automatically scan links added to collaboration platforms
+- URL reputation services check links against threat intelligence databases
+- Sandboxing solutions may visit the link to analyze content and behavior
+- Real-time phishing detection may flag the page containing malicious links
+
+**Web Proxy and DNS Monitoring**
+- Clicks on links will generate web proxy logs
+- DNS queries for suspicious domains may trigger alerts
+- First-time domain visits from multiple users may be flagged
+- SSL/TLS inspection may reveal phishing or malicious content
+
+**Behavioral Analytics**
+- Unusual page editing patterns (adding many external links) may trigger UEBA alerts
+- Compromised accounts may exhibit behavior inconsistent with the user's baseline
+- Link additions outside normal hours or from unusual locations raise suspicion
+
+## OPSEC Considerations
+
+<Tip>
+  Follow these operational security guidelines to minimize detection:
+</Tip>
+
+1. **Link URL Selection**
+   - Use domains that appear legitimate (avoid obviously suspicious names)
+   - Consider typosquatting trusted domains (e.g., `atlassain.net` vs `atlassian.net`)
+   - Use HTTPS to add legitimacy and avoid browser warnings
+   - Avoid newly registered domains that may have poor reputation scores
+   - Consider using compromised legitimate sites as redirectors
+
+2. **Link Text and Context**
+   - Ensure link text makes sense in the page context
+   - Avoid generic text like "Click here" which appears suspicious
+   - Match organizational writing style and terminology
+   - Reference real projects, documents, or initiatives when possible
+
+3. **Social Engineering Quality**
+   - Craft messages that align with organizational communication patterns
+   - Use appropriate urgency levels (don't overdo it)
+   - Consider the target's role when crafting the pretext
+   - Ensure the page context supports the link's purpose
+
+4. **Target Selection**
+   - Choose pages that the compromised account would normally edit
+   - Consider the page's visibility and typical audience
+   - Target pages relevant to high-value users you want to compromise
+   - Avoid highly visible pages that security teams may monitor closely
+
+5. **Timing**
+   - Add links during normal business hours for the compromised account
+   - Consider time zones and typical work schedules
+   - Time campaigns around real events (e.g., actual password policy changes)
+   - Space out operations if adding links to multiple pages
+
+6. **Infrastructure Considerations**
+   - Host phishing/malware sites on resilient infrastructure
+   - Implement geographic restrictions to only serve payloads to targets
+   - Use domain fronting or CDNs to obscure the true destination
+   - Prepare for rapid infrastructure rotation if domains are burned
+
+7. **Tracking and Metrics**
+   - Implement tracking to identify which users clicked links
+   - Use unique URLs or parameters per target to attribute actions
+   - Monitor for security scanning (automated visits before user clicks)
+   - Be prepared to capture credentials or deliver payloads quickly
+
+8. **Cleanup and Attribution**
+   - Page history will retain evidence of the link addition
+   - The compromised account will be attributed to the action
+   - Consider removing links after successful campaign
+   - Be aware that deleted content may still be recoverable
+
+9. **Legal and Ethical**
+   - Ensure proper authorization for offensive operations
+   - This technique can cause real user compromise
+   - Document scope, approval, and boundaries clearly
+   - Consider the potential impact on target users
+
+## Related Commands
+
+- [confluence embed](/confluence/embed) - Alternative credential harvesting using invisible embedded images
+- [confluence attach](/confluence/attach) - Attach malicious files that users can download
+- [confluence listpages](/confluence/listpages) - Identify high-value pages for link insertion
+- [jira listusers](/jira/listusers) - Obtain user IDs for targeted @mentions
+- [confluence search](/confluence/search) - Find pages with specific content or context for social engineering

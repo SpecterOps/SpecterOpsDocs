@@ -1,0 +1,41 @@
+---
+title: "objectives_create"
+description: "Create a new objective for the project"
+---
+
+## Summary
+
+Add a new test objective to track during the engagement.
+
+- Needs Admin: False
+- Version: 1-2
+- Author: @its_a_feature_
+
+### Arguments
+
+#### description
+- Description: Description of the objective
+- Required: True
+
+#### priority
+- Description: Priority level (High, Medium, Low)
+- Required: False
+
+
+## Usage
+
+```
+objectives_create -description "Test firewall rules" -priority High
+```
+
+## Detailed Summary
+
+Creates a new objective in the Ghostwriter project. Objectives represent major testing goals or areas of focus during an engagement.
+
+Examples of objectives:
+- Test perimeter defenses
+- Assess privilege escalation vectors
+- Enumerate Active Directory
+- Test web application security
+
+Each objective can have multiple subtasks added to it for detailed tracking.

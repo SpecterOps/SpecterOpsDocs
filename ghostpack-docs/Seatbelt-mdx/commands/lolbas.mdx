@@ -1,0 +1,156 @@
+---
+title: 'LOLBAS'
+description: 'Locates Living Off The Land Binaries and Scripts (LOLBAS) on the system. Note: takes non-trivial time'
+icon: 'toolbox'
+---
+
+## Overview
+
+The LOLBAS command identifies Living Off The Land Binaries and Scripts (LOLBAS) present on the system. LOLBAS are legitimate, signed Microsoft binaries and scripts that can be abused by attackers to perform malicious activities while evading detection. This command locates these binaries and provides information about their presence, helping both red teams identify available tools and blue teams understand their attack surface.
+
+## Syntax
+
+```
+Seatbelt.exe LOLBAS
+```
+
+This command does not accept arguments.
+
+## Output
+
+The command returns:
+- Binary/Script name
+- Full file path
+- File version
+- Digital signature status
+- Potential abuse techniques
+- File size
+- Last modified timestamp
+
+Common LOLBAS binaries include:
+- certutil.exe (download files, encode/decode)
+- bitsadmin.exe (download files)
+- mshta.exe (execute scripts)
+- regsvr32.exe (execute scripts)
+- rundll32.exe (execute DLLs)
+- wmic.exe (execute commands)
+- powershell.exe (execute scripts)
+- msiexec.exe (execute MSI files)
+- And many others
+
+## Use Cases
+
+### Red Team
+- Identify available tools for Living off the Land attacks
+- Locate signed binaries for proxy execution
+- Find alternatives to traditional attack tools
+- Identify binaries for file download/upload
+- Locate tools for code execution and script running
+- Find binaries for UAC bypass
+- Identify tools for credential dumping
+- Locate binaries for persistence mechanisms
+- Find alternatives when traditional tools are blocked
+
+### Blue Team
+- Inventory potentially abusable system binaries
+- Assess attack surface for Living off the Land techniques
+- Validate application whitelisting rules
+- Identify binaries requiring additional monitoring
+- Generate baseline of LOLBAS present on systems
+- Audit for unusual or unexpected LOLBAS binaries
+- Correlate LOLBAS presence with security incidents
+- Develop detection rules for LOLBAS abuse
+- Educate security teams on available system tools
+- Prioritize monitoring based on LOLBAS presence
+
+## Example Output
+
+```
+====== LOLBAS ======
+
+  Binary   : certutil.exe
+  Path     : C:\Windows\System32\certutil.exe
+  Version  : 10.0.19041.1
+  Signed   : Yes (Microsoft Windows)
+  Size     : 156,160 bytes
+  Modified : 7/16/2021 2:51:35 AM
+  Abuse    : Download files, encode/decode, alternate data streams
+
+  Binary   : bitsadmin.exe
+  Path     : C:\Windows\System32\bitsadmin.exe
+  Version  : 10.0.19041.1
+  Signed   : Yes (Microsoft Windows)
+  Size     : 70,656 bytes
+  Modified : 7/16/2021 2:51:35 AM
+  Abuse    : Download files, persistence
+
+  Binary   : mshta.exe
+  Path     : C:\Windows\System32\mshta.exe
+  Version  : 10.0.19041.1
+  Signed   : Yes (Microsoft Windows)
+  Size     : 15,872 bytes
+  Modified : 7/16/2021 2:51:35 AM
+  Abuse    : Execute scripts, proxy execution
+
+  Binary   : rundll32.exe
+  Path     : C:\Windows\System32\rundll32.exe
+  Version  : 10.0.19041.1
+  Signed   : Yes (Microsoft Windows)
+  Size     : 59,904 bytes
+  Modified : 7/16/2021 2:51:35 AM
+  Abuse    : Execute DLLs, proxy execution
+
+  Binary   : wmic.exe
+  Path     : C:\Windows\System32\wbem\wmic.exe
+  Version  : 10.0.19041.1
+  Signed   : Yes (Microsoft Windows)
+  Size     : 174,080 bytes
+  Modified : 7/16/2021 2:51:35 AM
+  Abuse    : Execute commands, lateral movement, reconnaissance
+```
+
+## Performance Considerations
+
+**WARNING:** This command is time-intensive and can take considerable time to complete.
+
+Performance factors:
+- Number of files in system directories
+- Disk I/O performance
+- File system response time
+- Number of LOLBAS binaries in the reference list
+- Digital signature verification overhead
+
+The command searches multiple system directories (System32, SysWOW64, etc.) and performs signature verification on located binaries. Execution may take several minutes depending on system performance.
+
+## Remote Execution
+
+This command does not support remote execution. LOLBAS enumeration must be performed on the local system.
+
+## Detection Considerations
+
+### Indicators
+- Mass file enumeration in system directories
+- Sequential file access in Windows\System32
+- File metadata and signature verification attempts
+- Access to multiple system binaries in short timeframe
+- Read operations on signed Microsoft binaries
+
+### Defensive Recommendations
+- Monitor for mass enumeration of system directories
+- Alert on sequential access to multiple system binaries
+- Track processes performing signature validation
+- Implement least privilege to restrict system directory access
+- Use AppLocker or similar to control execution of enumeration tools
+- Enable file system auditing on System32 and SysWOW64
+- Monitor for LOLBAS abuse using behavior-based detection
+- Implement command-line auditing for LOLBAS binaries
+- Use Sysmon to track LOLBAS execution patterns
+- Correlate LOLBAS enumeration with other reconnaissance
+
+## Related Commands
+
+- **FileInfo** - Information about specific files
+- **InterestingFiles** - "Interesting" files matching various patterns
+- **Processes** - Running processes with file info
+- **Services** - Services with file info
+- **InterestingProcesses** - "Interesting" processes including admin tools

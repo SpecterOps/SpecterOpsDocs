@@ -1,0 +1,116 @@
+---
+title: 'local grep'
+description: 'Search a specified file for a specified string'
+icon: 'magnifying-glass'
+sidebarTitle: 'grep'
+---
+
+## Overview
+
+Search a specified file for a specified string. This command provides file searching capabilities for analyzing SCCM log files and configuration files on the local system.
+
+## Syntax
+
+```bash
+SharpSCCM local grep <string-to-find> <path> [options]
+```
+
+## Parameters
+
+<ParamField path="string-to-find" type="string" required>
+  The string to search for in the file
+</ParamField>
+
+<ParamField path="path" type="string" required>
+  The full path to the file (e.g., "C:\Windows\ccmsetup\Logs\ccmsetup.log")
+</ParamField>
+
+## Examples
+
+<CodeGroup>
+```bash Log File Search
+# Search SCCM setup log for startup messages
+SharpSCCM local grep "ccmsetup started" "C:\Windows\ccmsetup\Logs\ccmsetup.log"
+```
+
+```bash Error Detection
+# Search for error messages in client logs
+SharpSCCM local grep "ERROR" "C:\Windows\CCM\Logs\CcmExec.log"
+```
+
+```bash Configuration Analysis
+# Search for specific configuration values
+SharpSCCM local grep "ManagementPoint" "C:\Windows\CCM\Logs\ClientLocation.log"
+```
+</CodeGroup>
+
+## Output Format
+
+The command outputs matching lines with context:
+
+```text
+Found match in C:\Windows\ccmsetup\Logs\ccmsetup.log
+  <![LOG[==========[ ccmsetup started in process 10168 ]==========]LOG]!><time="13:28:46.510+480" date="01-13-2023" component="ccmsetup" context="" type="1" thread="1456" file="ccmsetup.cpp:10632">
+```
+
+## Common SCCM Log Locations
+
+<Accordion title="Client Installation Logs">
+  - `C:\Windows\ccmsetup\Logs\ccmsetup.log` - Client installation
+  - `C:\Windows\ccmsetup\Logs\ccmsetup-ccmeval.log` - Client evaluation
+</Accordion>
+
+<Accordion title="Client Operation Logs">
+  - `C:\Windows\CCM\Logs\CcmExec.log` - Main client executive
+  - `C:\Windows\CCM\Logs\PolicyAgent.log` - Policy processing
+  - `C:\Windows\CCM\Logs\LocationServices.log` - Site assignment
+</Accordion>
+
+<Accordion title="Application and Deployment Logs">
+  - `C:\Windows\CCM\Logs\AppEnforce.log` - Application enforcement
+  - `C:\Windows\CCM\Logs\AppDiscovery.log` - Application discovery
+  - `C:\Windows\CCM\Logs\SoftwareCatalogUpdateEndpoint.log` - Software catalog
+</Accordion>
+
+## Search Strategies
+
+<Accordion title="Error Investigation">
+  Search for common error indicators:
+  - "ERROR", "FAILED", "Exception"
+  - Specific error codes or messages
+  - Component-specific failure patterns
+</Accordion>
+
+<Accordion title="Configuration Discovery">
+  Look for configuration-related strings:
+  - Server names and IP addresses
+  - Site codes and management points
+  - Authentication and certificate information
+</Accordion>
+
+<Accordion title="Timeline Analysis">
+  Search for timestamps and sequence information:
+  - Installation dates and times
+  - Policy refresh cycles
+  - Application deployment events
+</Accordion>
+
+## Use Cases
+
+<Accordion title="Troubleshooting">
+  Analyze SCCM client logs to identify configuration issues, communication failures, or deployment problems.
+</Accordion>
+
+<Accordion title="Reconnaissance">
+  Extract configuration information, server details, and site topology from log files.
+</Accordion>
+
+<Accordion title="Forensic Analysis">
+  Investigate SCCM client activity and identify potential security events or unauthorized access.
+</Accordion>
+
+## Related Commands
+
+- [`local triage`](/sharpsccm/commands/local/triage) - Comprehensive log analysis
+- [`local site-info`](/sharpsccm/commands/local/site-info) - Get current site configuration
+- [`local query`](/sharpsccm/commands/local/query) - Query WMI for additional information

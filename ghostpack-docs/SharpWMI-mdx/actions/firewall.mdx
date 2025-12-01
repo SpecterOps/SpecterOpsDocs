@@ -1,0 +1,258 @@
+---
+title: 'firewall'
+description: 'Enumerate Windows firewall rules and open ports'
+icon: 'shield'
+---
+
+## Overview
+
+The `firewall` action enumerates Windows Firewall rules and open TCP ports on remote systems. It queries the `MSFT_NetFirewallRule` and `MSFT_NetProtocolPortFilter` WMI classes in the `ROOT\StandardCIMV2` namespace.
+
+<Note>
+  This action is available on Windows Server 2012+ and Windows 8+ systems that support the StandardCIMV2 namespace.
+</Note>
+
+## Syntax
+
+```bash
+SharpWMI.exe action=firewall computername=HOST[,HOST2,...] [username=DOMAIN\user] [password=Password]
+```
+
+## Parameters
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `action` | Yes | Must be `firewall` |
+| `computername` | Yes | Target host(s), comma-separated |
+| `username` | No | Username for authentication |
+| `password` | No | Password for authentication |
+
+## Usage Examples
+
+<CodeGroup>
+```bash Single Host
+SharpWMI.exe action=firewall computername=server.domain.com
+```
+
+```bash Multiple Hosts
+SharpWMI.exe action=firewall computername=web1,web2,db1,app1
+```
+
+```bash With Credentials
+SharpWMI.exe action=firewall computername=target.domain.com username="DOMAIN\admin" password="Password123!"
+```
+</CodeGroup>
+
+### Example Output
+
+```
+  Scope: \\server.domain.com\ROOT\StandardCIMV2
+
+Rulename   : Remote Desktop - User Mode (TCP-In)
+Action     : 2 (Allow)
+Direction  : 1 (Inbound)
+LocalPorts : 3389
+
+Rulename   : Windows Remote Management (HTTP-In)
+Action     : 2 (Allow)
+Direction  : 1 (Inbound)
+LocalPorts : 5985
+
+Rulename   : File and Printer Sharing (SMB-In)
+Action     : 2 (Allow)
+Direction  : 1 (Inbound)
+LocalPorts : 445
+```
+
+## Understanding Output
+
+### Action Values
+
+| Value | Meaning |
+|-------|---------|
+| 2 | Allow |
+| 3 | AllowBypass |
+| 4 | Block |
+
+### Direction Values
+
+| Value | Meaning |
+|-------|---------|
+| 1 | Inbound |
+| 2 | Outbound |
+
+## Operational Use Cases
+
+### Scenario 1: Identify Remote Access Vectors
+
+```bash
+# Check for RDP, WinRM, PSRemoting
+SharpWMI.exe action=firewall computername=target.domain.com
+```
+
+Look for rules allowing:
+- Port 3389 (RDP)
+- Port 5985/5986 (WinRM)
+- Port 22 (SSH)
+- Port 445 (SMB)
+
+### Scenario 2: Lateral Movement Planning
+
+```bash
+# Enumerate firewall across multiple systems
+SharpWMI.exe action=firewall computername=server1,server2,server3,server4
+```
+
+Identify systems with:
+- Permissive firewall rules
+- Management ports open
+- Custom application ports
+- Outbound restrictions
+
+### Scenario 3: Egress Filtering Detection
+
+Check for outbound rules that might block C2 traffic:
+
+```bash
+SharpWMI.exe action=firewall computername=target.domain.com
+```
+
+Look for:
+- Blocked outbound ports
+- Restricted protocols
+- Application-specific blocks
+
+### Scenario 4: Defense Evasion Planning
+
+Identify allowed services and ports for blending in:
+
+```bash
+# Map allowed services across network
+SharpWMI.exe action=firewall computername=dc1,fs1,sql1,web1
+```
+
+## Remote Only
+
+<Warning>
+  The `firewall` action requires a `computername` parameter and cannot target localhost directly.
+</Warning>
+
+This is a remote-only action. For local firewall enumeration, use:
+
+```bash
+# Local alternative using query action
+SharpWMI.exe action=query query="SELECT DisplayName,Action,Direction FROM MSFT_NetFirewallRule WHERE Enabled=1" namespace="ROOT\StandardCIMV2"
+```
+
+## Detection Considerations
+
+<AccordionGroup>
+  <Accordion title="WMI Detection" icon="radar">
+    - WMI queries to `ROOT\StandardCIMV2` namespace
+    - Queries for `MSFT_NetFirewallRule` class
+    - Queries for `MSFT_NetProtocolPortFilter` class
+    - Event ID 5857: WMI activity
+  </Accordion>
+
+  <Accordion title="Reconnaissance Indicators" icon="magnifying-glass">
+    - Firewall enumeration across multiple systems
+    - Queries originating from non-administrative systems
+    - Bulk firewall queries in short timeframe
+    - Correlation with other enumeration activities
+  </Accordion>
+
+  <Accordion title="Network Detection" icon="network-wired">
+    - WMI/DCOM traffic on port 135
+    - Multiple connections to various systems
+    - Queries from single source IP
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Target Selection" icon="bullseye">
+    - Prioritize high-value targets (DCs, servers)
+    - Focus on potential pivot points
+    - Identify perimeter systems
+    - Map DMZ configurations
+  </Card>
+
+  <Card title="Operational Security" icon="user-secret">
+    - Limit query frequency
+    - Blend with legitimate admin activity
+    - Avoid bulk queries
+    - Use during business hours
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Invalid Namespace Error">
+    **Cause:** System doesn't support StandardCIMV2 namespace
+
+    **Solution:**
+    - Verify Windows version (8+ or Server 2012+)
+    - Check WMI namespace exists:
+      ```bash
+      wmic /namespace:\\root path __NAMESPACE where Name="StandardCIMV2" get Name
+      ```
+    - Use alternative query methods for older systems
+  </Accordion>
+
+  <Accordion title="Access Denied">
+    **Cause:** Insufficient privileges
+
+    **Solution:**
+    - Verify admin credentials
+    - Use `username` and `password` parameters
+    - Check UAC remote restrictions
+  </Accordion>
+
+  <Accordion title="No Results Returned">
+    **Cause:** No firewall rules or query issue
+
+    **Solution:**
+    - Verify firewall service is running
+    - Check if firewall is enabled
+    - Test with manual WMI query
+  </Accordion>
+</AccordionGroup>
+
+## Related Actions
+
+<CardGroup cols={2}>
+  <Card title="query" icon="database" href="/ghostpack-docs/SharpWMI-mdx/actions/query">
+    Custom firewall queries
+  </Card>
+  <Card title="loggedon" icon="users" href="/ghostpack-docs/SharpWMI-mdx/actions/loggedon">
+    User enumeration
+  </Card>
+  <Card title="ps" icon="list" href="/ghostpack-docs/SharpWMI-mdx/actions/ps">
+    Process enumeration
+  </Card>
+  <Card title="exec" icon="terminal" href="/ghostpack-docs/SharpWMI-mdx/actions/exec">
+    Execute commands
+  </Card>
+</CardGroup>
+
+## Alternative Queries
+
+<Accordion title="All Firewall Rules">
+  ```bash
+  SharpWMI.exe action=query computername=target query="SELECT DisplayName,Action,Direction,Enabled FROM MSFT_NetFirewallRule" namespace="ROOT\StandardCIMV2"
+  ```
+</Accordion>
+
+<Accordion title="Inbound Allow Rules Only">
+  ```bash
+  SharpWMI.exe action=query computername=target query="SELECT DisplayName FROM MSFT_NetFirewallRule WHERE Enabled=1 AND Direction=1 AND Action=2" namespace="ROOT\StandardCIMV2"
+  ```
+</Accordion>
+
+<Accordion title="Blocked Ports">
+  ```bash
+  SharpWMI.exe action=query computername=target query="SELECT DisplayName,Direction FROM MSFT_NetFirewallRule WHERE Enabled=1 AND Action=4" namespace="ROOT\StandardCIMV2"
+  ```
+</Accordion>

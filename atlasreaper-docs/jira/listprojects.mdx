@@ -1,0 +1,249 @@
+---
+title: 'listprojects'
+description: 'List Jira projects and their metadata'
+icon: 'folder-tree'
+---
+
+## Overview
+
+The `jira listprojects` command enumerates all accessible Jira projects, providing detailed information about project structure, issue counts, recent activity, available issue types, and project descriptions. This is typically the first reconnaissance command used in a Jira engagement, as it maps the organizational landscape and identifies high-value targets for deeper investigation.
+
+## Syntax
+
+```bash
+.\AtlasReaper.exe jira listprojects [options]
+```
+
+## Required Parameters
+
+<ParamField path="--url" type="string" required>
+  The base URL of the target Jira instance (e.g., `https://company.atlassian.net`)
+</ParamField>
+
+## Optional Parameters
+
+<ParamField path="--cookie" type="string">
+  Authentication cookie (`cloud.session.token` or `tenant.session.token`). Required for accessing non-public projects
+</ParamField>
+
+<ParamField path="--all" type="boolean" default="false">
+  Return all accessible projects. Automatically paginates through results if there are more than 50 projects
+</ParamField>
+
+<ParamField path="--limit" type="string" default="50">
+  Maximum number of projects to return (when not using `--all`). Note: The Jira API only returns up to 50 projects per request
+</ParamField>
+
+<ParamField path="--sortby" type="string" default="issues">
+  Sort projects by either `issues` (total number of issues) or `updated` (most recently updated). Useful for identifying active or large projects
+
+  Valid values: `issues`, `updated`
+</ParamField>
+
+<ParamField path="--output" type="string">
+  Save command output to a specified file
+</ParamField>
+
+## Examples
+
+### Basic Project Enumeration
+
+List the first 50 projects sorted by issue count:
+
+```bash
+.\AtlasReaper.exe jira listprojects \
+  --url https://company.atlassian.net \
+  --cookie $cookie
+```
+
+### List All Projects
+
+Enumerate all accessible projects:
+
+```bash
+.\AtlasReaper.exe jira listprojects \
+  --url https://company.atlassian.net \
+  --all \
+  --cookie $cookie
+```
+
+### Find Most Active Projects
+
+List projects sorted by most recent activity:
+
+```bash
+.\AtlasReaper.exe jira listprojects \
+  --url https://company.atlassian.net \
+  --sortby updated \
+  --all \
+  --cookie $cookie
+```
+
+### Save Project Inventory
+
+Save complete project listing to file for analysis:
+
+```bash
+.\AtlasReaper.exe jira listprojects \
+  --url https://company.atlassian.net \
+  --all \
+  --sortby issues \
+  --output project_inventory.txt \
+  --cookie $cookie
+```
+
+### Anonymous Reconnaissance
+
+Attempt to list publicly accessible projects without authentication:
+
+```bash
+.\AtlasReaper.exe jira listprojects \
+  --url https://company.atlassian.net
+```
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    ### Offensive Security Applications
+
+    - **Initial Reconnaissance**: First step in mapping the target organization's Jira structure
+    - **Target Prioritization**: Identify high-value projects (Finance, HR, Security, Infrastructure)
+    - **Activity Analysis**: Find active projects with recent updates for better OPSEC blending
+    - **Issue Type Discovery**: Learn available issue types for each project (required for `createissue`)
+    - **Access Mapping**: Determine which projects are accessible with current credentials
+    - **Data Hotspot Identification**: Locate projects with high issue counts (more potential data)
+    - **Project Description Mining**: Extract information from project descriptions (sometimes contain sensitive details)
+    - **Anonymous Access Testing**: Identify publicly accessible projects
+  </Tab>
+
+  <Tab title="Blue Team">
+    ### Defensive Monitoring
+
+    - **Access Control Audit**: Verify appropriate project access restrictions
+    - **Public Project Detection**: Identify projects that should not be publicly accessible
+    - **Project Inventory**: Maintain up-to-date inventory of organizational projects
+    - **Compliance Review**: Ensure projects align with data classification policies
+    - **Anomaly Detection**: Identify unusual project enumeration activity
+    - **Incident Response**: Investigate which projects were accessed during security incidents
+    - **Security Posture Assessment**: Review project descriptions for sensitive information exposure
+    - **Monitoring Baseline**: Establish normal access patterns for anomaly detection
+  </Tab>
+</Tabs>
+
+## Output
+
+The command returns comprehensive information about each project:
+
+```
+Total projects = 23
+
+  Project Name        : Financial Planning
+  Project Key         : FIN
+  Project Id          : 10001
+  Project Type        : business
+  Last Issue Update   : 2024-10-18T15:30:00.000-0700
+  Total Issues        : 347
+  Project Description : Financial planning, budgeting, and reporting for all departments
+  Project Issue Types :
+                        Task
+                        Bug
+                        Story
+                        Epic
+
+  Project Name        : Human Resources
+  Project Key         : HR
+  Project Id          : 10002
+  Project Type        : business
+  Last Issue Update   : 2024-10-19T09:15:00.000-0700
+  Total Issues        : 156
+  Project Description : HR-related tasks and employee management
+  Project Issue Types :
+                        Task
+                        Support
+```
+
+### Output Information
+
+For each project:
+- **Project Name**: Full name of the project
+- **Project Key**: Short identifier used in issue keys (e.g., FIN-123)
+- **Project Id**: Numeric identifier
+- **Project Type**: Project category (business, software, service_desk, etc.)
+- **Last Issue Update**: Timestamp of most recent issue activity
+- **Total Issues**: Count of all issues in the project
+- **Project Description**: Description text (may contain sensitive information)
+- **Project Issue Types**: List of valid issue types for creating issues in this project
+
+## Detection Considerations
+
+<Warning>
+**Detection Indicators**
+
+Security teams should monitor for:
+
+- Project listing requests, especially from unusual IP addresses or locations
+- Use of `--all` flag indicating comprehensive enumeration
+- Project listing outside normal business hours
+- Anonymous project listing attempts (no cookie provided)
+- Listing activity from service accounts or API tokens
+- Listing activity shortly after credential compromise
+- Correlation with subsequent issue listing or download activity
+- Multiple project listing requests in short timeframes
+- Listing from accounts that don't typically access Jira
+- Geographic anomalies in access patterns
+</Warning>
+
+### Jira Audit Log Entries
+
+This command generates the following audit log events:
+- `project_viewed` - May be logged for project access
+- API access events for project search endpoint
+- Includes: User ID, timestamp, IP address, user agent
+
+### Network Indicators
+
+- HTTP GET requests to `/rest/api/3/project/search?expand=description,insight,issueTypes`
+- Multiple sequential requests when using `--all` (if more than 50 projects exist)
+- Query parameters including `maxResults` for pagination
+- Requests to `nextPage` URLs for pagination
+
+## OPSEC Considerations
+
+<Tip>
+**Operational Security Tips**
+
+To reduce detection risk when using this command:
+
+1. **Timing**: Execute during business hours when legitimate Jira access is common
+2. **Rate Limiting**: Use `--limit` instead of `--all` if full enumeration isn't necessary
+3. **Account Context**: Use cookies from accounts that regularly access Jira
+4. **Output Files**: Save results for offline analysis to avoid repeated enumeration
+5. **Anonymous Testing**: Test anonymous access separately and carefully (may trigger alerts)
+6. **IP Considerations**: Be aware of geographic IP inconsistencies
+7. **User Agent**: Tool may use identifiable User-Agent strings
+8. **Incremental Approach**: Start with limited queries before full enumeration
+9. **Correlation Prevention**: Space out project listing and subsequent operations
+10. **Legitimate Use Case**: Ensure the operation aligns with authorized testing scope
+</Tip>
+
+### API Limitations
+
+- Jira API returns maximum of 50 projects per request
+- The `--all` flag automatically handles pagination
+- Very large Jira instances may have hundreds of projects requiring multiple requests
+- Anonymous access typically shows very limited or no projects
+
+### Sort Behavior
+
+- `--sortby issues`: Orders projects by total issue count (descending)
+- `--sortby updated`: Orders projects by most recent issue update timestamp (descending)
+- Sorting helps prioritize high-value targets
+
+## Related Commands
+
+- [jira listissues](/jira/listissues) - List issues within discovered projects
+- [jira listattachments](/jira/listattachments) - List attachments in specific projects
+- [jira searchissues](/jira/searchissues) - Search for issues across projects
+- [jira createissue](/jira/createissue) - Create issues in projects (requires valid issue type)
+- [jira listusers](/jira/listusers) - Enumerate users who may be project members

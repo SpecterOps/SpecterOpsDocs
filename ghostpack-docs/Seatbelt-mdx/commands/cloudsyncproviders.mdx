@@ -1,0 +1,98 @@
+---
+title: 'CloudSyncProviders'
+description: 'All configured Office 365 endpoints (tenants and teamsites) which are synchronised by OneDrive'
+icon: 'cloud-arrow-down'
+---
+
+## Overview
+
+The `CloudSyncProviders` command enumerates all configured Office 365 endpoints, including tenants and teamsites, that are synchronized by OneDrive. This provides visibility into cloud storage synchronization configurations and organizational cloud infrastructure.
+
+**Important:** User commands run for the current user if not elevated and for ALL users if elevated.
+
+## Syntax
+
+```
+Seatbelt.exe CloudSyncProviders
+```
+
+No additional arguments are supported. This command supports remote execution.
+
+## Output
+
+The command returns:
+- OneDrive sync configurations
+- Office 365 tenant information
+- Synchronized SharePoint sites and team sites
+- Sync folder locations
+- Account information associated with sync providers
+- Tenant URLs and endpoints
+
+## Use Cases
+
+### Red Team
+- **Cloud Infrastructure Mapping**: Identify organization's Office 365 tenants and SharePoint sites
+- **Data Location Discovery**: Find synchronized folders containing potentially sensitive documents
+- **Lateral Movement**: Identify cloud resources that may be accessible
+- **Organization Reconnaissance**: Discover company structure through SharePoint site names
+- **Exfiltration Targets**: Locate OneDrive folders for data theft
+
+### Blue Team
+- **Cloud Configuration Audit**: Verify OneDrive and SharePoint sync configurations
+- **Data Governance**: Track where organizational data is being synchronized
+- **Security Compliance**: Ensure sync configurations align with policies
+- **Shadow IT Detection**: Identify unauthorized cloud sync configurations
+- **Incident Response**: Understand cloud sync context during security events
+
+## Example Output
+
+```
+====== CloudSyncProviders ======
+
+  OneDrive Configuration
+    UserEmail         : john.doe@contoso.com
+    TenantId          : contoso.onmicrosoft.com
+    SyncFolder        : C:\Users\john\OneDrive - Contoso
+    LastSync          : 2024-10-20 11:45:00
+
+  SharePoint Sites
+    SiteUrl           : https://contoso.sharepoint.com/sites/Finance
+    LocalPath         : C:\Users\john\Contoso\Finance
+    LastSync          : 2024-10-20 11:30:15
+```
+
+## Privilege Context
+
+- **Non-Elevated**: Returns cloud sync provider information for the current user only
+- **Elevated**: Returns cloud sync provider information for all users on the system, providing complete visibility of organizational cloud sync configurations
+
+## Remote Execution
+
+This command **supports** remote execution (marked with + in the command list).
+
+Remote syntax:
+```
+Seatbelt.exe CloudSyncProviders -computername=TARGET.domain.com -username=DOMAIN\user -password=pass
+```
+
+## Detection Considerations
+
+### Indicators
+- Registry enumeration of OneDrive sync settings
+- Access to Office 365 configuration data
+- Reading cloud sync provider information
+- File system enumeration of sync folders
+
+### Defensive Monitoring
+- Monitor registry access to OneDrive and Office 365 configuration keys
+- Alert on enumeration of cloud sync settings by unexpected processes
+- Track access to sync folder configurations
+- Log automated tools querying cloud sync providers
+- Detect reconnaissance of SharePoint site configurations
+
+## Related Commands
+
+- **azuread**: Returns AzureAD information
+- **CloudCredentials**: Enumerates cloud provider credential files
+- **MappedDrives**: Shows users' mapped drives which may include cloud storage
+- **dir**: Lists files and folders in user directories including sync folders

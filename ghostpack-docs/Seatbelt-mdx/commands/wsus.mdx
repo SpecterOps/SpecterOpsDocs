@@ -1,0 +1,208 @@
+---
+title: 'WSUS'
+description: 'Windows Server Update Services (WSUS) settings, if applicable'
+icon: 'arrows-rotate'
+---
+
+## Overview
+
+The WSUS command enumerates Windows Server Update Services (WSUS) client configuration. WSUS is Microsoft's enterprise update management solution. Understanding WSUS configuration reveals the update infrastructure, which can be a target for exploitation (WSUS MitM attacks) or indicates the patch management posture of the environment.
+
+## Syntax
+
+```bash
+Seatbelt.exe WSUS
+```
+
+### Remote Execution
+```bash
+Seatbelt.exe WSUS -computername=TARGET.domain.com [-username=DOMAIN\user -password=pass]
+```
+
+## Output
+
+Returns WSUS configuration:
+- WSUS server URL
+- WSUS status server URL
+- Use WSUS server (enabled/disabled)
+- Update service configuration
+- Automatic update settings
+- Last successful sync time
+- Proxy configuration
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Identify WSUS infrastructure for MitM attacks
+    - Check if WSUS uses HTTP (exploitable)
+    - Discover update management servers
+    - Assess patch deployment mechanism
+    - Plan WSUS exploitation (if HTTP)
+    - Understand update infrastructure
+  </Tab>
+  <Tab title="Blue Team">
+    - Verify WSUS configuration compliance
+    - Ensure HTTPS is used (prevent MitM)
+    - Audit WSUS server assignments
+    - Validate update policies
+    - Detect WSUS configuration tampering
+    - Ensure proper patch management
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== WSUS ======
+
+[*] WSUS Client Configuration:
+
+UseWUServer              : 1 (Enabled)
+WUServer                 : http://wsus.corp.local:8530
+WUStatusServer           : http://wsus.corp.local:8530
+[!] WARNING: WSUS using HTTP (vulnerable to MitM attacks)
+
+UpdateServiceUrlAlternate:
+TargetGroup              : Workstations
+TargetGroupEnabled       : 1
+
+Automatic Updates:
+  AUOptions              : 4 (Auto download and schedule install)
+  ScheduledInstallDay    : 0 (Every day)
+  ScheduledInstallTime   : 3 (3:00 AM)
+  NoAutoUpdate           : 0 (Auto update enabled)
+
+Last Successful Sync     : 10/15/2024 3:00:00 AM
+
+Proxy Configuration:
+  ProxyServer            :
+  ProxyBypass            :
+```
+
+Example with HTTPS (secure):
+```
+====== WSUS ======
+
+[*] WSUS Client Configuration:
+
+UseWUServer              : 1 (Enabled)
+WUServer                 : https://wsus.corp.local:8531
+WUStatusServer           : https://wsus.corp.local:8531
+[*] WSUS using HTTPS (secure)
+
+UpdateServiceUrlAlternate:
+TargetGroup              : Servers-Production
+TargetGroupEnabled       : 1
+
+Automatic Updates:
+  AUOptions              : 3 (Auto download and notify for install)
+  NoAutoUpdate           : 0 (Auto update enabled)
+
+Last Successful Sync     : 10/15/2024 2:00:00 AM
+```
+
+## Remote Execution
+
+<Check>
+This command **supports remote execution** using the `-computername` parameter.
+</Check>
+
+## Detection Considerations
+
+<Info>
+Low detection risk - reads WSUS registry configuration.
+</Info>
+
+- **Registry Access**: Queries `HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate`
+- **WMI Activity**: Remote execution generates WMI events
+
+### WSUS Security Risks
+
+<Warning>
+WSUS over HTTP is a critical security vulnerability.
+</Warning>
+
+<Accordion title="WSUS Exploitation (HTTP Only)">
+**Attack Vector:**
+When WSUS uses HTTP instead of HTTPS, attackers can perform Man-in-the-Middle (MitM) attacks to:
+
+1. **Intercept Update Traffic**
+   - Position on network between client and WSUS server
+   - Intercept HTTP update requests
+
+2. **Inject Malicious Updates**
+   - Serve malicious executables as "updates"
+   - Gain SYSTEM-level code execution
+   - Deploy across entire environment
+
+3. **Requirements for Attack:**
+   - WSUS using HTTP (not HTTPS)
+   - Network position between client and server
+   - ARP spoofing or routing control
+
+**Indicators:**
+- WUServer URL starts with `http://` instead of `https://`
+- Port 8530 (HTTP) instead of 8531 (HTTPS)
+- No SSL/TLS encryption
+
+**Tools:**
+- WSUSpendu
+- PyWSUS
+- Custom MitM tools
+</Accordion>
+
+### Defensive Recommendations
+
+<Accordion title="WSUS Hardening">
+**Critical Controls:**
+
+1. **Use HTTPS Only**
+   - Configure WSUS server for SSL
+   - Update clients to use HTTPS URLs
+   - Port 8531 for HTTPS vs 8530 for HTTP
+
+2. **Network Segmentation**
+   - Separate WSUS traffic on dedicated VLAN
+   - Restrict WSUS server access
+   - Implement network access controls
+
+3. **Monitoring**
+   - Alert on WSUS configuration changes
+   - Monitor for HTTP WSUS usage
+   - Track update deployment patterns
+   - Log WSUS client connections
+
+4. **Validation**
+   - Regularly audit WSUS client settings
+   - Verify HTTPS enforcement
+   - Check certificate validity
+   - Review GPO configurations
+
+**Registry Keys to Monitor:**
+```
+HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate
+  - WUServer
+  - WUStatusServer
+  - UseWUServer
+```
+</Accordion>
+
+### Configuration Values
+
+<Accordion title="AUOptions Settings">
+**Automatic Update Options (AUOptions):**
+- **1** - Keep my computer up to date is disabled
+- **2** - Notify before download
+- **3** - Auto download and notify for install
+- **4** - Auto download and schedule install
+- **5** - Allow local admin to select settings
+</Accordion>
+
+## Related Commands
+
+- [SCCM](/commands/sccm) - SCCM configuration
+- [Hotfixes](/commands/hotfixes) - Installed updates
+- [OSInfo](/commands/osinfo) - Operating system version
+- [WindowsDefender](/commands/windowsdefender) - Defender update status
+- [InternetSettings](/commands/internetsettings) - Proxy configuration

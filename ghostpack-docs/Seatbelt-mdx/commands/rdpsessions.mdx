@@ -1,0 +1,98 @@
+---
+title: 'RDPSessions'
+description: 'Current incoming RDP sessions'
+icon: 'display'
+---
+
+## Overview
+
+The RDPSessions command enumerates active Remote Desktop Protocol (RDP) sessions on the system. This identifies who is currently connected via RDP, their session state, and connection details - valuable for understanding concurrent access and potential lateral movement paths.
+
+## Syntax
+
+```bash
+# Local system
+Seatbelt.exe RDPSessions
+
+# Specify computer name
+Seatbelt.exe "RDPSessions <computername>"
+```
+
+### Remote Execution
+```bash
+Seatbelt.exe RDPSessions -computername=TARGET.domain.com [-username=DOMAIN\user -password=pass]
+```
+
+## Output
+
+Returns RDP session information:
+- Session ID
+- Username
+- Session state (Active, Disconnected)
+- Session type (Console, RDP-Tcp)
+- Client name/IP address
+- Logon time
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Identify active admin sessions for token theft
+    - Discover other connected users
+    - Plan session hijacking attacks
+    - Identify concurrent access for stealth
+    - Find disconnected sessions to hijack
+  </Tab>
+  <Tab title="Blue Team">
+    - Monitor active remote sessions
+    - Detect unauthorized RDP access
+    - Audit concurrent connections
+    - Investigate suspicious remote access
+    - Validate session policies
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== RDPSessions ======
+
+SessionID   : 2
+UserName    : CORP\administrator
+State       : Active
+SessionType : RDP-Tcp#3
+ClientName  : ADMINPC01
+ClientIP    : 10.0.1.50
+LogonTime   : 10/15/2024 8:30:15 AM
+
+SessionID   : 3
+UserName    : CORP\helpdesk
+State       : Disconnected
+SessionType : RDP-Tcp#5
+ClientName  : HELPDESK02
+ClientIP    : 10.0.1.75
+LogonTime   : 10/15/2024 7:15:42 AM
+```
+
+## Remote Execution
+
+<Check>
+This command **supports remote execution** using the `-computername` parameter.
+</Check>
+
+## Detection Considerations
+
+<Warning>
+Session enumeration may generate alerts in monitored environments.
+</Warning>
+
+- **API Calls**: Uses WTSEnumerateSessions and WTSQuerySessionInformation
+- **Privilege Requirements**: May require elevated privileges
+- **WMI Activity**: Remote execution generates WMI events
+
+## Related Commands
+
+- [RDPsettings](/commands/rdpsettings) - RDP configuration settings
+- [LogonSessions](/commands/logonsessions) - All logon sessions
+- [LocalUsers](/commands/localusers) - Local user accounts
+- [NetworkProfiles](/commands/networkprofiles) - Network connections

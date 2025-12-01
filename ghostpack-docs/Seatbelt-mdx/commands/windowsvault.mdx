@@ -1,0 +1,136 @@
+---
+title: 'WindowsVault'
+description: 'Credentials saved in the Windows Vault (i.e. logins from Internet Explorer and Edge)'
+icon: 'vault'
+---
+
+## Overview
+
+The `WindowsVault` command enumerates credentials saved in the Windows Vault, which is a secure credential storage system used by Windows applications. The Windows Vault commonly stores web credentials from Internet Explorer and Microsoft Edge, network passwords, and other application credentials.
+
+**Important:** User commands run for the current user if not elevated and for ALL users if elevated.
+
+## Syntax
+
+```
+Seatbelt.exe WindowsVault
+```
+
+No additional arguments are supported.
+
+## Output
+
+The command returns:
+- Vault credential entries
+- Resource names and URLs
+- Usernames associated with credentials
+- Credential types (Web Credentials, Windows Credentials, etc.)
+- Last modified timestamps
+- Password visibility status (encrypted)
+
+## Use Cases
+
+### Red Team
+- **Credential Harvesting**: Extract saved credentials from Windows Vault
+- **Web Credential Access**: Obtain browser-saved passwords from IE/Edge
+- **Network Authentication**: Find saved network passwords
+- **Lateral Movement**: Use harvested credentials for network access
+- **Privilege Escalation**: Discover credentials with elevated privileges
+
+### Blue Team
+- **Credential Hygiene Audit**: Identify users storing credentials in Windows Vault
+- **Security Assessment**: Review saved credentials for compliance
+- **Incident Response**: Quickly identify potentially compromised credentials
+- **User Education**: Identify users needing credential management training
+- **Risk Assessment**: Evaluate exposure from stored credentials
+
+## Example Output
+
+```
+====== WindowsVault ======
+
+User: john.doe
+
+  Web Credentials Vault
+
+  Credential Entry
+    Resource          : https://portal.contoso.com
+    Identity          : john.doe@contoso.com
+    CredentialType    : Web Credentials
+    LastModified      : 2024-10-18 14:30:22
+
+  Credential Entry
+    Resource          : https://mail.google.com
+    Identity          : john.doe@gmail.com
+    CredentialType    : Web Credentials
+    LastModified      : 2024-10-15 09:15:30
+
+  Windows Credentials Vault
+
+  Credential Entry
+    Resource          : Domain:target=fileserver.contoso.com
+    Identity          : CONTOSO\john.doe
+    CredentialType    : Domain Password
+    LastModified      : 2024-10-10 11:20:00
+
+  Credential Entry
+    Resource          : WindowsLive:target=virtualapp/didlogical
+    Identity          : john.doe@outlook.com
+    CredentialType    : Generic
+    LastModified      : 2024-09-25 16:45:10
+```
+
+## Privilege Context
+
+- **Non-Elevated**: Enumerates Windows Vault credentials for the current user only
+- **Elevated**: Enumerates Windows Vault credentials for the current user (Vault is user-specific, but elevation may provide access to additional vault types)
+
+## Remote Execution
+
+This command does **not** support remote execution (not marked with + in the command list).
+
+## Detection Considerations
+
+### Indicators
+- Calls to Windows Vault API (CredEnumerate, VaultEnumerateVaults, etc.)
+- Access to Windows Vault credential stores
+- Reading credential metadata
+- DPAPI operations for credential decryption
+
+### Defensive Monitoring
+- Monitor Windows Vault API calls from unexpected processes
+- Alert on credential enumeration by non-standard applications
+- Track access to Vault credential stores
+- Log processes querying Vault contents
+- Detect credential dumping tools accessing Windows Vault
+- Monitor for bulk credential enumeration
+
+### Vault Credential Types
+- **Web Credentials**: IE/Edge saved website passwords
+- **Windows Credentials**: Network passwords and domain credentials
+- **Certificate-Based Credentials**: Smart card and certificate credentials
+- **Generic Credentials**: Application-specific credentials
+
+### DPAPI Protection
+- Windows Vault credentials are encrypted with DPAPI
+- Decryption requires user's DPAPI master key
+- Can be decrypted with user context or master key access
+- Provides protection against offline attacks
+
+### Security Recommendations
+- Educate users on secure credential management
+- Discourage storing sensitive credentials in browsers
+- Implement policies restricting credential storage
+- Use enterprise credential management solutions
+- Enable logging for credential access
+- Regularly audit Windows Vault contents
+- Consider disabling password saving in browsers via Group Policy
+
+## Related Commands
+
+- **CredEnum**: Enumerates saved credentials using CredEnumerate() API
+- **WindowsCredentialFiles**: Finds Windows credential DPAPI blobs
+- **DpapiMasterKeys**: Lists DPAPI master keys needed for decryption
+- **ChromiumPresence**: Checks for Chromium browser credential stores
+- **FirefoxPresence**: Checks for Firefox browser credential stores
+- **IEFavorites**: Lists Internet Explorer favorites

@@ -1,0 +1,80 @@
+---
+title: 'NamedPipes'
+description: 'Named pipe names, any readable ACL information and associated process information'
+icon: 'pipe'
+---
+
+## Overview
+
+The NamedPipes command enumerates named pipes on the system, including their security descriptors and associated processes. Named pipes are used for inter-process communication and can be targets for privilege escalation or lateral movement attacks.
+
+## Syntax
+
+```bash
+Seatbelt.exe NamedPipes
+```
+
+<Note>
+This command does **not** support remote execution.
+</Note>
+
+## Output
+
+Returns named pipe information:
+- Pipe name
+- Security descriptor (SDDL)
+- Associated process ID
+- Process name
+- Access control information
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Identify named pipes for privilege escalation
+    - Find impersonation opportunities
+    - Discover service communication channels
+    - Locate weakly protected pipes
+    - Identify C2 communication channels
+  </Tab>
+  <Tab title="Blue Team">
+    - Audit named pipe permissions
+    - Detect unauthorized pipes
+    - Identify potential attack vectors
+    - Monitor inter-process communication
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== NamedPipes ======
+
+Name     : \Device\NamedPipe\lsass
+PID      : 712
+Process  : lsass.exe
+SDDL     : O:SYG:SYD:(A;;0x12019b;;;WD)(A;;FA;;;SY)(A;;FA;;;BA)
+
+Name     : \Device\NamedPipe\MSSQL$SQLEXPRESS\sql\query
+PID      : 2156
+Process  : sqlservr.exe
+SDDL     : O:BAG:BAD:(A;;FA;;;BA)(A;;0x12019f;;;AU)
+```
+
+## Remote Execution
+
+<Warning>
+This command does **NOT support remote execution**.
+</Warning>
+
+## Detection Considerations
+
+<Info>
+Low detection risk - enumerates local named pipes.
+</Info>
+
+## Related Commands
+
+- [Processes](/commands/processes) - Running processes
+- [Services](/commands/services) - Windows services
+- [TcpConnections](/commands/tcpconnections) - Network connections

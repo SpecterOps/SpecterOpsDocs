@@ -1,0 +1,78 @@
+---
+title: 'SecureBoot'
+description: 'Secure Boot configuration'
+icon: 'shield-check'
+---
+
+## Overview
+
+The SecureBoot command checks the status and configuration of Secure Boot, a UEFI firmware security feature that ensures only trusted bootloaders and operating systems can run during system startup. Secure Boot status affects bootkit deployment and certain rootkit attacks.
+
+## Syntax
+
+```bash
+Seatbelt.exe SecureBoot
+```
+
+### Remote Execution
+```bash
+Seatbelt.exe SecureBoot -computername=TARGET.domain.com [-username=DOMAIN\user -password=pass]
+```
+
+## Output
+
+Returns Secure Boot information:
+- Secure Boot enabled/disabled status
+- Setup Mode status
+- Secure Boot Policy
+- Platform key information
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Determine bootkit deployment viability
+    - Assess firmware-level persistence options
+    - Identify kernel driver signing requirements
+    - Understand boot-time security controls
+  </Tab>
+  <Tab title="Blue Team">
+    - Verify Secure Boot is enabled
+    - Audit firmware security posture
+    - Validate security baseline compliance
+    - Detect Secure Boot tampering
+    - Ensure bootkit protection
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== SecureBoot ======
+
+UEFISecureBootEnabled    : True
+SecureBootCapable        : True
+SetupMode                : 0 (User Mode)
+
+[*] Secure Boot is ENABLED
+[*] System is in User Mode (Secure Boot is enforcing)
+```
+
+## Remote Execution
+
+<Check>
+This command **supports remote execution** using the `-computername` parameter.
+</Check>
+
+## Detection Considerations
+
+<Info>
+Minimal detection risk - reads UEFI variables via WMI.
+</Info>
+
+## Related Commands
+
+- [CredGuard](/commands/credguard) - Credential Guard configuration
+- [OSInfo](/commands/osinfo) - Operating system information
+- [WindowsDefender](/commands/windowsdefender) - Windows Defender settings
+- [UAC](/commands/uac) - UAC configuration

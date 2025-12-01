@@ -1,0 +1,292 @@
+---
+title: 'get task-sequences'
+description: 'Extract task sequence credentials'
+icon: 'list-check'
+sidebarTitle: 'get task-sequences'
+---
+
+## Overview
+
+Extract task sequence credentials from SCCM policies. Task sequences are automated workflows used for operating system deployment, software installation, and system configuration that often contain high-privilege domain credentials.
+
+<Warning>
+  Task sequences frequently contain domain administrator credentials used for automated OS deployment and domain join operations. These are often the highest-privilege credentials in the environment.
+</Warning>
+
+## Syntax
+
+```bash
+SharpSCCM get task-sequences [options]
+```
+
+## Parameters
+
+<ParamField path="management-point" type="string">
+  Management point server address
+</ParamField>
+
+<ParamField path="site-code" type="string">
+  The three-character site code (e.g., "PS1")
+</ParamField>
+
+<ParamField path="task-sequence-id" type="string">
+  Specific task sequence ID to target
+</ParamField>
+
+<ParamField path="task-sequence-name" type="string">
+  Task sequence name pattern for filtering
+</ParamField>
+
+<ParamField path="client-id" type="string">
+  SMS client GUID for authentication
+</ParamField>
+
+<ParamField path="certificate" type="string">
+  Base64 certificate blob for client authentication
+</ParamField>
+
+<ParamField path="output-file" type="string">
+  Save extracted credentials to file
+</ParamField>
+
+## Examples
+
+<CodeGroup>
+```bash Basic Usage
+# Extract all task sequence credentials
+SharpSCCM get task-sequences -mp SCCM01.corp.local -sc PS1
+
+# Target specific task sequence
+SharpSCCM get task-sequences -id PS100003 -mp SCCM01.corp.local -sc PS1
+```
+
+```bash Task Sequence Targeting
+# Filter by name pattern
+SharpSCCM get task-sequences -n "Windows" -mp SCCM01.corp.local -sc PS1
+
+# Target deployment task sequences
+SharpSCCM get task-sequences -n "Deploy" -mp SCCM01.corp.local -sc PS1
+```
+
+```bash Output Management
+# Save credentials to file
+SharpSCCM get task-sequences -o taskseq_creds.txt -mp SCCM01.corp.local -sc PS1
+```
+</CodeGroup>
+
+## Required Permissions
+
+<Info>
+  **Local Administrator** on SCCM client OR **Computer account credentials** OR **Valid SCCM client certificate**
+</Info>
+
+## Task Sequence Credentials
+
+<Accordion title="Domain Join Accounts">
+  **Purpose:** Join systems to Active Directory domain
+
+  **Characteristics:**
+  - Often domain administrator accounts
+  - Required for automated OS deployment
+  - Used across all deployment scenarios
+  - High privilege and broad access
+
+  **Security Impact:**
+  - Full domain administrator access
+  - Complete environment compromise
+  - Persistent access to all domain resources
+</Accordion>
+
+<Accordion title="Network Access Accounts">
+  **Purpose:** Access distribution points during deployment
+
+  **Characteristics:**
+  - Domain accounts with network access
+  - Used when computer account auth fails
+  - Often over-privileged for convenience
+  - Shared across multiple deployments
+
+  **Security Impact:**
+  - Network resource access
+  - Distribution point compromise
+  - Lateral movement opportunities
+</Accordion>
+
+<Accordion title="Application Installation Accounts">
+  **Purpose:** Install software during deployment
+
+  **Characteristics:**
+  - Service accounts with installation privileges
+  - Local or domain administrative rights
+  - Application-specific permissions
+  - Used for software deployment steps
+
+  **Security Impact:**
+  - Administrative access to target systems
+  - Software installation and configuration
+  - System-level privilege escalation
+</Accordion>
+
+## Task Sequence Types
+
+<Accordion title="Operating System Deployment">
+  **Windows Deployment:**
+  - OS installation and configuration
+  - Driver installation and updates
+  - Application deployment and setup
+  - Domain join and configuration
+
+  **Credential Requirements:**
+  - Domain join account (often domain admin)
+  - Network access account for content
+  - Application installation accounts
+  - System configuration credentials
+</Accordion>
+
+<Accordion title="Application Deployment">
+  **Software Installation:**
+  - Application installation workflows
+  - Configuration and customization
+  - License activation and setup
+  - Integration with existing systems
+
+  **Credential Requirements:**
+  - Application-specific service accounts
+  - Database connection credentials
+  - Network service access accounts
+  - Administrative installation accounts
+</Accordion>
+
+<Accordion title="System Configuration">
+  **Configuration Management:**
+  - System settings and policies
+  - Security configuration
+  - Network and service setup
+  - Compliance and hardening
+
+  **Credential Requirements:**
+  - Administrative configuration accounts
+  - Service setup credentials
+  - Network configuration accounts
+  - Security policy implementation
+</Accordion>
+
+## Extraction Process
+
+<Accordion title="Task Sequence Discovery">
+  **Policy Enumeration:**
+  1. Request machine policies from management point
+  2. Identify task sequence policy objects
+  3. Parse task sequence XML definitions
+  4. Extract embedded credential references
+
+  **Credential Extraction:**
+  1. Locate credential objects within task sequences
+  2. Decrypt encrypted credential values
+  3. Extract plaintext usernames and passwords
+  4. Map credentials to task sequence steps
+</Accordion>
+
+<Accordion title="Authentication Methods">
+  **Client Certificate:**
+  - Use existing SCCM client certificate
+  - Access policies for current system
+  - Limited to assigned task sequences
+
+  **Device Registration:**
+  - Register new device identity
+  - Access broader policy set
+  - Requires computer account credentials
+
+  **Certificate Impersonation:**
+  - Use provided client certificate
+  - Impersonate existing SCCM client
+  - Access client-specific policies
+</Accordion>
+
+## Credential Analysis
+
+<Accordion title="High-Value Credentials">
+  **Domain Administrator Accounts:**
+  ```text
+  Domain Join Account: DOMAIN\Administrator
+  Password: P@ssw0rd123!
+  Usage: Domain join operations
+  ```
+
+  **Service Accounts:**
+  ```text
+  Installation Account: DOMAIN\svc_deploy
+  Password: ServiceP@ss!
+  Usage: Software installation
+  ```
+
+  **Network Access Accounts:**
+  ```text
+  Network Account: DOMAIN\svc_network
+  Password: NetworkP@ss!
+  Usage: Distribution point access
+  ```
+</Accordion>
+
+<Accordion title="Credential Context">
+  **Task Sequence Steps:**
+  - Map credentials to specific deployment steps
+  - Understand credential usage context
+  - Identify credential scope and purpose
+
+  **Deployment Scenarios:**
+  - OS deployment vs application installation
+  - User-targeted vs system-targeted deployment
+  - Production vs testing environments
+</Accordion>
+
+## Attack Opportunities
+
+<Accordion title="Domain Compromise">
+  **Domain Administrator Access:**
+  - Use extracted domain admin credentials
+  - Complete Active Directory compromise
+  - Full environment control and persistence
+
+  **Privilege Escalation:**
+  - Leverage high-privilege deployment accounts
+  - Escalate from user to domain admin
+  - Bypass security controls and restrictions
+</Accordion>
+
+<Accordion title="Infrastructure Access">
+  **Distribution Point Access:**
+  - Use network access accounts for lateral movement
+  - Access SCCM content repositories
+  - Pivot to additional network resources
+
+  **Service Account Abuse:**
+  - Leverage service account credentials
+  - Access application and database resources
+  - Exploit service account privileges
+</Accordion>
+
+## Output Format
+
+Extracted task sequence credentials with context:
+
+```text
+[+] Task Sequence: Windows 10 Deployment (PS100003)
+    Step: Join Domain
+    Account: DOMAIN\Administrator
+    Password: P@ssw0rd123!
+    Type: Domain Join Account
+
+    Step: Install Applications
+    Account: DOMAIN\svc_deploy
+    Password: ServiceP@ss!
+    Type: Installation Account
+```
+
+## Related Commands
+
+- [`get secrets`](/commands/creds/get-secrets) - Comprehensive credential extraction
+- [`get naa`](/commands/creds/get-naa) - Network Access Account extraction
+- [`get collection-variables`](/commands/creds/get-collection-variables) - Collection variable credentials
+- [`local secrets`](/commands/local/secrets) - Local credential extraction

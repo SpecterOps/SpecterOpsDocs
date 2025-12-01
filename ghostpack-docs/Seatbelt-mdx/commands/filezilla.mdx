@@ -1,0 +1,117 @@
+---
+title: 'FileZilla'
+description: 'FileZilla configuration files'
+icon: 'file-zipper'
+---
+
+## Overview
+
+The `FileZilla` command searches for FileZilla FTP client configuration files on the system. FileZilla stores FTP/SFTP server credentials, including hostnames, usernames, and sometimes passwords in plaintext or weakly encoded formats, making these files valuable targets for credential harvesting.
+
+**Important:** User commands run for the current user if not elevated and for ALL users if elevated.
+
+## Syntax
+
+```
+Seatbelt.exe FileZilla
+```
+
+No additional arguments are supported. This command supports remote execution.
+
+## Output
+
+The command returns:
+- FileZilla configuration file locations
+- Server connection details (hostname, port)
+- Stored usernames and passwords
+- Recent server list
+- Site manager entries
+- File transfer history
+
+## Use Cases
+
+### Red Team
+- **Credential Harvesting**: Extract FTP/SFTP credentials from FileZilla configuration
+- **Network Mapping**: Discover internal and external FTP servers
+- **Lateral Movement**: Use harvested credentials to access FTP servers
+- **Infrastructure Discovery**: Identify file transfer infrastructure and endpoints
+- **Privilege Escalation**: Find credentials that may provide elevated access to systems
+
+### Blue Team
+- **Credential Hygiene**: Identify users storing FTP credentials insecurely
+- **Security Audit**: Review FTP server access patterns and credentials
+- **Incident Response**: Quickly identify potentially compromised FTP credentials
+- **Compliance Checking**: Ensure FTP credential storage aligns with policies
+- **Risk Assessment**: Evaluate exposure from plaintext FTP credentials
+
+## Example Output
+
+```
+====== FileZilla ======
+
+User: john.doe
+
+  ConfigFile        : C:\Users\john.doe\AppData\Roaming\FileZilla\recentservers.xml
+
+  Server Entry
+    Host            : ftp.contoso.com
+    Port            : 21
+    Protocol        : FTP
+    User            : admin
+    Password        : P@ssw0rd123
+
+  Server Entry
+    Host            : sftp.partner.com
+    Port            : 22
+    Protocol        : SFTP
+    User            : john.doe
+    Password        : [Encoded: base64string]
+```
+
+## Privilege Context
+
+- **Non-Elevated**: Searches for FileZilla configuration files for the current user only
+- **Elevated**: Searches for FileZilla configuration files for ALL users on the system, providing comprehensive credential discovery
+
+## Remote Execution
+
+This command **supports** remote execution (marked with + in the command list).
+
+Remote syntax:
+```
+Seatbelt.exe FileZilla -computername=TARGET.domain.com -username=DOMAIN\user -password=pass
+```
+
+## Detection Considerations
+
+### Indicators
+- File system access to FileZilla configuration directories
+- Reading XML configuration files in AppData\Roaming\FileZilla
+- Pattern-based searching for FileZilla-specific file names
+- Enumeration across multiple user profiles
+
+### Defensive Monitoring
+- Monitor access to FileZilla configuration directories
+- Alert on non-FileZilla processes reading configuration files
+- Track automated enumeration of FTP credential files
+- Log access to recentservers.xml and sitemanager.xml files
+- Detect credential harvesting tools accessing FileZilla data
+- Monitor for bulk configuration file enumeration across users
+- Alert on exfiltration of FileZilla configuration files
+
+### Security Recommendations
+- Educate users on secure FTP credential management
+- Discourage storing passwords in FileZilla
+- Use key-based authentication instead of passwords
+- Implement file access monitoring on configuration directories
+- Consider alternative FTP clients with better credential protection
+- Regularly audit FileZilla installations and configurations
+
+## Related Commands
+
+- **PuttySessions**: Finds saved Putty/SSH credentials
+- **MTPuTTY**: Enumerates MTPuTTY configuration files
+- **SuperPutty**: Finds SuperPutty configuration files
+- **WindowsCredentialFiles**: Searches for Windows credential files
+- **CredEnum**: Enumerates saved credentials using Windows API
+- **CloudCredentials**: Finds cloud provider credential files

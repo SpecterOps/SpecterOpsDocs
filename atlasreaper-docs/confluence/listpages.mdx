@@ -1,0 +1,349 @@
+---
+title: 'listpages'
+description: 'Enumerate Confluence pages with filtering by space, status, and content retrieval'
+icon: 'file-lines'
+---
+
+## Overview
+
+The `confluence listpages` command enumerates pages within Confluence, providing essential reconnaissance for understanding the organizational structure, identifying sensitive content, and discovering potential targets for offensive operations. This command supports filtering by space, retrieving page content, and querying pages by status (current, archived, deleted, trashed).
+
+This is typically one of the first commands used during Confluence reconnaissance to map out the information landscape.
+
+## Syntax
+
+```bash
+.\AtlasReaper.exe confluence listpages [options]
+```
+
+## Required Parameters
+
+<ParamField path="--url" type="string" required>
+  The base URL of the Confluence instance (e.g., `https://example.atlassian.net`)
+</ParamField>
+
+## Optional Parameters
+
+<ParamField path="--cookie" type="string">
+  Authentication cookie (`cloud.session.token` or `tenant.session.token`). If omitted, the command will attempt anonymous access (if enabled on the target)
+</ParamField>
+
+<ParamField path="--page" type="string">
+  Specific page ID to retrieve. Returns detailed information about a single page
+</ParamField>
+
+<ParamField path="--space" type="string">
+  Space key to list pages from (e.g., "ENG", "HR", "IT"). Returns all pages within the specified space
+</ParamField>
+
+<ParamField path="--all" type="boolean" default="false">
+  Return all pages. If combined with --space, returns all pages in that space. If used alone, returns every page in the entire Confluence instance
+</ParamField>
+
+<ParamField path="--limit" type="string" default="250">
+  Maximum number of pages to return. Default is 250
+</ParamField>
+
+<ParamField path="--body" type="boolean" default="false">
+  Include the full body/content of each page in the output. Useful for content analysis and keyword searching
+</ParamField>
+
+<ParamField path="--status" type="string">
+  Filter pages by status. Valid values: `current`, `archived`, `deleted`, `trashed`. If not specified, returns pages of all statuses
+</ParamField>
+
+<ParamField path="--output" type="string">
+  Save command output to a specified file. Essential for large result sets and offline analysis
+</ParamField>
+
+## Examples
+
+<Tabs>
+  <Tab title="List Space Pages">
+    ```bash
+    .\AtlasReaper.exe confluence listpages \
+      --space "ENG" \
+      --limit 500 \
+      --url https://example.atlassian.net \
+      --cookie "cloud.session.token=abc123..."
+    ```
+    Lists up to 500 pages from the Engineering space.
+  </Tab>
+
+  <Tab title="Retrieve Specific Page">
+    ```bash
+    .\AtlasReaper.exe confluence listpages \
+      --page "123456" \
+      --body \
+      --url https://example.atlassian.net \
+      --cookie "cloud.session.token=abc123..."
+    ```
+    Retrieves a specific page including its full content.
+  </Tab>
+
+  <Tab title="Enumerate All Pages">
+    ```bash
+    .\AtlasReaper.exe confluence listpages \
+      --all \
+      --output "all_pages.txt" \
+      --url https://example.atlassian.net \
+      --cookie "cloud.session.token=abc123..."
+    ```
+    Enumerates all pages across the entire Confluence instance and saves to file.
+  </Tab>
+
+  <Tab title="Pages with Content">
+    ```bash
+    .\AtlasReaper.exe confluence listpages \
+      --space "IT" \
+      --body \
+      --limit 100 \
+      --output "it_pages_content.txt" \
+      --url https://example.atlassian.net \
+      --cookie "cloud.session.token=abc123..."
+    ```
+    Retrieves IT space pages with full content for offline analysis.
+  </Tab>
+
+  <Tab title="Filter by Status">
+    ```bash
+    .\AtlasReaper.exe confluence listpages \
+      --space "HR" \
+      --status "archived" \
+      --all \
+      --url https://example.atlassian.net \
+      --cookie "cloud.session.token=abc123..."
+    ```
+    Lists all archived pages in HR space (may contain sensitive historical data).
+  </Tab>
+
+  <Tab title="Deleted Pages Hunt">
+    ```bash
+    .\AtlasReaper.exe confluence listpages \
+      --status "deleted" \
+      --all \
+      --body \
+      --output "deleted_pages.txt" \
+      --url https://example.atlassian.net \
+      --cookie "cloud.session.token=abc123..."
+    ```
+    Retrieves content from deleted pages that may contain sensitive information.
+  </Tab>
+</Tabs>
+
+## Use Cases
+
+<AccordionGroup>
+  <Accordion title="Red Team Perspectives" icon="user-secret">
+    **Initial Reconnaissance**
+    - Map organizational structure and team organization through space and page layout
+    - Identify active projects, initiatives, and business priorities
+    - Discover naming conventions and documentation standards
+    - Understand information architecture and security posture
+
+    **Sensitive Information Discovery**
+    - Find pages containing credentials, API keys, or passwords
+    - Identify documentation about internal systems and infrastructure
+    - Locate runbooks, procedures, and operational documentation
+    - Discover security documentation that reveals defensive capabilities
+
+    **Target Identification**
+    - Identify high-value pages for link/embed operations
+    - Find frequently accessed pages for maximum impact social engineering
+    - Locate pages owned by high-privilege users (admins, developers)
+    - Discover project pages that specific target users are likely to view
+
+    **Historical Intelligence Gathering**
+    - Review archived and deleted pages for sensitive information
+    - Find decommissioned systems that may still be accessible
+    - Discover old credentials or configurations in historical content
+    - Identify security incidents or breaches documented in old pages
+
+    **Social Engineering Preparation**
+    - Understand organizational communication style and terminology
+    - Identify legitimate projects and initiatives to reference in pretexts
+    - Find page structures to mimic when creating malicious content
+    - Locate team pages where malicious content would appear legitimate
+
+    **Privilege Escalation Intelligence**
+    - Find documentation about administrative access and procedures
+    - Identify service accounts and their purposes
+    - Locate credentials or access methods documented in pages
+    - Discover infrastructure access patterns and authentication methods
+  </Accordion>
+
+  <Accordion title="Blue Team Perspectives" icon="shield-halved">
+    **Security Posture Assessment**
+    - Audit for credentials, secrets, or sensitive data in page content
+    - Review what information is accessible via anonymous access
+    - Identify over-permissioned spaces with sensitive content
+    - Discover shadow IT documentation and unauthorized data repositories
+
+    **Data Classification and Governance**
+    - Inventory pages containing regulated data (PII, PHI, financial information)
+    - Ensure proper access controls on sensitive pages
+    - Verify that sensitive content has appropriate page restrictions
+    - Audit compliance with data governance policies
+
+    **Threat Hunting**
+    - Search page content for indicators of compromise
+    - Identify suspicious pages created by compromised accounts
+    - Find pages with embedded malicious links or images
+    - Discover recently modified pages during incident response
+
+    **Access Control Review**
+    - Verify that deleted pages cannot be accessed by unauthorized users
+    - Audit which spaces and pages are accessible to specific accounts
+    - Review page permissions and space restrictions
+    - Identify pages that should be restricted but are not
+
+    **Incident Response**
+    - During compromise, identify what content was accessible to attacker
+    - Review page access logs to determine what information was viewed
+    - Assess business impact based on page sensitivity and content
+    - Identify malicious content added during the compromise
+
+    **Detection Indicators**
+    - Monitor for bulk page enumeration (many API calls)
+    - Alert on enumeration with --body flag (content retrieval)
+    - Track accounts enumerating spaces they don't typically access
+    - Identify enumeration of deleted/archived pages (unusual behavior)
+    - Flag enumeration followed by suspicious page modifications
+  </Accordion>
+</AccordionGroup>
+
+## Output
+
+The command returns detailed information about each page:
+
+- Page ID (used in other operations)
+- Page title
+- Space key and space name
+- Creation date and creator username
+- Last modified date and modifier username
+- Page status (current, archived, deleted, trashed)
+- Page URL
+- Parent page information
+- Body content (if --body flag is used)
+
+Example output structure:
+```
+[+] Listing pages from space: IT
+
+Page ID: 123456
+  Title: Network Infrastructure Documentation
+  Space: IT
+  Status: current
+  Created: 2024-01-15 by john.doe
+  Modified: 2024-10-18 by jane.smith
+  URL: https://example.atlassian.net/wiki/spaces/IT/pages/123456
+  Parent: Server Documentation (ID: 789012)
+
+Page ID: 789012
+  Title: VPN Configuration Guide
+  Space: IT
+  Status: current
+  Created: 2024-03-20 by admin
+  Modified: 2024-09-30 by admin
+  URL: https://example.atlassian.net/wiki/spaces/IT/pages/789012
+
+[+] Total pages found: 2
+```
+
+When `--body` is used, full page content is included in the output, which can be extensive.
+
+## Detection Considerations
+
+<Warning>
+  Page enumeration generates significant audit logs and API activity:
+</Warning>
+
+**API Request Monitoring**
+- Multiple rapid API calls to list pages will generate web server logs
+- Retrieving page bodies creates larger HTTP responses that may be noticed
+- Bulk operations can trigger rate limiting or abuse detection systems
+
+**Confluence Audit Logs**
+- Page view events are logged (especially with --body flag)
+- Audit logs include username, timestamp, page ID, and IP address
+- Accessing many pages in short timeframe creates distinct patterns
+- Viewing deleted/archived pages is particularly suspicious
+
+**Behavioral Analytics**
+- UEBA solutions flag unusual page access patterns
+- Accessing pages outside the account's normal scope raises alerts
+- Bulk enumeration is highly anomalous behavior
+- Sequential page access (enumeration pattern) differs from normal usage
+
+**Performance Monitoring**
+- Large-scale enumeration (--all) may cause performance impact
+- Database queries for page metadata and content are resource-intensive
+- Infrastructure teams may notice unusual load patterns
+
+**Access Control Violations**
+- Attempting to access restricted pages generates failed access logs
+- Enumeration may reveal access control misconfigurations
+- Failed access attempts may trigger security alerts
+
+## OPSEC Considerations
+
+<Tip>
+  Minimize detection risk with these operational security practices:
+</Tip>
+
+1. **Scope and Targeting**
+   - Enumerate specific spaces rather than the entire instance when possible
+   - Focus on high-value targets identified through other intelligence
+   - Use targeted queries rather than blanket enumeration
+   - Balance intelligence requirements with operational security
+
+2. **Rate and Timing**
+   - Space out API calls to mimic normal user browsing patterns
+   - Perform enumeration during business hours when activity is normal
+   - Avoid rapid-fire requests that clearly indicate automated enumeration
+   - Consider the compromised account's typical usage patterns
+
+3. **Content Retrieval Strategy**
+   - Use --body flag sparingly and only when necessary
+   - Retrieving content for every page is highly conspicuous
+   - Consider using search functionality for specific content instead
+   - Download page content only for targeted high-value pages
+
+4. **Account Context**
+   - Ensure the account normally accesses the spaces being enumerated
+   - Match the user's typical behavior and access patterns
+   - Avoid enumerating spaces the account has never accessed
+   - Consider the account's role and whether enumeration fits their job function
+
+5. **Status Filter Considerations**
+   - Accessing deleted/archived pages is unusual and suspicious
+   - Most users don't enumerate deleted content
+   - Consider whether historical intelligence is worth the detection risk
+   - Focus on current pages unless deleted content is essential
+
+6. **Output Management**
+   - Always use --output parameter for large result sets
+   - Avoid re-running enumeration unnecessarily
+   - Process results offline to minimize interactive session time
+   - Secure output files as they contain organizational intelligence
+
+7. **Operational Planning**
+   - Use enumeration results to plan subsequent operations
+   - Identify high-value pages for targeted content retrieval
+   - Prioritize pages for attachment, link, or embed operations
+   - Map dependencies (child pages, related content) before operations
+
+8. **Alternative Approaches**
+   - Consider using search instead of blanket enumeration
+   - Leverage social engineering to obtain page information from users
+   - Use reconnaissance from public sources before internal enumeration
+   - Evaluate whether enumeration is necessary given existing intelligence
+
+## Related Commands
+
+- [confluence listspaces](/confluence/listspaces) - Enumerate spaces before listing their pages
+- [confluence search](/confluence/search) - Alternative method to find specific content without enumeration
+- [confluence listattachments](/confluence/listattachments) - List attachments after identifying target pages
+- [confluence attach](/confluence/attach) - Attach files to pages identified through enumeration
+- [confluence embed](/confluence/embed) - Embed content on pages identified through enumeration
+- [confluence link](/confluence/link) - Add links to pages identified through enumeration

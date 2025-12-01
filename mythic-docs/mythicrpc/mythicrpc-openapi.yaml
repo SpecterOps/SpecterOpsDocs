@@ -1,0 +1,3025 @@
+openapi: 3.0.3
+info:
+  title: MythicRPC API
+  description: |
+    MythicRPC provides a comprehensive way to execute functions against Mythic and its database programmatically from within your command's tasking files via RabbitMQ.
+    
+    ## Context and Scoping
+    
+    Your execution comes from a Docker container as part of a payload type, C2 profile, eventing container, etc., not directly through user interaction. This means you lose the operation context that users have in the UI.
+    
+    Most functions require one of these identifiers to properly scope operations:
+    - `TaskID` (int): ID of your task, typically passed as part of taskData
+    - `AgentCallbackID` (string UUID): Callback's UUID string value (agent's self-identifier)
+    - `CallbackID` (int): Callback's integer ID (Mythic's identifier)
+    - `OperationID` (int): Direct operation ID
+    - `PayloadUUID` (string UUID): Payload's UUID identifier
+    
+    ## Function Naming Convention
+    
+    MythicRPC functions follow the pattern: `SendMythicRPC[Thing][Action]`
+    
+    Every function takes one input parameter and returns one output with consistent naming.
+    
+  version: 3.2.12
+  contact:
+    name: MythicMeta
+    url: https://github.com/MythicMeta
+  license:
+    name: BSD 3-Clause
+    url: https://github.com/MythicMeta/MythicContainer/blob/main/LICENSE
+
+servers:
+  - url: rabbitmq://mythic-rabbitmq:5672
+    description: MythicRPC via RabbitMQ
+
+tags:
+  - name: Agent Storage
+    description: Store and manage arbitrary data in the database
+  - name: Authentication
+    description: API token management for Mythic Scripting
+  - name: Artifacts
+    description: Create and search for artifacts associated with tasks
+  - name: Callback Management
+    description: Manage callbacks, commands, and callback-related operations
+  - name: Token Management
+    description: Associate and manage tokens with callbacks
+  - name: File Management
+    description: Create, search, and manage files within Mythic
+  - name: File Browser
+    description: Manage file browser metadata and operations
+  - name: Logging
+    description: Keylogging and event logging functions
+  - name: Payload Management
+    description: Create, modify, and manage payloads
+  - name: Process Management
+    description: Manage process browser data
+  - name: Proxy Management
+    description: Start and stop proxy connections
+  - name: Response Management
+    description: Handle task responses and output
+  - name: Task Management
+    description: Create, search, and manage tasks
+  - name: Tag Management
+    description: Create and manage tags for various objects
+  - name: Token Operations
+    description: Create and remove tokens in tracking system
+  - name: Credentials
+    description: Manage credential store operations
+  - name: Commands
+    description: Search and manage commands
+  - name: Edge Management
+    description: Manage callback edge relationships
+  - name: Interactive Tasks
+    description: Handle interactive task sessions
+  - name: Host Files
+    description: Host files through C2 profiles
+  - name: Utilities
+    description: Utility functions for ID conversion and path parsing
+
+paths:
+  # Agent Storage Operations
+  /mythicrpc/agent-storage/create:
+    post:
+      tags: [Agent Storage]
+      summary: Create Agent Storage Entry
+      description: Store arbitrary byte data in the database with a unique identifier
+      operationId: sendMythicRPCAgentStorageCreate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentStorageCreateRequest'
+      responses:
+        '200':
+          description: Successfully created agent storage entry
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentStorageCreateResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /mythicrpc/agent-storage/remove:
+    post:
+      tags: [Agent Storage]
+      summary: Remove Agent Storage Entry
+      operationId: sendMythicRPCAgentStorageRemove
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentStorageRemoveRequest'
+      responses:
+        '200':
+          description: Successfully removed agent storage entry
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+
+  /mythicrpc/agent-storage/search:
+    post:
+      tags: [Agent Storage]
+      summary: Search Agent Storage
+      operationId: sendMythicRPCAgentStorageSearch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentStorageSearchRequest'
+      responses:
+        '200':
+          description: Agent storage search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentStorageSearchResponse'
+
+  # Authentication Operations
+  /mythicrpc/auth/api-token/create:
+    post:
+      tags: [Authentication]
+      summary: Create API Token
+      description: Create a temporary API token for Mythic Scripting. Tokens automatically expire when the associated task finishes or after 5 minutes.
+      operationId: sendMythicRPCAPITokenCreate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/APITokenCreateRequest'
+      responses:
+        '200':
+          description: Successfully created API token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APITokenCreateResponse'
+
+  # Artifact Operations
+  /mythicrpc/artifacts/create:
+    post:
+      tags: [Artifacts]
+      summary: Create Artifact
+      operationId: sendMythicRPCArtifactCreate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ArtifactCreateRequest'
+      responses:
+        '200':
+          description: Successfully created artifact
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArtifactCreateResponse'
+
+  /mythicrpc/artifacts/search:
+    post:
+      tags: [Artifacts]
+      summary: Search Artifacts
+      operationId: sendMythicRPCArtifactSearch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ArtifactSearchRequest'
+      responses:
+        '200':
+          description: Artifact search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArtifactSearchResponse'
+
+  # Callback Management Operations
+  /mythicrpc/callbacks/add-command:
+    post:
+      tags: [Callback Management]
+      summary: Add Command to Callback
+      operationId: sendMythicRPCCallbackAddCommand
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CallbackAddCommandRequest'
+      responses:
+        '200':
+          description: Successfully added commands to callback
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallbackAddCommandResponse'
+
+  /mythicrpc/callbacks/remove-command:
+    post:
+      tags: [Callback Management]
+      summary: Remove Command from Callback
+      operationId: sendMythicRPCCallbackRemoveCommand
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CallbackRemoveCommandRequest'
+      responses:
+        '200':
+          description: Successfully removed commands from callback
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+
+  /mythicrpc/callbacks/search-commands:
+    post:
+      tags: [Callback Management]
+      summary: Search Callback Commands
+      operationId: sendMythicRPCCallbackCommandSearch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CallbackCommandSearchRequest'
+      responses:
+        '200':
+          description: Callback command search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallbackCommandSearchResponse'
+
+  /mythicrpc/callbacks/create:
+    post:
+      tags: [Callback Management]
+      summary: Create Callback
+      operationId: sendMythicRPCCallbackCreate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CallbackCreateRequest'
+      responses:
+        '200':
+          description: Successfully created callback
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallbackCreateResponse'
+
+  /mythicrpc/callbacks/decrypt-bytes:
+    post:
+      tags: [Callback Management]
+      summary: Decrypt Callback Message
+      operationId: sendMythicRPCCallbackDecryptBytes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CallbackDecryptBytesRequest'
+      responses:
+        '200':
+          description: Successfully decrypted message
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallbackDecryptBytesResponse'
+
+  /mythicrpc/callbacks/encrypt-bytes:
+    post:
+      tags: [Callback Management]
+      summary: Encrypt Callback Message
+      operationId: sendMythicRPCCallbackEncryptBytes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CallbackEncryptBytesRequest'
+      responses:
+        '200':
+          description: Successfully encrypted message
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallbackEncryptBytesResponse'
+
+  /mythicrpc/callbacks/search:
+    post:
+      tags: [Callback Management]
+      summary: Search Callbacks
+      operationId: sendMythicRPCCallbackSearch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CallbackSearchRequest'
+      responses:
+        '200':
+          description: Callback search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallbackSearchResponse'
+
+  /mythicrpc/callbacks/update:
+    post:
+      tags: [Callback Management]
+      summary: Update Callback
+      operationId: sendMythicRPCCallbackUpdate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CallbackUpdateRequest'
+      responses:
+        '200':
+          description: Successfully updated callback
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+
+  /mythicrpc/callbacks/display-to-real-id:
+    post:
+      tags: [Callback Management]
+      summary: Convert Display ID to Real ID
+      operationId: sendMythicRPCCallbackDisplayToRealIDSearch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CallbackDisplayToRealIDRequest'
+      responses:
+        '200':
+          description: Real ID conversion result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallbackDisplayToRealIDResponse'
+
+  /mythicrpc/callbacks/edge-search:
+    post:
+      tags: [Edge Management]
+      summary: Search Callback Edges
+      operationId: sendMythicRPCCallbackEdgeSearch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CallbackEdgeSearchRequest'
+      responses:
+        '200':
+          description: Callback edge search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallbackEdgeSearchResponse'
+
+  /mythicrpc/callbacks/next-checkin-range:
+    post:
+      tags: [Callback Management]
+      summary: Calculate Next Checkin Range
+      operationId: sendMythicRPCCallbackNextCheckinRange
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CallbackNextCheckinRangeRequest'
+      responses:
+        '200':
+          description: Next checkin time range
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallbackNextCheckinRangeResponse'
+
+  # Token Management Operations
+  /mythicrpc/callbacks/tokens/create:
+    post:
+      tags: [Token Management]
+      summary: Associate Tokens with Callback
+      operationId: sendMythicRPCCallbackTokenCreate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CallbackTokenCreateRequest'
+      responses:
+        '200':
+          description: Successfully associated tokens
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+
+  /mythicrpc/callbacks/tokens/remove:
+    post:
+      tags: [Token Management]
+      summary: Remove Tokens from Callback
+      operationId: sendMythicRPCCallbackTokenRemove
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CallbackTokenRemoveRequest'
+      responses:
+        '200':
+          description: Successfully removed tokens
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+
+  # File Management Operations
+  /mythicrpc/files/create:
+    post:
+      tags: [File Management]
+      summary: Create File
+      operationId: sendMythicRPCFileCreate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FileCreateRequest'
+      responses:
+        '200':
+          description: Successfully created file
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileCreateResponse'
+
+  /mythicrpc/files/get-content:
+    post:
+      tags: [File Management]
+      summary: Get File Content
+      operationId: sendMythicRPCFileGetContent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FileGetContentRequest'
+      responses:
+        '200':
+          description: File content retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileGetContentResponse'
+
+  /mythicrpc/files/search:
+    post:
+      tags: [File Management]
+      summary: Search Files
+      operationId: sendMythicRPCFileSearch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FileSearchRequest'
+      responses:
+        '200':
+          description: File search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileSearchResponse'
+
+  /mythicrpc/files/update:
+    post:
+      tags: [File Management]
+      summary: Update File
+      operationId: sendMythicRPCFileUpdate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FileUpdateRequest'
+      responses:
+        '200':
+          description: Successfully updated file
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+
+  # File Browser Operations
+  /mythicrpc/file-browser/create:
+    post:
+      tags: [File Browser]
+      summary: Create File Browser Entry
+      operationId: sendMythicRPCFileBrowserCreate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FileBrowserCreateRequest'
+      responses:
+        '200':
+          description: Successfully created file browser entry
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+
+  /mythicrpc/file-browser/remove:
+    post:
+      tags: [File Browser]
+      summary: Remove File Browser Entry
+      operationId: sendMythicRPCFileBrowserRemove
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FileBrowserRemoveRequest'
+      responses:
+        '200':
+          description: Successfully removed file browser entries
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+
+  /mythicrpc/file-browser/parse-path:
+    post:
+      tags: [File Browser]
+      summary: Parse File Path
+      operationId: sendMythicRPCFileBrowserParsePath
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FileBrowserParsePathRequest'
+      responses:
+        '200':
+          description: Parsed path components
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileBrowserParsePathResponse'
+
+  # Task Management Operations
+  /mythicrpc/tasks/create:
+    post:
+      tags: [Task Management]
+      summary: Create Task
+      operationId: sendMythicRPCTaskCreate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskCreateRequest'
+      responses:
+        '200':
+          description: Successfully created task
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskCreateResponse'
+
+  /mythicrpc/tasks/create-subtask:
+    post:
+      tags: [Task Management]
+      summary: Create Subtask
+      operationId: sendMythicRPCTaskCreateSubtask
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskCreateSubtaskRequest'
+      responses:
+        '200':
+          description: Successfully created subtask
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskCreateSubtaskResponse'
+
+  /mythicrpc/tasks/create-subtask-group:
+    post:
+      tags: [Task Management]
+      summary: Create Subtask Group
+      operationId: sendMythicRPCTaskCreateSubtaskGroup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskCreateSubtaskGroupRequest'
+      responses:
+        '200':
+          description: Successfully created subtask group
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskCreateSubtaskGroupResponse'
+
+  /mythicrpc/tasks/search:
+    post:
+      tags: [Task Management]
+      summary: Search Tasks
+      operationId: sendMythicRPCTaskSearch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskSearchRequest'
+      responses:
+        '200':
+          description: Task search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskSearchResponse'
+
+  /mythicrpc/tasks/update:
+    post:
+      tags: [Task Management]
+      summary: Update Task
+      operationId: sendMythicRPCTaskUpdate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskUpdateRequest'
+      responses:
+        '200':
+          description: Successfully updated task
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+
+  /mythicrpc/tasks/display-to-real-id:
+    post:
+      tags: [Task Management]
+      summary: Convert Task Display ID to Real ID
+      operationId: sendMythicRPCTaskDisplayToRealIDSearch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskDisplayToRealIDRequest'
+      responses:
+        '200':
+          description: Real task ID conversion result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskDisplayToRealIDResponse'
+
+  # Process Management Operations
+  /mythicrpc/processes/create:
+    post:
+      tags: [Process Management]
+      summary: Create Process Entries
+      operationId: sendMythicRPCProcessCreate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProcessCreateRequest'
+      responses:
+        '200':
+          description: Successfully created process entries
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+
+  /mythicrpc/processes/search:
+    post:
+      tags: [Process Management]
+      summary: Search Processes
+      operationId: sendMythicRPCProcessSearch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProcessSearchRequest'
+      responses:
+        '200':
+          description: Process search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProcessSearchResponse'
+
+  # Proxy Management Operations
+  /mythicrpc/proxy/start:
+    post:
+      tags: [Proxy Management]
+      summary: Start Proxy Connection
+      operationId: sendMythicRPCProxyStart
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProxyStartRequest'
+      responses:
+        '200':
+          description: Successfully started proxy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProxyStartResponse'
+
+  /mythicrpc/proxy/stop:
+    post:
+      tags: [Proxy Management]
+      summary: Stop Proxy Connection
+      operationId: sendMythicRPCProxyStop
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProxyStopRequest'
+      responses:
+        '200':
+          description: Successfully stopped proxy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+
+  # Response Management Operations
+  /mythicrpc/responses/create:
+    post:
+      tags: [Response Management]
+      summary: Create Task Response
+      operationId: sendMythicRPCResponseCreate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResponseCreateRequest'
+      responses:
+        '200':
+          description: Successfully created response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseCreateResponse'
+
+  /mythicrpc/responses/search:
+    post:
+      tags: [Response Management]
+      summary: Search Task Responses
+      operationId: sendMythicRPCResponseSearch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResponseSearchRequest'
+      responses:
+        '200':
+          description: Response search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseSearchResponse'
+
+  # Payload Management Operations
+  /mythicrpc/payloads/add-command:
+    post:
+      tags: [Payload Management]
+      summary: Add Command to Payload
+      operationId: sendMythicRPCPayloadAddCommand
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PayloadAddCommandRequest'
+      responses:
+        '200':
+          description: Successfully added commands to payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+
+  /mythicrpc/payloads/remove-command:
+    post:
+      tags: [Payload Management]
+      summary: Remove Command from Payload
+      operationId: sendMythicRPCPayloadRemoveCommand
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PayloadRemoveCommandRequest'
+      responses:
+        '200':
+          description: Successfully removed commands from payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+
+  /mythicrpc/payloads/create-from-scratch:
+    post:
+      tags: [Payload Management]
+      summary: Create Payload from Scratch
+      operationId: sendMythicRPCPayloadCreateFromScratch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PayloadCreateFromScratchRequest'
+      responses:
+        '200':
+          description: Successfully created payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PayloadCreateResponse'
+
+  /mythicrpc/payloads/create-from-uuid:
+    post:
+      tags: [Payload Management]
+      summary: Create Payload from Existing UUID
+      operationId: sendMythicRPCPayloadCreateFromUUID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PayloadCreateFromUUIDRequest'
+      responses:
+        '200':
+          description: Successfully created payload from existing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PayloadCreateResponse'
+
+  /mythicrpc/payloads/get-content:
+    post:
+      tags: [Payload Management]
+      summary: Get Payload Content
+      operationId: sendMythicRPCPayloadGetContent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PayloadGetContentRequest'
+      responses:
+        '200':
+          description: Payload content retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PayloadGetContentResponse'
+
+  /mythicrpc/payloads/search:
+    post:
+      tags: [Payload Management]
+      summary: Search Payloads
+      operationId: sendMythicRPCPayloadSearch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PayloadSearchRequest'
+      responses:
+        '200':
+          description: Payload search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PayloadSearchResponse'
+
+  /mythicrpc/payloads/update-build-step:
+    post:
+      tags: [Payload Management]
+      summary: Update Build Step Status
+      operationId: sendMythicRPCPayloadUpdateBuildStep
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PayloadUpdateBuildStepRequest'
+      responses:
+        '200':
+          description: Successfully updated build step
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+
+  /mythicrpc/payloads/on-host-create:
+    post:
+      tags: [Payload Management]
+      summary: Register Payload on Host
+      operationId: sendMythicRPCPayloadOnHostCreate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PayloadOnHostCreateRequest'
+      responses:
+        '200':
+          description: Successfully registered payload on host
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+
+  # Logging Operations
+  /mythicrpc/keylogs/create:
+    post:
+      tags: [Logging]
+      summary: Create Keylog Entries
+      operationId: sendMythicRPCKeylogCreate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KeylogCreateRequest'
+      responses:
+        '200':
+          description: Successfully created keylog entries
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+
+  /mythicrpc/keylogs/search:
+    post:
+      tags: [Logging]
+      summary: Search Keylogs
+      operationId: sendMythicRPCKeylogSearch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KeylogSearchRequest'
+      responses:
+        '200':
+          description: Keylog search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KeylogSearchResponse'
+
+  /mythicrpc/operation-event-log/create:
+    post:
+      tags: [Logging]
+      summary: Create Operation Event Log Entry
+      operationId: sendMythicRPCOperationEventLogCreate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OperationEventLogCreateRequest'
+      responses:
+        '200':
+          description: Successfully created event log entry
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+
+  # Credential Operations
+  /mythicrpc/credentials/create:
+    post:
+      tags: [Credentials]
+      summary: Create Credential Entries
+      operationId: sendMythicRPCCredentialCreate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CredentialCreateRequest'
+      responses:
+        '200':
+          description: Successfully created credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+
+  /mythicrpc/credentials/search:
+    post:
+      tags: [Credentials]
+      summary: Search Credentials
+      operationId: sendMythicRPCCredentialSearch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CredentialSearchRequest'
+      responses:
+        '200':
+          description: Credential search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CredentialSearchResponse'
+
+  # Command Operations
+  /mythicrpc/commands/search:
+    post:
+      tags: [Commands]
+      summary: Search Commands
+      operationId: sendMythicRPCCommandSearch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommandSearchRequest'
+      responses:
+        '200':
+          description: Command search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommandSearchResponse'
+
+  # Tag Management Operations
+  /mythicrpc/tags/create:
+    post:
+      tags: [Tag Management]
+      summary: Create Tag
+      operationId: sendMythicRPCTagCreate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TagCreateRequest'
+      responses:
+        '200':
+          description: Successfully created tag
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+
+  /mythicrpc/tags/search:
+    post:
+      tags: [Tag Management]
+      summary: Search Tags
+      operationId: sendMythicRPCTagSearch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TagSearchRequest'
+      responses:
+        '200':
+          description: Tag search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TagSearchResponse'
+
+  /mythicrpc/tag-types/get-or-create:
+    post:
+      tags: [Tag Management]
+      summary: Get or Create Tag Type
+      operationId: sendMythicRPCTagTypeGetOrCreate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TagTypeGetOrCreateRequest'
+      responses:
+        '200':
+          description: Tag type retrieved or created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TagTypeGetOrCreateResponse'
+
+  # Token Operations
+  /mythicrpc/tokens/create:
+    post:
+      tags: [Token Operations]
+      summary: Create Token
+      operationId: sendMythicRPCTokenCreate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenCreateRequest'
+      responses:
+        '200':
+          description: Successfully created token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+
+  /mythicrpc/tokens/remove:
+    post:
+      tags: [Token Operations]
+      summary: Remove Token
+      operationId: sendMythicRPCTokenRemove
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRemoveRequest'
+      responses:
+        '200':
+          description: Successfully removed token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+
+  # Utility Operations
+  /mythicrpc/handle-agent-json:
+    post:
+      tags: [Utilities]
+      summary: Handle Agent JSON Message
+      operationId: sendMythicRPCHandleAgentJSON
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HandleAgentJSONRequest'
+      responses:
+        '200':
+          description: Successfully processed agent message
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HandleAgentJSONResponse'
+
+  # Interactive Task Operations
+  /mythicrpc/interactive/start:
+    post:
+      tags: [Interactive Tasks]
+      summary: Start Interactive Task
+      operationId: sendMythicRPCInteractiveStart
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InteractiveStartRequest'
+      responses:
+        '200':
+          description: Successfully started interactive session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InteractiveStartResponse'
+
+  /mythicrpc/interactive/stop:
+    post:
+      tags: [Interactive Tasks]
+      summary: Stop Interactive Task
+      operationId: sendMythicRPCInteractiveStop
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InteractiveStopRequest'
+      responses:
+        '200':
+          description: Successfully stopped interactive session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+
+  # Host File Operations
+  /mythicrpc/host-files/create:
+    post:
+      tags: [Host Files]
+      summary: Host File Through C2
+      operationId: sendMythicRPCHostFileCreate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HostFileCreateRequest'
+      responses:
+        '200':
+          description: Successfully hosted file
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HostFileCreateResponse'
+
+  /mythicrpc/host-files/remove:
+    post:
+      tags: [Host Files]
+      summary: Remove Hosted File
+      operationId: sendMythicRPCHostFileRemove
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HostFileRemoveRequest'
+      responses:
+        '200':
+          description: Successfully removed hosted file
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+
+components:
+  schemas:
+    # Base Response Schema
+    BaseResponse:
+      type: object
+      properties:
+        Success:
+          type: boolean
+          description: Whether the operation was successful
+        Error:
+          type: string
+          description: Error message if Success is false
+      required: [Success]
+
+    # Agent Storage Schemas
+    AgentStorageCreateRequest:
+      type: object
+      properties:
+        UniqueID:
+          type: string
+          description: Custom identifier for the data
+        DataToStore:
+          type: string
+          format: byte
+          description: Base64-encoded binary data to store
+      required: [UniqueID, DataToStore]
+
+    AgentStorageCreateResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            StorageID:
+              type: integer
+              description: Database ID of the created storage entry
+
+    AgentStorageRemoveRequest:
+      type: object
+      properties:
+        UniqueID:
+          type: string
+          description: Identifier used during creation
+      required: [UniqueID]
+
+    AgentStorageSearchRequest:
+      type: object
+      properties:
+        SearchUniqueID:
+          type: string
+          description: Identifier to search for
+      required: [SearchUniqueID]
+
+    AgentStorageSearchResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            Data:
+              type: string
+              format: byte
+              description: Base64-encoded stored data
+            UniqueID:
+              type: string
+              description: Unique identifier of the found data
+
+    # Authentication Schemas
+    APITokenCreateRequest:
+      type: object
+      properties:
+        AgentTaskID:
+          type: string
+          format: uuid
+          description: UUID from agent's perspective
+        AgentCallbackID:
+          type: string
+          format: uuid
+          description: Agent's callback UUID
+        PayloadUUID:
+          type: string
+          format: uuid
+          description: Payload UUID
+        OperationID:
+          type: integer
+          description: Database operation ID
+      description: Provide exactly one of these fields for scoping
+
+    APITokenCreateResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            Token:
+              type: string
+              description: Generated API token
+            ExpiresAt:
+              type: string
+              format: date-time
+              description: Token expiration time
+
+    # Artifact Schemas
+    ArtifactCreateRequest:
+      type: object
+      properties:
+        TaskID:
+          type: integer
+          description: Task identifier for scoping
+        ArtifactMessage:
+          type: string
+          description: Actual artifact content
+        BaseArtifactType:
+          type: string
+          description: General artifact type (e.g., "ProcessCreate")
+      required: [TaskID, ArtifactMessage, BaseArtifactType]
+
+    ArtifactCreateResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            ArtifactID:
+              type: integer
+              description: Database ID of created artifact
+
+    ArtifactSearchRequest:
+      type: object
+      properties:
+        TaskID:
+          type: integer
+          description: Task identifier for scoping
+        SearchArtifacts:
+          type: object
+          properties:
+            host:
+              type: string
+            task_id:
+              type: integer
+            artifact_type:
+              type: string
+      required: [TaskID, SearchArtifacts]
+
+    ArtifactSearchResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            Artifacts:
+              type: array
+              items:
+                type: object
+                properties:
+                  ArtifactID:
+                    type: integer
+                  ArtifactMessage:
+                    type: string
+                  BaseArtifactType:
+                    type: string
+                  Host:
+                    type: string
+                  TaskID:
+                    type: integer
+                  CreatedAt:
+                    type: string
+                    format: date-time
+
+    # Callback Management Schemas
+    CallbackAddCommandRequest:
+      type: object
+      properties:
+        TaskID:
+          type: integer
+        AgentCallbackID:
+          type: string
+          format: uuid
+        CallbackIDs:
+          type: array
+          items:
+            type: integer
+        Commands:
+          type: array
+          items:
+            type: string
+        PayloadType:
+          type: string
+      required: [CallbackIDs, Commands]
+
+    CallbackAddCommandResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            AddedCommands:
+              type: array
+              items:
+                type: object
+                properties:
+                  CallbackID:
+                    type: integer
+                  CommandName:
+                    type: string
+                  Added:
+                    type: boolean
+
+    CallbackRemoveCommandRequest:
+      type: object
+      properties:
+        TaskID:
+          type: integer
+        AgentCallbackID:
+          type: string
+          format: uuid
+        CallbackIDs:
+          type: array
+          items:
+            type: integer
+        Commands:
+          type: array
+          items:
+            type: string
+        PayloadType:
+          type: string
+      required: [CallbackIDs, Commands]
+
+    CallbackCommandSearchRequest:
+      type: object
+      properties:
+        TaskID:
+          type: integer
+        CallbackID:
+          type: integer
+        SearchCommandNames:
+          type: array
+          items:
+            type: string
+        SearchSupportedUIFeatures:
+          type: array
+          items:
+            type: string
+        SearchScriptOnly:
+          type: boolean
+        SearchAttributes:
+          type: object
+
+    CallbackCommandSearchResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            Commands:
+              type: array
+              items:
+                type: object
+                properties:
+                  CommandName:
+                    type: string
+                  PayloadType:
+                    type: string
+                  SupportedUIFeatures:
+                    type: array
+                    items:
+                      type: string
+                  ScriptOnly:
+                    type: boolean
+                  Attributes:
+                    type: object
+
+    CallbackCreateRequest:
+      type: object
+      properties:
+        PayloadUUID:
+          type: string
+          format: uuid
+        C2ProfileName:
+          type: string
+        Description:
+          type: string
+        Host:
+          type: string
+        User:
+          type: string
+        IntegrityLevel:
+          type: integer
+        ProcessName:
+          type: string
+        PID:
+          type: integer
+        ExtraInfo:
+          type: string
+        SleepInfo:
+          type: string
+      required: [PayloadUUID, C2ProfileName]
+
+    CallbackCreateResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            CallbackID:
+              type: integer
+            AgentCallbackID:
+              type: string
+              format: uuid
+
+    CallbackDecryptBytesRequest:
+      type: object
+      properties:
+        AgentCallbackUUID:
+          type: string
+          format: uuid
+        Message:
+          type: string
+          format: byte
+        IncludesUUID:
+          type: boolean
+        IsBase64Encoded:
+          type: boolean
+        C2Profile:
+          type: string
+      required: [AgentCallbackUUID, Message, IncludesUUID, IsBase64Encoded, C2Profile]
+
+    CallbackDecryptBytesResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            DecryptedMessage:
+              type: string
+              format: byte
+
+    CallbackEncryptBytesRequest:
+      type: object
+      properties:
+        AgentCallbackUUID:
+          type: string
+          format: uuid
+        Message:
+          type: string
+          format: byte
+        IncludeUUID:
+          type: boolean
+        Base64ReturnMessage:
+          type: boolean
+        C2Profile:
+          type: string
+      required: [AgentCallbackUUID, Message, IncludeUUID, Base64ReturnMessage, C2Profile]
+
+    CallbackEncryptBytesResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            EncryptedMessage:
+              type: string
+              format: byte
+
+    CallbackSearchRequest:
+      type: object
+      properties:
+        AgentCallbackUUID:
+          type: string
+          format: uuid
+        AgentCallbackID:
+          type: integer
+        SearchActive:
+          type: boolean
+        SearchHost:
+          type: string
+        SearchUser:
+          type: string
+        SearchPayloadType:
+          type: string
+        SearchC2Profile:
+          type: string
+
+    CallbackSearchResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            Callbacks:
+              type: array
+              items:
+                type: object
+                properties:
+                  CallbackID:
+                    type: integer
+                  AgentCallbackID:
+                    type: string
+                    format: uuid
+                  DisplayID:
+                    type: integer
+                  Host:
+                    type: string
+                  User:
+                    type: string
+                  Description:
+                    type: string
+                  Active:
+                    type: boolean
+                  LastCheckin:
+                    type: string
+                    format: date-time
+                  PayloadType:
+                    type: string
+                  C2Profile:
+                    type: string
+
+    CallbackUpdateRequest:
+      type: object
+      properties:
+        TaskID:
+          type: integer
+        CallbackID:
+          type: integer
+        AgentCallbackUUID:
+          type: string
+          format: uuid
+        UpdateDescription:
+          type: string
+        UpdateSleepInfo:
+          type: string
+        UpdateActive:
+          type: boolean
+        UpdateLastCheckinTime:
+          type: boolean
+        UpdateLastCheckinTimeViaC2Profile:
+          type: string
+
+    CallbackDisplayToRealIDRequest:
+      type: object
+      properties:
+        CallbackDisplayID:
+          type: integer
+        OperationID:
+          type: integer
+        OperationName:
+          type: string
+
+    CallbackDisplayToRealIDResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            CallbackID:
+              type: integer
+
+    CallbackEdgeSearchRequest:
+      type: object
+      properties:
+        AgentCallbackUUID:
+          type: string
+          format: uuid
+        AgentCallbackID:
+          type: integer
+        SearchC2ProfileName:
+          type: string
+        SearchActiveEdgesOnly:
+          type: boolean
+
+    CallbackEdgeSearchResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            Edges:
+              type: array
+              items:
+                type: object
+                properties:
+                  SourceCallbackID:
+                    type: integer
+                  DestinationCallbackID:
+                    type: integer
+                  C2ProfileName:
+                    type: string
+                  Active:
+                    type: boolean
+
+    CallbackNextCheckinRangeRequest:
+      type: object
+      properties:
+        LastCheckin:
+          type: string
+          format: date-time
+        SleepSeconds:
+          type: integer
+        JitterPercent:
+          type: integer
+
+    CallbackNextCheckinRangeResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            MinTime:
+              type: string
+              format: date-time
+            MaxTime:
+              type: string
+              format: date-time
+
+    # Token Management Schemas
+    CallbackTokenCreateRequest:
+      type: object
+      properties:
+        TaskID:
+          type: integer
+        CallbackTokens:
+          type: array
+          items:
+            type: object
+            properties:
+              action:
+                type: string
+                enum: [add]
+              TokenId:
+                type: string
+      required: [TaskID, CallbackTokens]
+
+    CallbackTokenRemoveRequest:
+      type: object
+      properties:
+        TaskID:
+          type: integer
+        CallbackTokens:
+          type: array
+          items:
+            type: object
+            properties:
+              action:
+                type: string
+                enum: [remove]
+              TokenId:
+                type: string
+      required: [TaskID, CallbackTokens]
+
+    # File Management Schemas
+    FileCreateRequest:
+      type: object
+      properties:
+        TaskID:
+          type: integer
+        PayloadUUID:
+          type: string
+          format: uuid
+        AgentCallbackID:
+          type: string
+          format: uuid
+        FileContents:
+          type: string
+          format: byte
+        Filename:
+          type: string
+        DeleteAfterFetch:
+          type: boolean
+          default: false
+        IsScreenshot:
+          type: boolean
+          default: false
+        IsDownloadFromAgent:
+          type: boolean
+          default: false
+        TargetHostName:
+          type: string
+        RemotePathOnTarget:
+          type: string
+      required: [FileContents, Filename]
+
+    FileCreateResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            AgentFileID:
+              type: string
+              format: uuid
+
+    FileGetContentRequest:
+      type: object
+      properties:
+        AgentFileID:
+          type: string
+          format: uuid
+      required: [AgentFileID]
+
+    FileGetContentResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            Contents:
+              type: string
+              format: byte
+            Filename:
+              type: string
+
+    FileSearchRequest:
+      type: object
+      properties:
+        TaskID:
+          type: integer
+        CallbackID:
+          type: integer
+        OperationID:
+          type: integer
+        AgentFileID:
+          type: string
+          format: uuid
+        LimitByCallback:
+          type: boolean
+          default: false
+        MaxResults:
+          type: integer
+          default: 100
+        IncludePayloads:
+          type: boolean
+          default: true
+        IncludeDownloads:
+          type: boolean
+          default: true
+        IncludeScreenshots:
+          type: boolean
+          default: true
+        SearchFilename:
+          type: string
+        SearchComment:
+          type: string
+
+    FileSearchResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            Files:
+              type: array
+              items:
+                type: object
+                properties:
+                  AgentFileID:
+                    type: string
+                    format: uuid
+                  Filename:
+                    type: string
+                  FileSize:
+                    type: integer
+                  Comment:
+                    type: string
+                  IsScreenshot:
+                    type: boolean
+                  IsDownload:
+                    type: boolean
+                  IsPayload:
+                    type: boolean
+                  Host:
+                    type: string
+                  FullRemotePath:
+                    type: string
+                  CreatedAt:
+                    type: string
+                    format: date-time
+
+    FileUpdateRequest:
+      type: object
+      properties:
+        AgentFileID:
+          type: string
+          format: uuid
+        UpdateComment:
+          type: string
+        UpdateFilename:
+          type: string
+        AppendContents:
+          type: string
+          format: byte
+        ReplaceContents:
+          type: string
+          format: byte
+        DeleteFile:
+          type: boolean
+        DeleteAfterFetch:
+          type: boolean
+      required: [AgentFileID]
+
+    # File Browser Schemas
+    FileBrowserCreateRequest:
+      type: object
+      properties:
+        TaskID:
+          type: integer
+        FileBrowser:
+          type: object
+          properties:
+            host:
+              type: string
+            is_file:
+              type: boolean
+            permissions:
+              type: string
+            name:
+              type: string
+            parent_path:
+              type: string
+            size:
+              type: integer
+            last_modify_time:
+              type: string
+              format: date-time
+      required: [TaskID, FileBrowser]
+
+    FileBrowserRemoveRequest:
+      type: object
+      properties:
+        TaskID:
+          type: integer
+        RemovedFiles:
+          type: array
+          items:
+            type: object
+            properties:
+              path:
+                type: string
+              host:
+                type: string
+      required: [TaskID, RemovedFiles]
+
+    FileBrowserParsePathRequest:
+      type: object
+      properties:
+        Path:
+          type: string
+      required: [Path]
+
+    FileBrowserParsePathResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            AnalyzedPath:
+              type: object
+              properties:
+                host:
+                  type: string
+                path_separator:
+                  type: string
+                path_components:
+                  type: array
+                  items:
+                    type: string
+
+    # Task Management Schemas
+    TaskCreateRequest:
+      type: object
+      properties:
+        AgentCallbackID:
+          type: string
+          format: uuid
+        CommandName:
+          type: string
+        Params:
+          type: string
+        PayloadTypeName:
+          type: string
+        Token:
+          type: integer
+      required: [AgentCallbackID, CommandName, Params]
+
+    TaskCreateResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            TaskID:
+              type: integer
+            TaskDisplayID:
+              type: integer
+
+    TaskCreateSubtaskRequest:
+      type: object
+      properties:
+        TaskID:
+          type: integer
+        CommandName:
+          type: string
+        Params:
+          type: string
+          default: "{}"
+        SubtaskCallbackFunction:
+          type: string
+        PayloadTypeName:
+          type: string
+      required: [TaskID, CommandName]
+
+    TaskCreateSubtaskResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            TaskID:
+              type: integer
+
+    TaskCreateSubtaskGroupRequest:
+      type: object
+      properties:
+        TaskID:
+          type: integer
+        GroupName:
+          type: string
+        Tasks:
+          type: array
+          items:
+            type: object
+            properties:
+              CommandName:
+                type: string
+              Params:
+                type: string
+                default: "{}"
+              PayloadTypeName:
+                type: string
+            required: [CommandName]
+        GroupCallbackFunction:
+          type: string
+      required: [TaskID, GroupName, Tasks]
+
+    TaskCreateSubtaskGroupResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            GroupID:
+              type: string
+            TaskIDs:
+              type: array
+              items:
+                type: integer
+
+    TaskSearchRequest:
+      type: object
+      properties:
+        TaskID:
+          type: integer
+        SearchCommandName:
+          type: string
+        SearchCompleted:
+          type: boolean
+        SearchStatus:
+          type: string
+        SearchCallback:
+          type: integer
+        MaxResults:
+          type: integer
+          default: 100
+      required: [TaskID]
+
+    TaskSearchResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            Tasks:
+              type: array
+              items:
+                type: object
+                properties:
+                  TaskID:
+                    type: integer
+                  TaskDisplayID:
+                    type: integer
+                  CommandName:
+                    type: string
+                  Params:
+                    type: string
+                  Status:
+                    type: string
+                  Completed:
+                    type: boolean
+                  CallbackID:
+                    type: integer
+                  OperationID:
+                    type: integer
+                  CreatedAt:
+                    type: string
+                    format: date-time
+                  CompletedAt:
+                    type: string
+                    format: date-time
+
+    TaskUpdateRequest:
+      type: object
+      properties:
+        TaskID:
+          type: integer
+        UpdateStatus:
+          type: string
+        UpdateCompleted:
+          type: boolean
+        UpdateCompletionTime:
+          type: string
+          format: date-time
+      required: [TaskID]
+
+    TaskDisplayToRealIDRequest:
+      type: object
+      properties:
+        TaskDisplayID:
+          type: integer
+        OperationID:
+          type: integer
+        OperationName:
+          type: string
+
+    TaskDisplayToRealIDResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            TaskID:
+              type: integer
+
+    # Process Management Schemas
+    ProcessCreateRequest:
+      type: object
+      properties:
+        TaskID:
+          type: integer
+        Processes:
+          type: array
+          items:
+            type: object
+            properties:
+              process_id:
+                type: integer
+              parent_process_id:
+                type: integer
+              name:
+                type: string
+              architecture:
+                type: string
+              bin_path:
+                type: string
+              user:
+                type: string
+              host:
+                type: string
+              start_time:
+                type: string
+                format: date-time
+              description:
+                type: string
+      required: [TaskID, Processes]
+
+    ProcessSearchRequest:
+      type: object
+      properties:
+        TaskID:
+          type: integer
+        SearchProcessName:
+          type: string
+        SearchUser:
+          type: string
+        SearchHost:
+          type: string
+        SearchPID:
+          type: integer
+      required: [TaskID]
+
+    ProcessSearchResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            Processes:
+              type: array
+              items:
+                type: object
+                properties:
+                  process_id:
+                    type: integer
+                  parent_process_id:
+                    type: integer
+                  name:
+                    type: string
+                  architecture:
+                    type: string
+                  bin_path:
+                    type: string
+                  user:
+                    type: string
+                  host:
+                    type: string
+                  start_time:
+                    type: string
+                    format: date-time
+                  description:
+                    type: string
+
+    # Proxy Management Schemas
+    ProxyStartRequest:
+      type: object
+      properties:
+        TaskID:
+          type: integer
+        LocalPort:
+          type: integer
+          description: Port number (0 for auto-assignment on SOCKS)
+        PortType:
+          type: string
+          enum: [socks, rpfwd, interactive]
+        RemoteIP:
+          type: string
+          description: Required for rpfwd
+        RemotePort:
+          type: integer
+          description: Required for rpfwd
+        Username:
+          type: string
+          description: Optional SOCKS authentication
+        Password:
+          type: string
+          description: Optional SOCKS authentication
+      required: [TaskID, LocalPort, PortType]
+
+    ProxyStartResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            LocalPort:
+              type: integer
+              description: Assigned port number
+
+    ProxyStopRequest:
+      type: object
+      properties:
+        TaskID:
+          type: integer
+        Port:
+          type: integer
+          description: Port to close (0 for auto-lookup)
+        PortType:
+          type: string
+          enum: [socks, rpfwd, interactive]
+        Username:
+          type: string
+          description: Required if used during start
+        Password:
+          type: string
+          description: Required if used during start
+      required: [TaskID, Port, PortType]
+
+    # Response Management Schemas
+    ResponseCreateRequest:
+      type: object
+      properties:
+        TaskID:
+          type: integer
+        Response:
+          type: string
+          format: byte
+          description: Raw response bytes
+      required: [TaskID, Response]
+
+    ResponseCreateResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            ResponseID:
+              type: integer
+
+    ResponseSearchRequest:
+      type: object
+      properties:
+        TaskID:
+          type: integer
+        Response:
+          type: string
+          description: Search term
+      required: [TaskID, Response]
+
+    ResponseSearchResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            Responses:
+              type: array
+              items:
+                type: object
+                properties:
+                  ResponseID:
+                    type: integer
+                  Response:
+                    type: string
+                  CreatedAt:
+                    type: string
+                    format: date-time
+
+    # Payload Management Schemas
+    PayloadAddCommandRequest:
+      type: object
+      properties:
+        PayloadUUID:
+          type: string
+          format: uuid
+        Commands:
+          type: array
+          items:
+            type: string
+      required: [PayloadUUID, Commands]
+
+    PayloadRemoveCommandRequest:
+      type: object
+      properties:
+        PayloadUUID:
+          type: string
+          format: uuid
+        Commands:
+          type: array
+          items:
+            type: string
+      required: [PayloadUUID, Commands]
+
+    PayloadCreateFromScratchRequest:
+      type: object
+      properties:
+        TaskID:
+          type: integer
+        PayloadType:
+          type: string
+        Filename:
+          type: string
+        Description:
+          type: string
+        OperatingSystem:
+          type: string
+        BuildParameters:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              value:
+                type: string
+        C2Profiles:
+          type: array
+          items:
+            type: object
+            properties:
+              c2_profile:
+                type: string
+              c2_profile_parameters:
+                type: object
+        Commands:
+          type: array
+          items:
+            type: string
+        WrappedPayload:
+          type: boolean
+          default: false
+        SelectedOS:
+          type: string
+      required: [TaskID, PayloadType, Filename]
+
+    PayloadCreateFromUUIDRequest:
+      type: object
+      properties:
+        PayloadUUID:
+          type: string
+          format: uuid
+        TaskID:
+          type: integer
+        NewDescription:
+          type: string
+        NewFilename:
+          type: string
+        RemoteHost:
+          type: string
+        RemoteHostAndPath:
+          type: string
+      required: [PayloadUUID, TaskID]
+
+    PayloadCreateResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            PayloadUUID:
+              type: string
+              format: uuid
+            BuildMessage:
+              type: string
+            BuildStdout:
+              type: string
+            BuildStderr:
+              type: string
+
+    PayloadGetContentRequest:
+      type: object
+      properties:
+        PayloadUUID:
+          type: string
+          format: uuid
+      required: [PayloadUUID]
+
+    PayloadGetContentResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            Contents:
+              type: string
+              format: byte
+            Filename:
+              type: string
+
+    PayloadSearchRequest:
+      type: object
+      properties:
+        PayloadUUID:
+          type: string
+          format: uuid
+        CallbackID:
+          type: integer
+        Description:
+          type: string
+        Filename:
+          type: string
+        PayloadTypes:
+          type: array
+          items:
+            type: string
+        BuildParameters:
+          type: object
+
+    PayloadSearchResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            Payloads:
+              type: array
+              items:
+                type: object
+                properties:
+                  PayloadUUID:
+                    type: string
+                    format: uuid
+                  PayloadType:
+                    type: string
+                  Filename:
+                    type: string
+                  Description:
+                    type: string
+                  OperatingSystem:
+                    type: string
+                  CreatedAt:
+                    type: string
+                    format: date-time
+                  BuildParameters:
+                    type: array
+                    items:
+                      type: object
+                  C2Profiles:
+                    type: array
+                    items:
+                      type: object
+
+    PayloadUpdateBuildStepRequest:
+      type: object
+      properties:
+        PayloadUUID:
+          type: string
+          format: uuid
+        StepName:
+          type: string
+        StepStdout:
+          type: string
+        StepStderr:
+          type: string
+        StepSuccess:
+          type: boolean
+        StepSkip:
+          type: boolean
+      required: [PayloadUUID, StepName]
+
+    PayloadOnHostCreateRequest:
+      type: object
+      properties:
+        TaskID:
+          type: integer
+        PayloadUUID:
+          type: string
+          format: uuid
+        Host:
+          type: string
+        Path:
+          type: string
+      required: [TaskID, PayloadUUID, Host]
+
+    # Logging Schemas
+    KeylogCreateRequest:
+      type: object
+      properties:
+        TaskID:
+          type: integer
+        Keylogs:
+          type: array
+          items:
+            type: object
+            properties:
+              user:
+                type: string
+              host:
+                type: string
+              window_title:
+                type: string
+              keystrokes:
+                type: string
+            required: [keystrokes]
+      required: [TaskID, Keylogs]
+
+    KeylogSearchRequest:
+      type: object
+      properties:
+        TaskID:
+          type: integer
+        SearchKeystrokes:
+          type: string
+        SearchWindowTitle:
+          type: string
+        SearchUser:
+          type: string
+      required: [TaskID]
+
+    KeylogSearchResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            Keylogs:
+              type: array
+              items:
+                type: object
+                properties:
+                  user:
+                    type: string
+                  host:
+                    type: string
+                  window_title:
+                    type: string
+                  keystrokes:
+                    type: string
+                  timestamp:
+                    type: string
+                    format: date-time
+
+    OperationEventLogCreateRequest:
+      type: object
+      properties:
+        TaskId:
+          type: integer
+        CallbackId:
+          type: integer
+        CallbackAgentId:
+          type: string
+          format: uuid
+        OperationId:
+          type: integer
+        message:
+          type: string
+        MessageLevel:
+          type: string
+          enum: [warning, debug, info]
+      required: [message, MessageLevel]
+
+    # Credential Schemas
+    CredentialCreateRequest:
+      type: object
+      properties:
+        TaskID:
+          type: integer
+        Credentials:
+          type: array
+          items:
+            type: object
+            properties:
+              Credential:
+                type: string
+              CredentialType:
+                type: string
+                enum: [plaintext, certificate, hash, key, ticket, cookie, hex]
+                default: plaintext
+              Account:
+                type: string
+              Realm:
+                type: string
+              Comment:
+                type: string
+            required: [Credential]
+      required: [TaskID, Credentials]
+
+    CredentialSearchRequest:
+      type: object
+      properties:
+        TaskID:
+          type: integer
+        SearchCredentials:
+          type: object
+          properties:
+            Account:
+              type: string
+            Realm:
+              type: string
+            CredentialType:
+              type: string
+            Comment:
+              type: string
+      required: [TaskID, SearchCredentials]
+
+    CredentialSearchResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            Credentials:
+              type: array
+              items:
+                type: object
+                properties:
+                  Credential:
+                    type: string
+                  CredentialType:
+                    type: string
+                  Account:
+                    type: string
+                  Realm:
+                    type: string
+                  Comment:
+                    type: string
+                  CreatedAt:
+                    type: string
+                    format: date-time
+
+    # Command Schemas
+    CommandSearchRequest:
+      type: object
+      properties:
+        SearchPayloadTypeName:
+          type: string
+        SearchCommandNames:
+          type: array
+          items:
+            type: string
+        SearchSupportedUIFeatures:
+          type: array
+          items:
+            type: string
+        SearchScriptOnly:
+          type: boolean
+        SearchNeedsAdmin:
+          type: boolean
+
+    CommandSearchResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            Commands:
+              type: array
+              items:
+                type: object
+                properties:
+                  CommandName:
+                    type: string
+                  PayloadTypeName:
+                    type: string
+                  Description:
+                    type: string
+                  SupportedUIFeatures:
+                    type: array
+                    items:
+                      type: string
+                  ScriptOnly:
+                    type: boolean
+                  NeedsAdmin:
+                    type: boolean
+                  HelpString:
+                    type: string
+                  Version:
+                    type: integer
+                  Author:
+                    type: string
+
+    # Tag Management Schemas
+    TagCreateRequest:
+      type: object
+      properties:
+        TagTypeID:
+          type: integer
+        TaskID:
+          type: integer
+        FileID:
+          type: string
+          format: uuid
+        CredentialID:
+          type: integer
+        MythicTreeID:
+          type: integer
+        TagData:
+          type: string
+      required: [TagTypeID]
+
+    TagSearchRequest:
+      type: object
+      properties:
+        TaskID:
+          type: integer
+        SearchTagName:
+          type: string
+        SearchTagData:
+          type: string
+        SearchObjectType:
+          type: string
+          enum: [task, file, credential, mythictree]
+      required: [TaskID]
+
+    TagSearchResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            Tags:
+              type: array
+              items:
+                type: object
+                properties:
+                  TagID:
+                    type: integer
+                  TagTypeName:
+                    type: string
+                  TagData:
+                    type: string
+                  ObjectType:
+                    type: string
+                  ObjectID:
+                    type: string
+                  CreatedAt:
+                    type: string
+                    format: date-time
+
+    TagTypeGetOrCreateRequest:
+      type: object
+      properties:
+        TaskID:
+          type: integer
+        TagTypeID:
+          type: integer
+        Name:
+          type: string
+        Color:
+          type: string
+        Description:
+          type: string
+      required: [TaskID]
+
+    TagTypeGetOrCreateResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            TagTypeID:
+              type: integer
+            Name:
+              type: string
+            Color:
+              type: string
+            Description:
+              type: string
+
+    # Token Operations Schemas
+    TokenCreateRequest:
+      type: object
+      properties:
+        TaskID:
+          type: integer
+        Tokens:
+          type: array
+          items:
+            type: object
+            properties:
+              TokenID:
+                type: string
+              Description:
+                type: string
+            required: [TokenID]
+      required: [TaskID, Tokens]
+
+    TokenRemoveRequest:
+      type: object
+      properties:
+        TaskID:
+          type: integer
+        Tokens:
+          type: array
+          items:
+            type: object
+            properties:
+              TokenID:
+                type: string
+            required: [TokenID]
+      required: [TaskID, Tokens]
+
+    # Utility Schemas
+    HandleAgentJSONRequest:
+      type: object
+      properties:
+        CallbackID:
+          type: integer
+        AgentCallbackID:
+          type: string
+          format: uuid
+        C2Profile:
+          type: string
+        Message:
+          type: object
+          description: Agent JSON message to process
+      required: [C2Profile, Message]
+
+    HandleAgentJSONResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            ResponseMessage:
+              type: object
+              description: Processed response message
+
+    # Interactive Task Schemas
+    InteractiveStartRequest:
+      type: object
+      properties:
+        TaskID:
+          type: integer
+        LocalPort:
+          type: integer
+          default: 0
+          description: Port to bind (0 for auto-assignment)
+      required: [TaskID]
+
+    InteractiveStartResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            LocalPort:
+              type: integer
+              description: Assigned port for interactive connection
+
+    InteractiveStopRequest:
+      type: object
+      properties:
+        TaskID:
+          type: integer
+        LocalPort:
+          type: integer
+          default: 0
+          description: Port to stop (0 for auto-lookup)
+      required: [TaskID]
+
+    # Host File Schemas
+    HostFileCreateRequest:
+      type: object
+      properties:
+        TaskID:
+          type: integer
+        AgentFileID:
+          type: string
+          format: uuid
+        C2ProfileName:
+          type: string
+        HostURL:
+          type: string
+        Description:
+          type: string
+      required: [TaskID, AgentFileID, C2ProfileName]
+
+    HostFileCreateResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            HostedFileURL:
+              type: string
+              description: URL where the file is hosted
+
+    HostFileRemoveRequest:
+      type: object
+      properties:
+        TaskID:
+          type: integer
+        AgentFileID:
+          type: string
+          format: uuid
+        C2ProfileName:
+          type: string
+      required: [TaskID, AgentFileID, C2ProfileName]
+
+  responses:
+    BadRequest:
+      description: Bad request - invalid parameters
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/BaseResponse'
+              - type: object
+                properties:
+                  Error:
+                    type: string
+                    example: "Missing required parameter: TaskID"
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/BaseResponse'
+              - type: object
+                properties:
+                  Error:
+                    type: string
+                    example: "Database connection failed"
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: API tokens created via SendMythicRPCAPITokenCreate
+
+security:
+  - BearerAuth: []

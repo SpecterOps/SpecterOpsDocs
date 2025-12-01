@@ -1,0 +1,124 @@
+---
+title: 'PowerShellHistory'
+description: 'Searches PowerShell console history files for sensitive regex matches'
+icon: 'scroll'
+---
+
+## Overview
+
+The `PowerShellHistory` command searches PowerShell console history files (ConsoleHost_history.txt) for sensitive information using regex pattern matching. PowerShell history often contains credentials, API keys, commands with sensitive parameters, and other valuable intelligence from user command-line activities.
+
+**Important:** User commands run for the current user if not elevated and for ALL users if elevated.
+
+## Syntax
+
+```
+Seatbelt.exe PowerShellHistory
+```
+
+No additional arguments are supported. This command supports remote execution.
+
+## Output
+
+The command returns:
+- PowerShell history file locations
+- Commands matching sensitive patterns (passwords, credentials, API keys, etc.)
+- Timestamps of command execution (when available)
+- User context for each history file
+- Matched sensitive strings and patterns
+
+## Use Cases
+
+### Red Team
+- **Credential Harvesting**: Find passwords and API keys in command history
+- **Command Intelligence**: Discover administrative commands and scripts used
+- **Network Mapping**: Identify remote systems accessed via PowerShell
+- **Infrastructure Discovery**: Find database connections, API endpoints, and services
+- **Attack Path Discovery**: Understand administrative workflows and tools used
+
+### Blue Team
+- **Security Audit**: Identify users typing credentials in plaintext
+- **Incident Response**: Review command history during security investigations
+- **Insider Threat Detection**: Identify suspicious PowerShell commands
+- **Compliance Monitoring**: Ensure command-line usage aligns with policies
+- **User Training**: Identify users who need security awareness training
+
+## Example Output
+
+```
+====== PowerShellHistory ======
+
+User: john.doe
+
+  HistoryFile       : C:\Users\john.doe\AppData\Roaming\Microsoft\Windows\PowerShell\PSReadline\ConsoleHost_history.txt
+
+  Sensitive Matches:
+
+  [Pattern: Password]
+    Invoke-Command -ComputerName DC01 -Credential (New-Object PSCredential('admin', (ConvertTo-SecureString 'P@ssw0rd123' -AsPlainText -Force)))
+
+  [Pattern: API Key]
+    $apiKey = "sk-abc123def456ghi789jkl012mno345pqr"
+    Invoke-RestMethod -Uri "https://api.service.com" -Headers @{Authorization="Bearer $apiKey"}
+
+  [Pattern: Connection String]
+    $connString = "Server=sql-prod.contoso.com;Database=Finance;User Id=sa;Password=SqlP@ss123;"
+
+  [Pattern: Remote Access]
+    Enter-PSSession -ComputerName 192.168.10.50 -Credential (Get-Credential)
+```
+
+## Privilege Context
+
+- **Non-Elevated**: Searches PowerShell history for the current user only
+- **Elevated**: Searches PowerShell history for ALL users on the system, providing comprehensive command history analysis
+
+## Remote Execution
+
+This command **supports** remote execution (marked with + in the command list).
+
+Remote syntax:
+```
+Seatbelt.exe PowerShellHistory -computername=TARGET.domain.com -username=DOMAIN\user -password=pass
+```
+
+## Detection Considerations
+
+### Indicators
+- File system access to PowerShell history files
+- Reading ConsoleHost_history.txt in user AppData directories
+- Pattern-based regex searching of command history
+- Enumeration across multiple user profiles
+
+### Defensive Monitoring
+- Monitor access to PowerShell history files by unexpected processes
+- Alert on automated enumeration of command history
+- Track processes reading PSReadline history files
+- Log bulk access to history files across multiple users
+- Detect credential dumping tools accessing PowerShell data
+- Monitor for exfiltration of history files
+
+### Sensitive Patterns Detected
+- Passwords and credentials in commands
+- API keys and authentication tokens
+- Database connection strings
+- Secret keys and encryption passphrases
+- Remote access commands with credentials
+- Administrative commands with sensitive parameters
+- File paths to sensitive resources
+
+### Security Recommendations
+- Educate users never to type credentials in plaintext
+- Use secure credential prompts (Get-Credential)
+- Implement PowerShell logging and monitoring
+- Regularly audit PowerShell history for sensitive data
+- Consider clearing history files containing credentials
+- Use secret management solutions instead of plaintext credentials
+- Enable Constrained Language Mode where appropriate
+
+## Related Commands
+
+- **ExplorerRunCommands**: Shows recent Run dialog commands
+- **ProcessCreationEvents**: Shows process creation event logs
+- **PowerShellEvents**: Searches PowerShell script block logs
+- **EnvironmentVariables**: May reveal PowerShell configuration

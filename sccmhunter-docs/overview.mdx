@@ -1,0 +1,124 @@
+---
+title: 'SCCMHunter Documentation'
+description: 'Post-exploitation tool for identifying, profiling, and attacking SCCM infrastructure in Active Directory environments.'
+icon: 'crosshairs'
+sidebarTitle: 'Overview'
+---
+<img
+  className="block dark:hidden"
+  src="./logo/sccmhunter.png"
+  alt="SCCMHunter Banner"
+  width="100%"
+  style={{ margin: "0 auto" }}
+/>
+<img
+  className="hidden dark:block"
+  src="./logo/sccmhunter.png"
+  alt="SCCMHunter Banner"
+  width="100%"
+  style={{ margin: "0 auto" }}
+/>
+
+SCCMHunter is a post-exploitation tool built to streamline identifying, profiling, and attacking SCCM-related assets in an Active Directory domain. This comprehensive toolkit provides multiple attack vectors against Microsoft System Center Configuration Manager (SCCM) infrastructure.
+
+<Info>
+SCCMHunter was developed and tested in lab environments. Performance may vary in production networks. Please report issues on GitHub if you encounter problems.
+</Info>
+
+## Attack Methodology
+
+SCCMHunter follows a systematic approach to SCCM exploitation:
+
+### 1. **Discovery and Enumeration**
+The tool queries LDAP through multiple methods to identify SCCM infrastructure:
+
+<Accordion title="Schema Extension Discovery">
+Checks the DACL for the 'System Management' container manually created during AD schema extension
+</Accordion>
+
+<Accordion title="Management Point Resolution">
+Resolves any published Management Points that clients use for communication
+</Accordion>
+
+<Accordion title="Deployment Services Detection">
+Identifies PXE-enabled Distribution Points using Windows Deployment Services
+</Accordion>
+
+<Accordion title="Naming Convention Search">
+Searches for "SCCM" and "MECM" keywords throughout the directory based on common naming practices
+</Accordion>
+
+### 2. **Target Profiling**
+Once targets are identified, SCCMHunter profiles them using the SMB module:
+
+- **Share Analysis**: Checks for default shares required by specific SCCM roles
+- **SMB Signing Status**: Determines SMB signing configuration for potential relay attacks
+- **Service Detection**: Identifies MSSQL services and SMS Provider roles
+- **Attack Surface Mapping**: Builds a comprehensive picture of potential attack paths
+
+### 3. **Exploitation Modules**
+
+<CardGroup cols={2}>
+  <Card title="HTTP Module" icon="globe" href="./exploitation/http">
+    Abuse client enrollment processes using techniques from @_xpn_
+  </Card>
+
+  <Card title="MSSQL Module" icon="database" href="./exploitation/mssql">
+    Leverage MSSQL relay attacks for complete site server takeover (@_mayyhem)
+  </Card>
+
+  <Card title="DPAPI Module" icon="key" href="./exploitation/dpapi">
+    Extract Network Access Accounts from compromised SCCM clients
+  </Card>
+
+  <Card title="Admin Module" icon="crown" href="./post-exploitation/admin-overview">
+    Post-exploitation command and control for lateral movement and persistence
+  </Card>
+</CardGroup>
+
+## Tool Capabilities
+
+<Card title="Comprehensive SCCM Assessment" icon="chart-network">
+SCCMHunter provides end-to-end capabilities for SCCM security assessment:
+
+- **Automated Discovery**: LDAP-based enumeration of SCCM infrastructure
+- **Intelligent Profiling**: SMB-based service and role identification
+- **Multiple Attack Vectors**: HTTP, MSSQL, and DPAPI exploitation techniques
+- **Post-Exploitation**: Administrative access and lateral movement capabilities
+</Card>
+
+
+## Prerequisites
+
+<Warning>
+SCCMHunter requires existing network access and should only be used in authorized penetration testing scenarios.
+</Warning>
+
+- Valid Active Directory credentials
+- Network access to target SCCM infrastructure
+- Python 3.x environment
+- Understanding of SCCM architecture and security implications
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Getting Started" icon="rocket" href="./getting-started/installation">
+    Installation and initial setup instructions
+  </Card>
+
+  <Card title="Enumeration" icon="magnifying-glass" href="./enumeration/find">
+    Begin with LDAP discovery and target identification
+  </Card>
+
+  <Card title="Exploitation" icon="sword" href="./exploitation/http">
+    Explore available attack vectors and techniques
+  </Card>
+
+  <Card title="Post-Exploitation" icon="crown" href="./post-exploitation/admin-overview">
+    Administrative access and lateral movement capabilities
+  </Card>
+</CardGroup>
+
+## Acknowledgments
+
+Thanks to [@_Mayyhem](https://twitter.com/_Mayyhem) for the documentation format inspiration and [@_xpn_](https://twitter.com/_xpn_) for HTTP enumeration techniques.

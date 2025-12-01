@@ -1,0 +1,101 @@
+---
+title: 'ChromiumBookmarks'
+description: 'Parses any found Chrome/Edge/Brave/Opera bookmark files'
+icon: 'bookmark'
+---
+
+## Overview
+
+The ChromiumBookmarks command parses bookmark files from Chromium-based browsers including Google Chrome, Microsoft Edge, Brave, and Opera. This command searches for and extracts bookmarks saved by users, which can reveal frequently visited sites, saved credentials portals, administrative interfaces, and other points of interest.
+
+## Syntax
+
+```
+Seatbelt.exe ChromiumBookmarks
+```
+
+This command does not accept arguments.
+
+## Output
+
+The command returns:
+- Browser type (Chrome, Edge, Brave, Opera)
+- User profile path
+- Bookmark folder names
+- Bookmark URLs
+- Bookmark titles
+- Date added timestamps
+
+## Use Cases
+
+### Red Team
+- Identify administrative portals and management interfaces
+- Discover internal web applications and services
+- Find cloud service consoles and authentication endpoints
+- Locate development/staging environments
+- Identify targets for credential harvesting
+- Discover VPN and remote access portals
+
+### Blue Team
+- Audit user browsing patterns for anomalies
+- Identify access to unauthorized or risky websites
+- Verify compliance with acceptable use policies
+- Detect potential insider threats based on bookmarked content
+- Inventory cloud services and external applications in use
+- Correlate bookmark activity with security events
+
+## Example Output
+
+```
+====== ChromiumBookmarks ======
+
+  Folder    : Chrome - Bookmarks Bar
+  Title     : Internal Wiki
+  URL       : https://wiki.internal.company.com
+  Added     : 10/15/2023 2:34:12 PM
+
+  Folder    : Chrome - Other Bookmarks
+  Title     : AWS Console
+  URL       : https://console.aws.amazon.com
+  Added     : 9/20/2023 9:15:43 AM
+
+  Folder    : Edge - Favorites Bar
+  Title     : Azure Portal
+  URL       : https://portal.azure.com
+  Added     : 8/5/2023 11:22:56 AM
+```
+
+## Performance Considerations
+
+This command has minimal performance impact as it only reads bookmark files from disk without executing queries or system calls. Execution time depends on the number of user profiles and bookmarks present.
+
+## Remote Execution
+
+This command supports remote execution via WMI. Use the `-computername` parameter to enumerate bookmarks on remote systems:
+
+```
+Seatbelt.exe ChromiumBookmarks -computername=TARGET.domain.com
+```
+
+## Detection Considerations
+
+### Indicators
+- File access to browser bookmark JSON files
+- Read operations on user profile directories
+- Access to `%LOCALAPPDATA%\Google\Chrome\User Data\*\Bookmarks`
+- Access to `%LOCALAPPDATA%\Microsoft\Edge\User Data\*\Bookmarks`
+- Access to `%LOCALAPPDATA%\BraveSoftware\Brave-Browser\User Data\*\Bookmarks`
+
+### Defensive Recommendations
+- Monitor for unauthorized access to user profile directories
+- Log file access to sensitive browser data locations
+- Implement least privilege to restrict profile directory access
+- Use AppLocker or similar to control execution of enumeration tools
+
+## Related Commands
+
+- **ChromiumHistory** - Parses Chromium browser history files
+- **ChromiumPresence** - Checks if interesting Chromium browser files exist
+- **FirefoxHistory** - Parses Firefox browser history
+- **IEFavorites** - Enumerates Internet Explorer favorites
+- **IEUrls** - Retrieves Internet Explorer typed URLs

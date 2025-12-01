@@ -1,0 +1,111 @@
+---
+title: 'FirefoxHistory'
+description: 'Parses any found FireFox history files'
+icon: 'clock-rotate-left'
+---
+
+## Overview
+
+The FirefoxHistory command parses browsing history files from Mozilla Firefox. This command extracts visited URLs, page titles, visit counts, and timestamps from Firefox's SQLite database, providing insight into user browsing behavior and system activity.
+
+## Syntax
+
+```
+Seatbelt.exe FirefoxHistory
+```
+
+This command does not accept arguments.
+
+## Output
+
+The command returns:
+- User profile path
+- Firefox profile name
+- Visited URLs
+- Page titles
+- Visit count for each URL
+- Last visit timestamp
+
+## Use Cases
+
+### Red Team
+- Identify administrative interfaces and management consoles
+- Discover internal web applications and services
+- Map network infrastructure through visited URLs
+- Identify potential targets for credential harvesting
+- Determine user roles and access patterns
+- Find development/staging environments
+- Locate cloud service consoles and authentication portals
+- Identify VPN and remote access endpoints
+
+### Blue Team
+- Investigate suspicious user activity during incident response
+- Audit compliance with acceptable use policies
+- Identify potential data exfiltration destinations
+- Correlate browsing patterns with security incidents
+- Detect access to malicious or compromised websites
+- Identify insider threat indicators
+- Verify legitimate business purpose for web access
+- Track access to phishing or social engineering sites
+
+## Example Output
+
+```
+====== FirefoxHistory ======
+
+  Profile   : C:\Users\john\AppData\Roaming\Mozilla\Firefox\Profiles\abc123.default
+
+  URL       : https://admin.corp.internal
+  Title     : Corporate Admin Panel
+  Visits    : 32
+  Last Visit: 10/19/2023 3:42:18 PM
+
+  URL       : https://github.com/organization/project
+  Title     : organization/project - GitHub
+  Visits    : 15
+  Last Visit: 10/19/2023 2:15:32 PM
+
+  URL       : https://mail.google.com
+  Title     : Gmail - Inbox
+  Visits    : 248
+  Last Visit: 10/19/2023 4:05:21 PM
+
+  URL       : https://192.168.1.50/login
+  Title     : Router Configuration
+  Visits    : 3
+  Last Visit: 10/18/2023 9:22:14 AM
+```
+
+## Performance Considerations
+
+This command has minimal to moderate performance impact depending on the size of Firefox history databases. Large history files may take longer to parse. The command reads SQLite database files (places.sqlite) from disk without executing queries against live Firefox instances.
+
+## Remote Execution
+
+This command does not support remote execution. Firefox history analysis must be performed on the local system.
+
+## Detection Considerations
+
+### Indicators
+- File access to Firefox history SQLite databases
+- Read operations on user profile directories
+- Access to `%APPDATA%\Mozilla\Firefox\Profiles\*\places.sqlite`
+- SQLite database file locks and reads
+- Unusual processes reading Firefox profile data
+
+### Defensive Recommendations
+- Monitor for unauthorized access to user profile directories
+- Log file access to sensitive browser data locations
+- Alert on access to Firefox history databases by non-browser processes
+- Implement least privilege to restrict profile directory access
+- Use AppLocker or similar to control execution of enumeration tools
+- Consider File Integrity Monitoring (FIM) for browser data directories
+- Monitor for mass file access to browser databases across multiple users
+
+## Related Commands
+
+- **FirefoxPresence** - Checks if interesting Firefox files exist
+- **ChromiumHistory** - Parses Chromium browser history files
+- **ChromiumBookmarks** - Parses Chromium browser bookmark files
+- **IEUrls** - Retrieves Internet Explorer typed URLs
+- **IETabs** - Enumerates open Internet Explorer tabs

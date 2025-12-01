@@ -1,0 +1,96 @@
+---
+title: 'PSSessionSettings'
+description: 'Enumerates PS Session Settings from the registry'
+icon: 'sliders'
+---
+
+## Overview
+
+The PSSessionSettings command enumerates PowerShell remoting (PSRemoting/WinRM) configuration settings from the registry. This reveals whether PowerShell remoting is enabled, listener configurations, authentication settings, and security controls affecting remote PowerShell access.
+
+## Syntax
+
+```bash
+Seatbelt.exe PSSessionSettings
+```
+
+### Remote Execution
+```bash
+Seatbelt.exe PSSessionSettings -computername=TARGET.domain.com [-username=DOMAIN\user -password=pass]
+```
+
+## Output
+
+Returns PowerShell remoting configuration:
+- PowerShell remoting enabled/disabled status
+- WinRM service configuration
+- Listener configurations
+- Authentication methods
+- Session configurations
+- MaxShellsPerUser and quota settings
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Determine if PowerShell remoting is available
+    - Identify authentication methods
+    - Plan lateral movement via PSRemoting
+    - Assess remote access controls
+    - Identify session configuration restrictions
+  </Tab>
+  <Tab title="Blue Team">
+    - Audit PowerShell remoting configuration
+    - Verify secure authentication methods
+    - Validate session quotas
+    - Ensure proper access controls
+    - Detect unauthorized remote access settings
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== PSSessionSettings ======
+
+PowerShell Remoting:
+  Enabled                        : True
+
+WinRM Service:
+  MaxMemoryPerShellMB            : 1024
+  MaxProcessesPerShell           : 15
+  MaxShellsPerUser               : 30
+
+Listener Configurations:
+  HTTP Listener                  : Enabled
+  Port                           : 5985
+
+  HTTPS Listener                 : Enabled
+  Port                           : 5986
+  CertificateThumbprint          : ABCD1234...
+
+Authentication:
+  AllowBasic                     : False
+  AllowKerberos                  : True
+  AllowNegotiate                 : True
+  AllowCredSSP                   : False
+```
+
+## Remote Execution
+
+<Check>
+This command **supports remote execution** using the `-computername` parameter.
+</Check>
+
+## Detection Considerations
+
+<Info>
+Low detection risk - reads WinRM registry configuration.
+</Info>
+
+## Related Commands
+
+- [PowerShell](/commands/powershell) - PowerShell versions and security
+- [NetworkShares](/commands/networkshares) - Network shares
+- [WindowsFirewall](/commands/windowsfirewall) - Firewall rules
+- [Services](/commands/services) - Windows services

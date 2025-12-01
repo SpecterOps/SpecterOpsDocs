@@ -1,0 +1,127 @@
+---
+title: 'get site-info'
+description: 'Discover SCCM infrastructure via LDAP'
+icon: 'map'
+sidebarTitle: 'site-info'
+---
+
+## Overview
+
+Retrieve information about SCCM sites by querying Active Directory via LDAP. This command identifies potential site servers by examining permissions on the System Management container.
+
+## Syntax
+
+```bash
+SharpSCCM get site-info [options]
+```
+
+## Parameters
+
+<ParamField path="domain" type="string">
+  Target Active Directory domain FQDN
+</ParamField>
+
+## Examples
+
+<CodeGroup>
+```bash Basic Usage
+# Discover site servers in current domain
+SharpSCCM get site-info
+```
+
+```bash Specify Domain
+# Target specific domain
+SharpSCCM get site-info -d corp.local
+```
+
+```bash Debug Mode
+# Include debug information for troubleshooting
+SharpSCCM get site-info -d corp.local --debug
+```
+</CodeGroup>
+
+## Required Permissions
+
+<Info>
+  **Domain\Authenticated Users** - Standard LDAP read access to Active Directory
+</Info>
+
+## Technical Details
+
+<Accordion title="Detection Method">
+  This command queries LDAP for computer accounts with **GenericAll (Full Control)** permissions on the System Management container in Active Directory. Systems with this permission are typically SCCM site servers, as they need these rights to manage the container.
+</Accordion>
+
+<Accordion title="Detection Points">
+  Security teams can monitor for:
+  - LDAP queries to domain controllers
+  - Enumeration of System Management container permissions
+  - Computer account privilege analysis
+  - Queries for `CN=System Management,CN=System,DC=domain,DC=com`
+</Accordion>
+
+## Output Format
+
+The command identifies computer accounts with elevated permissions:
+
+```text
+[!] Found 2 computer account(s) with GenericAll permission on the System Management container:
+
+      CORP\SCCM01$
+      CORP\CAS01$
+
+[+] These systems are likely to be ConfigMgr site servers
+```
+
+## Analysis and Next Steps
+
+<Accordion title="Site Server Identification">
+  Computer accounts with GenericAll permissions are strong indicators of:
+  - **Primary site servers** hosting SMS Provider role
+  - **Central Administration Sites** (CAS) in hierarchies
+  - **Secondary site servers** in some configurations
+</Accordion>
+
+<Accordion title="Infrastructure Mapping">
+  Use the identified servers for:
+  - SMS Provider connections for WMI operations
+  - Management point identification
+  - Site hierarchy mapping
+  - Network topology understanding
+</Accordion>
+
+## Common Use Cases
+
+<Accordion title="Initial Reconnaissance">
+  First command to run when discovering SCCM infrastructure in a domain - provides entry points for further enumeration.
+</Accordion>
+
+<Accordion title="Site Hierarchy Discovery">
+  In multi-site environments, identify all site servers and understand the organizational structure.
+</Accordion>
+
+<Accordion title="Attack Surface Analysis">
+  Discover SCCM infrastructure components for security assessment and penetration testing.
+</Accordion>
+
+## Integration with Other Commands
+
+Use discovered site servers with other SharpSCCM commands:
+
+<CodeGroup>
+```bash SMS Provider Operations
+# Use discovered site server as SMS Provider
+SharpSCCM get collections -sms SCCM01.corp.local -sc PS1
+```
+
+```bash Management Point Discovery
+# Connect to site server to enumerate management points
+SharpSCCM get devices -sms SCCM01.corp.local -sc PS1
+```
+</CodeGroup>
+
+## Related Commands
+
+- [`local site-info`](/commands/local/site-info) - Get local client site configuration
+- [`get site-push-settings`](/commands/get/site-push-settings) - Analyze client push configuration
+- [`get admins`](/commands/get/admins) - Enumerate SCCM administrators

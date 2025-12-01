@@ -1,0 +1,115 @@
+---
+title: 'MTPuTTY'
+description: 'MTPuTTY configuration files'
+icon: 'server'
+---
+
+## Overview
+
+The `MTPuTTY` command searches for Multi-Tabbed PuTTY (MTPuTTY) configuration files on the system. MTPuTTY is a wrapper for PuTTY that allows multiple SSH/telnet sessions in tabs. Its configuration files may contain server information, credentials, and connection settings.
+
+**Important:** User commands run for the current user if not elevated and for ALL users if elevated.
+
+## Syntax
+
+```
+Seatbelt.exe MTPuTTY
+```
+
+No additional arguments are supported.
+
+## Output
+
+The command returns:
+- MTPuTTY configuration file locations
+- Server connection details (hostnames, IPs, ports)
+- Stored usernames and passwords
+- Session names and configurations
+- Protocol information (SSH, Telnet, etc.)
+- User context for each configuration
+
+## Use Cases
+
+### Red Team
+- **Credential Harvesting**: Extract SSH/Telnet credentials from MTPuTTY configuration
+- **Network Mapping**: Discover servers and network infrastructure
+- **Lateral Movement**: Use harvested credentials to access remote systems
+- **Target Identification**: Identify critical servers based on saved sessions
+- **Infrastructure Discovery**: Map organizational network topology from connection lists
+
+### Blue Team
+- **Credential Hygiene**: Identify users storing SSH credentials insecurely
+- **Security Audit**: Review server access patterns and saved credentials
+- **Incident Response**: Quickly identify potentially compromised SSH credentials
+- **Compliance Checking**: Ensure credential storage aligns with security policies
+- **Asset Discovery**: Document SSH-accessible systems in the environment
+
+## Example Output
+
+```
+====== MTPuTTY ======
+
+User: john.doe
+
+  ConfigFile        : C:\Users\john.doe\AppData\Roaming\TTYPlus\mtputty.xml
+
+  Server Session
+    SessionName       : Production Database
+    Host              : db-prod-01.contoso.com
+    Port              : 22
+    Protocol          : SSH
+    Username          : dbadmin
+    Password          : [Encrypted]
+
+  Server Session
+    SessionName       : Web Server
+    Host              : 192.168.10.50
+    Port              : 22
+    Protocol          : SSH
+    Username          : root
+    Password          : [Stored]
+```
+
+## Privilege Context
+
+- **Non-Elevated**: Searches for MTPuTTY configuration files for the current user only
+- **Elevated**: Searches for MTPuTTY configuration files for ALL users on the system, providing comprehensive credential discovery
+
+## Remote Execution
+
+This command does **not** support remote execution (not marked with + in the command list).
+
+## Detection Considerations
+
+### Indicators
+- File system access to MTPuTTY configuration directories
+- Reading XML configuration files in AppData\Roaming\TTYPlus
+- Pattern-based searching for MTPuTTY-specific file names
+- Enumeration across multiple user profiles
+
+### Defensive Monitoring
+- Monitor access to MTPuTTY configuration directories
+- Alert on non-MTPuTTY processes reading configuration files
+- Track automated enumeration of SSH credential files
+- Log access to mtputty.xml and related configuration files
+- Detect credential harvesting tools accessing MTPuTTY data
+- Monitor for bulk configuration file enumeration across users
+- Alert on exfiltration of MTPuTTY configuration files
+
+### Security Recommendations
+- Discourage storing passwords in MTPuTTY
+- Use SSH key-based authentication instead of passwords
+- Implement file access monitoring on configuration directories
+- Regularly audit MTPuTTY installations and configurations
+- Consider using enterprise SSH management solutions
+- Enable logging for SSH authentication attempts
+- Rotate credentials if configuration files are compromised
+
+## Related Commands
+
+- **PuttySessions**: Finds saved Putty SSH session configurations
+- **PuttyHostKeys**: Enumerates saved Putty SSH host keys
+- **SuperPutty**: Finds SuperPutty configuration files
+- **FileZilla**: Searches for FileZilla FTP credentials
+- **WindowsCredentialFiles**: Finds Windows credential files
+- **CredEnum**: Enumerates saved credentials

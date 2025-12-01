@@ -1,0 +1,491 @@
+---
+title: 'GhostPack'
+description: 'A collection of C# offensive security tools for Windows and Active Directory environments'
+icon: 'ghost'
+---
+
+<div style={{ textAlign: 'center', marginBottom: '20px' }}>
+  <img src="/ghostpack-docs/ghostpack-logo.png" alt="GhostPack" style={{ maxWidth: '300px' }} />
+</div>
+
+<Note>
+  GhostPack is a collection of security tools primarily authored by [@harmj0y](https://twitter.com/harmj0y) and the SpecterOps team. These tools should only be used in authorized security testing or educational environments.
+</Note>
+
+## Overview
+
+GhostPack is a renowned collection of offensive security tools written primarily in C# for Windows and Active Directory environments. These tools assist security professionals in penetration testing, red teaming, and security auditing, covering everything from Kerberos attacks to credential extraction and privilege escalation.
+
+<CardGroup cols={2}>
+  <Card title="18+ Repositories" icon="folder-tree">
+    Comprehensive suite of specialized security utilities
+  </Card>
+  <Card title="C# / .NET" icon="code">
+    Built on .NET Framework for Windows environments
+  </Card>
+  <Card title="Active Development" icon="code-branch">
+    Regularly updated with new features and improvements
+  </Card>
+  <Card title="Open Source" icon="github">
+    Community-driven with contributions from security researchers
+  </Card>
+</CardGroup>
+
+---
+
+## 📖 Fully Documented Tools
+
+These GhostPack tools have comprehensive documentation available in this wiki:
+
+### 🎭 Kerberos & Authentication
+
+<CardGroup cols={2}>
+  <Card
+    title="Rubeus"
+    icon="ticket"
+    href="/ghostpack-docs/Rubeus-mdx/overview"
+  >
+    **"Trying to tame the three-headed dog"**
+
+    Comprehensive toolkit for raw Kerberos interaction and abuse. Supports ticket requests, extraction, manipulation, roasting (Kerberoast/AS-REP roast), delegation abuse, and golden/silver/diamond ticket operations.
+
+    **Commands:** asktgt, asktgs, dump, ptt, kerberoast, asreproast, s4u, golden, silver, diamond, and more
+  </Card>
+
+  <Card
+    title="Certify"
+    icon="certificate"
+    href="/ghostpack-docs/Certify.wik-mdx/overview"
+  >
+    **Active Directory Certificate Services (AD CS) Attacks**
+
+    Identifies and exploits misconfigurations in AD CS environments. Comprehensive coverage of all known AD CS attack techniques (ESC1-ESC16).
+
+    **Techniques:** Certificate abuse, persistence, domain persistence, privilege escalation via certificates
+  </Card>
+</CardGroup>
+
+### 🔐 Credential Access & Extraction
+
+<CardGroup cols={2}>
+  <Card
+    title="SharpDPAPI"
+    icon="key"
+    href="/ghostpack-docs/SharpDPAPI-mdx/overview"
+  >
+    **DPAPI Credential Extraction**
+
+    C# toolkit for interacting with Windows Data Protection API (DPAPI). Extracts credentials from vaults, Chrome browsers, RDG files, KeePass databases, certificates, and SCCM secrets.
+
+    **Commands:** triage, masterkeys, credentials, vaults, rdg, keepass, certificates, sccm
+  </Card>
+
+  <Card
+    title="SafetyKatz"
+    icon="shield"
+    href="https://github.com/ghostpack-docs/SafetyKatz"
+  >
+    **Mimikatz with .NET PE Loader**
+
+    Combination of a modified Mimikatz with @subTee's .NET PE Loader for in-memory credential extraction with OPSEC considerations.
+
+    **Features:** In-memory execution, credential dumping, minimal disk writes
+  </Card>
+</CardGroup>
+
+### 🔍 Enumeration & Reconnaissance
+
+<CardGroup cols={3}>
+  <Card
+    title="Seatbelt"
+    icon="list-check"
+    href="/ghostpack-docs/Seatbelt-mdx/overview"
+  >
+    **Host Enumeration & Safety Checks**
+
+    Comprehensive Windows security enumeration tool with 120+ commands. Performs "safety checks" for both offensive and defensive security perspectives.
+
+    **Groups:** System, User, Misc, Chromium, Slack, Remote
+  </Card>
+
+  <Card
+    title="SharpUp"
+    icon="arrow-up"
+    href="/ghostpack-docs/SharpUp-mdx/overview"
+  >
+    **Privilege Escalation Enumeration**
+
+    C# port of PowerUp functionality. Identifies common Windows privilege escalation vectors without weaponization.
+
+    **15 Checks:** Services, registry, credentials, DLL hijacking, tokens
+  </Card>
+
+  <Card
+    title="SharpWMI"
+    icon="network-wired"
+    href="/ghostpack-docs/SharpWMI-mdx/overview"
+  >
+    **WMI Operations**
+
+    C# implementation of WMI functionality for enumeration, lateral movement, and remote execution with AMSI evasion.
+
+    **Actions:** query, exec, ps, firewall, upload, install, environment variables
+  </Card>
+</CardGroup>
+
+---
+
+## 🛠️ Additional GhostPack Tools
+
+The following tools are part of the GhostPack collection. Full documentation coming soon:
+
+### Credential & Certificate Tools
+
+<CardGroup cols={2}>
+  <Card
+    title="ForgeCert"
+    icon="stamp"
+    href="https://github.com/ghostpack-docs/ForgeCert"
+  >
+    **Golden Certificates**
+
+    Forge certificates for arbitrary users using stolen CA certificates and private keys. Create persistent backdoors via certificate abuse.
+  </Card>
+
+  <Card
+    title="KeeThief"
+    icon="vault"
+    href="https://github.com/ghostpack-docs/KeeThief"
+  >
+    **KeePass Attack Methods**
+
+    Methods for attacking KeePass 2.X databases, including extracting encryption key material from memory and master keys.
+  </Card>
+</CardGroup>
+
+### Utility Tools
+
+<CardGroup cols={2}>
+  <Card
+    title="Lockless"
+    icon="lock-open"
+    href="https://github.com/ghostpack-docs/Lockless"
+  >
+    **Locked File Access**
+
+    Allows copying of locked files without triggering file locks. Useful for exfiltrating files that are normally inaccessible.
+  </Card>
+
+  <Card
+    title="SharpDump"
+    icon="download"
+    href="https://github.com/ghostpack-docs/SharpDump"
+  >
+    **Process Memory Dumping**
+
+    C# port of PowerSploit's Out-Minidump.ps1 for dumping process memory, particularly useful for LSASS dumping.
+  </Card>
+
+  <Card
+    title="PSPKIAudit"
+    icon="shield-check"
+    href="https://github.com/ghostpack-docs/PSPKIAudit"
+  >
+    **AD CS Auditing**
+
+    PowerShell toolkit for Active Directory Certificate Services auditing based on the PSPKI toolkit.
+  </Card>
+
+  <Card
+    title="DeepPass"
+    icon="database"
+    href="https://github.com/ghostpack-docs/DeepPass"
+  >
+    **Password Analysis**
+
+    Password extraction and analysis utilities for security assessments.
+  </Card>
+</CardGroup>
+
+### Deprecated Tools
+
+<Accordion title="SharpRoast - Deprecated">
+  **SharpRoast** was a C# port of PowerView's Kerberoasting functionality. This functionality has been superseded by Rubeus, which provides more comprehensive Kerberos attack capabilities.
+
+  Use [Rubeus kerberoast](/ghostpack-docs/Rubeus-mdx/commands/roasting/kerberoast) instead.
+</Accordion>
+
+### Research & POC Tools
+
+<CardGroup cols={2}>
+  <Card
+    title="RAGnarok"
+    icon="robot"
+    href="https://github.com/ghostpack-docs/RAGnarok"
+  >
+    **Nemesis-powered RAG Chatbot**
+
+    A Retrieval-Augmented Generation (RAG) chatbot proof-of-concept powered by Nemesis for offensive security operations.
+  </Card>
+
+  <Card
+    title="RestrictedAdmin"
+    icon="user-lock"
+    href="https://github.com/ghostpack-docs/RestrictedAdmin"
+  >
+    **Restricted Admin Research**
+
+    Tools and research around Windows Restricted Admin mode and related security mechanisms.
+  </Card>
+</CardGroup>
+
+---
+
+## 🎯 Tools by Use Case
+
+<Tabs>
+  <Tab title="Initial Access">
+    **Credential Harvesting:**
+    - [SharpDPAPI](/ghostpack-docs/SharpDPAPI-mdx/overview) - Extract saved credentials
+    - SafetyKatz - Dump credentials from memory
+    - KeeThief - Extract KeePass master keys
+  </Tab>
+
+  <Tab title="Execution & Lateral Movement">
+    **Remote Execution:**
+    - [SharpWMI](/ghostpack-docs/SharpWMI-mdx/overview) - WMI-based lateral movement
+    - [Rubeus](/ghostpack-docs/Rubeus-mdx/overview) - Kerberos ticket manipulation
+
+    **Process Manipulation:**
+    - SharpDump - Memory dumping
+    - Lockless - Locked file access
+  </Tab>
+
+  <Tab title="Persistence">
+    **Long-term Access:**
+    - [Rubeus](/ghostpack-docs/Rubeus-mdx/commands/forgery/golden) - Golden tickets
+    - [Rubeus](/ghostpack-docs/Rubeus-mdx/commands/forgery/silver) - Silver tickets
+    - [Certify](/ghostpack-docs/Certify.wik-mdx/2-account-persistence-techniques) - Certificate persistence
+    - ForgeCert - Golden certificates
+  </Tab>
+
+  <Tab title="Privilege Escalation">
+    **Escalation Vectors:**
+    - [SharpUp](/ghostpack-docs/SharpUp-mdx/overview) - Privilege escalation enumeration
+    - [Certify](/ghostpack-docs/Certify.wik-mdx/4-escalation-techniques) - AD CS exploitation (ESC1-ESC16)
+    - [Rubeus](/ghostpack-docs/Rubeus-mdx/commands/delegation/s4u) - Delegation abuse
+
+    **Credential Theft:**
+    - [SharpDPAPI](/ghostpack-docs/SharpDPAPI-mdx/overview) - DPAPI secrets
+    - SafetyKatz - Memory credentials
+  </Tab>
+
+  <Tab title="Credential Access">
+    **Kerberos Attacks:**
+    - [Rubeus](/ghostpack-docs/Rubeus-mdx/commands/roasting/kerberoast) - Kerberoasting
+    - [Rubeus](/ghostpack-docs/Rubeus-mdx/commands/roasting/asreproast) - AS-REP roasting
+    - [Rubeus](/ghostpack-docs/Rubeus-mdx/commands/extraction/dump) - Ticket extraction
+
+    **DPAPI Extraction:**
+    - [SharpDPAPI](/ghostpack-docs/SharpDPAPI-mdx/commands/credentials) - Windows credentials
+    - [SharpDPAPI](/ghostpack-docs/SharpDPAPI-mdx/sharpchrome-overview) - Chrome passwords
+    - [SharpDPAPI](/ghostpack-docs/SharpDPAPI-mdx/commands/keepass) - KeePass databases
+  </Tab>
+
+  <Tab title="Discovery">
+    **Host Enumeration:**
+    - [Seatbelt](/ghostpack-docs/Seatbelt-mdx/overview) - Comprehensive system checks (120+ commands)
+    - [SharpWMI](/ghostpack-docs/SharpWMI-mdx/actions/query) - WMI queries
+    - [SharpUp](/ghostpack-docs/SharpUp-mdx/overview) - Privilege escalation vectors
+
+    **AD Enumeration:**
+    - [Certify](/ghostpack-docs/Certify.wik-mdx/Home) - AD CS enumeration
+    - PSPKIAudit - PKI auditing
+  </Tab>
+</Tabs>
+
+---
+
+## 🚀 Getting Started
+
+<Steps>
+  <Step title="Choose Your Tool">
+    Select the appropriate tool for your assessment needs from the categories above
+  </Step>
+
+  <Step title="Review Documentation">
+    Read the comprehensive documentation for each tool (links in the tool cards)
+  </Step>
+
+  <Step title="Obtain or Build">
+    **Option 1: Clone and Build**
+    ```bash
+    git clone https://github.com/ghostpack-docs/[TOOL_NAME]
+    cd [TOOL_NAME]
+    ```
+
+    Open in Visual Studio and build, or use .NET CLI:
+    ```bash
+    dotnet build
+    ```
+
+    **Option 2: Pre-compiled Binaries**
+
+    Pre-compiled binaries may be available from community repositories
+  </Step>
+
+  <Step title="Review OPSEC Considerations">
+    Each tool has detection considerations documented. Review before operational use.
+  </Step>
+
+  <Step title="Execute with Authorization">
+    Only use tools during authorized penetration tests or in controlled lab environments
+  </Step>
+</Steps>
+
+---
+
+
+## 🎓 Learning Resources
+
+<CardGroup cols={3}>
+  <Card
+    title="GitHub Organization"
+    icon="github"
+    href="https://github.com/GhostPack"
+  >
+    Official GhostPack repositories with source code and individual tool documentation
+  </Card>
+
+  <Card
+    title="SpecterOps Blog"
+    icon="newspaper"
+    href="https://posts.specterops.io"
+  >
+    Research articles, attack techniques, and tool announcements from the SpecterOps team
+  </Card>
+
+  <Card
+    title="BloodHound Slack"
+    icon="slack"
+    href="http://ghst.ly/BHSlack"
+  >
+    Community discussions, tool support, and collaboration with other security professionals
+  </Card>
+
+  <Card
+    title="Certified Pre-Owned"
+    icon="file-pdf"
+    href="https://specterops.io/wp-content/uploads/sites/3/2022/06/Certified_Pre-Owned.pdf"
+  >
+    Comprehensive AD CS research paper by Will Schroeder & Lee Christensen (basis for Certify)
+  </Card>
+
+  <Card
+    title="HarmJ0y Blog"
+    icon="blog"
+    href="http://www.harmj0y.net/blog/"
+  >
+    Personal blog of @harmj0y with deep technical articles on Windows and AD security
+  </Card>
+
+  <Card
+    title="Training Courses"
+    icon="graduation-cap"
+    href="https://specterops.io/how-we-help/training-offerings"
+  >
+    Professional training from SpecterOps covering GhostPack tools and attack techniques
+  </Card>
+</CardGroup>
+
+---
+
+## ⚠️ Operational Security
+
+<Warning>
+  **Detection Considerations**
+
+  All GhostPack tools generate telemetry that can be detected by EDR, SIEM, and other security monitoring solutions. Review the detection sections in each tool's documentation before operational use.
+</Warning>
+
+**Common Detection Vectors:**
+- **Process Creation**: C# executable launches
+- **Command Line**: Tool-specific arguments and parameters
+- **Network Traffic**: Kerberos requests, WMI connections
+- **Registry Access**: Service queries, autorun enumeration
+- **File System**: DPAPI blob reads, credential file access
+- **Memory Operations**: LSASS access, process injection
+- **Windows Events**: Security logs, Sysmon, PowerShell logging
+
+**OPSEC Recommendations:**
+- Use tools from memory when possible
+- Consider obfuscation for critical operations
+- Space out enumeration activities
+- Blend with normal admin activity patterns
+- Review tool-specific OPSEC guidance in documentation
+
+---
+
+## 🤝 Contributing
+
+GhostPack welcomes contributions from the security community:
+
+<Steps>
+  <Step title="Fork Repository">
+    Fork the specific tool repository you want to contribute to
+  </Step>
+
+  <Step title="Create Feature Branch">
+    ```bash
+    git checkout -b feature/your-improvement
+    ```
+  </Step>
+
+  <Step title="Make Changes">
+    Implement your improvements following the project's coding standards
+  </Step>
+
+  <Step title="Test Thoroughly">
+    Test your changes in multiple environments
+  </Step>
+
+  <Step title="Submit Pull Request">
+    Submit a PR with clear description of changes and testing performed
+  </Step>
+</Steps>
+
+---
+
+## 👥 Credits
+
+GhostPack tools are developed and maintained by:
+
+**Primary Authors:**
+- [@harmj0y](https://twitter.com/harmj0y) (Will Schroeder)
+- [@tifkin_](https://twitter.com/tifkin_) (Lee Christensen)
+
+**Organization:**
+- [SpecterOps](https://specterops.io) - Offensive security research and operations
+
+**Community:**
+- Numerous contributors from the security community
+- Issue reporters and testers
+- Documentation contributors
+
+---
+
+## 📝 License
+
+Most GhostPack tools are released under the BSD 3-Clause License. Check individual repositories for specific licensing information.
+
+---
+
+<Note>
+  For the latest updates, new tool releases, and announcements, follow the [GhostPack GitHub organization](https://github.com/GhostPack) and [@harmj0y on Twitter](https://twitter.com/harmj0y).
+</Note>
+
+<div style={{ textAlign: 'center', marginTop: '40px', paddingTop: '20px', borderTop: '1px solid #e5e7eb' }}>
+  <p style={{ color: '#6b7280' }}>
+    Part of the <a href="/index">SpecterOps Open Source Toolkit</a>
+  </p>
+</div>

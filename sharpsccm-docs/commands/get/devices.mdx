@@ -1,0 +1,219 @@
+---
+title: 'get devices'
+description: 'Enumerate managed devices and their properties'
+icon: 'desktop'
+sidebarTitle: 'devices'
+---
+
+## Overview
+
+Enumerate managed devices and their properties. This provides comprehensive device intelligence including system information, user relationships, and management status from the SCCM database.
+
+## Syntax
+
+```bash
+SharpSCCM get devices [options]
+```
+
+## Parameters
+
+<ParamField path="sms-provider" type="string">
+  The IP address, FQDN, or NetBIOS name of the SMS Provider to connect to
+</ParamField>
+
+<ParamField path="site-code" type="string">
+  The three-character site code (e.g., "PS1")
+</ParamField>
+
+<ParamField path="name" type="string">
+  Filter devices by name pattern (supports partial matching)
+</ParamField>
+
+<ParamField path="user" type="string">
+  Filter devices by last logged-on user
+</ParamField>
+
+<ParamField path="properties" type="string">
+  Specify properties to retrieve (can be used multiple times)
+</ParamField>
+
+<ParamField path="where-condition" type="string">
+  Custom WQL WHERE clause for advanced filtering
+</ParamField>
+
+<ParamField path="count" type="boolean">
+  Return count of results only
+</ParamField>
+
+<ParamField path="verbose" type="boolean">
+  Display all device properties
+</ParamField>
+
+## Examples
+
+<CodeGroup>
+```bash Basic Usage
+# List all managed devices
+SharpSCCM get devices -sms SCCM01.corp.local -sc PS1
+```
+
+```bash Device Search
+# Find specific devices by name
+SharpSCCM get devices -n "WORKSTATION" -sms SCCM01.corp.local -sc PS1
+
+# Count total devices
+SharpSCCM get devices -c -sms SCCM01.corp.local -sc PS1
+```
+
+```bash User-Based Filtering
+# Find devices by last logged-on user
+SharpSCCM get devices -u "admin" -sms SCCM01.corp.local -sc PS1
+
+# Find admin workstations
+SharpSCCM get devices -w "LastLogonUserName LIKE '%admin%'" -sms SCCM01.corp.local -sc PS1
+```
+
+```bash Custom Properties
+# Get specific properties only
+SharpSCCM get devices -p Name -p LastLogonUserName -p IPAddress -sms SCCM01.corp.local -sc PS1
+
+# Advanced filtering with custom properties
+SharpSCCM get devices -p Name -p ResourceID -w "Client = 1 AND LastLogonUserName IS NOT NULL" -sms SCCM01.corp.local -sc PS1
+```
+</CodeGroup>
+
+## Key Properties
+
+| Property | Description | Use Case |
+|----------|-------------|----------|
+| `Name` | Device NetBIOS name | Primary identifier |
+| `LastLogonUserName` | Last logged-on user | User-device mapping |
+| `LastLogonTimestamp` | Last logon time | Activity analysis |
+| `IPAddress` | Network address | Network topology |
+| `ResourceID` | Unique SCCM identifier | Cross-referencing |
+| `Client` | SCCM client status | Management verification |
+| `Domain` | Active Directory domain | Domain analysis |
+| `OperatingSystemNameandVersion` | OS details | Vulnerability assessment |
+
+## Required Permissions
+
+<Info>
+  **SMS Admins local group** membership on the SMS Provider server
+</Info>
+
+## Intelligence Gathering
+
+<Accordion title="High-Value Targets">
+  **Admin Workstations:**
+  ```sql
+  LastLogonUserName LIKE '%admin%'
+  LastLogonUserName LIKE '%service%'
+  Name LIKE '%admin%'
+  ```
+
+  **Active Systems:**
+  ```sql
+  Client = 1 AND LastLogonTimestamp > '2023-01-01'
+  ```
+
+  **Servers:**
+  ```sql
+  OperatingSystemNameandVersion LIKE '%Server%'
+  ```
+</Accordion>
+
+<Accordion title="Network Analysis">
+  **IP Address Mapping:**
+  - Identify network segments and VLANs
+  - Map internal network topology
+  - Find DMZ and management networks
+
+  **Device Distribution:**
+  - Analyze device naming conventions
+  - Identify organizational units
+  - Map physical locations
+</Accordion>
+
+<Accordion title="User-Device Relationships">
+  **Primary User Mapping:**
+  - Identify which users use which devices
+  - Find shared workstations
+  - Locate user-specific systems
+
+  **Administrative Access:**
+  - Identify devices with admin user access
+  - Find service account usage patterns
+  - Locate privileged access workstations
+</Accordion>
+
+## Filtering Strategies
+
+<CodeGroup>
+```sql Active Clients
+Client = 1
+```
+
+```sql Recent Activity
+LastLogonTimestamp > '2023-01-01'
+```
+
+```sql Administrative Systems
+LastLogonUserName LIKE '%admin%' OR Name LIKE '%admin%'
+```
+
+```sql Servers
+OperatingSystemNameandVersion LIKE '%Server%'
+```
+
+```sql Domain Controllers
+Name LIKE '%DC%' OR Name LIKE '%DOM%'
+```
+</CodeGroup>
+
+## Output Analysis
+
+<Accordion title="Device Naming Patterns">
+  Common naming conventions reveal:
+  - **DESKTOP-** or **WS-**: Workstations
+  - **SRV-** or **SERVER-**: Servers
+  - **DC-** or **DOM-**: Domain controllers
+  - **LAPTOP-** or **NB-**: Mobile devices
+</Accordion>
+
+<Accordion title="User Pattern Analysis">
+  User logon patterns indicate:
+  - Administrative accounts (admin, service prefixes)
+  - Shared accounts (generic names)
+  - Service accounts (svc- prefixes)
+  - Personal accounts (firstname.lastname)
+</Accordion>
+
+## Common Use Cases
+
+<Accordion title="Lateral Movement Planning">
+  Identify target systems for lateral movement:
+  - Admin workstations for credential harvesting
+  - Servers for privilege escalation
+  - Systems with specific user access
+</Accordion>
+
+<Accordion title="Asset Inventory">
+  Comprehensive asset discovery:
+  - Total device count and distribution
+  - Operating system analysis
+  - Network segment mapping
+</Accordion>
+
+<Accordion title="User Activity Analysis">
+  Understand user behavior:
+  - Login patterns and frequency
+  - Device usage relationships
+  - Administrative access patterns
+</Accordion>
+
+## Related Commands
+
+- [`get users`](/commands/get/users) - Enumerate user accounts
+- [`get collections`](/commands/get/collections) - Analyze device collections
+- [`get collection-members`](/commands/get/collection-members) - Find collection membership
+- [`get primary-users`](/commands/get/primary-users) - Map user-device relationships

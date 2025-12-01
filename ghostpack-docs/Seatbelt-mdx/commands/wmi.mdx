@@ -1,0 +1,156 @@
+---
+title: 'WMI'
+description: 'Runs a specified WMI query'
+icon: 'database'
+---
+
+## Overview
+
+The WMI command allows you to run custom WMI (Windows Management Instrumentation) queries against the system. WMI provides extensive access to system configuration and state data, making it a powerful reconnaissance tool. This command requires you to specify the WMI query as an argument.
+
+## Syntax
+
+```bash
+# Specify WMI query
+Seatbelt.exe "WMI <query>"
+
+# Example queries
+Seatbelt.exe "WMI SELECT * FROM Win32_Process"
+Seatbelt.exe "WMI SELECT * FROM Win32_Service WHERE State='Running'"
+Seatbelt.exe "WMI SELECT * FROM Win32_Product"
+```
+
+### Remote Execution
+```bash
+Seatbelt.exe "WMI <query>" -computername=TARGET.domain.com [-username=DOMAIN\user -password=pass]
+```
+
+## Output
+
+Returns results based on the specified WMI query. Output format depends on the queried WMI class and properties.
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Execute custom reconnaissance queries
+    - Enumerate installed software via Win32_Product
+    - Query running processes and services
+    - Discover system hardware configuration
+    - Extract detailed system information
+    - Identify security products
+  </Tab>
+  <Tab title="Blue Team">
+    - Custom system auditing queries
+    - Software inventory collection
+    - Security configuration validation
+    - Compliance checking
+    - System state monitoring
+  </Tab>
+</Tabs>
+
+## Common WMI Queries
+
+<Tabs>
+  <Tab title="System Info">
+    ```
+    Win32_OperatingSystem
+    Win32_ComputerSystem
+    Win32_BIOS
+    Win32_Processor
+    Win32_PhysicalMemory
+    ```
+  </Tab>
+  <Tab title="Software">
+    ```
+    Win32_Product
+    Win32_InstalledWin32Program
+    Win32_Service
+    Win32_Process
+    Win32_StartupCommand
+    ```
+  </Tab>
+  <Tab title="Network">
+    ```
+    Win32_NetworkAdapterConfiguration
+    Win32_NetworkConnection
+    Win32_Share
+    ```
+  </Tab>
+  <Tab title="Security">
+    ```
+    Win32_UserAccount
+    Win32_Group
+    Win32_LogonSession
+    AntiVirusProduct (root\SecurityCenter2)
+    ```
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== WMI ======
+
+[*] Running WMI Query: SELECT Name, ProcessId, ExecutablePath FROM Win32_Process WHERE Name LIKE '%sql%'
+
+Name                : sqlservr.exe
+ProcessId           : 2156
+ExecutablePath      : C:\Program Files\Microsoft SQL Server\MSSQL15.MSSQLSERVER\MSSQL\Binn\sqlservr.exe
+
+Name                : sqlwriter.exe
+ProcessId           : 3492
+ExecutablePath      : C:\Program Files\Microsoft SQL Server\90\Shared\sqlwriter.exe
+```
+
+## Remote Execution
+
+<Check>
+This command **supports remote execution** using the `-computername` parameter.
+</Check>
+
+Remote WMI queries connect to the target system's WMI service over RPC/DCOM.
+
+## Detection Considerations
+
+<Warning>
+WMI queries generate significant detection opportunities.
+</Warning>
+
+- **WMI Activity**: Generates WMI-Activity/Operational logs (Event ID 5857-5861)
+- **Network Traffic**: Remote WMI over RPC (port 135 + dynamic ports)
+- **Process Creation**: WMI Provider hosts may spawn
+- **Event Logs**: WMI queries can be logged
+- **Sysmon**: Event ID 19-21 (WMI events)
+
+### Defensive Recommendations
+
+<Accordion title="Monitoring Strategies">
+**WMI Logging:**
+- Enable WMI-Activity/Operational log
+- Monitor Event ID 5857 (WMI queries)
+- Track WMI provider loads
+
+**Network Detection:**
+- Monitor RPC connections (port 135)
+- Track DCOM activity
+- Alert on remote WMI connections
+
+**Query Patterns:**
+- Suspicious WMI classes (Win32_Product is slow/noisy)
+- Reconnaissance queries (process, service, software enumeration)
+- Persistence queries (Event consumers, filters)
+
+**Sysmon Detection:**
+- Event ID 19: WMI event filter activity
+- Event ID 20: WMI event consumer activity
+- Event ID 21: WMI event consumer to filter binding
+</Accordion>
+
+## Related Commands
+
+- [WMIEventConsumer](/commands/wmieventconsumer) - WMI event consumers
+- [WMIEventFilter](/commands/wmieventfilter) - WMI event filters
+- [WMIFilterBinding](/commands/wmifilterbinding) - WMI filter bindings
+- [Processes](/commands/processes) - Running processes
+- [Services](/commands/services) - Windows services

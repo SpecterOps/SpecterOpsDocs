@@ -1,0 +1,269 @@
+---
+title: 'createissue'
+description: 'Create a new issue in Jira'
+icon: 'square-plus'
+---
+
+## Overview
+
+The `jira createissue` command creates a new issue in a specified Jira project. This command is particularly powerful for social engineering attacks, as it allows creation of convincing issues with user mentions, embedded links, and custom messages. Created issues can serve as phishing vectors, credential harvesting platforms, or reconnaissance tools to track user engagement.
+
+## Syntax
+
+```bash
+.\AtlasReaper.exe jira createissue [options]
+```
+
+## Required Parameters
+
+<ParamField path="--url" type="string" required>
+  The base URL of the target Jira instance (e.g., `https://company.atlassian.net`)
+</ParamField>
+
+<ParamField path="--project" type="string" required>
+  Project key where the issue will be created (e.g., `PROJ`, `IT`, `SECURITY`)
+</ParamField>
+
+<ParamField path="--issue-type" type="string" required>
+  Type of issue to create. Common types include: `Task`, `Bug`, `Story`, `Epic`, `Support`. Use `jira listprojects` to see available issue types for each project
+</ParamField>
+
+## Optional Parameters
+
+<ParamField path="--cookie" type="string">
+  Authentication cookie (`cloud.session.token` or `tenant.session.token`). If omitted, will attempt anonymous issue creation (if permitted)
+</ParamField>
+
+<ParamField path="--summary" type="string" default="Looking for Solutions">
+  The issue title/summary. Customize this to make the issue appear legitimate and encourage engagement
+</ParamField>
+
+<ParamField path="--message" type="string">
+  Description text for the issue body (e.g., "I need you to take a look at this")
+</ParamField>
+
+<ParamField path="--at" type="string">
+  User ID to mention in the issue description. Use `jira listusers` to obtain valid user IDs. Mentioning users sends them notifications
+</ParamField>
+
+<ParamField path="--link" type="string">
+  URL to embed in the issue description. Can point to credential harvesting pages, tracking URLs, or malicious resources
+</ParamField>
+
+<ParamField path="--text" type="string" default="Here">
+  Display text for the embedded link. Customize to make links more convincing (e.g., "Click here", "Documentation", "Fix Instructions")
+</ParamField>
+
+<ParamField path="--output" type="string">
+  Save command output to a specified file
+</ParamField>
+
+## Examples
+
+### Basic Issue Creation
+
+Create a simple task in a project:
+
+```bash
+.\AtlasReaper.exe jira createissue \
+  --url https://company.atlassian.net \
+  --project IT \
+  --issue-type Task \
+  --summary "VPN Connection Issues" \
+  --cookie $cookie
+```
+
+### Social Engineering with Link
+
+Create an issue with an embedded phishing link:
+
+```bash
+.\AtlasReaper.exe jira createissue \
+  --url https://company.atlassian.net \
+  --project SECURITY \
+  --issue-type Bug \
+  --summary "Password Reset Portal Not Working" \
+  --message "The new password reset system is showing errors. Can someone test this?" \
+  --link http://attacker.com/fake-jira-login \
+  --text "Password Reset Portal" \
+  --cookie $cookie
+```
+
+### Targeted Phishing with User Mention
+
+Create an issue mentioning a specific user for targeted attack:
+
+```bash
+.\AtlasReaper.exe jira createissue \
+  --url https://company.atlassian.net \
+  --project HR \
+  --issue-type Task \
+  --summary "Urgent: Updated Employee Handbook Review Required" \
+  --at "5d9e8c7f2a3b1c0d4e5f6789" \
+  --message "Please review the updated policy document and acknowledge. Due by EOD." \
+  --link http://attacker.com/malicious-doc \
+  --text "Download Updated Handbook" \
+  --cookie $cookie
+```
+
+### IT Support Impersonation
+
+Mimic a legitimate IT support request:
+
+```bash
+.\AtlasReaper.exe jira createissue \
+  --url https://company.atlassian.net \
+  --project SUPPORT \
+  --issue-type Support \
+  --summary "Security Update Required - Action Needed" \
+  --message "IT Security has released a critical patch. All users must install by 5 PM today." \
+  --link http://attacker.com/fake-update \
+  --text "Install Security Patch" \
+  --cookie $cookie
+```
+
+### Example from README
+
+The original example from the AtlasReaper README:
+
+```bash
+.\AtlasReaper.exe jira createissue \
+  --project "PROJ" \
+  --issue-type Task \
+  --message "I can't access this link from my host" \
+  --url $url \
+  --cookie $cookie
+```
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    ### Offensive Security Applications
+
+    - **Credential Harvesting**: Create issues with links to fake login pages
+    - **Phishing Campaigns**: Leverage trust in internal systems for convincing phishing
+    - **Targeted Attacks**: Mention high-value users to ensure they receive notifications
+    - **Payload Distribution**: Include links to malicious files or executables
+    - **Reconnaissance**: Track who views/interacts with created issues via embedded tracking
+    - **Persistence**: Created issues remain accessible as long-term attack infrastructure
+    - **Social Engineering**: Craft convincing scenarios (urgent security updates, policy changes)
+    - **Help Desk Impersonation**: Create support tickets to build credibility
+  </Tab>
+
+  <Tab title="Blue Team">
+    ### Defensive Monitoring
+
+    - **Issue Creation Monitoring**: Track new issues created with external links
+    - **User Mention Analysis**: Detect unusual @mention patterns targeting specific users
+    - **Link Validation**: Scan embedded URLs for malicious or suspicious domains
+    - **Anonymous Creation Auditing**: Verify anonymous users cannot create issues (if restricted)
+    - **Issue Type Patterns**: Identify suspicious issue types (e.g., urgent security issues)
+    - **Temporal Analysis**: Watch for issue creation outside normal hours
+    - **Training Simulations**: Create realistic phishing exercises for awareness training
+    - **Incident Response**: Investigate suspicious issues during security events
+  </Tab>
+</Tabs>
+
+## Output
+
+Upon successful issue creation, the command returns full details about the created issue including:
+
+```
+Created issue : PROJ-123
+
+  Issue Title    : VPN Connection Issues
+  Issue Key      : PROJ-123
+  Issue Id       : 12345
+  Created        : 2024-10-20T14:30:00.000-0700
+  Updated        : 2024-10-20T14:30:00.000-0700
+  Status         : Open
+  Creator        : user@company.com - John Doe - America/Los_Angeles
+  Assignee       :
+  Issue Contents : I need you to take a look at this. Here
+```
+
+### Output Information
+
+- **Issue Title**: The summary text provided
+- **Issue Key**: Unique identifier (PROJECT-###)
+- **Issue Id**: Numeric ID for the issue
+- **Created/Updated**: Timestamps
+- **Status**: Current workflow status
+- **Creator**: Email, display name, and timezone of the creating user
+- **Assignee**: Assigned user (if applicable)
+- **Issue Contents**: The description with embedded links and mentions
+
+## Detection Considerations
+
+<Warning>
+**Detection Indicators**
+
+Security teams should monitor for:
+
+- Issues containing external URLs (especially to non-company domains)
+- Issues with urgent or unusual language (password reset, security update, urgent action)
+- Issues created by users who don't typically create issues in specific projects
+- Issues created outside normal business hours
+- Issues with user @mentions followed by external links
+- Multiple issues created in rapid succession
+- Issues with suspicious URL patterns (credential harvesting indicators)
+- Issues created in sensitive projects (HR, Finance, Security)
+- Issue titles mimicking IT/security communications
+- Anonymous issue creation (if permitted)
+</Warning>
+
+### Jira Audit Log Entries
+
+This command generates the following audit log events:
+- `issue_created` - Records the issue creation
+- `issue_comment_created` - If mentions are included
+- Includes: User ID, project key, issue key, timestamp, IP address
+
+### Network Indicators
+
+- HTTP POST requests to `/rest/api/3/issue`
+- GET request to `/rest/api/3/issue/createmeta?projectKeys={project}` (metadata retrieval)
+- Subsequent GET request to retrieve full issue details
+- Pattern of create + view operations
+
+## OPSEC Considerations
+
+<Tip>
+**Operational Security Tips**
+
+To reduce detection risk when using this command:
+
+1. **Issue Quality**: Create well-written, contextually appropriate issues that match organizational style
+2. **Project Selection**: Choose projects where you have legitimate access and where similar issues exist
+3. **Issue Type**: Use appropriate issue types for the project (check with `listprojects`)
+4. **Timing**: Create issues during normal business hours to blend with legitimate activity
+5. **Summary Text**: Avoid obvious red flags like "urgent", "immediate action", "click here"
+6. **Link Domains**: Use typosquatted domains or compromised legitimate sites
+7. **User Mentions**: Only mention users when contextually appropriate
+8. **Rate Limiting**: Space out issue creation to avoid triggering alerts
+9. **Account Context**: Use cookies from accounts that regularly create issues
+10. **Follow-up**: Monitor created issues for responses and engagement
+</Tip>
+
+### Project Requirements
+
+- Projects must exist and be accessible by the authenticated user
+- Issue types must be valid for the selected project (use `jira listprojects` to verify)
+- Some projects may restrict who can create issues
+- Anonymous issue creation is typically disabled for most projects
+
+### Cookie Considerations
+
+- Session cookies can be extracted using tools like SharpChrome
+- Cookies expire after a period of inactivity
+- Using anonymous access (where permitted) can avoid attribution but may be restricted
+
+## Related Commands
+
+- [jira listprojects](/jira/listprojects) - List projects and their available issue types
+- [jira addcomment](/jira/addcomment) - Add follow-up comments to created issues
+- [jira attach](/jira/attach) - Attach files to the created issue
+- [jira listusers](/jira/listusers) - Enumerate users for targeted @mentions
+- [jira listissues](/jira/listissues) - View created issues and their details
+- [jira searchissues](/jira/searchissues) - Search for similar issues to mimic

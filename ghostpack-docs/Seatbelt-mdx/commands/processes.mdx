@@ -1,0 +1,108 @@
+---
+title: 'Processes'
+description: 'Running processes with file info company names that do not contain Microsoft, "-full" enumerates all processes'
+icon: 'list-check'
+---
+
+## Overview
+
+The Processes command enumerates running processes on the system. By default, it filters out Microsoft-signed processes to focus on potentially interesting third-party and custom applications. Use the `-full` flag to enumerate all processes without filtering.
+
+## Syntax
+
+```bash
+# Filter out Microsoft processes (default)
+Seatbelt.exe Processes
+
+# Enumerate all processes
+Seatbelt.exe Processes -full
+```
+
+<Note>
+This command does **not** support remote execution for standard enumeration. Use ProcessOwners for remote process listing.
+</Note>
+
+## Output
+
+Returns process information:
+- Process name and ID (PID)
+- Parent process ID (PPID)
+- Company name
+- Process path
+- Command line arguments
+- Process owner
+- Integrity level
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Identify security products and monitoring tools
+    - Find potential injection targets
+    - Discover admin/developer tools
+    - Locate high-privileged processes
+    - Identify processes for credential harvesting
+  </Tab>
+  <Tab title="Blue Team">
+    - Hunt for malicious processes
+    - Identify unauthorized applications
+    - Validate software inventory
+    - Detect suspicious process relationships
+    - Monitor for living-off-the-land binaries
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== Processes ======
+
+ProcessName  : chrome.exe
+PID          : 5624
+PPID         : 2156
+Owner        : CORP\user
+CompanyName  : Google LLC
+Path         : C:\Program Files\Google\Chrome\Application\chrome.exe
+CommandLine  : "C:\Program Files\Google\Chrome\Application\chrome.exe"
+
+ProcessName  : custom_app.exe
+PID          : 7892
+PPID         : 1044
+Owner        : CORP\admin
+CompanyName  : Custom Software Inc.
+Path         : C:\Apps\CustomApp\custom_app.exe
+CommandLine  : "C:\Apps\CustomApp\custom_app.exe" --config production
+
+ProcessName  : sysmon64.exe
+PID          : 1844
+PPID         : 712
+Owner        : NT AUTHORITY\SYSTEM
+CompanyName  : Sysinternals - www.sysinternals.com
+Path         : C:\Windows\sysmon64.exe
+CommandLine  : C:\Windows\sysmon64.exe
+```
+
+## Remote Execution
+
+<Warning>
+This command does **NOT support remote execution**.
+</Warning>
+
+For remote process enumeration, use the [ProcessOwners](/commands/processowners) command instead.
+
+## Detection Considerations
+
+<Info>
+Low to moderate detection risk - process enumeration is common.
+</Info>
+
+- **API Calls**: Uses CreateToolhelp32Snapshot or WMI queries
+- **EDR Telemetry**: May be logged by security products
+- **Pattern Detection**: Rapid enumeration may trigger alerts
+
+## Related Commands
+
+- [InterestingProcesses](/commands/interestingprocesses) - Security and admin tool processes
+- [Services](/commands/services) - Windows services
+- [LogonSessions](/commands/logonsessions) - Active logon sessions
+- [TokenPrivileges](/commands/tokenprivileges) - Current token privileges

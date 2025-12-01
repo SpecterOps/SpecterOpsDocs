@@ -1,0 +1,86 @@
+---
+title: 'Hotfixes'
+description: 'Installed hotfixes (via WMI)'
+icon: 'bandage'
+---
+
+## Overview
+
+The Hotfixes command enumerates all installed Windows updates and hotfixes via WMI. This helps identify missing security patches and potential vulnerabilities that could be exploited for privilege escalation or other attacks.
+
+## Syntax
+
+```bash
+Seatbelt.exe Hotfixes
+```
+
+### Remote Execution
+```bash
+Seatbelt.exe Hotfixes -computername=TARGET.domain.com [-username=DOMAIN\user -password=pass]
+```
+
+## Output
+
+Returns hotfix information:
+- HotFix ID (KB number)
+- Description
+- Installed date
+- Installed by (user)
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Identify missing security patches
+    - Find exploitable vulnerabilities
+    - Plan privilege escalation attacks
+    - Assess system patch level
+    - Identify outdated systems
+  </Tab>
+  <Tab title="Blue Team">
+    - Audit patch compliance
+    - Identify unpatched systems
+    - Validate patch deployment
+    - Track update history
+    - Prioritize remediation efforts
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== Hotfixes ======
+
+HotFixID     : KB5034127
+Description  : Security Update
+InstalledOn  : 1/15/2024
+InstalledBy  : NT AUTHORITY\SYSTEM
+
+HotFixID     : KB5033909
+Description  : Update
+InstalledOn  : 12/12/2023
+InstalledBy  : NT AUTHORITY\SYSTEM
+
+HotFixID     : KB890830
+Description  : Windows Malicious Software Removal Tool
+InstalledOn  : 1/10/2024
+InstalledBy  : NT AUTHORITY\SYSTEM
+```
+
+## Remote Execution
+
+<Check>
+This command **supports remote execution** using the `-computername` parameter.
+</Check>
+
+## Detection Considerations
+
+<Info>
+Low detection risk - queries WMI for installed updates.
+</Info>
+
+## Related Commands
+
+- [OSInfo](/commands/osinfo) - Operating system version information
+- [DotNet](/commands/dotnet) - .NET Framework versions
+- [WindowsDefender](/commands/windowsdefender) - Defender update status

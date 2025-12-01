@@ -1,0 +1,632 @@
+---
+title: 'Template Management'
+description: 'Creating and managing reusable email templates'
+icon: 'file-lines'
+---
+
+Templates in Phishmonger are reusable email message structures that can be quickly converted into campaigns. This guide covers creating, managing, and using templates effectively.
+
+## What Are Templates?
+
+Templates are saved email messages without campaign-specific configuration:
+
+**Templates Include**:
+- Complete MIME message structure
+- Email headers (can be trimmed to RFC-only)
+- HTML and plain text body content
+- Embedded images and attachments
+- String substitution placeholders
+
+**Templates Do NOT Include**:
+- SMTP server configuration
+- Authentication credentials
+- Phishing link URLs
+- Target lists
+- Campaign scheduling
+
+**Purpose**:
+- Reuse effective email designs across multiple campaigns
+- Maintain a library of tested phishing emails
+- Speed up campaign creation workflow
+- Share templates between operators
+
+## Creating Templates
+
+### From Captured Email
+
+<Steps>
+  <Step title="Capture Email">
+    Navigate to "Create Campaign" and capture an email from Outlook
+  </Step>
+
+  <Step title="Edit Email">
+    Modify content, add string substitutions, trim headers
+  </Step>
+
+  <Step title="Save as Template">
+    Click "Save as Template" button
+  </Step>
+
+  <Step title="Name Template">
+    Enter a descriptive template name
+  </Step>
+
+  <Step title="Confirmation">
+    Template is saved and available for future use
+  </Step>
+</Steps>
+
+### Template Naming
+
+Use clear, descriptive names that indicate:
+- Scenario or pretext
+- Target platform or service
+- Template version or variant
+
+**Good Examples**:
+- `Office365_Password_Expire_v1`
+- `VPN_Account_Lockout`
+- `HR_Benefits_Survey`
+- `IT_Security_Update`
+- `Payroll_W2_Request`
+
+**Avoid**:
+- `template1`
+- `test`
+- `email`
+
+## Viewing Templates
+
+### List All Templates
+
+Templates are displayed in the "Create Campaign" page:
+
+1. Navigate to "Create Campaign"
+2. View template dropdown list
+3. Select template to preview or load
+
+### Database Query
+
+Access templates directly from database:
+
+```bash
+sqlite3 db/aquarium.db
+```
+
+```sql
+-- List all template names
+SELECT name FROM templates;
+
+-- View specific template
+SELECT * FROM templates WHERE name = 'template_name';
+
+-- View template email content
+SELECT email FROM templates WHERE name = 'template_name';
+```
+
+## Using Templates
+
+### Create Campaign from Template
+
+<Steps>
+  <Step title="Navigate to Create Campaign">
+    From admin interface, click "Create Campaign"
+  </Step>
+
+  <Step title="Select Template">
+    Choose template from the dropdown list
+  </Step>
+
+  <Step title="Load Template">
+    Click "Campaign from Template" button
+  </Step>
+
+  <Step title="Configure Settings">
+    Email content is loaded. Add SMTP settings and phishing link
+  </Step>
+
+  <Step title="Save as Campaign">
+    Save as a new campaign with unique name
+  </Step>
+</Steps>
+
+**Workflow Benefits**:
+- No need to recapture emails from Outlook
+- Consistent email formatting across campaigns
+- Faster campaign creation (minutes vs hours)
+- Easy A/B testing with template variations
+
+### Template to Multiple Campaigns
+
+Use a single template for multiple campaigns:
+
+**Scenario**: You have an effective Office 365 password expiration template
+
+**Multiple Campaigns**:
+1. Load template → Configure for Customer A → Save as "Campaign_CustomerA_O365"
+2. Load template → Configure for Customer B → Save as "Campaign_CustomerB_O365"
+3. Load template → Configure for internal test → Save as "Campaign_Internal_Test_O365"
+
+Each campaign uses the same tested email template with different:
+- Target lists
+- Phishing URLs
+- SMTP configurations
+- Scheduling
+
+## Editing Templates
+
+Templates cannot be edited directly through the web interface. To modify a template:
+
+### Method 1: Recreate Template
+
+<Steps>
+  <Step title="Load Existing Template">
+    Load the template into campaign creation interface
+  </Step>
+
+  <Step title="Make Modifications">
+    Edit email content as needed
+  </Step>
+
+  <Step title="Save as Template">
+    Click "Save as Template" with the same name
+  </Step>
+
+  <Step title="Overwrite Confirmation">
+    Template is updated (SQLite UPSERT on conflict)
+  </Step>
+</Steps>
+
+### Method 2: Database Update
+
+Directly modify template in database:
+
+```bash
+sqlite3 db/aquarium.db
+```
+
+```sql
+-- View current template
+SELECT email FROM templates WHERE name = 'template_name';
+
+-- Update template content
+UPDATE templates
+SET email = '<new_email_content>'
+WHERE name = 'template_name';
+```
+
+<Warning>
+  **Direct Database Editing**: Be careful when editing raw MIME content. Syntax errors can break email rendering.
+</Warning>
+
+## Template Structure
+
+Templates store complete MIME messages:
+
+### Typical Template Structure
+
+```
+From: Sender Name <sender@domain.com>
+To: SuppliedToAddress
+Subject: Action Required: Password Expiration
+Date: DateTimeStamp
+MIME-Version: 1.0
+Content-Type: multipart/alternative; boundary="boundary123"
+
+--boundary123
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+
+Hello SuppliedFirstName,
+
+Your password will expire soon. Please update it here:
+SuppliedPhishingLink
+
+IT Security Team
+
+--boundary123
+Content-Type: text/html; charset="UTF-8"
+Content-Transfer-Encoding: base64
+
+PGh0bWw+PGJvZHk+PHA+SGVsbG8gU3VwcGxpZWRGaXJzdE5hbWUsPGJyPjwvcD4...
+
+--boundary123--
+```
+
+### Key Elements
+
+**Headers**:
+- `From`: Sender display name and address
+- `To`: Uses `SuppliedToAddress` placeholder
+- `Subject`: Email subject line
+- `Date`: Uses `DateTimeStamp` placeholder
+- `MIME-Version`: Always 1.0
+- `Content-Type`: Defines message structure
+
+**Content Sections**:
+- Plain text version (for email clients that don't render HTML)
+- HTML version (formatted email with images and links)
+- Attachments (optional)
+- Embedded images (optional)
+
+**Placeholders**:
+- String substitutions (SuppliedFirstName, SuppliedPhishingLink, etc.)
+- Replaced at send time with target-specific values
+
+## Template Best Practices
+
+### Content Design
+
+**HTML Structure**:
+- Use table-based layouts for maximum email client compatibility
+- Inline CSS styles (avoid external stylesheets)
+- Test rendering across multiple clients
+- Keep total size under 102 KB
+
+**Images**:
+- Embed images with "Attach Images" button
+- Use CID references (`cid:image1`) instead of URLs
+- Optimize image file sizes
+- Provide alt text for accessibility
+
+**Links**:
+- Use `SuppliedPhishingLink` placeholder
+- Test links before saving template
+- Ensure links work with tracking parameters
+
+### Header Management
+
+**Use "RFC Only Headers"**:
+- Removes identifying headers from Outlook
+- Reduces email fingerprinting
+- Keeps only essential headers
+
+**Headers to Keep**:
+- From, To, Subject, Date
+- MIME-Version, Content-Type
+- Message-ID
+
+**Headers to Remove**:
+- X-Mailer (identifies Outlook)
+- X-Originating-IP (reveals your IP)
+- Received headers (shows email path)
+- Authentication-Results
+
+### Testing Templates
+
+Before saving as template:
+
+<Checklist>
+  - [ ] Send test email to your inbox
+  - [ ] Verify HTML rendering
+  - [ ] Check plain text version
+  - [ ] Test all links work
+  - [ ] Verify images display correctly
+  - [ ] Check string substitutions are present
+  - [ ] Test with mail-tester.com
+  - [ ] Review on mobile device
+</Checklist>
+
+## Managing Template Library
+
+### Organization Strategies
+
+**By Pretext**:
+- IT_Security templates
+- HR_Department templates
+- Finance_Department templates
+- Helpdesk_Support templates
+
+**By Platform**:
+- Office365 templates
+- Google_Workspace templates
+- VPN templates
+- Internal_Portal templates
+
+**By Complexity**:
+- Simple_Text templates
+- HTML_Formatted templates
+- Image_Heavy templates
+- Attachment_Based templates
+
+### Template Versioning
+
+Track template versions in the name:
+
+```
+Office365_Password_Expire_v1
+Office365_Password_Expire_v2_Better_Formatting
+Office365_Password_Expire_v3_Shorter_Text
+```
+
+Or use dates:
+
+```
+Office365_Password_Expire_2023-12
+Office365_Password_Expire_2024-01
+```
+
+### Template Documentation
+
+Maintain a separate document (external to Phishmonger) tracking:
+- Template name and version
+- Creation date
+- Intended use case
+- Success metrics from previous uses
+- Known issues or considerations
+- Recommended SMTP settings
+
+## Deleting Templates
+
+### Via API
+
+Use the API to delete templates:
+
+```bash
+curl -X DELETE https://yourdomain.com/delete_template \
+  -H "Cookie: admin_cookie=YOUR_COOKIE_VALUE" \
+  -H "Content-Type: application/json" \
+  -d '{"template_name": "template_to_delete"}'
+```
+
+### Via Database
+
+Delete directly from database:
+
+```bash
+sqlite3 db/aquarium.db
+```
+
+```sql
+-- Delete specific template
+DELETE FROM templates WHERE name = 'template_name';
+
+-- Delete all templates (use with caution!)
+DELETE FROM templates;
+
+-- Delete old/unused templates
+DELETE FROM templates WHERE name LIKE '%_old' OR name LIKE '%_test';
+```
+
+## Exporting Templates
+
+### For Backup
+
+Export all templates:
+
+```bash
+sqlite3 db/aquarium.db
+```
+
+```sql
+-- Export to CSV
+.mode csv
+.output templates_backup.csv
+SELECT * FROM templates;
+.output stdout
+```
+
+### For Sharing
+
+Export specific template:
+
+```bash
+sqlite3 db/aquarium.db "SELECT email FROM templates WHERE name = 'template_name';" > template_export.eml
+```
+
+The exported `.eml` file can be:
+- Opened in email clients
+- Imported to other Phishmonger instances
+- Analyzed offline
+
+## Importing Templates
+
+### From Backup
+
+Import templates from CSV:
+
+```bash
+sqlite3 db/aquarium.db
+```
+
+```sql
+.mode csv
+.import templates_backup.csv templates
+```
+
+### From Email File
+
+Import an `.eml` file as a template:
+
+1. Open the `.eml` file in a text editor
+2. Copy the entire email content
+3. Navigate to "Create Campaign" in Phishmonger
+4. Manually paste content into email sections
+5. Save as template
+
+Or via database:
+
+```bash
+# Escape single quotes in the email file
+EMAIL_CONTENT=$(cat template.eml | sed "s/'/''/g")
+
+sqlite3 db/aquarium.db "INSERT INTO templates (name, email) VALUES ('imported_template', '$EMAIL_CONTENT');"
+```
+
+## Template Database Schema
+
+Templates are stored in SQLite:
+
+```sql
+CREATE TABLE templates (
+    name TEXT PRIMARY KEY,
+    email TEXT
+);
+```
+
+**Fields**:
+- **name** (TEXT): Unique template identifier
+- **email** (TEXT): Complete MIME message content
+
+**Constraints**:
+- Primary key on `name` prevents duplicates
+- Re-saving with same name performs UPSERT (update on conflict)
+
+## Troubleshooting Templates
+
+### Template Not Appearing in Dropdown
+
+**Possible Causes**:
+- Database connection issue
+- Template not saved correctly
+- Name contains special characters
+
+**Solutions**:
+```sql
+-- Verify template exists
+SELECT name FROM templates WHERE name = 'template_name';
+
+-- List all templates
+SELECT name FROM templates;
+```
+
+### Template Loads with Broken Formatting
+
+**Possible Causes**:
+- MIME structure corruption
+- Encoding issues
+- Missing boundary declarations
+
+**Solutions**:
+- Export template to `.eml` file and inspect
+- Compare with working template structure
+- Recreate template from original Outlook email
+
+### Template Missing Images
+
+**Possible Causes**:
+- Images not embedded (still external URLs)
+- CID references incorrect
+- Base64 encoding broken
+
+**Solutions**:
+- Use "Attach Images" button before saving template
+- Verify image sections are present in MIME structure
+- Check `Content-ID` headers match `cid:` references in HTML
+
+### String Substitutions Not Working
+
+**Possible Causes**:
+- Typos in placeholder names
+- Placeholders modified during editing
+- HTML encoding changed placeholders
+
+**Solutions**:
+- Verify exact spelling: `SuppliedPhishingLink` (case-sensitive)
+- Use "Find & Replace" to fix placeholders
+- Check HTML source, not rendered view
+
+## Advanced Template Techniques
+
+### Conditional Content
+
+Use HTML comments to provide guidance for customization:
+
+```html
+<!-- CUSTOMIZE: Replace company name below -->
+<p>We at [COMPANY NAME] value your security...</p>
+
+<!-- CUSTOMIZE: Update logo URL -->
+<img src="cid:logo" alt="Company Logo">
+```
+
+### Multiple Variants
+
+Create template variants for A/B testing:
+
+- `Phish_Urgent_v1` - High urgency language
+- `Phish_Polite_v1` - Professional, courteous tone
+- `Phish_Short_v1` - Minimal text
+- `Phish_Detailed_v1` - Comprehensive explanation
+
+Test which variant has higher success rate.
+
+### Modular Templates
+
+Create reusable components:
+
+**Header Template**:
+```html
+<img src="cid:logo" alt="Company"><br>
+<h2>[SUBJECT]</h2>
+```
+
+**Footer Template**:
+```html
+<hr>
+<small>
+This is an automated message. Do not reply.<br>
+© 2024 Company Name. All rights reserved.
+</small>
+```
+
+Combine components when creating specific campaign templates.
+
+## Template Examples
+
+### Example 1: Password Expiration
+
+```
+From: IT Security <it-security@company.com>
+To: SuppliedToAddress
+Subject: [ACTION REQUIRED] Password Expiration Notice
+Date: DateTimeStamp
+Content-Type: text/html; charset=UTF-8
+
+<html>
+<body>
+<p>Hello SuppliedFirstName,</p>
+
+<p>Your password for <strong>SuppliedToAddress</strong> will expire in 24 hours.</p>
+
+<p>Please update your password to maintain access to company systems:</p>
+
+<p><a href="SuppliedPhishingLink" style="background-color: #0066cc; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Update Password Now</a></p>
+
+<p>If you do not update your password, your account will be locked.</p>
+
+<p>Best regards,<br>
+IT Security Team</p>
+</body>
+</html>
+```
+
+### Example 2: VPN Access
+
+```
+From: IT Helpdesk <helpdesk@company.com>
+To: SuppliedToAddress
+Subject: VPN Access Verification Required
+Date: DateTimeStamp
+Content-Type: text/html; charset=UTF-8
+
+<html>
+<body>
+<p>Hi SuppliedFirstName,</p>
+
+<p>We have detected a new login attempt to the company VPN from an unrecognized device.</p>
+
+<p><strong>Location:</strong> Unknown<br>
+<strong>Time:</strong> DateTimeStamp</p>
+
+<p>If this was you, please verify your identity:</p>
+
+<p><a href="SuppliedPhishingLink">Verify VPN Access</a></p>
+
+<p>If this was not you, your account may be compromised. Please contact IT immediately.</p>
+
+<p>Thank you,<br>
+IT Helpdesk</p>
+</body>
+</html>
+```

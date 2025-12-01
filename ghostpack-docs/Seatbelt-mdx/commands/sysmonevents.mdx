@@ -1,0 +1,197 @@
+---
+title: 'SysmonEvents'
+description: 'Sysmon process creation logs (1) with sensitive data'
+icon: 'microscope'
+---
+
+## Overview
+
+The SysmonEvents command parses Sysmon Event Logs for Event ID 1 (Process Creation) and searches for entries containing sensitive data patterns. Sysmon (System Monitor) is a Windows system service that logs detailed system activity including process creation, network connections, and file modifications. This command filters Sysmon process creation events for those containing potentially sensitive information such as passwords, credentials, API keys, and other security-relevant data in command-line arguments.
+
+## Syntax
+
+```
+Seatbelt.exe SysmonEvents
+```
+
+This command does not accept arguments but uses built-in pattern matching to identify sensitive data.
+
+**Note:** This command requires Sysmon to be installed and configured on the target system.
+
+## Output
+
+The command returns:
+- Event timestamp
+- Process ID
+- Process GUID (unique identifier)
+- Process name
+- Command line (full command with arguments)
+- Parent process ID
+- Parent process GUID
+- Parent process name
+- Parent command line
+- User account
+- LogonGuid
+- Terminal Session ID
+- IntegrityLevel
+- Hashes (MD5, SHA256, IMPHASH if configured)
+- Current directory
+- Matched sensitive pattern type
+
+Sensitive patterns include:
+- Password keywords in command lines
+- Credential parameters
+- API keys and tokens
+- Connection strings
+- Authentication credentials
+- Secret keys
+- Private key paths
+- Certificate passwords
+- Database credentials
+
+## Use Cases
+
+### Red Team
+- Discover credentials in command-line history
+- Identify hardcoded passwords in executed commands
+- Locate API keys and authentication tokens
+- Find connection strings with credentials
+- Identify administrative command execution patterns
+- Discover internal tool usage and configurations
+- Locate credential parameters passed to applications
+- Map process execution chains for lateral movement
+- Identify security tool command lines
+
+### Blue Team
+- Detect credential exposure in command lines
+- Identify policy violations (credentials in command lines)
+- Investigate suspicious process execution
+- Detect malicious process activity and malware
+- Track process creation chains for threat hunting
+- Correlate process execution with network activity
+- Audit administrative command usage
+- Detect Living off the Land attacks
+- Identify fileless malware execution
+- Track parent-child process relationships
+- Detect credential dumping attempts
+- Monitor for unusual process execution patterns
+- Correlate with other Sysmon events for full attack chain analysis
+
+## Example Output
+
+```
+====== SysmonEvents (Event ID 1 - Process Creation with Sensitive Data) ======
+
+  Time           : 10/19/2023 2:15:43 PM
+  Process ID     : 4832
+  Process GUID   : {12345678-90AB-CDEF-1234-567890ABCDEF}
+  Process Name   : C:\Windows\System32\net.exe
+  Command Line   : net use \\fileserver\share /user:administrator P@ssw0rd123!
+  Parent PID     : 2156
+  Parent GUID    : {ABCDEF12-3456-7890-ABCD-EF1234567890}
+  Parent Process : C:\Windows\System32\cmd.exe
+  Parent CmdLine : cmd.exe
+  User           : CORP\john.doe
+  LogonGuid      : {98765432-10AB-CDEF-9876-543210FEDCBA}
+  Session        : 1
+  Integrity      : Medium
+  Hashes         : MD5=A1B2C3D4E5F6...,SHA256=1234567890ABCDEF...,IMPHASH=FEDCBA9876543210...
+  Current Dir    : C:\Users\john
+  Pattern Match  : Password, Credential
+
+====== SysmonEvents (Event ID 1 - Process Creation with Sensitive Data) ======
+
+  Time           : 10/18/2023 9:30:21 AM
+  Process ID     : 5124
+  Process GUID   : {23456789-01BC-DEF0-2345-678901BCDEF0}
+  Process Name   : C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
+  Command Line   : powershell.exe -enc <base64_encoded_command_with_apikey>
+  Parent PID     : 892
+  Parent GUID    : {BCDEF012-3456-7890-BCDE-F01234567890}
+  Parent Process : C:\Windows\explorer.exe
+  Parent CmdLine : C:\Windows\Explorer.EXE
+  User           : CORP\administrator
+  LogonGuid      : {87654321-09BA-FEDC-8765-432109FEDCBA}
+  Session        : 2
+  Integrity      : High
+  Hashes         : MD5=B2C3D4E5F6A7...,SHA256=234567890ABCDEF1...,IMPHASH=EDCBA98765432101...
+  Current Dir    : C:\Users\administrator
+  Pattern Match  : API Key, Encoded Credential
+
+====== SysmonEvents (Event ID 1 - Process Creation with Sensitive Data) ======
+
+  Time           : 10/17/2023 3:45:18 PM
+  Process ID     : 3344
+  Process GUID   : {34567890-12CD-EF01-3456-789012CDEF01}
+  Process Name   : C:\Program Files\Application\app.exe
+  Command Line   : app.exe -dbconnection "Server=DB01;Database=Production;User Id=sa;Password=DBP@ss2023;"
+  Parent PID     : 1024
+  Parent GUID    : {CDEF0123-4567-8901-CDEF-012345678901}
+  Parent Process : C:\Windows\System32\services.exe
+  Parent CmdLine : C:\Windows\system32\services.exe
+  User           : CORP\svc_admin
+  LogonGuid      : {76543210-98BA-FEDC-7654-321098FEDCBA}
+  Session        : 0
+  Integrity      : System
+  Hashes         : MD5=C3D4E5F6A7B8...,SHA256=34567890ABCDEF12...,IMPHASH=DCBA987654321012...
+  Current Dir    : C:\Program Files\Application
+  Pattern Match  : Connection String, Database Password
+```
+
+## Performance Considerations
+
+This command reads from Sysmon Event Logs, which can be time-intensive depending on:
+- Size of the Sysmon Operational log
+- Volume of process creation events
+- Sysmon configuration and logging verbosity
+- Event log retention settings
+- System performance and disk I/O
+
+Systems with comprehensive Sysmon logging generate substantial log volume. Query times may vary from seconds to several minutes depending on log size.
+
+## Remote Execution
+
+This command supports remote execution via WMI. Use the `-computername` parameter to query Sysmon events on remote systems:
+
+```
+Seatbelt.exe SysmonEvents -computername=TARGET.domain.com
+Seatbelt.exe SysmonEvents -computername=DC01.domain.com -username=DOMAIN\admin -password=Pass123
+```
+
+**Note:** Sysmon must be installed and configured on the remote system.
+
+## Detection Considerations
+
+### Indicators
+- Event log access to Sysmon logs
+- Queries to Microsoft-Windows-Sysmon/Operational log
+- WMI queries to remote Sysmon event logs
+- Large-scale event log enumeration
+- Unusual processes reading Sysmon logs
+
+### Defensive Recommendations
+- Enable Sysmon with comprehensive configuration
+- Monitor for mass Sysmon event log queries
+- Alert on event log access by non-authorized tools
+- Implement SIEM correlation for Sysmon events
+- Restrict event log access to authorized accounts only
+- Use Sysmon for enhanced detection capabilities
+- Baseline normal process creation behavior
+- Alert on sensitive data in command lines
+- Educate users on secure credential handling
+- Correlate Sysmon Event ID 1 with Event IDs 3 (Network), 7 (Image Load), 10 (Process Access)
+- Monitor parent-child process relationships
+- Detect process injection via Sysmon Event ID 8
+- Track network connections via Sysmon Event ID 3
+- Use Sysmon configuration to focus on high-value events
+- Protect Sysmon service and configuration from tampering
+
+## Related Commands
+
+- **PowerShellEvents** - PowerShell script block logs (Event ID 4104) with sensitive data
+- **ProcessCreationEvents** - Process creation logs (Event ID 4688) with sensitive data
+- **LogonEvents** - Logon events (Event ID 4624) from the security event log
+- **ExplicitLogonEvents** - Explicit Logon events (Event ID 4648)
+- **Processes** - Running processes with file info
+- **ProcessOwners** - Running non-session 0 process list with owners
+- **Sysmon** - Sysmon configuration from the registry

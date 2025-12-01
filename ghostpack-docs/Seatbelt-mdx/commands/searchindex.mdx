@@ -1,0 +1,176 @@
+---
+title: 'SearchIndex'
+description: 'Query results from the Windows Search Index'
+icon: 'magnifying-glass'
+---
+
+## Overview
+
+The SearchIndex command queries the Windows Search Index to locate files matching specified patterns. The Windows Search Index maintains a database of file metadata and content for faster searching. This command is useful for quickly finding files containing sensitive keywords like passwords, credentials, keys, and other security-relevant terms without performing full file system traversal.
+
+## Syntax
+
+```
+Seatbelt.exe SearchIndex
+```
+
+To specify custom search parameters:
+
+```
+Seatbelt.exe "SearchIndex <search_path> <pattern1,pattern2,...>"
+```
+
+### Arguments
+
+- **search_path** (optional) - Directory path to search within. Defaults to searching all indexed locations
+- **pattern1,pattern2,...** (optional) - Comma-separated list of search patterns/keywords. Default is "password"
+
+### Examples
+
+```
+Seatbelt.exe SearchIndex
+# Searches for "password" in all indexed locations (default)
+
+Seatbelt.exe "SearchIndex C:\Users password,credential,key"
+# Searches C:\Users for files containing "password", "credential", or "key"
+
+Seatbelt.exe "SearchIndex C:\Users\john\Documents api,token,secret"
+# Searches Documents folder for files containing "api", "token", or "secret"
+
+Seatbelt.exe "SearchIndex C:\ config,connection,database"
+# Searches entire C: drive for configuration and database files
+```
+
+## Output
+
+The command returns:
+- File path
+- File name
+- File size
+- Last modified timestamp
+- File type/extension
+- Matched search term
+- File title (if available)
+- File author (if available)
+
+## Use Cases
+
+### Red Team
+- Quickly locate files containing passwords
+- Find credential files without full filesystem scan
+- Discover API keys and tokens in documents
+- Locate configuration files with sensitive data
+- Find private keys and certificates
+- Identify database connection strings
+- Discover sensitive emails and documents
+- Locate scripts with hardcoded credentials
+- Find backup files with credentials
+- Identify files with security-relevant keywords
+
+### Blue Team
+- Audit for insecure credential storage
+- Identify sensitive data at risk
+- Detect policy violations (credentials in files)
+- Support incident response investigations
+- Locate potentially compromised credentials
+- Audit data loss prevention compliance
+- Identify files requiring encryption
+- Discover Shadow IT credentials
+- Validate secure credential storage practices
+- Support forensic analysis
+- Identify insider threat indicators
+
+## Example Output
+
+```
+====== SearchIndex (Pattern: password) ======
+
+  File     : C:\Users\john\Documents\passwords.txt
+  Name     : passwords.txt
+  Size     : 2,345 bytes
+  Modified : 10/15/2023 2:34:12 PM
+  Type     : Text Document
+  Match    : password
+
+  File     : C:\Users\john\Desktop\Notes.docx
+  Name     : Notes.docx
+  Size     : 45,678 bytes
+  Modified : 9/20/2023 9:15:43 AM
+  Type     : Word Document
+  Title    : Meeting Notes
+  Author   : John Doe
+  Match    : password
+
+====== SearchIndex (Path: C:\Users - Patterns: api,token,secret) ======
+
+  File     : C:\Users\john\Documents\api_keys.xlsx
+  Name     : api_keys.xlsx
+  Size     : 12,456 bytes
+  Modified : 10/18/2023 1:12:33 PM
+  Type     : Excel Spreadsheet
+  Match    : api
+
+  File     : C:\Users\john\Code\config.json
+  Name     : config.json
+  Size     : 3,456 bytes
+  Modified : 10/10/2023 3:45:21 PM
+  Type     : JSON File
+  Match    : token
+
+  File     : C:\Users\john\Downloads\secrets.txt
+  Name     : secrets.txt
+  Size     : 1,234 bytes
+  Modified : 10/5/2023 11:22:56 AM
+  Type     : Text Document
+  Match    : secret
+```
+
+## Performance Considerations
+
+**WARNING:** This command can be time-intensive depending on the scope of the search.
+
+Performance factors:
+- Size of the Windows Search Index
+- Number of indexed locations
+- Breadth of search path specified
+- Number of search patterns
+- Index update status
+- System performance
+
+Searching broad paths (e.g., C:\) with multiple patterns can take considerable time. For faster results, use specific paths and limited patterns.
+
+**Note:** This command only searches indexed locations. Files in non-indexed directories or with indexing disabled will not be found.
+
+## Remote Execution
+
+This command does not support remote execution. Windows Search Index queries must be performed on the local system.
+
+## Detection Considerations
+
+### Indicators
+- COM interface queries to Windows Search Index
+- Access to Windows.edb (Search Index database)
+- SQL queries against Search Index
+- Access to HKLM\SOFTWARE\Microsoft\Windows Search
+- Unusual processes querying Search Index
+- Large-scale index enumeration
+
+### Defensive Recommendations
+- Monitor for Windows Search Index queries by suspicious processes
+- Alert on mass Search Index enumeration
+- Track processes accessing Windows.edb
+- Implement least privilege for Search Index access
+- Use AppLocker or similar to control execution of enumeration tools
+- Monitor for sensitive keyword searches in audit logs
+- Correlate Search Index queries with other reconnaissance
+- Consider disabling indexing for sensitive directories
+- Monitor COM interface usage for Search Index access
+- Track unusual search patterns or query volumes
+
+## Related Commands
+
+- **InterestingFiles** - "Interesting" files matching various patterns (filesystem scan)
+- **FileInfo** - Information about specific files
+- **dir** - Lists files/folders in specified directories
+- **RecycleBin** - Items in the Recycle Bin
+- **LOLBAS** - Locates Living Off The Land Binaries and Scripts

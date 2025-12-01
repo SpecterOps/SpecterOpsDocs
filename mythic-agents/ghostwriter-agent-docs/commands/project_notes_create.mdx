@@ -1,0 +1,40 @@
+---
+title: "project_notes_create"
+description: "Create a new project note"
+---
+
+## Summary
+
+Add a new note to document information, observations, or coordination details.
+
+- Needs Admin: False
+- Version: 1-2
+- Author: @its_a_feature_
+
+### Arguments
+
+#### title
+- Description: Title of the note
+- Required: True
+
+#### content
+- Description: Note content
+- Required: True
+
+
+## Usage
+
+```
+project_notes_create -title "Network Architecture" -content "Internal network uses 10.0.0.0/8"
+```
+
+## Detailed Summary
+
+Creates a new project note for team collaboration. Notes can document:
+- Network architecture observations
+- Credential information
+- Target prioritization
+- Coordination between team members
+- Important discoveries that need follow-up
+
+Notes are visible to all project team members in Ghostwriter.

@@ -1,0 +1,384 @@
+---
+title: "MythicRPC"
+---
+
+## What is MythicRPC
+
+MythicRPC provides a way to execution functions against Mythic and Mythic's database programmatically from within your command's tasking files via RabbitMQ.
+
+## Where is MythicRPC
+
+MythicRPC lives as part of the `mythic_container` PyPi package (and `github.com/MythicMeta/MythicContainer` GoLang package) that's included in all of the `itsafeaturemythic` Docker images. This PyPi package uses RabbitMQ's RPC functionality to execute functions that exist within Mythic.
+
+The full list of commands can be found here: [https://github.com/MythicMeta/MythicContainerPyPi/tree/main/mythic\_container/MythicGoRPC](https://github.com/MythicMeta/MythicContainerPyPi/tree/main/mythic_container/MythicGoRPC) for Python and [https://github.com/MythicMeta/MythicContainer/tree/main/mythicrpc](https://github.com/MythicMeta/MythicContainer/tree/main/mythicrpc) for GoLang.
+
+## MythicRPC Calls
+
+Your execution comes from a Docker container as part of a payload type, c2 profile, eventing container, etc and not directly through a user interaction when issuing a MythicRPC call.
+
+This is important because Mythic has the concept of "operations". You, as a user, have a current operation, and when you view things in the UI you're scoped to that operation.
+When you execute these MythicRPC calls, you lose that context. We need a way to add that back so that if you do something like searching for files, they're scoped to the appropriate operation.
+
+You'll notice that most of these MythicRPC calls take one of the following:
+
+* TaskID - this is the ID of your task, typically passed to you as part of the taskData
+* AgentCallbackID - This is your callback's UUID string value (this is how an agent knows itself as a callback)
+* CallbackID - This is your callback's integer ID, this is how Mythic knows of a callback
+* OperationID - This is the ID of your operation directly
+* PayloadUUID - This is the UUID of your payload - what your payload knows itself as.
+
+Some things might sound like they're enough, but aren't:
+
+* TaskDisplayID / CallbackDisplayID - these values simply represent a monotonically increasing count of the number of tasks/callbacks within an operation. This isn't enough to scope a query down to an operation because every operation will have a TaskDisplayID 1 or a CallbackDisplayID 1.
+
+### Types of IDs
+
+There are a few different kinds of IDs that get used throughout these MythicRPC calls and even in Mythic's Scripting. So let's take a moment to clarify them.
+
+* Agent\* - if the ID starts with "agent", then it's something from the agent's perspective. So an `agent_task_id` is the UUID that an agent gets that's associated with a task. A `agent_callback_id` is the UUID that an agent gets that's associated with their callback.
+* Display - Display IDs are what's shown to the user to make it easier to see what's going on and to have some consistency in each operation. The first task of every operation will have a DisplayID of 1. The first callback in every operation will have a DisplayID of 1. This is different from the actual ID of the task/callback which is a monotonically increasing number representing the row in the database that corresponds to the data.
+
+
+### MythicRPC Naming Convention
+
+You'll notice as you look through the MythicRPC functions that there's a specific pattern: SendMythicRPC[thing][action]. Take some of the following examples:
+
+* SendMythicRPCFileSearch - searching metadata about files (uploads, downloads, payloads, screenshots, etc)
+* SendMythicRPCFileGetContent - for a specific file, fetch the actual _contents_ of the file.
+* SendMythicRPCProxyStart - ask Mythic to start proxying traffic (socks / rpfwds)
+* SendMythicRPCCallbackAddCommand - add a command to a specific callback so that it'll be available in the UI for tasking
+
+This makes it pretty easy to start looking for what you're trying to do.
+
+Every function takes one input and returns one output with similar names. For example: the `SendMythicRPCFileSearch` function takes in one parameter as `MythicRPCFileSearchMessage` and returns `MythicRPCFileSearchMessageResponse`.
+
+## MythicRPC Functions
+
+This section will go through the different MythicRPC functions that are available and highlight which pieces are required or any potentially confusing pieces.
+Please refer to the links above to the respective Go and PyPi libraries for the exact code and typehints you'll be leveraging for your implementations.
+
+#### SendMythicRPCAgentStorageCreate
+
+This function allows you to add any arbitrary byte data to the database in the `AgentStorage` table by some unique string you specify.
+
+Both `UniqueID` (just a string, doesn't have to be a UUID or anything) and `DataToStore` (bytes) are required.
+
+#### SendMythicRPCAgentStorageRemove
+
+This function allows you to remove any arbitrary data from the `AgentStorage` table by looking up the data via the unique string provided when the SendMythicRPCAgentStorageCreate function was called.
+This function just takes in one required parameter, `UniqueID`, a string.
+
+#### SendMythicRPCAgentStorageSearch
+
+This function allows you to lookup any data from the `AgentStorage` table via the `SearchUniqueID` (string) field.
+
+#### SendMythicRPCAPITokenCreate
+
+This function allows you to get a temporary API Token from Mythic for use with Mythic Scripting. There are 4 parameters, but you only need to supply one of them. This is needed so that Mythic can scope the API token to the right operation.
+`AgentTaskID` is a string, so it's the UUID value that the agent would know for a task. This is available as part of your `create_go_tasking` function.
+`AgentCallbackID` is a string, so it's the UUID value that the agent would know for its own callback. This is also available as part of your `create_go_tasking`, but this might also be the only piece of information you have if you're trying to do something like this from within a C2 Profile container.
+`PayloadUUID` is a string, so it's the `self.uuid` value you'd have access to during a payload's build.
+`OperationID` is an integer, so it's the actual operation id value from the database.
+
+These tokens will automatically expire either when the associated task finishes or after 5 minutes, so there's no need to worry about trying to clean them up directly.
+
+#### SendMythicRPCArtifactCreate
+
+This function allows you to create an artifact within Mythic and associate it with a specific task. The `TaskID` (int), `ArtifactMessage` (the string value of the actual artifact you're tracking), and the `BaseArtifactType` are all required.
+The `BaseArtifactType` can be whatever you want, but it's the more general piece like `ProcessCreate`.
+
+#### SendMythicRPCArtifactSearch
+
+This function allows you to search for already created artifacts. You must supply the `TaskID` so that the query can be scoped, and then you must supply `SearchArtifacts` which is an object of type `MythicRPCArtifactSearchArtifactData` containing what it is you're searching for.
+If you want to just search for all artifacts on a specific host, you can just supply the host value. If you want all artifacts from a specific task, supply the `task_id` value here.
+
+#### SendMythicRPCCallbackAddCommand
+
+This function allows you to track existing commands for a given payload type as being available within a specific callback. This does _NOT_ create new commands.
+The `TaskID` or `AgentCallbackID` field is required so that the operation can be appropriately scoped.
+The `CallbackIDs` array (ints) says which callbacks you're trying to associate the `Commands` (string array).
+Say Callback 5 is an Apollo-based callback and you want to register the `whoami` command. If you don't specify the `PayloadType`, then Mythic will assume `whoami` is an Apollo command you're trying to register. However, if you have a `whoami` command from some other payload type that you're trying to make available within this callback, then you need to specify the `PayloadType` (string) here so that Mythic can look up the appropriate command.
+
+#### SendMythicRPCCallbackCommandSearch
+
+This function allows you to search for commands that are available within a specific callback. You must supply either `TaskID` (int) or `CallbackID` (int) so that the query can be scoped appropriately.
+The `SearchCommandNames`, `SearchSupportedUIFeatures`, `SearchScriptOnly`, and `SearchAttributes` are simply ways to limit your search within the callback for specific commands.
+
+#### SendMythicRPCCallbackCreate
+
+This function allows you to create a new callback in Mythic's UI. This can be particularly helpful for 3rd Party Service agents (like `bloodhound` or `ghostwriter`) that don't have an actual payload to execute, but are using the Mythic interface to provide a way to interact with these services.
+The `PayloadUUID` (string) and `C2ProfileName` fields are required, everything else is just a way to make the callback look like you want in the UI.
+
+#### SendMythicRPCCallbackDecryptBytes
+
+This function allows you to ask Mythic to decrypt a message from a specified callback. To do this, Mythic needs a few pieces of information that it would normally automatically get:
+
+* `AgentCallbackUUID` - this is the string UUID of the callback and how Mythic looks up a lot of crypto information
+* `Message` - the actual bytes of the message you want decrypted
+* `IncludesUUID` - indicating if `Message` starts with the `AgentCallbackUUID` or not
+* `IsBase64Encoded` - indicates if `Message` is a base64 blob or not
+* `C2Profile` - the name of the C2 profile that this message would have come from, this helps Mythic look up the proper crypto pieces if needed
+
+#### SendMythicRPCCallbackDisplayToRealIDSearch
+
+This function allows you to take a callback's Display ID and an associated OperationID or OperationName and look up the actual Callback ID. Remember, DisplayIDs are not unique and increase from 1 for each operation. This is why in order to get a callback's actual ID from a DisplayID (what you'd see in the UI looking at the active callbacks table), you need one other piece of information to find the associated operation.
+
+#### SendMythicRPCCallbackEdgeSearch
+
+This function allows you to look for "edges" that exist (or existed at one point) for a specific callback. You need to supply either `AgentCallbackUUID` (string uuid) or `AgentCallbackID` (int) to do this search and then you can filter by `SearchC2ProfileName` or `SearchActiveEdgesOnly`.
+
+#### SendMythicRPCCallbackEncryptBytes
+
+This function allows you to do the opposite of `SendMythicRPCCallbackDecryptBytes`. To encrypt a message, you need to supply a few pieces of information to help scope things properly:
+
+* `AgentCallbackUUID` - the string UUID that the agent callback knows itself by
+* `Message` - the bytes of the message you want to encrypt
+* `IncludeUUID` - indicate if the resulting encrypted blob should include the UUID in front or not
+* `Base64ReturnMessage` - indicate if you want the resulting message to be base64 encoded or not
+* `C2Profile` - the name of the c2 profile that this comms would have gone through
+
+#### SendMythicRPCCallbackNextCheckinRange
+
+This function allows you to more generically supply the last checkin time and the current sleep and jitter values. This function will give you the Min and Max times between which the callback should check in.
+
+#### SendMythicRPCCallbackRemoveCommand
+
+This function is the opposite of the `SendMythicRPCCallbackAddCommand` function and is subject to the same restrictions and requirements.
+
+#### SendMythicRPCCallbackSearch
+
+This function allows you to search for callbacks. You must supply either `AgentCallbackUUID` (string) or `AgentCallbackID` (int) to scope the query down to the right operation. All of the other fields that start with `Search*` are ways that you can optionally filter down your search results.
+
+#### SendMythicRPCCallbackUpdate
+
+This function allows you to update aspects of a callback. You must supply one of the following:
+
+* `TaskID` - this scopes your operation and the callback to update is the one to which this task belongs
+* `CallbackID` (int) - this scopes your operation and updates this callback
+* `AgentCallbackUUID` (string) - this scopes your operation and updates this callback
+
+All of the other fields are things that you can update about the callback itself.
+
+The `UpdateLastCheckinTime` allows you to tell Mythic that it should not just update some attribute about the callback, but also pretend that the callback just checked in and update the last checkin time.
+If it's known and you're doing `UpdateLastCheckinTime`, you should also supply `UpdateLastCheckinTimeViaC2Profile` (string) with the name of the C2 profile that was "used". This helps mythic keep track of a few other things more precisely internally.
+
+#### SendMythicRPCCallbackTokenCreate
+
+This function allows you to associate a tracked "token" with a callback. The `TaskID` is required, as usual. The `CallbackTokens` is an array of objects that specify which tokens you want to associate.
+In this `MythicRPCCallbackTokenCreateCallbackTokenData` object, `action` will be `add`, and `TokenId` is going to be how you identify which token to add. This `TokenId` is provided by the agent when you add the token to be tracked originally.
+
+#### SendMythicRPCCallbackTokenRemove
+
+This function is the opposite of the `SendMythicRPCCallbackTokenCreate` function and all you need to do differently is switch the `action` to `remove` instead of `add`.
+
+#### SendMythicRPCCommandSearch
+
+This function allows you to search for commands in general across payload types (not ones loaded into callbacks or baked into payloads).
+All of the fields are optional, but you can scope your query down to a certain `SearchPayloadTypeName`, certain command names `SearchCommandNames`, and other ways.
+
+#### SendMythicRPCCredentialCreate
+
+This function allows you to register credentials within Mythic's credential store. THe `TaskID` is required so that the data can be appropriately scoped. the `Credentials` array, of type `MythicRPCCredentialCreateCredentialData`, defines the various credentials you want to add.
+You must provide the `Credential`, but everything else is optional. If you don't provide a `CredentialType`, it defaults to `plaintext`.
+The `CredentialType` options are: plaintext, certificate, hash, key, ticket, cookie, and hex.
+
+#### SendMythicRPCCredentialSearch
+
+This function allows you to search for specific credentials within Mythic's credential store. The `TaskID` is required so that the query can be scoped to the right operation. After that, the `SearchCredentials` object allows you to specify what kinds of data you're looking for.
+
+#### SendMythicRPCFileCreate
+
+This function allows you to register bytes to a file within Mythic and track metadata about it. This is needed if you want to then chunk up and transfer a file down to an agent.
+The `TaskID` (int), `PayloadUUID` (string), or `AgentCallbackID` (string) values are required to appropriately scope the operation where this file will be created. Only one of them is needed.
+
+`FileContents` is the actual bytes that you want saved to disk. `DeleteAfterFetch` allows you to specify if the file should be deleted from Mythic's disk after the agent successfully fetches it (this can be useful so that you don't clutter the disk or the UI with temporary files).
+The `Filename` is self explanatory, along with `IsScreenshot` and `IsDownloadFromAgent`. These pieces allow you to provide some extra context about the file. If this file is going to be hosted on a remote target somewhere, you can optionally specify `TargetHostName` and `RemotePathOnTarget` so that Mythic's UI can properly track it.
+
+#### SendMythicRPCFileGetContent
+
+This function allows you to get the actual file contents for a specified file. The `SendMythicRPCFileGetContentMessage` takes in one parameter, `AgentFileID` (string) which is the UUID of the file.
+If you upload a file as part of tasking, say for a parameter called `assembly`, then in your `create_go_tasking`, the `assembly` value will be this UUID which you can pass right into the `AgentFileID` field.
+
+
+#### SendMythicRPCFileSearch
+
+This function allows you to search for files that haven't been deleted within Mythic's tracking. The `TaskID` or `CallbackID` or `OperationId` is needed to scope the search unless you're specifically providing the `AgentFileID` (UUID that's unique enough).
+You can filter what you want to search by and if you want to limit your search to files associated with the current callback or more generally for this operation.
+You can also limit how many you want and if you want to include Payloads, Downloads (normally just uploads), and screenshots.
+
+#### SendMythicRPCFileUpdate
+
+This function allows you to update information about the file specified by `AgentFileID` (string). This `AgentFileID` is the UUID value of the string.
+You can adjust the comment on the file, change the filename, append or replace the file contents, and even mark it for deletion.
+If you set `DeleteAfterFetch` to `true`, then once any agent fetches this file from the Mythic server, Mythic will then delete the file off disk and mark it as deleted. This can be helpful for temporary stubs you generate that you want to be removed after the agent successfully fetches it.
+
+#### SendMythicRPCFileBrowserCreate
+
+This function allows you to register "files" within the File Browser. There's no actual file content with these, instead it's more metadata specific. The `TaskID` parameter is required because it allows Mythic to scope this data to the right operation and associate it with coming from a specific task.
+The content of the `FileBrowser` class is the same as when an agent is trying to hook into this same functionality [from the agent side](customizing/hooking-features/file-browser).
+
+#### SendMythicRPCFileBrowserParsePath
+
+This function allows you to pass in a `Path` (string) and have Mythic attempt to parse it into its specific sections. The resulting `AnalyzedPath` specifies the host (if one was specified as part of a UNC Path), the path separator used (`/` or `\`), and an array of all the pieces of the path.
+This function attempts to allow a more consistent approach for agents wanting to handle a variety of pathing options without needing to write parsing logic on their own.
+
+#### SendMythicRPCFileBrowserRemove
+
+This function allows you to mark files in the file browser as deleted. They'll hide from view unless you specifically click a button in the UI to see deleted files as well (they'll have a strikethrough).
+The `TaskID` field is required and allows Mythic to appropriately scope the queries to the right operation. The `RemovedFiles` array of objects identify the absolute path to the file/folder that's removed and (optionally) the Host if it's different than the host where the task/callback is running.
+
+#### SendMythicRPCHandleAgentJSON
+
+This function allows you to send a normal full agent JSON message to Mythic for processing. You need to specify either the `CallbackID` (int) or `AgentCallbackID` (uuid string) of the callback where this message is coming from.
+You also need to supply the name of the C2 profile where the message is coming from.
+
+#### SendMythicRPCKeylogCreate
+
+This function allows you to register keystrokes within Mythic's database. The `TaskID` is required as it allows Mythic to scope the keylogs to the appropriate operation and task.
+The `Keylogs` array allows you to specify the User, Host, and Window title where the keystrokes are coming from, but only the actual keystrokes themselves are required.
+
+#### SendMythicRPCKeylogSearch
+
+This function allows you to search for keylogs by either specific keystrokes, window titles, or users.
+The `TaskID` parameter is required as it allows Mythic to scope the query to the appropriate operation.
+
+#### SendMythicRPCOperationEventLogCreate
+
+This function allows you to send a message to the event log. You need to provide either `TaskId`, `CallbackId`, `CallbackAgentId`, or `OperationId` to appropriately scope the message to the right operation.
+After that, the `message` is what you actually want to send and the `MessageLevel` indicates if you want it to be a `warning`, `debug`, or `info` message.
+
+#### SendMythicRPCPayloadAddCommand
+
+This function allows you to add a command to an already created payload so that when that payload is executed and turned into a callback, Mythic will track the command as available for use.
+You must supply the `PayloadUUID` value so Mythic knows exactly which payload and then the `Commands` array is where you specify the names of the commands you want to add.
+This can be particularly helpful during payload building if you decide that you need to add more commands to the payload than what the user selected (ex: the user selected a command that has a dependency but didn't select the dependency).
+
+#### SendMythicRPCPayloadCreateFromScratch
+
+This function allows you to create an entirely new payload from scratch by specify all the components - build parameters, os, c2 profiles and their parameters, commands, filename, description, etc. You must supply the `TaskID` because this allows Mythic to scope the build to the appropriate operation.
+
+#### SendMythicRPCPayloadCreateFromUUID
+
+This function allows you to create a payload based on an existing payload (specified by UUID), but allows you to modify the new payload's description, filename, and optionally if you want to register that it's going to be placed on a remote host. This remote host piece can be really helpful if you're doing this as part of a lateral movement technique so that the new payload will already be associated with the remote host in a `link` dropdown modal.
+The `PayloadUUID` and `TaskID` values are required so that Mythic can properly track not just that the new Payload is in the right operation, but specifically where / why the new payload is getting created.
+
+#### SendMythicRPCPayloadGetContent
+
+This function allows you to get the content of a payload based on its UUID. The `PayloadUUID` field is required.
+
+#### SendMythicRPCPayloadRemoveCommand
+
+This function allows you to remove commands from a payload that's tracked with Mythic. While this doesn't actually modify the payload file itself, it does inform Mythic that when the payload executes and becomes a callback, that the specified commands are no longer available for tasking.
+`PayloadUUID` and `Commands` are both required fields.
+
+#### SendMythicRPCPayloadSearch
+
+This function allows you to search for payloads. If you just provide the `PayloadUUID` value, then Mythic will get that specific payload's configuration. Otherwise, you need to provide the `CallbackID` (int) so that Mythic can scope the search to the appropriate operation.
+The other fields, `Description`, `Filename`, `PayloadTypes` array, and `BuildParameters` allow you to narrow your search to just specific payloads from specific payload types, ones with specific build parameter values, or with specific filename/descriptions.
+
+#### SendMythicRPCPayloadUpdateBuildStep
+
+This function allows you to update the status of build steps during the build process for your payload. You must supply the `PayloadUUID` so Mythic knows which payload and the `StepName` so Mythic knows which step this is referring to. Then you can specify if there's any `StepStdout` or `StepStderr` to capture. You then need to specify if the step was success/error (`StepSuccess`) or if the step was skipped `StepSkip`.
+
+#### SendMythicRPCPayloadOnHostCreate
+
+This function allows you to register a specific payload on a specific host. This is helpful for linking payloads if you know that a payload is already going to exist on a specific host.
+`TaskID` is required because it allows Mythic to scope to the right operation and to track which task caused the payload to end up on a specific host.
+This can be helpful as part of a `process_response` function call when doing lateral movement so that you can automatically update Mythic that your payload is on a remote host after you do something like upload it via SMB.
+
+#### SendMythicRPCProcessCreate
+
+This function allows you to create new processes for the Process Browser in the Mythic UI. The `TaskID` value is required as it allows Mythic to scope the data to the appropriate operation.
+The array of Process data is the same as what the [agent would supply](customizing/hooking-features/process_list) when doing the same thing.
+
+#### SendMythicRPCProcessSearch
+
+This function allows you to search for processes across a wide variety of attributes. The `TaskID` value is required because it allows Mythic to scope the search to the right operation.
+
+#### SendMythicRPCProxyStart
+
+This function indicates to Mythic that it needs to track a new proxy connection. `TaskID` is a required value as it allows Mythic to appropriately scope to the right operation and callback.
+The `LocalPort` for a `PortType` of `socks` means the port that the Mythic server will open up. The `LocalPort` for a `PortType` of `rpfwd` is the port that the _agent_ is going to open up.
+`RemoteIP` and `RemotePort` are both for `rpfwd` connections. You can optionally add authentication to your `socks` ports by supplying a `Username` and `Password` value.
+For `socks`, if you don't provide a local port and leave it at `0`, then Mythic will select a port for you and let you know which one it is in the response.
+
+#### SendMythicRPCProxyStop
+
+This function indicates to Mythic that it needs to stop a proxied capability; if this is a `socks` connection, it'll close the associated port. The `Port` here is the port that Mythic opened or the port that the agent opened.
+If you started a port with a `Username` and `Password`, then you need to supply those again to close it.
+
+#### SendMythicRPCResponseCreate
+
+This function allows you to send output a task's output in the Mythic UI. This requires the `TaskID` so Mythic knows which task to associate the new output with and then the raw bytes of the output.
+Mythic saves this as raw bytes to help reduce issues between encodings and potential null characters from assembly/bof outputs.
+
+#### SendMythicRPCResponseSearch
+
+This function allows you to search for content in responses from a specific task. Both `TaskID` and `Response` are required.
+
+#### SendMythicRPCTagCreate
+
+This function allows you to tag tasks, files, credentials, or mtyhictree (FileBrowser / ProcessBrowser) objects with tags.
+`TagTypeID` is a required field so that Mythic knows which tag this is an instance of. You also need to supply one of `TaskID`, `FileID`, `CredentialID`, or `MythicTreeID` so that Mythic can associate the tag with the appropriate object.
+
+#### SendMythicRPCTagSearch
+
+This function allows you to search through existing tags. The `TaskID` field is required as it allows Mythic to scope the query to the right operation. All of the `Search*` fields allow you to scope your search.
+
+#### SendMythicRPCTagTypeGetOrCreate
+
+This function allows you to create tag types in an idempotent manner - if the tagtype already exists, the existing object will be returned or a new one will get created.
+The `TaskID` field is required because it allows Mythic to scope this mutation to the right operation. Outside of that, you must supply either the TagTypeID to fetch the data associated with a specific tagtype or you must supply the name, color, and description to create your tagtype.
+
+#### SendMythicRPCTaskCreate
+
+This function allows you to create a new task for a specific callback. This isn't a subtask of an existing task, but a new task. There are a few things you must provide:
+
+* `AgentCallbackID` - this is the UUID string of the callback you want to task
+* `CommandName` - this is the name of the command you want to issue
+* `Params` - these are the string version of the parameters you want to provide. In the vast majority of the time, you should be using a dictionary to call out all of the parameters and then turn that dictionary into a json string for this.
+
+You can optionally provide `PayloadTypeName` if the command you're wanting to issue isn't part of the payload type for the callback. That might sound confusing, but a good example would be the `forge` CommandAugmentation container. You might want to issue a `forge` command to an `apollo` callback.
+You can optionally provide a `Token` (int) identifier as well if you want to indicate to your agent to use a specific token for the task.
+
+#### SendMythicRPCTaskCreateSubtask
+
+This function allows you to create a subtask of the current task. By doing things this way as compared to the above function, you can provide a `SubtaskCallbackFunction` name and get execution again when the subtask finishes.
+You must provide the `TaskID` value so that Mythic can associate this subtask with the appropriate task.
+Similarly to the above command, you can optionally provide the `PayloadTypeName` if the `CommandName` you're trying to issue isn't associated with the callback payload type, but another one.
+`Params` can be an empty string, but if you're providing parameters then ideally you provide a JSON string representation of the parameters by name.
+`SubtaskCallbackFunction` allows you to provide the name of a function for execution upon the subtask finishing (successfully or with error).
+
+#### SendMythicRPCTaskCreateSubtaskGroup
+
+This function allows you to create multiple subtasks of the current task all at once and register a single function to get execution when all of them finish.
+This is very similar to the `SendMythicRPCTaskCreateSubtask` function, except it's for a group rather than a single task.
+`TaskID` is a required field so that Mythic knows which task these new tasks will be under.
+`GroupName` is also required so that Mythic can group all of these tasks together.
+The `Tasks` list is the list of tasks to create which all require a `CommandName` at least.
+
+#### SendMythicRPCTaskDisplayToRealIDSearch
+
+This function allows you to take an operation (name or id) and a task's display ID and convert it into the Task's real ID (TaskID).
+In the vast majority of instances you shouldn't need to use this function, but it can be a helpful way to convert if you only happen to have a display ID for a task and an Operation Name/ID, but need the task's real ID.
+
+#### SendMythicRPCTaskSearch
+
+This function allows you to search for tasks that have already executed. You must provide `TaskID` so that your search can be scoped to the right operation.
+All of the `Search*` parameters allow you to narrow down your search.
+
+
+#### SendMythicRPCTaskUpdate
+
+This function allows you to update various attributes about a task. The `TaskID` field is required so that Mythic knows which task to update.
+All of the `Update*` fields allow you to control which things you want to update. It's very common to update the `UpdateStatus` field with custom status options and to do the `UpdateCompleted` to mark the task as finished.
+
+#### SendMythicRPCAPITokenCreate
+
+This function allows you to create a "token" within Mythic's token tracking. This is a precursor to adding a token to a callback.
+The `TaskID` field is required as it allows Mythic to scope this to the right operation. The list of `Tokens` is also required, but for each `Token`, you only have to provide the `TokenID` (this is an agent-created ID that allows Mythic and the agent to reference the same token).
+
+#### SendMythicRPCTokenRemove
+
+This function allows you to remove tokens from Mythic's token tracking. Similar to the create function, you must provide the `TaskID` field so that Mythic can scope this to the right operation.
+In the Tokens list, the only required field is the `TokenID` so that Mythic can look up the right tokens to mark them as deleted.

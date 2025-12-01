@@ -1,0 +1,33 @@
+---
+title: "evidence_delete"
+description: "Delete an evidence entry"
+---
+
+## Summary
+
+Remove evidence from the report. This will also remove the file from Ghostwriter.
+
+- Needs Admin: False
+- Version: 1-2
+- Author: @its_a_feature_
+
+### Arguments
+
+#### evidence_id
+- Description: ID of the evidence to delete
+- Required: True
+
+
+## Usage
+
+```
+evidence_delete -evidence_id 15
+```
+
+## Detailed Summary
+
+Permanently deletes evidence from Ghostwriter including the uploaded file.
+
+<Warning>
+This action cannot be undone. Any findings referencing this evidence will have their attachments removed.
+</Warning>

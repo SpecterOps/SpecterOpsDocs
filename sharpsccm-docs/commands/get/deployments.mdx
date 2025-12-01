@@ -1,0 +1,263 @@
+---
+title: 'get deployments'
+description: 'Analyze application deployment assignments'
+icon: 'rocket'
+sidebarTitle: 'deployments'
+---
+
+## Overview
+
+Analyze application deployment assignments to understand how applications are distributed across the environment. Deployments reveal targeting strategies, security implications, and potential attack opportunities.
+
+## Syntax
+
+```bash
+SharpSCCM get deployments [options]
+```
+
+## Parameters
+
+<ParamField path="sms-provider" type="string">
+  The IP address, FQDN, or NetBIOS name of the SMS Provider to connect to
+</ParamField>
+
+<ParamField path="site-code" type="string">
+  The three-character site code (e.g., "PS1")
+</ParamField>
+
+<ParamField path="name" type="string">
+  Filter deployments by application name (supports partial matching)
+</ParamField>
+
+<ParamField path="collection" type="string">
+  Filter by target collection name
+</ParamField>
+
+<ParamField path="properties" type="string">
+  Specify properties to retrieve (can be used multiple times)
+</ParamField>
+
+<ParamField path="where-condition" type="string">
+  Custom WQL WHERE clause for advanced filtering
+</ParamField>
+
+<ParamField path="count" type="boolean">
+  Return count of results only
+</ParamField>
+
+<ParamField path="verbose" type="boolean">
+  Display all deployment properties
+</ParamField>
+
+## Examples
+
+<CodeGroup>
+```bash Basic Usage
+# List all deployments
+SharpSCCM get deployments -sms SCCM01.corp.local -sc PS1
+
+# Count total deployments
+SharpSCCM get deployments -c -sms SCCM01.corp.local -sc PS1
+```
+
+```bash Deployment Analysis
+# Find deployments for specific application
+SharpSCCM get deployments -n "PowerShell" -sms SCCM01.corp.local -sc PS1
+
+# Find deployments to specific collection
+SharpSCCM get deployments -collection "Admin Workstations" -sms SCCM01.corp.local -sc PS1
+```
+
+```bash Security Analysis
+# Required deployments (forced installation)
+SharpSCCM get deployments -w "DeploymentIntent = 1" -sms SCCM01.corp.local -sc PS1
+
+# Available deployments (user choice)
+SharpSCCM get deployments -w "DeploymentIntent = 2" -sms SCCM01.corp.local -sc PS1
+
+# Deployments with no user interaction
+SharpSCCM get deployments -w "RequireUserInteraction = False" -sms SCCM01.corp.local -sc PS1
+```
+</CodeGroup>
+
+## Key Properties
+
+| Property | Description | Values |
+|----------|-------------|--------|
+| `ApplicationName` | Deployed application | Application name |
+| `CollectionName` | Target collection | Collection name |
+| `DeploymentIntent` | Deployment type | 1 (Required), 2 (Available) |
+| `RequireUserInteraction` | User interaction | True/False |
+| `DeploymentTime` | Deployment schedule | Timestamp |
+| `EnforcementDeadline` | Deadline for installation | Timestamp |
+| `OverrideServiceWindows` | Service window override | True/False |
+| `RebootOutsideOfServiceWindows` | Reboot permissions | True/False |
+
+## Required Permissions
+
+<Info>
+  **Application Administrator** or **Read-only Analyst** role
+</Info>
+
+## Deployment Analysis
+
+<Accordion title="Deployment Types">
+  **Required Deployments (DeploymentIntent = 1):**
+  - Forced installation on target systems
+  - No user choice or intervention
+  - Automatic execution based on schedule
+
+  **Available Deployments (DeploymentIntent = 2):**
+  - User can choose to install
+  - Visible in Software Center
+  - User-initiated installation
+
+  **Install vs Uninstall:**
+  - Install deployments add software
+  - Uninstall deployments remove software
+  - Supersedence deployments replace software
+</Accordion>
+
+<Accordion title="Security Implications">
+  **High-Risk Deployments:**
+  - Required deployments with no user interaction
+  - Deployments that override service windows
+  - Deployments with forced reboots
+  - Deployments to administrative collections
+
+  **Stealth Deployments:**
+  - Silent installations (RequireUserInteraction = False)
+  - Outside maintenance windows
+  - Immediate execution deployments
+</Accordion>
+
+## Attack Opportunities
+
+<Accordion title="Deployment Abuse">
+  **Malicious Application Deployment:**
+  - Deploy malicious applications to target collections
+  - Use required deployments for forced execution
+  - Target administrative collections for privilege escalation
+
+  **Legitimate Application Abuse:**
+  - Abuse existing deployments for lateral movement
+  - Modify deployment settings for stealth execution
+  - Use application supersedence for payload delivery
+</Accordion>
+
+<Accordion title="Collection Targeting">
+  **High-Value Targets:**
+  - Administrative workstation collections
+  - Server collections
+  - Critical infrastructure collections
+
+  **Broad Impact:**
+  - All Systems collection for maximum reach
+  - Domain computer collections for lateral movement
+  - User collections for credential harvesting
+</Accordion>
+
+## Intelligence Gathering
+
+<Accordion title="Organizational Patterns">
+  **Deployment Strategies:**
+  - Pilot groups for testing
+  - Phased rollouts across collections
+  - Emergency deployments for critical updates
+
+  **Administrative Practices:**
+  - Service window usage and overrides
+  - User interaction requirements
+  - Reboot and maintenance policies
+</Accordion>
+
+<Accordion title="Security Analysis">
+  **Risk Assessment:**
+  - Required deployments with broad targeting
+  - Silent installations without user notification
+  - Deployments to privileged collections
+  - Applications with system-level execution
+</Accordion>
+
+## Common Queries
+
+<CodeGroup>
+```sql Required Deployments
+DeploymentIntent = 1
+```
+
+```sql Silent Installations
+RequireUserInteraction = False
+```
+
+```sql Service Window Overrides
+OverrideServiceWindows = True
+```
+
+```sql Immediate Deployments
+DeploymentTime <= GETDATE()
+```
+</CodeGroup>
+
+## Use Cases
+
+<Accordion title="Attack Vector Analysis">
+  **Deployment Mechanisms:**
+  - Identify deployment patterns and schedules
+  - Understand collection targeting strategies
+  - Analyze security configurations and overrides
+
+  **Privilege Escalation:**
+  - Target deployments to administrative collections
+  - Abuse system-context applications
+  - Exploit forced deployment mechanisms
+</Accordion>
+
+<Accordion title="Lateral Movement Planning">
+  **Collection Analysis:**
+  - Identify broad-reaching collections
+  - Target specific organizational groups
+  - Exploit existing deployment relationships
+
+  **Timing and Stealth:**
+  - Use service windows for stealth
+  - Plan deployments during maintenance windows
+  - Avoid user interaction and notification
+</Accordion>
+
+## Output Analysis
+
+<Accordion title="Deployment Patterns">
+  **By Intent:**
+  - Required: Administrative control and compliance
+  - Available: User choice and self-service
+
+  **By Scope:**
+  - Broad deployments: Organization-wide software
+  - Targeted deployments: Role or group-specific software
+  - Test deployments: Pilot or staging deployments
+
+  **By Timing:**
+  - Scheduled: Planned deployment windows
+  - Immediate: Emergency or critical deployments
+  - Recurring: Ongoing or maintenance deployments
+</Accordion>
+
+<Accordion title="Security Considerations">
+  **High-Risk Deployments:**
+  - Required + Silent + Administrative collections
+  - System context + Broad targeting
+  - Service window overrides + Forced reboots
+
+  **Attack Indicators:**
+  - Unusual deployment patterns
+  - New deployments to administrative collections
+  - Silent deployments of unknown applications
+</Accordion>
+
+## Related Commands
+
+- [`get applications`](/commands/get/applications) - Analyze deployed applications
+- [`get collections`](/commands/get/collections) - Understand deployment targets
+- [`new application`](/commands/new/application) - Create applications for deployment
+- [`new deployment`](/commands/new/deployment) - Create malicious deployments

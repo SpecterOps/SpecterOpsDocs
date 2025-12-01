@@ -1,0 +1,59 @@
+---
+title: "upload"
+description: "Upload a new file to Nemesis for automatic processing and enrichment"
+---
+
+## Summary
+
+Upload a new file to Nemesis for processing. This command allows you to submit files to Nemesis where they will be automatically processed, enriched, and made available for querying through Nemesis's various data endpoints.
+
+- Needs Admin: False
+- Version: 2
+- Author: @its_a_feature_
+
+### Arguments
+
+#### file
+
+- Description: Select a file from your local system to upload
+- Required Value: True (for "Manually Upload New File" option)
+- Default Value: None
+- Parameter Group: Manually Upload New File
+
+#### filename
+
+- Description: Select an existing file from Mythic's file store to upload
+- Required Value: True (for "Select Mythic File to Upload" option)
+- Default Value: None
+- Parameter Group: Select Mythic File to Upload
+
+#### remote_path
+
+- Description: The absolute remote path on the target host where this file came from. If you're uploading a file that Mythic already has a path for, you can leave this blank and that path will automatically get used. Certain files (DPAPI keys, Chrome data, etc) rely on the full paths within Nemesis.
+- Required Value: False
+- Default Value: ""
+- Parameter Groups: Both
+
+## Usage
+
+```
+upload
+```
+
+Select either "Manually Upload New File" or "Select Mythic File to Upload" from the parameter groups, then fill in the required fields.
+
+## Detailed Summary
+
+This command uploads files to Nemesis for processing. Nemesis will automatically:
+- Analyze the file type and extract relevant data
+- Parse configuration files, browser databases, credential stores, etc.
+- Extract hashes and attempt to crack them
+- Make the extracted data queryable through its GraphQL API
+
+The upload process:
+1. Retrieves the file from Mythic's file store
+2. Registers the file with Nemesis's file API
+3. Updates the file metadata with agent information, timestamps, and remote path
+4. Returns the file ID and object ID for tracking
+
+Files are tagged with the project/operation name and retain their expiration settings from Mythic (default 90 days).

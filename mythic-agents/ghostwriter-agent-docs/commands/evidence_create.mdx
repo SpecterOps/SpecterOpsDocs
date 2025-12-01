@@ -1,0 +1,43 @@
+---
+title: "evidence_create"
+description: "Create evidence from a file in Mythic's file store"
+---
+
+## Summary
+
+Upload a file from Mythic as evidence in Ghostwriter.
+
+- Needs Admin: False
+- Version: 1-2
+- Author: @its_a_feature_
+
+### Arguments
+
+#### file
+- Description: File from Mythic to use as evidence
+- Required: True
+
+#### description
+- Description: Description/caption for the evidence
+- Required: False
+
+#### report_title
+- Description: Which report to add evidence to
+- Required: False
+
+
+## Usage
+
+```
+evidence_create
+```
+
+## Detailed Summary
+
+Creates evidence in Ghostwriter from a file that exists in Mythic's file store. This is useful for:
+- Screenshots captured during testing
+- Downloaded configuration files
+- Log files
+- Command output
+
+The file is uploaded to Ghostwriter and can then be attached to findings or included directly in reports.

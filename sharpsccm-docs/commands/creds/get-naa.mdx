@@ -1,0 +1,154 @@
+---
+title: 'get naa'
+description: 'Extract and decrypt Network Access Account credentials'
+icon: 'key'
+---
+
+## Overview
+
+The `get naa` command retrieves and decrypts Network Access Account (NAA) credentials from SCCM. NAAs are domain accounts used by SCCM clients to access distribution points when the computer account cannot be used.
+
+<Warning>
+  NAA credentials are often over-privileged domain accounts. Organizations should migrate to Enhanced HTTP to eliminate the need for NAAs.
+</Warning>
+
+## Syntax
+
+```bash
+SharpSCCM.exe get naa -mp <ManagementPoint> -sc <SiteCode> [options]
+```
+
+## Parameters
+
+<ParamField path="mp" type="string" required>
+  The FQDN or NetBIOS name of the SCCM Management Point server
+</ParamField>
+
+<ParamField path="sc" type="string" required>
+  The three-character site code of the SCCM site
+</ParamField>
+
+<ParamField path="client" type="string">
+  The client name to impersonate (defaults to current machine)
+</ParamField>
+
+<ParamField path="output" type="string">
+  Output file path for saving credentials (optional)
+</ParamField>
+
+## Examples
+
+<CodeGroup>
+```bash Basic Usage
+# Get NAA from the current site
+SharpSCCM.exe get naa -mp sccm01.corp.local -sc PS1
+```
+
+```bash With Client Impersonation
+# Impersonate a different client
+SharpSCCM.exe get naa -mp sccm01.corp.local -sc PS1 -client DESKTOP01
+```
+
+```bash Save to File
+# Save credentials to a file
+SharpSCCM.exe get naa -mp sccm01.corp.local -sc PS1 -output naa_creds.txt
+```
+</CodeGroup>
+
+## Output Format
+
+The command outputs discovered NAA credentials in the following format:
+
+```text
+[+] Network Access Account found!
+    Domain: CORP
+    Username: svc_sccm_naa
+    Password: P@ssw0rd123!
+    SID: S-1-5-21-123456789-123456789-123456789-1001
+```
+
+## Technical Details
+
+<Accordion title="How NAA Extraction Works">
+  1. **Policy Request**: SharpSCCM requests machine policy from the Management Point
+  2. **Policy Parsing**: Identifies policies containing NAA configurations
+  3. **DPAPI Decryption**: Uses DPAPI to decrypt the credentials blob
+  4. **Credential Extraction**: Parses the decrypted data to extract plaintext credentials
+</Accordion>
+
+<Accordion title="Detection Opportunities">
+  Security teams can detect NAA extraction attempts by monitoring for:
+  
+  - Unusual policy requests from client machines
+  - DPAPI decryption events related to SCCM
+  - Access to NAA-related WMI classes
+  - Network traffic to Management Points from unexpected sources
+</Accordion>
+
+## Common Issues
+
+<AccordionGroup>
+  <Accordion title="Access Denied">
+    **Error**: `Access denied when requesting policy`
+    
+    **Solution**: Ensure you're running from a domain-joined machine with SCCM client installed
+  </Accordion>
+  
+  <Accordion title="No NAA Found">
+    **Error**: `No Network Access Account found in policies`
+    
+    **Solution**: The site may be using Enhanced HTTP or may not have NAAs configured
+  </Accordion>
+  
+  <Accordion title="Decryption Failed">
+    **Error**: `Failed to decrypt NAA credentials`
+    
+    **Solution**: You may not have the necessary DPAPI keys. Try running as SYSTEM or with elevated privileges
+  </Accordion>
+</AccordionGroup>
+
+## Security Recommendations
+
+<Steps>
+  <Step title="Enable Enhanced HTTP">
+    Configure Enhanced HTTP to eliminate the need for Network Access Accounts
+  </Step>
+  
+  <Step title="Use Least Privilege">
+    If NAAs are required, use accounts with minimal permissions - only read access to distribution points
+  </Step>
+  
+  <Step title="Regular Rotation">
+    Rotate NAA passwords regularly and monitor for unauthorized access
+  </Step>
+  
+  <Step title="Monitor Usage">
+    Set up alerts for NAA authentication from unexpected sources
+  </Step>
+</Steps>
+
+## Related Commands
+
+- [`get collection-variables`](/commands/creds/get-collection-variables) - Extract collection variables
+- [`get task-sequences`](/commands/creds/get-task-sequences) - Get task sequence credentials
+- [`show naa`](/commands/discovery/show) - Display NAA configuration without decryption
+
+## References
+
+<CardGroup cols={2}>
+  <Card
+    title="The Phantom Credentials of SCCM"
+    icon="book"
+    href="https://posts.specterops.io/the-phantom-credentials-of-sccm-why-the-naa-wont-die-332ac7aa1ab9"
+  >
+    Duane Michael's research on NAA persistence
+  </Card>
+  
+  <Card
+    title="Unobfuscating NAAs"
+    icon="code"
+    href="https://blog.xpnsec.com/unobfuscating-network-access-accounts/"
+  >
+    Adam Chester's technical deep-dive
+  </Card>
+</CardGroup>

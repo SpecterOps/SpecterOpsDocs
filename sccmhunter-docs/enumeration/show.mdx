@@ -1,0 +1,179 @@
+---
+title: 'Display Results (show)'
+description: 'Display and export SCCM enumeration results to terminal, CSV, or JSON formats for comprehensive analysis.'
+icon: 'eye'
+sidebarTitle: 'Display Results'
+---
+
+The `show` module allows you to display and export enumeration results collected by other SCCMHunter modules. This is essential for analyzing large datasets and creating reports from your SCCM assessment.
+
+<Info>
+The show module is particularly useful for reviewing user and group results in larger environments where terminal output may be overwhelming.
+</Info>
+
+## Prerequisites
+
+<Card title="Requirements" icon="checklist">
+- Completed enumeration using the [`find`](/enumeration/find) module
+- Optional: Additional data from the [`smb`](/enumeration/smb) module
+- Access to SCCMHunter's local database
+</Card>
+
+## Command Syntax
+
+<CodeGroup>
+```bash Command Format
+python3 sccmhunter.py show [OPTIONS]
+```
+
+```bash Display Site Servers
+python3 sccmhunter.py show -siteservers
+```
+
+```bash Export to CSV and JSON
+python3 sccmhunter.py show -siteservers -csv -json
+```
+
+```bash Show All Results
+python3 sccmhunter.py show -all
+```
+</CodeGroup>
+
+## Display Options
+
+<Accordion title="Data Categories">
+| Flag | Description | Use Case |
+|------|-------------|----------|
+| `-siteservers` | Show Site Servers table | Review primary SCCM infrastructure |
+| `-mps` | Show Management Points table | Identify client communication endpoints |
+| `-users` | Show SCCM related users | Find service accounts and privileged users |
+| `-computers` | Show SCCM related computers | Catalog all SCCM-associated systems |
+| `-groups` | Show SCCM related groups | Discover security groups for escalation |
+| `-creds` | Show recovered credentials | Review extracted passwords and hashes |
+| `-all` | Show all enumeration results | Complete overview of discovered assets |
+</Accordion>
+
+<Accordion title="Export Options">
+| Flag | Description | Output Location |
+|------|-------------|-----------------|
+| `-json` | Export results in JSON format | `/root/.sccmhunter/logs/json/` |
+| `-csv` | Export results in CSV format | `/root/.sccmhunter/logs/csvs/` |
+| `-debug` | Enable verbose logging | Terminal with additional details |
+</Accordion>
+
+<Warning>
+Export options work in combination with display options. You must specify what data to show (e.g., `-siteservers`) along with the export format (e.g., `-csv`).
+</Warning>
+## Usage Examples
+
+<Accordion title="Display Site Servers">
+**View all discovered SCCM site servers and their configurations**
+
+```bash
+python3 sccmhunter.py show -siteservers
+```
+
+**Expected Output:**
+```
+[22:41:59] INFO     [+] Showing SiteServers Table
++----------------------+------------+-------+-----------------+--------------+---------------+----------+---------+
+| Hostname             | SiteCode   | CAS   | SigningStatus   | SiteServer   | SMSProvider   | Config   | MSSQL   |
++======================+============+=======+=================+==============+===============+==========+=========+
+| sccm2.internal.lab   | ABC        | False | False           | True         | True          | Active   | True    |
++----------------------+------------+-------+-----------------+--------------+---------------+----------+---------+
+| active.internal.lab  | ACT        | False | False           | True         | True          | Active   | False   |
++----------------------+------------+-------+-----------------+--------------+---------------+----------+---------+
+| sccm.internal.lab    | LAB        | False | False           | True         | True          | Active   | False   |
++----------------------+------------+-------+-----------------+--------------+---------------+----------+---------+
+| passive.internal.lab | ACT        | False | False           | True         | True          | Passive  | True    |
++----------------------+------------+-------+-----------------+--------------+---------------+----------+---------+
+| cas.internal.lab     | CAS        | True  | False           | True         | True          | Active   | True    |
++----------------------+------------+-------+-----------------+--------------+---------------+----------+---------+
+```
+
+<Tip>
+Site servers with "CAS" marked as "True" are Central Administration Sites, which sit at the top of multi-site hierarchies.
+</Tip>
+</Accordion>
+
+<Accordion title="Export Results to Files">
+**Export site server data to both CSV and JSON formats for reporting**
+
+```bash
+python3 sccmhunter.py show -siteservers -json -csv
+```
+
+**Expected Output:**
+```
+[22:43:19] INFO     [+] Showing SiteServers Table
+[Table output as above...]
+[22:43:19] INFO     [*] CSV files saved to /root/.sccmhunter/logs/csvs/
+[22:43:19] INFO     [*] JSON files saved to /root/.sccmhunter/logs/json/
+```
+
+<Info>
+Exported files are automatically timestamped and organized by data type. This is particularly useful for generating reports or importing data into other analysis tools.
+</Info>
+</Accordion>
+
+<Accordion title="Show All Enumeration Data">
+**Display comprehensive results from all discovery modules**
+
+```bash
+python3 sccmhunter.py show -all
+```
+
+**Use Case:** Get a complete overview of all discovered SCCM infrastructure, users, groups, and credentials in a single command.
+
+<Warning>
+Using `-all` can produce extensive output in large environments. Consider using export options to save results to files for easier analysis.
+</Warning>
+</Accordion>
+
+<Accordion title="Review Discovered Groups">
+**Examine SCCM-related security groups for privilege escalation opportunities**
+
+```bash
+python3 sccmhunter.py show -groups -csv
+```
+
+**Why This Matters:** SCCM groups often contain high-privilege accounts and can reveal paths for lateral movement or privilege escalation.
+</Accordion>
+
+## Data Analysis Tips
+
+<Card title="Table Column Interpretation" icon="table-columns">
+Understanding the output format helps prioritize targets:
+
+- **SiteCode**: Identifies the SCCM site boundaries
+- **SigningStatus**: Indicates if client certificates are required (security control)
+- **Config**: Active vs Passive server states for redundancy planning
+- **MSSQL**: Servers hosting databases (high-value targets)
+</Card>
+
+<CardGroup cols={2}>
+<Card title="High-Priority Targets" icon="crosshairs">
+- Central Administration Sites (CAS)
+- Active site servers with MSSQL
+- Management Points (MP)
+- Servers with SMSProvider role
+</Card>
+
+<Card title="Export Locations" icon="folder">
+- **CSV Files**: `/root/.sccmhunter/logs/csvs/`
+- **JSON Files**: `/root/.sccmhunter/logs/json/`
+- **Log Files**: `/root/.sccmhunter/logs/`
+</Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+<Card title="SMB Profiling" icon="server" href="/sccmhunter-docs/enumeration/smb">
+Deep dive into discovered infrastructure with service enumeration
+</Card>
+
+<Card title="HTTP Exploitation" icon="globe" href="/sccmhunter-docs/exploitation/http">
+Leverage Management Points for credential extraction
+</Card>
+</CardGroup>

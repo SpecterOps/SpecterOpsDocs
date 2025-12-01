@@ -1,0 +1,427 @@
+---
+title: 'query'
+description: 'Execute WMI queries for local and remote system enumeration'
+icon: 'database'
+---
+
+## Overview
+
+The `query` action executes WMI queries to enumerate system information both locally and remotely. WMI provides access to extensive system data including processes, services, hardware, network configuration, and security settings through a SQL-like query language (WQL).
+
+<Tip>
+  WMI queries are one of the stealthiest enumeration methods on Windows as they generate minimal suspicious activity and are commonly used by legitimate system administration tools.
+</Tip>
+
+## Syntax
+
+<Tabs>
+  <Tab title="Local Query">
+    ```bash
+    SharpWMI.exe action=query query="<WQL_QUERY>" [namespace=NAMESPACE]
+    ```
+  </Tab>
+
+  <Tab title="Remote Query">
+    ```bash
+    SharpWMI.exe action=query computername=HOST[,HOST2,...] query="<WQL_QUERY>" [namespace=NAMESPACE] [username=DOMAIN\user] [password=Password]
+    ```
+  </Tab>
+</Tabs>
+
+## Parameters
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `action` | Yes | Must be `query` |
+| `query` | Yes | WQL query string (SQL-like syntax) |
+| `computername` | No | Target host(s), comma-separated. Defaults to localhost |
+| `namespace` | No | WMI namespace. Defaults to `root\cimv2` |
+| `username` | No | Username for authentication (requires password) |
+| `password` | No | Password for authentication (requires username) |
+
+<Note>
+  WQL queries use double quotes internally, so when passing to SharpWMI, use escaped quotes: `query=""select * from win32_service""`
+</Note>
+
+## WMI Namespaces
+
+Common WMI namespaces for enumeration:
+
+| Namespace | Description | Common Classes |
+|-----------|-------------|----------------|
+| `root\cimv2` | Default namespace with most system information | Win32_Process, Win32_Service, Win32_UserAccount |
+| `root\SecurityCenter2` | Security products (AV, Firewall) | AntiVirusProduct, FirewallProduct |
+| `ROOT\StandardCIMV2` | Network and storage (Win8+) | MSFT_NetTCPConnection, MSFT_NetFirewallRule |
+| `root\Microsoft\Windows\Defender` | Windows Defender | MSFT_MpComputerStatus, MSFT_MpPreference |
+| `root\directory\ldap` | Active Directory information | ds_user, ds_computer, ds_group |
+
+## Usage Examples
+
+### Basic Queries
+
+<CodeGroup>
+```bash Local Processes
+SharpWMI.exe action=query query="select * from win32_process"
+```
+
+```bash Local Services
+SharpWMI.exe action=query query="select * from win32_service"
+```
+
+```bash Remote Query
+SharpWMI.exe action=query computername=target.domain.com query="select * from win32_process"
+```
+
+```bash Multiple Targets
+SharpWMI.exe action=query computername=server1,server2,server3 query="select Name,State from win32_service where State='Running'"
+```
+
+```bash With Credentials
+SharpWMI.exe action=query computername=target.domain.com query="select * from win32_service" username="DOMAIN\admin" password="Password123!"
+```
+</CodeGroup>
+
+### Security Enumeration
+
+<Accordion title="AntiVirus Detection">
+  ```bash
+  SharpWMI.exe action=query query="SELECT displayName,pathToSignedProductExe,pathToSignedReportingExe FROM AntiVirusProduct" namespace="root\SecurityCenter2"
+  ```
+
+  Detects installed antivirus products on Windows 7-10.
+</Accordion>
+
+<Accordion title="Firewall Products">
+  ```bash
+  SharpWMI.exe action=query query="SELECT displayName,pathToSignedProductExe FROM FirewallProduct" namespace="root\SecurityCenter2"
+  ```
+
+  Identifies third-party firewall products.
+</Accordion>
+
+<Accordion title="Windows Defender Status">
+  ```bash
+  SharpWMI.exe action=query query="SELECT AMServiceEnabled,AntispywareEnabled,AntivirusEnabled,RealTimeProtectionEnabled FROM MSFT_MpComputerStatus" namespace="root\Microsoft\Windows\Defender"
+  ```
+
+  Checks Windows Defender protection status.
+</Accordion>
+
+### Process Enumeration
+
+<Accordion title="Running Processes">
+  ```bash
+  SharpWMI.exe action=query query="SELECT ProcessId,Name,ExecutablePath,CommandLine FROM Win32_Process"
+  ```
+
+  Lists all running processes with full command lines.
+</Accordion>
+
+<Accordion title="Processes by Name">
+  ```bash
+  SharpWMI.exe action=query query="SELECT ProcessId,Name,ExecutablePath FROM Win32_Process WHERE Name='powershell.exe' OR Name='cmd.exe'"
+  ```
+
+  Find specific processes (useful for detecting shells).
+</Accordion>
+
+<Accordion title="Processes by User">
+  ```bash
+  SharpWMI.exe action=query query="SELECT ProcessId,Name FROM Win32_Process WHERE Handle IN (SELECT ProcessID FROM Win32_Process WHERE GetOwner()='Administrator')"
+  ```
+
+  Note: GetOwner() method calls require alternative approaches in WQL.
+</Accordion>
+
+### User and Group Enumeration
+
+<Accordion title="Local User Accounts">
+  ```bash
+  SharpWMI.exe action=query query="SELECT Name,LocalAccount,Disabled,PasswordRequired FROM Win32_UserAccount WHERE LocalAccount=True"
+  ```
+
+  Lists local user accounts and their properties.
+</Accordion>
+
+<Accordion title="Local Groups">
+  ```bash
+  SharpWMI.exe action=query query="SELECT Name,SID FROM Win32_Group WHERE LocalAccount=True"
+  ```
+
+  Enumerates local security groups.
+</Accordion>
+
+<Accordion title="Administrator Group Members">
+  ```bash
+  SharpWMI.exe action=query query="SELECT PartComponent FROM Win32_GroupUser WHERE GroupComponent=""Win32_Group.Domain='COMPUTERNAME',Name='Administrators'"""
+  ```
+
+  Lists members of the local Administrators group.
+</Accordion>
+
+### Network Enumeration
+
+<Accordion title="Network Connections (Windows 10+)">
+  ```bash
+  SharpWMI.exe action=query computername=target.domain.com query="Select LocalPort,RemoteAddress,OwningProcess from MSFT_NetTCPConnection WHERE State=5" namespace="ROOT\StandardCIMV2"
+  ```
+
+  Shows established TCP connections (similar to netstat). State=5 means ESTABLISHED.
+</Accordion>
+
+<Accordion title="Network Adapters">
+  ```bash
+  SharpWMI.exe action=query query="SELECT Description,MACAddress,IPAddress,DefaultIPGateway FROM Win32_NetworkAdapterConfiguration WHERE IPEnabled=True"
+  ```
+
+  Lists network adapter configurations.
+</Accordion>
+
+<Accordion title="Network Shares">
+  ```bash
+  SharpWMI.exe action=query query="SELECT Name,Path,Description,Type FROM Win32_Share"
+  ```
+
+  Enumerates network shares. Type=0 is disk drive, Type=1 is print queue.
+</Accordion>
+
+### Software and Updates
+
+<Accordion title="Installed Software">
+  ```bash
+  SharpWMI.exe action=query query="SELECT Name,Version,Vendor,InstallDate FROM Win32_Product"
+  ```
+
+  Lists installed software (can be slow on some systems).
+</Accordion>
+
+<Accordion title="Installed Hotfixes">
+  ```bash
+  SharpWMI.exe action=query query="SELECT HotFixID,Description,InstalledOn FROM Win32_QuickFixEngineering"
+  ```
+
+  Shows installed Windows updates.
+</Accordion>
+
+<Accordion title="Startup Programs">
+  ```bash
+  SharpWMI.exe action=query query="SELECT Name,Command,User FROM Win32_StartupCommand"
+  ```
+
+  Lists programs that run at startup.
+</Accordion>
+
+### Service Enumeration
+
+<Accordion title="Running Services">
+  ```bash
+  SharpWMI.exe action=query query="SELECT Name,DisplayName,PathName,StartMode,State FROM Win32_Service WHERE State='Running'"
+  ```
+
+  Lists all running services.
+</Accordion>
+
+<Accordion title="Services by Start Mode">
+  ```bash
+  SharpWMI.exe action=query query="SELECT Name,DisplayName,PathName FROM Win32_Service WHERE StartMode='Auto' AND State='Stopped'"
+  ```
+
+  Finds auto-start services that aren't running.
+</Accordion>
+
+<Accordion title="Services Running as SYSTEM">
+  ```bash
+  SharpWMI.exe action=query query="SELECT Name,DisplayName,PathName FROM Win32_Service WHERE StartName='LocalSystem'"
+  ```
+
+  Identifies services running with SYSTEM privileges.
+</Accordion>
+
+### Scheduled Tasks
+
+<Accordion title="Scheduled Jobs">
+  ```bash
+  SharpWMI.exe action=query query="SELECT JobId,Name,Command,Owner FROM Win32_ScheduledJob"
+  ```
+
+  Lists scheduled tasks (legacy scheduled jobs only).
+</Accordion>
+
+### System Information
+
+<Accordion title="Operating System">
+  ```bash
+  SharpWMI.exe action=query query="SELECT Caption,Version,OSArchitecture,BuildNumber,InstallDate FROM Win32_OperatingSystem"
+  ```
+
+  Gets OS version and details.
+</Accordion>
+
+<Accordion title="Computer System">
+  ```bash
+  SharpWMI.exe action=query query="SELECT Name,Domain,Manufacturer,Model,TotalPhysicalMemory FROM Win32_ComputerSystem"
+  ```
+
+  Hardware and domain information.
+</Accordion>
+
+<Accordion title="BIOS Information">
+  ```bash
+  SharpWMI.exe action=query query="SELECT Manufacturer,Version,ReleaseDate,SerialNumber FROM Win32_BIOS"
+  ```
+
+  BIOS details (useful for VM detection).
+</Accordion>
+
+### Persistence Detection
+
+<Accordion title="WMI Event Subscriptions">
+  ```bash
+  # Check for event filters
+  SharpWMI.exe action=query query="SELECT Name,Query FROM __EventFilter" namespace="root\subscription"
+
+  # Check for event consumers
+  SharpWMI.exe action=query query="SELECT Name,ScriptText FROM ActiveScriptEventConsumer" namespace="root\subscription"
+
+  # Check for bindings
+  SharpWMI.exe action=query query="SELECT Filter,Consumer FROM __FilterToConsumerBinding" namespace="root\subscription"
+  ```
+
+  Detects WMI-based persistence mechanisms.
+</Accordion>
+
+## Remote vs Local Usage
+
+<Tabs>
+  <Tab title="Local Enumeration">
+    **Advantages:**
+    - No network traffic
+    - Works without admin privileges for most queries
+    - No authentication required
+    - Faster execution
+
+    **Use Cases:**
+    - Post-exploitation enumeration
+    - System reconnaissance after initial access
+    - Service/software enumeration
+
+    ```bash
+    SharpWMI.exe action=query query="select * from win32_service"
+    ```
+  </Tab>
+
+  <Tab title="Remote Enumeration">
+    **Advantages:**
+    - Enumerate multiple systems quickly
+    - No need to execute code on target
+    - Useful for network mapping
+
+    **Requirements:**
+    - Admin privileges on target system
+    - Network access to RPC/DCOM ports
+    - WMI service running on target
+
+    ```bash
+    SharpWMI.exe action=query computername=target.domain.com query="select * from win32_service" username="DOMAIN\admin" password="Password123!"
+    ```
+  </Tab>
+</Tabs>
+
+## Detection Considerations
+
+<Warning>
+  While WMI queries are common in enterprise environments, certain patterns can indicate malicious activity.
+</Warning>
+
+<AccordionGroup>
+  <Accordion title="Detection Indicators" icon="radar">
+    - Unusual WMI queries from non-administrative tools
+    - Queries against SecurityCenter2 namespace
+    - Bulk queries across multiple systems
+    - Queries for process command lines
+    - Event subscription enumeration
+    - Queries originating from user workstations
+  </Accordion>
+
+  <Accordion title="Event Log Indicators" icon="list">
+    - Event ID 5857: WMI activity
+    - Event ID 5860: Registration of temporary event consumers
+    - Event ID 5861: Registration of permanent event consumers
+    - Sysmon Event ID 19: WMI event filter activity
+    - Sysmon Event ID 20: WMI consumer activity
+    - Sysmon Event ID 21: WMI consumer binding
+  </Accordion>
+
+  <Accordion title="Network Detection" icon="network-wired">
+    - DCOM traffic on port 135
+    - Dynamic RPC ports (49152-65535)
+    - Multiple WMI connections from single source
+    - WMI traffic from unusual source IPs
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Query Optimization" icon="gauge-high">
+    - Use WHERE clauses to filter results
+    - Select specific properties instead of *
+    - Avoid Win32_Product if possible (slow)
+    - Test queries locally before remote execution
+  </Card>
+
+  <Card title="Operational Security" icon="user-secret">
+    - Blend in with legitimate admin activity
+    - Use standard WMI namespaces when possible
+    - Avoid bulk queries during business hours
+    - Limit query frequency to avoid detection
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Access Denied">
+    **Cause:** Insufficient privileges or wrong credentials
+
+    **Solution:**
+    - Verify credentials with username/password parameters
+    - Ensure user is admin on target system
+    - Check UAC remote restrictions
+  </Accordion>
+
+  <Accordion title="Invalid Query">
+    **Cause:** Syntax error in WQL query
+
+    **Solution:**
+    - Test query with wmic.exe first: `wmic /node:target process list`
+    - Verify WMI class exists in namespace
+    - Check for proper quote escaping
+  </Accordion>
+
+  <Accordion title="Invalid Namespace">
+    **Cause:** Namespace doesn't exist on target system
+
+    **Solution:**
+    - Verify namespace exists: `wmic /namespace:\\root path __NAMESPACE`
+    - Use default root\cimv2 for most queries
+    - Some namespaces only exist on certain Windows versions
+  </Accordion>
+</AccordionGroup>
+
+## Related Actions
+
+<CardGroup cols={2}>
+  <Card title="loggedon" icon="users" href="/ghostpack-docs/SharpWMI-mdx/actions/loggedon">
+    Enumerate logged-on users (specialized query)
+  </Card>
+  <Card title="ps" icon="list" href="/ghostpack-docs/SharpWMI-mdx/actions/ps">
+    List processes with owner info
+  </Card>
+  <Card title="firewall" icon="shield" href="/ghostpack-docs/SharpWMI-mdx/actions/firewall">
+    Enumerate firewall rules
+  </Card>
+  <Card title="getenv" icon="eye" href="/ghostpack-docs/SharpWMI-mdx/actions/getenv">
+    Query environment variables
+  </Card>
+</CardGroup>

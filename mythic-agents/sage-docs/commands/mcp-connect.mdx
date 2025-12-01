@@ -1,0 +1,162 @@
+---
+title: "mcp-connect"
+description: "Connect to a Stdio Model Context Protocol server"
+---
+
+## Summary
+
+Start and connect to a local Stdio Model Context Protocol (MCP) server. This extends AI model capabilities with custom tools and functions provided by MCP servers.
+
+- Needs Admin: False
+- Version: 0
+- Author: @Ne0nd0g
+
+### Arguments
+
+#### command
+
+- Description: The command or program to start the MCP server
+- Required: True
+- Type: String
+
+#### args
+
+- Description: Arguments to pass to the command
+- Required: False
+- Type: Array of Strings
+
+## Usage
+
+```
+mcp-connect -command uv -args --directory /opt/mythic_mcp/ run main.py mythic_admin password 127.0.0.1 7443
+mcp-connect -command python3 -args /path/to/mcp_server.py
+mcp-connect -command node -args /path/to/mcp-server.js
+```
+
+## Detailed Summary
+
+The `mcp-connect` command launches a Stdio-based Model Context Protocol server and establishes a connection to it. MCP servers provide additional tools and capabilities that AI models can use during inference.
+
+### Model Context Protocol (MCP)
+
+MCP is a standardized protocol for connecting AI models to external tools and data sources. When an MCP server is connected:
+
+- Models can discover available tools
+- Tools can be invoked during chat or query operations
+- Results are seamlessly integrated into responses
+- Enhanced reasoning and action capabilities are available
+
+### Stdio MCP Requirements
+
+<Warning>
+Stdio MCP servers must run in the same location as the Sage container. All dependencies (Python, Node.js, etc.) must be pre-installed.
+</Warning>
+
+**Container Deployment**
+If Sage runs in Docker:
+- Install MCP server dependencies in the Sage container
+- Modify the Dockerfile to include required packages
+- Place MCP server code inside the container
+- Use container-internal paths in the command
+
+**Local Deployment**
+If Sage runs directly on the Mythic host:
+- Install MCP server dependencies on the host
+- Use host filesystem paths
+- Ensure proper permissions for the Sage process
+
+### Mythic MCP Server
+
+Sage includes the [Mythic MCP](https://github.com/xpn/mythic_mcp) server pre-installed at `/opt/mythic_mcp/`.
+
+**Connection Example**
+```
+mcp-connect -command uv -args --directory /opt/mythic_mcp/ run main.py mythic_admin SuperSecretPassword 127.0.0.1 7443
+```
+
+**Arguments Breakdown**
+- `uv` - Command to run (UV Python package runner)
+- `--directory` - Working directory for the MCP server
+- `/opt/mythic_mcp/` - Location of Mythic MCP code
+- `run` - UV subcommand to execute the server
+- `main.py` - MCP server entry point
+- `mythic_admin` - Mythic username for API access
+- `SuperSecretPassword` - Mythic user password
+- `127.0.0.1` - Mythic server IP (not loopback if containerized)
+- `7443` - Mythic server port
+
+<Info>
+When running in a container, use the actual IP address instead of 127.0.0.1 or localhost for Mythic connectivity.
+</Info>
+
+### Custom MCP Servers
+
+You can connect to any Stdio-based MCP server:
+
+**Python MCP Server**
+```
+mcp-connect -command python3 -args /path/to/server.py
+```
+
+**Node.js MCP Server**
+```
+mcp-connect -command node -args /path/to/server.js --config /path/to/config.json
+```
+
+**Compiled Binary**
+```
+mcp-connect -command /opt/custom-mcp/mcp-server -args --verbose --port 8080
+```
+
+### Tool Integration
+
+Once connected, MCP tools become available to models:
+
+**In Chat Sessions**
+- Tools are automatically discovered
+- Models can request tool usage
+- Results are incorporated into conversation
+
+**In Query Operations**
+- Single queries can use MCP tools
+- Tool results appear in the response
+- Enable with the `tools` parameter
+
+### Troubleshooting
+
+**Connection Failures**
+- Verify command path is correct
+- Check all dependencies are installed
+- Ensure arguments are properly formatted
+- Review MCP server logs for errors
+
+**Permission Issues**
+- Confirm Sage process has execution permissions
+- Check file paths are accessible
+- Verify network access if MCP calls external services
+
+**Tool Discovery Problems**
+- Ensure MCP server implements the protocol correctly
+- Check server initialization completes successfully
+- Verify tools are properly registered
+
+<Warning>
+MCP servers run as child processes of Sage. If Sage restarts, MCP connections are lost and must be re-established.
+</Warning>
+
+### Security Considerations
+
+- MCP servers have access to Sage's execution context
+- Validate and trust MCP server code before connecting
+- Limit MCP server permissions when possible
+- Audit tool calls in production environments
+- Consider network isolation for sensitive operations
+
+### Best Practices
+
+- Test MCP connections in a development environment first
+- Document required dependencies for your MCP servers
+- Use environment variables for sensitive configuration
+- Monitor MCP server resource usage
+- Implement proper error handling in custom MCP servers
+

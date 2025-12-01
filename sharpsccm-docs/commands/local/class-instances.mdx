@@ -1,0 +1,128 @@
+---
+title: 'local class-instances'
+description: 'Get information on local WMI class instances'
+icon: 'database'
+sidebarTitle: 'class-instances'
+---
+
+## Overview
+
+Get information on local WMI class instances. This command allows you to query specific WMI classes and retrieve their instance data, with options for filtering properties and adding WHERE conditions.
+
+<Info>
+  ACLs are applied at the object class and instance level, so access may vary depending on your privileges.
+</Info>
+
+## Syntax
+
+```bash
+SharpSCCM local class-instances <wmi-class> [options]
+```
+
+## Parameters
+
+<ParamField path="wmi-class" type="string" required>
+  The WMI class to query (e.g., "SMS_Authority")
+</ParamField>
+
+<ParamField path="wmi-namespace" type="string">
+  The WMI namespace to query (default: "root\CCM")
+</ParamField>
+
+<ParamField path="properties" type="string">
+  Specify this option for each property to query (e.g., "-p ResourceName -p UniqueUserName")
+</ParamField>
+
+<ParamField path="verbose" type="boolean">
+  Display all class properties and their values
+</ParamField>
+
+<ParamField path="where-condition" type="string">
+  A WHERE condition to narrow the scope of data returned by the query
+</ParamField>
+
+<ParamField path="dry-run" type="boolean">
+  Display the resulting WQL query but do not execute it
+</ParamField>
+
+## Examples
+
+<CodeGroup>
+```bash Basic Query
+# Query SMS_Authority class instances
+SharpSCCM local class-instances SMS_Authority
+```
+
+```bash Specific Properties
+# Query specific properties only
+SharpSCCM local class-instances SMS_Authority -p Name -p CurrentManagementPoint
+```
+
+```bash With WHERE Condition
+# Filter results with a WHERE condition
+SharpSCCM local class-instances CCM_InstalledComponent -w "Name='SmsClient'"
+```
+
+```bash Dry Run
+# See the WQL query without executing
+SharpSCCM local class-instances SMS_Authority -z
+```
+</CodeGroup>
+
+## Output Format
+
+The command outputs detailed information about class instances:
+
+```text
+[+] Connecting to \\127.0.0.1\root\CCM
+[+] Executing WQL query: SELECT * FROM SMS_Authority
+-----------------------------------
+SMS_Authority
+-----------------------------------
+Capabilities: <Capabilities SchemaVersion="1.0"><Property Name="SSLState" Value="0"/></Capabilities>
+CurrentManagementPoint: ATLAS.APERTURE.SCI
+Index: 1
+Name: SMS:PS1
+PolicyOrder: 100
+PolicyRequestTarget: mp:[http]MP_PolicyManager
+Protocol: OS
+SigningCertificate:
+Version: 9078
+-----------------------------------
+```
+
+## WHERE Condition Examples
+
+<CodeGroup>
+```sql Exact Match
+"UniqueUserName='APERTURE\cave.johnson'"
+```
+
+```sql Pattern Matching
+"UniqueUserName LIKE '%cave.johnson%'"
+```
+
+```sql Numeric Comparison
+"ResourceID > 1000"
+```
+</CodeGroup>
+
+## Common Use Cases
+
+<Accordion title="Site Information Discovery">
+  Query SMS_Authority to discover management points and site codes for the local SCCM client.
+</Accordion>
+
+<Accordion title="Client Configuration Analysis">
+  Examine CCM_* classes to understand client configuration and installed components.
+</Accordion>
+
+<Accordion title="Targeted Data Extraction">
+  Use WHERE conditions to filter large datasets and extract specific information.
+</Accordion>
+
+## Related Commands
+
+- [`local classes`](/sharpsccm/commands/local/classes) - List available WMI classes
+- [`local class-properties`](/sharpsccm/commands/local/class-properties) - Get class property definitions
+- [`local query`](/sharpsccm/commands/local/query) - Execute custom WQL queries

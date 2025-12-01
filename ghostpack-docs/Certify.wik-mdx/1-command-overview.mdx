@@ -1,0 +1,206 @@
+---
+title: 'Command Overview'
+description: 'Complete reference guide to Certify commands, parameters, and usage examples for AD CS enumeration and exploitation.'
+icon: 'terminal'
+sidebarTitle: 'Commands'
+---
+
+## Global Parameters
+
+<Info>
+These global parameters can be applied to any Certify command for enhanced control and output management.
+</Info>
+
+| Parameter | Description |
+| ------------ | ----------------------- |
+| `--out-file <file>` | Redirect all output streams to a file.<br/>**Format:** `FILE-PATH` |
+| `--quiet` | Omit printing the Certify logo |
+
+## Enumerate CAs
+
+<CodeGroup>
+```bash Basic Usage
+Certify.exe enum-cas
+```
+
+```bash With Filters
+Certify.exe enum-cas --filter-vulnerable --hide-admins
+```
+
+```bash Specific CA
+Certify.exe enum-cas --ca "SERVER\CA-NAME"
+```
+</CodeGroup>
+
+| Parameter | Description |
+| ------------ | ----------------------- |
+| `--ca <ca>` | Enumerate details for a specific CA.<br/>Format: `SERVER\CA-NAME`. |
+| `--domain <domain>` | Target a specific domain for enumeration.<br/>Format: Fully Qualified Domain Name (FQDN). |
+| `--ldap-server <server>` | Target a specific LDAP server for enumeration.<br/>Format: `SERVER`. |
+| `--current-user` | Mark CAs as vulnerable based on the nested group memberships of the current user.<br/>Default: `Everyone`, `Authenticated Users`, `Domain Users`, `Domain Computers`, `Users`. |
+| `--target-user <username>` | Mark CAs as vulnerable based on the nested group memberships of the target user.<br/>Default: `Everyone`, `Authenticated Users`, `Domain Users`, `Domain Computers`, `Users`. |
+| `--filter-vulnerable` | Show only CAs that are marked as vulnerable. |
+| `--hide-admins` | Hide built-in administrator entries from the security descriptor. |
+| `--show-all-perms` | Show the entire security descriptor. |
+| `--skip-web-checks` | Skip enumeration of web enrollment services. |
+
+# Enumerate Templates
+Command usage: `Certify.exe enum-templates [options]`
+
+| Options | Description |
+| ------------ | ----------------------- |
+| `--ca <ca>` | Enumerate templates published by a specific CA.<br/>Format: `SERVER\CA-NAME`. |
+| `--template <template>` | Enumerate details for a specific template.<br/>Format: `TEMPLATE-NAME`. |
+| `--domain <domain>` | Target a specific domain for enumeration.<br/>Format: Fully Qualified Domain Name (FQDN). |
+| `--ldap-server <server>` | Target a specific LDAP server for enumeration.<br/>Format: `SERVER`. |
+| `--current-user` | Mark templates as vulnerable based on the nested group memberships of the current user.<br/>Default: `Everyone`, `Authenticated Users`, `Domain Users`, `Domain Computers`, `Users`. |
+| `--target-user <username>` | Mark templates as vulnerable based on the nested group memberships of the target user.<br/>Default: `Everyone`, `Authenticated Users`, `Domain Users`, `Domain Computers`, `Users`. |
+| `--filter-enabled` | Show only templates that are published by a CA. |
+| `--filter-vulnerable` | Show only templates that are marked as vulnerable. |
+| `--filter-request-agent` | Show only templates that can be requested with a certificate request agent. |
+| `--filter-client-auth` | Show only templates that has a client authentication EKU.<br/>Supports (1): `Client Authentication`, `PKINIT Client Authentication`, `Smart Card Logon`.<br/>Supports (2): `Any Purpose` and `Subordinate CA` (No EKUs). |
+| `--filter-supply-subject` | Show only templates that allows enrollees to supply subject. |
+| `--filter-manager-approval` | Show only templates that require manager approval. |
+| `--hide-admins` | Hide built-in administrator entries from the security descriptor. |
+| `--show-all-perms` | Show the entire security descriptor. |
+
+The output from `enum-templates` will display every certificate template existing in the Active Directory domain. To narrow down the result list, we can use the `--filter-enabled` parameter to only display certificate templates that are published by a CA (and can therefore be requested), as well as the `--filter-vulnerable` parameter to only display certificate templates that have been identified as vulnerable by Certify.
+
+Please note that Certify by default will identify vulnerable certificate templates based on the enrollment permissions of the following built-in low-privileged domain groups: `Everyone`, `Authenticated Users`, `Domain Users`, `Domain Computers`, `Users`. It is possible to omit this logic supplying the `--current-user` flag, which will use the enrollment permissions of the current user, or the `--target <username>` flag, which will use the enrollment permissions of the target domain user.
+
+We can also omit a lot of noise in the output by supplying the `--hide-admins` flag to avoid printing permissions for built-in high-privileged domain groups that are expected to have privileges on most (if not all) certificate templates.
+
+# Enumerate PKI Objects
+Command usage: `Certify.exe enum-pkiobjects [options]`
+
+| Options | Description |
+| ------------ | ----------------------- |
+| `--domain <domain>` | Target a specific domain for enumeration.<br/>Format: Fully Qualified Domain Name (FQDN). |
+| `--ldap-server <server>` | Target a specific LDAP server for enumeration.<br/>Format: `SERVER`. |
+| `--show-linked-oids` | Show Enterprise OIDs (Issuance Policies) that have been linked to domain groups. |
+| `--show-admins` | Show built-in administrator entries from security descriptors. |
+
+# Request Certificates
+Command usage: `Certify.exe request --ca <ca> --template <template> [options]`
+
+| Options | Description |
+| ------------ | ----------------------- |
+| `--ca <ca>` | **Required**. The target CA for the certificate request.<br/>Format: `SERVER\CA-NAME`. |
+| `--template <template>` | **Required**. The certificate template to request.<br/>Format: `TEMPLATE-NAME`. |
+| `--subject <dn>` | Subject Name (SN) for the certificate request.<br/>Default: *Current User*. |
+| `--upn <upn>` | Subject Alternative Name (SAN) for the certificate request.<br/>Format: `UPN` (Example: `user` or `user@corp.local`). |
+| `--dns <dns>` | Subject Alternative Name (SAN) for the certificate request.<br/>Format: `DNS` (Example: `dc01.corp.local`). |
+| `--email <email>` | Subject Alternative Name (SAN) for the certificate request.<br/>Format: `Email` (Example: `user@corp-online.com`). |
+| `--sid-url <sid>` | SID for the certificate request through URL-based Subject Alternative Name (SAN).<br/>Format: `SID` (Example: `S-1-5-11`). |
+| `--sid <sid>` | SID Extension for the certificate request.<br/>Format: `SID` (Example: `S-1-5-11`). |
+| `--application-policy` | Application Policy OID for the certificate request ([CVE-2024-49019](https://trustedsec.com/blog/ekuwu-not-just-another-ad-cs-esc)).<br/>Format: `OID` (Example: `1.3.6.1.5.5.7.3.2` (Client Authentication)). |
+| `--key-size` | Set the key size for the private key. Must be either `512`, `1024`, `2048` or `4096`.<br/>Default: `2048`. |
+| `--machine` | Request the certificate as `SYSTEM` (the current machine).<br/>Default: *Current User*. |
+| `--output-pem` | Output the certificate in the original PEM format.<br/>Default: *PFX*. |
+| `--install` | Install the certificate in the local certificate store. |
+
+# Request Certificates On-Behalf-Of
+Command usage: `Certify.exe request-agent --ca <ca> --template <template> --target <user> --agent-pfx <pfx> [options]`
+
+| Options | Description |
+| ------------ | ----------------------- |
+| `--ca <ca>` | **Required**. The target CA for the certificate request.<br/>Format: `SERVER\CA-NAME`. |
+| `--template <template>` | **Required**. The certificate template to request.<br/>Format: `TEMPLATE-NAME`. |
+| `--target <username>` | **Required**. The user principal to request a certificate on behalf of.<br/>Format: `USERNAME` or `DOMAIN\USERNAME`. |
+| `--agent-pfx <pfx>` | **Required**. The request agent certificate to use for signing the certificate request.<br/>Format: `BASE64-CERTIFICATE`. |
+| `--agent-pass <password>` | Password for the request agent certificate<br/>Default: *Empty*. |
+| `--application-policy` | Application Policy OID for the certificate request ([CVE-2024-49019](https://trustedsec.com/blog/ekuwu-not-just-another-ad-cs-esc)).<br/>Example: `1.3.6.1.5.5.7.3.2` (Client Authentication). |
+| `--key-size` | Set the key size for the private key. Must be either `512`, `1024`, `2048` or `4096`.<br/>Default: `2048`. |
+| `--machine` | Request the certificate as `SYSTEM` (the current machine).<br/>Default: *Current User*. |
+| `--output-pem` | Output the certificate in the original PEM format.<br/>Default: *PFX*. |
+| `--install` | Install the certificate in the local certificate store. |
+
+# Download Certificates
+Command usage: `Certify.exe request-download --ca <ca> --id <request id> [options]`
+
+| Options | Description |
+| ------------ | ----------------------- |
+| `--ca <ca>` | **Required**. The target CA for the certificate request.<br/>Format: `SERVER\CA-NAME`. |
+| `--id <id>` | **Required**. The certificate request to download.<br/>Format: `REQUEST-ID`. |
+| `--private-key <key>` | The private key from the original request (required to create a PFX).<br/>Format: `BASE64-KEY`. |
+| `--output-pem` | Output the certificate in the original PEM format.<br/>Default: *PFX*. |
+| `--install-machine` | Install the certificate in the local machine certificate store. |
+| `--install-user` | Install the certificate in the local user certificate store. |
+
+# Renew Certificates
+Command usage: `Certify.exe request-renew --ca <ca> --cert-pfx <pfx> [options]`
+
+| Option | Description |
+| ------------ | ----------------------- |
+| `--ca <ca>` | **Required**. The target CA for the certificate request.<br/>Format: `SERVER\CA-NAME`. |
+| `--cert-pfx <pfx>` | **Required**. The certificate to renew.<br/>Format: `BASE64-CERTIFICATE`. |
+| `--cert-pass <password>` | Password for the certificate.<br/>Default: *Empty*. |
+| `--machine` | Request the certificate as `SYSTEM` (the current machine).<br/>Default: *Current User*. |
+| `--output-pem` | Output the certificate in the original PEM format.<br/>Default: *PFX*. |
+| `--install` | Install the certificate in the local certificate store. |
+
+# Forge Certificates
+Command usage: `Certify.exe forge --ca-cert <pfx> [options]`
+
+| Options | Description |
+| ------------ | ----------------------- |
+| `--ca-cert <pfx>` | **Required**. The CA signing certificate.<br/>Format: `BASE64-CERTIFICATE` or `FILE-PATH`. |
+| `--ca-pass <password>` | Password for the CA signing certificate.<br/>Default: *Empty*. |
+| `--output-path <path>` | File path to output the forged certificate.<br/>Default: *Outputs to Console*. |
+| `--output-pass <password>` | Password for the output certificate.<br/>Default: *Empty*. |
+| `--subject <dn>` | Subject Name (SN) for the forged certificate.<br/>Default: `CN=User`. |
+| `--upn <upn>` | Subject Alternative Name (SAN) for the forged certificate.<br/>Format: `UPN` (Example: `user` or `user@corp.local`). |
+| `--dns <dns>` | Subject Alternative Name (SAN) for the forged certificate.<br/>Format: `DNS` (Example: `dc01.corp.local`). |
+| `--email <email>` | Subject Alternative Name (SAN) for the forged certificate.<br/>Format: `Email` (Example: `user@corp-online.com`). |
+| `--sid <sid>` | SID Extension for the forged certificate.<br/>Format: `SID` (Example: `S-1-5-11`). |
+| `--crl` | CRL for certificate chain verification (if Subordinate CA signing certificate).<br/>Example (1): `ldap:///CN=CA,CN=SERVER,...,CN=Configuration,DC=DOMAIN`<br/>Example (2): `?certificateRevocationList?base?objectClass=cRLDistributionPoint`. |
+| `--serial` | Serial Number for output certificate.<br/>Format: `SERIAL-NUMBER` (Example: `0123456789abcdef0123456789abcdef`). |
+
+# Manage CAs
+Command usage: `Certify.exe manage-ca --ca <ca> [options]`
+
+| Options | Description |
+| ------------ | ----------------------- |
+| `--ca <ca>` | **Required**. The target CA to manage.<br/>Format: `SERVER\CA-NAME`. |
+| `--template <template>` | Enable/disable a template on the CA (template must be readable).<br/>Format: `TEMPLATE-NAME`. |
+| `--template-domain <domain>` | Target a specific domain for reading template details.<br/>Format: Fully Qualified Domain Name (FQDN). |
+| `--template-ldap-server <server>` | Target a specific LDAP server for reading template details.<br/>Format: `SERVER`. |
+| `--issue-id <id>` | Issue a certificate request.<br/>Required Role: `ManageCertificates`.<br/>Format: `REQUEST-ID`. |
+| `--deny-id <id>` |  Deny a certificate request.<br/>Required Role: `ManageCertificates`.<br/>Format: `REQUEST-ID`. |
+| `--revoke-cert <serial>` | Revoke a certificate.<br/>Required Role: `ManageCertificates`.<br/>Format: `SERIAL-NUMBER` (Example: `0123456789abcdef0123456789abcdef`). |
+| `--issuance-policy <id:oid>` | Add an issuance policy to a request pending manager approval.<br/>Required Role: `ManageCertificates`.<br/>Format: `REQUEST-ID:POLICY-OID` (Example: `1:1.3.6.1.5.5.7.3.2`). |
+| `--application-policy <id:oid>` | Add an application policy to a request pending manager approval.<br/>Required Role: `ManageCertificates`.<br/>Format: `REQUEST-ID:POLICY-OID` (Example: `1:1.3.6.1.5.5.7.3.2`). |
+| `--enroll <sid>` | Grant/revoke the `Enroll` role for a principal.<br/>Required Role: `ManageCA`.<br/>Format: `SID` (Example: `S-1-5-11`). |
+| `--officer <sid>` | Grant/revoke the `ManageCertificates` role for a principal.<br/>Required Role: `ManageCA`.<br/>Format: `SID` (Example: `S-1-5-11`). |
+| `--admin <sid>` | Grant/revoke the `ManageCA` role for a principal.<br/>Required Role: `ManageCA`.<br/>Format: `SID` (Example: `S-1-5-11`). |
+| `--esc6` | Enable/disable ESC6 on the CA.<br/>Required Role: `ManageCA`. |
+| `--esc11` | Enable/disable ESC11 on the CA.<br/>Required Role: `ManageCA`. |
+| `--esc16` | Enable/disable ESC16 on the CA.<br/>Required Role: `ManageCA`.|
+
+# Manage Templates
+Command usage: `Certify.exe manage-template --template <template> [options]`
+
+| Options | Description |
+| ------------ | ----------------------- |
+| `--template <template>` | **Required**. The target template to manage.<br/>Format: `TEMPLATE-NAME`. |
+| `--template-domain <domain>` | Target a specific domain for template management.<br/>Format: Fully Qualified Domain Name (FQDN). |
+| `--template-ldap-server <server>` | Target a specific LDAP server for template management.<br/>Format: `SERVER`. |
+| `--owner <sid>` | Set the owner of the certificate template object.<br/>Format: `SID` (Example: `S-1-5-11`). |
+| `--enroll <sid>` | Grant/revoke the `Enroll` permission for a principal.<br/>Format: `SID` (Example: `S-1-5-11`). |
+| `--write-property <sid>` | Grant/revoke the `WriteProperty` permission for a principal.<br/>Format: `SID` (Example: `S-1-5-11`). |
+| `--write-owner <sid>` | Grant/revoke the `WriteOwner` permission for a principal.<br/>Format: `SID` (Example: `S-1-5-11`). |
+| `--write-dacl <sid>` | Grant/revoke the `WriteDacl` permission for a principal.<br/>Format: `SID` (Example: `S-1-5-11`). |
+| `--authorized-signatures <number>` | Set the number of authorized signatures required. |
+| `--manager-approval` | Enable/disable 'Manager Approval'. |
+| `--supply-subject` | Enable/disable 'Enrollee Supplies Subject'. |
+| `--client-auth` | Enable/disable the 'Client Authentication' Extended Key Usage (EKU). |
+| `--pkinit-auth` | Enable/disable the 'PKINIT Client Authentication' Extended Key Usage (EKU). |
+| `--smartcard-logon` | Enable/disable the 'Smartcard Logon' Extended Key Usage (EKU). |
+| `--esc9` | Enable/disable ESC9. |
+
+# Manage Self (TESTING)
+Command usage: `Certify.exe manage-self [options]`
+
+| Options | Description |
+| ------------ | ----------------------- |
+| `--dump-certs` | Export all certificates in the local machine certificate store. |

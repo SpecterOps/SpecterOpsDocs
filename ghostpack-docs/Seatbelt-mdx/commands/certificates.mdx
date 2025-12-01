@@ -1,0 +1,110 @@
+---
+title: 'Certificates'
+description: 'Finds user and machine personal certificate files'
+icon: 'certificate'
+---
+
+## Overview
+
+The Certificates command enumerates personal certificates stored in both user and machine certificate stores. These certificates may be used for authentication, encryption, code signing, or other cryptographic operations, and can reveal valuable information about the system's security posture and trust relationships.
+
+## Syntax
+
+```bash
+Seatbelt.exe Certificates
+```
+
+<Note>
+This command does **not** support remote execution.
+</Note>
+
+## Output
+
+The command returns certificate information including:
+
+- Subject name
+- Issuer
+- Serial number
+- Validity period (NotBefore/NotAfter)
+- Thumbprint
+- Key usage
+- Enhanced key usage
+- Certificate template
+- Store location (User/Machine)
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Find certificates for authentication
+    - Identify code signing certificates
+    - Discover client authentication certificates
+    - Locate certificates for credential theft
+    - Identify trust relationships
+    - Find expired or weak certificates
+  </Tab>
+  <Tab title="Blue Team">
+    - Audit certificate deployment
+    - Identify expired certificates
+    - Validate certificate issuers
+    - Detect unauthorized certificates
+    - Ensure proper certificate management
+    - Identify certificates requiring renewal
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== Certificates ======
+
+Store           : CurrentUser
+Location        : My
+Subject         : CN=user@domain.com
+Issuer          : CN=Corporate CA, DC=domain, DC=com
+ValidDate       : 1/15/2023 12:00:00 AM
+ExpiryDate      : 1/15/2025 12:00:00 AM
+Thumbprint      : 1234567890ABCDEF1234567890ABCDEF12345678
+Template        : User
+EnhancedKeyUsage: Client Authentication (1.3.6.1.5.5.7.3.2)
+
+Store           : LocalMachine
+Location        : My
+Subject         : CN=SERVER01.domain.com
+Issuer          : CN=Corporate CA, DC=domain, DC=com
+ValidDate       : 3/1/2024 12:00:00 AM
+ExpiryDate      : 3/1/2026 12:00:00 AM
+Thumbprint      : ABCDEF1234567890ABCDEF1234567890ABCDEF12
+Template        : WebServer
+EnhancedKeyUsage: Server Authentication (1.3.6.1.5.5.7.3.1)
+```
+
+## Remote Execution
+
+<Warning>
+This command does **NOT support remote execution**.
+</Warning>
+
+## Detection Considerations
+
+<Info>
+This command has minimal detection surface:
+</Info>
+
+- **API Calls**: Uses CryptoAPI functions to enumerate certificate stores
+- **Low Privilege**: No special privileges required for user stores
+- **EDR Telemetry**: May be logged as process behavior
+- **No Network Activity**: Operates entirely locally
+
+### Defensive Recommendations
+
+- Monitor execution of reconnaissance tools
+- Correlate with other enumeration activities
+- Track access to certificate private keys
+- Enable process creation logging
+
+## Related Commands
+
+- [CertificateThumbprints](/commands/certificatethumbprints) - Thumbprints for all certificates
+- [DPAPI MasterKeys](/commands/dpapimasterkeys) - DPAPI master key enumeration
+- [CredGuard](/commands/credguard) - Credential Guard configuration

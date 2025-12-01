@@ -1,0 +1,395 @@
+---
+title: 'machinevaults'
+description: 'Decrypt machine/SYSTEM Windows Vault data'
+icon: 'vault'
+---
+
+## Overview
+
+The **machinevaults** command elevates to SYSTEM, retrieves the DPAPI_SYSTEM LSA secret, decrypts machine masterkeys, and uses them to decrypt all machine-scope Windows Vault data. This reveals system-level web credentials, network passwords, and other vault-stored secrets.
+
+<Info>
+  Machine vaults contain system-level credentials stored by Windows and applications, including web credentials, network authentication, and system service passwords.
+</Info>
+
+## Basic Usage
+
+```bash
+# Decrypt machine vaults (requires elevation)
+SharpDPAPI.exe machinevaults
+```
+
+<Warning>
+  This command requires **elevation** (Administrator privileges) to:
+  - Elevate to SYSTEM via token duplication
+  - Retrieve the DPAPI_SYSTEM LSA secret
+  - Access system vault directories
+</Warning>
+
+## How It Works
+
+<Steps>
+  <Step title="Elevation to SYSTEM">
+    Duplicates a SYSTEM token to elevate privileges
+  </Step>
+
+  <Step title="DPAPI_SYSTEM Retrieval">
+    Retrieves the DPAPI_SYSTEM LSA secret
+  </Step>
+
+  <Step title="Masterkey Decryption">
+    Decrypts all machine DPAPI masterkeys using DPAPI_SYSTEM
+  </Step>
+
+  <Step title="Vault Discovery">
+    Locates machine vault folders in system directories
+  </Step>
+
+  <Step title="Policy Decryption">
+    Decrypts Policy.vpol files to extract AES keys
+  </Step>
+
+  <Step title="Credential Decryption">
+    Uses AES keys to decrypt .vcrd credential files
+  </Step>
+</Steps>
+
+## Vault Locations
+
+Machine vaults are stored in:
+
+```
+C:\Windows\System32\config\systemprofile\AppData\Local\Microsoft\Vault\
+C:\Windows\ServiceProfiles\LocalService\AppData\Local\Microsoft\Vault\
+C:\Windows\ServiceProfiles\NetworkService\AppData\Local\Microsoft\Vault\
+```
+
+Common vault GUIDs:
+- **4BF4C442-9B8A-41A0-B380-DD4A704DDB28** - Web Credentials
+- **2F1A6504-0641-44CF-8BB5-3612D865F2E5** - Windows Credentials
+
+## Example Output
+
+```bash
+SharpDPAPI.exe machinevaults
+```
+
+**Output:**
+```
+[*] Action: Machine DPAPI Vault Triage
+
+[*] Elevating to SYSTEM via token duplication for LSA secret retrieval
+[*] RevertToSelf()
+
+[*] Secret  : DPAPI_SYSTEM
+[*]    full: DBA60EB802B6C4B42E1E450BB5781EBD0846E1BF6C88CEFD23D0291FA9FE46899D4DE12A180E76C3
+[*]    m/u : DBA60EB802B6C4B42E1E450BB5781EBD0846E1BF / 6C88CEFD23D0291FA9FE46899D4DE12A180E76C3
+
+[*] SYSTEM master key cache:
+
+{1e76e1ee-1c53-4350-9a3d-7dec7afd024a}:4E4193B4C4D2F0420E0656B5F83D03754B565A0C
+{0bd732d9-c396-4f9a-a69a-508632c05235}:8A9F2C1D3E4B5C6A7D8E9F0A1B2C3D4E5F6A7B8C
+
+[*] Triaging SYSTEM Vaults
+
+[*] Triaging Vault folder: C:\WINDOWS\System32\config\systemprofile\AppData\Local\Microsoft\Vault\4BF4C442-9B8A-41A0-B380-DD4A704DDB28
+
+  VaultID            : 4bf4c442-9b8a-41a0-b380-dd4a704ddb28
+  Name               : Web Credentials
+    guidMasterKey    : {0bd732d9-c396-4f9a-a69a-508632c05235}
+    size             : 324
+    flags            : 0x20000000 (CRYPTPROTECT_SYSTEM)
+    algHash/algCrypt : 32782/26128
+    description      :
+    aes128 key       : 74CE3D7BCC4D0C4734931041F6D00D09
+    aes256 key       : B497F57730A2F29C3533B76BD6B33EEA231C1F51ED933E0CA1210B9E3A16D081
+
+    LastWritten      : 11/8/2018 3:45:22 PM
+    FriendlyName     : Internet Explorer
+    Identity         : system_service
+    Resource         : https://internal-portal.company.com/
+    Authenticator    : ServiceP@ss123!
+```
+
+## How Vaults Work
+
+Windows Vaults use two-stage encryption:
+
+<Steps>
+  <Step title="Policy.vpol Decryption">
+    The Policy.vpol file is encrypted with machine DPAPI masterkey and contains AES encryption keys
+  </Step>
+
+  <Step title="AES Key Extraction">
+    Decrypting Policy.vpol reveals AES128 and AES256 keys
+  </Step>
+
+  <Step title="Credential Decryption">
+    The AES keys decrypt .vcrd files containing actual credentials
+  </Step>
+</Steps>
+
+## Types of Machine Vault Data
+
+<AccordionGroup>
+  <Accordion title="Web Credentials">
+    **VaultID:** `4bf4c442-9b8a-41a0-b380-dd4a704ddb28`
+
+    - Internet Explorer saved passwords (system context)
+    - System-level web authentication
+    - Service web credentials
+    - Internal portal credentials
+
+    **Why Valuable:**
+    - Administrative portals
+    - Internal web applications
+    - Management interfaces
+  </Accordion>
+
+  <Accordion title="Windows Credentials">
+    **VaultID:** `2f1a6504-0641-44cf-8bb5-3612d865f2e5`
+
+    - Network authentication credentials
+    - Domain resource access
+    - SMB share credentials
+    - Generic Windows passwords
+
+    **Why Valuable:**
+    - Network resource access
+    - Domain credentials
+    - Service account passwords
+  </Accordion>
+
+  <Accordion title="Application Credentials">
+    - Application-specific vault entries
+    - Third-party software credentials
+    - System service passwords
+    - Background service authentication
+
+    **Why Valuable:**
+    - Application access
+    - Service credentials
+    - API keys and tokens
+  </Accordion>
+</AccordionGroup>
+
+## Common Scenarios
+
+<AccordionGroup>
+  <Accordion title="Post-Exploitation System Credential Gathering">
+    After gaining admin access:
+
+    ```bash
+    # Extract machine vault data
+    SharpDPAPI.exe machinevaults
+
+    # Look for:
+    # - Web portal credentials
+    # - Network resource passwords
+    # - Service account credentials
+    # - Administrative interface access
+    ```
+  </Accordion>
+
+  <Accordion title="Service Account Discovery">
+    Find service-level web and network credentials:
+
+    ```bash
+    # 1. Extract machine vaults
+    SharpDPAPI.exe machinevaults
+
+    # 2. Identify high-value credentials:
+    # - Identity: service account names
+    # - Resource: target systems/URLs
+    # - Authenticator: passwords
+
+    # 3. Test discovered credentials
+    ```
+  </Accordion>
+
+  <Accordion title="Comprehensive Machine Triage">
+    Complete machine DPAPI extraction:
+
+    ```bash
+    # Use wrapper command for all machine data
+    SharpDPAPI.exe machinetriage
+
+    # Or individual commands:
+    SharpDPAPI.exe machinemasterkeys
+    SharpDPAPI.exe machinecredentials
+    SharpDPAPI.exe machinevaults
+    SharpDPAPI.exe certificates /machine
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Vault File Structure
+
+Each vault folder contains:
+
+**Policy.vpol:**
+- DPAPI-encrypted with machine masterkey
+- Contains AES128 and AES256 keys
+- Required for credential decryption
+
+**\*.vcrd files:**
+- AES-encrypted credential data
+- Contains username, resource, password
+- Decrypted using keys from Policy.vpol
+
+**Credentials/ subdirectory:**
+- Additional credential files
+- Same encryption scheme
+
+## Comparison: User vs Machine Vaults
+
+| Aspect | User Vaults | Machine Vaults |
+|--------|-------------|---------------|
+| **Location** | `%LOCALAPPDATA%\Microsoft\Vault\` | `C:\Windows\System32\config\systemprofile\...` |
+| **Protection** | User masterkey | Machine masterkey (DPAPI_SYSTEM) |
+| **Context** | Current user credentials | System/service credentials |
+| **Typical Contents** | Browser passwords, personal creds | Service passwords, system creds |
+| **Privilege** | User context | SYSTEM context |
+| **Persistence** | User-specific | Machine-wide |
+
+## Detection Considerations
+
+<Warning>
+  Machine vault extraction is a high-privilege operation that should trigger security alerts.
+</Warning>
+
+**Host-Based Indicators:**
+- Elevation to SYSTEM privileges
+- LSA secret retrieval (DPAPI_SYSTEM)
+- Access to system profile vault directories
+- Reading Policy.vpol files
+- Bulk vault credential file access
+
+**Event Log Indicators:**
+```
+Event ID: 4624 (Logon)
+Logon Type: 3 (Network)
+Account Name: SYSTEM
+
+Event ID: 4656/4663 (Object Access)
+Object Name: *\SystemProfile\AppData\Local\Microsoft\Vault\*
+Object Name: *\Policy.vpol
+Object Name: *\.vcrd
+
+Event ID: 4673 (Privileged Service Called)
+Privileges: SeDebugPrivilege, SeImpersonatePrivilege
+```
+
+**Defensive Monitoring:**
+- Monitor SYSTEM token impersonation
+- Alert on LSA secret access (DPAPI_SYSTEM)
+- Track access to system vault directories
+- Detect Policy.vpol file access
+- Monitor .vcrd file enumeration
+
+## Related Commands
+
+<CardGroup cols={2}>
+  <Card title="machinecredentials" icon="id-card" href="/ghostpack-docs/SharpDPAPI-mdx/commands/machinecredentials">
+    Decrypt machine credential files
+  </Card>
+  <Card title="machinemasterkeys" icon="key" href="/ghostpack-docs/SharpDPAPI-mdx/commands/machinemasterkeys">
+    Extract machine masterkeys
+  </Card>
+  <Card title="machinetriage" icon="list-check" href="/ghostpack-docs/SharpDPAPI-mdx/commands/machinetriage">
+    Comprehensive machine DPAPI triage
+  </Card>
+  <Card title="vaults" icon="vault" href="/ghostpack-docs/SharpDPAPI-mdx/commands/vaults">
+    Decrypt user vaults
+  </Card>
+</CardGroup>
+
+## Tips
+
+<Accordion title="Maximizing Vault Value">
+  - Focus on Web Credentials vault for portal access
+  - Check Resource field for target systems
+  - Test discovered credentials immediately
+  - Look for administrative interface credentials
+  - Correlate with known infrastructure
+</Accordion>
+
+<Accordion title="OPSEC Considerations">
+  - Requires elevation (high visibility)
+  - SYSTEM privilege elevation generates events
+  - LSA secret access triggers security alerts
+  - Vault access may be monitored
+  - Consider detection capabilities before running
+</Accordion>
+
+<Accordion title="Troubleshooting">
+  **Access denied:**
+  - Need Administrator privileges
+  - UAC may prevent elevation
+  - Security software may block SYSTEM access
+  - Try running as SYSTEM directly
+
+  **No vaults found:**
+  - System may not have machine-level vaults
+  - Check ServiceProfiles directories
+  - Vaults may be empty (no .vcrd files)
+  - System services may not store credentials in vaults
+
+  **Policy decrypted but no credentials:**
+  - Vault may be empty (no credential entries)
+  - Check for .vcrd files in vault directory
+  - Verify AES keys were extracted correctly
+  - Some vaults may only contain metadata
+</Accordion>
+
+## Understanding Machine Vault Usage
+
+Machine vaults are created when:
+
+1. **System Services:**
+   - Windows services saving web credentials
+   - Background processes storing passwords
+   - System-level browser usage
+
+2. **Service Accounts:**
+   - LocalService or NetworkService context
+   - Scheduled tasks running as SYSTEM
+   - Windows Update and other system services
+
+3. **Administrative Tools:**
+   - Management consoles saving credentials
+   - Remote administration tools
+   - System monitoring applications
+
+<Note>
+  Machine vaults often contain fewer credentials than user vaults, but the credentials are typically more privileged (service accounts, admin portals, etc.).
+</Note>
+
+## Web Credential Resources
+
+Common resources found in machine Web Credentials vault:
+
+```
+https://internal-portal.company.com/
+https://admin.company.com/
+https://management.server.local/
+https://api.internal.company.com/
+```
+
+These often represent:
+- Administrative web interfaces
+- Internal service portals
+- Management consoles
+- API endpoints
+- Monitoring dashboards
+
+## AES Key Information
+
+The Policy.vpol file contains two AES keys:
+
+| Key Type | Size | Usage |
+|----------|------|-------|
+| **AES128** | 128-bit | Primary credential encryption (older) |
+| **AES256** | 256-bit | Enhanced credential encryption (newer) |
+
+Both keys are displayed in the output and used automatically for credential decryption.

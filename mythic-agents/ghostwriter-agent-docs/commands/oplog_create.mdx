@@ -1,0 +1,49 @@
+---
+title: "oplog_create"
+description: "Create a new operation log entry"
+---
+
+## Summary
+
+Create a new oplog entry to document commands executed during testing.
+
+- Needs Admin: False
+- Version: 1-2
+- Author: @its_a_feature_
+
+### Arguments
+
+#### command
+- Description: The command that was executed
+- Required: False
+
+#### description
+- Description: Description of what was done
+- Required: False
+
+#### comments
+- Description: Additional comments or context
+- Required: False
+
+Plus additional fields for operator, tool, source/dest IPs, etc.
+
+## Usage
+
+```
+oplog_create
+```
+
+## Detailed Summary
+
+Creates a new operation log (oplog) entry in Ghostwriter. Oplogs document the commands and actions taken during an engagement for reporting and audit purposes.
+
+### Oplog Fields
+- Start/end times
+- Operator name
+- Source and destination IPs
+- Tool/command used
+- Description of action
+- Output and comments
+- Tags for categorization
+
+Can be integrated with automated logging from other agents to maintain detailed engagement records.

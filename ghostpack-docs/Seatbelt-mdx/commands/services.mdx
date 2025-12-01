@@ -1,0 +1,107 @@
+---
+title: 'Services'
+description: 'Services with file info company names that do not contain Microsoft'
+icon: 'list-ul'
+---
+
+## Overview
+
+The Services command enumerates Windows services on the system. By default, it filters out Microsoft-signed services to highlight potentially interesting third-party services, custom services, and security products. Use the `-full` flag to enumerate all services without filtering.
+
+## Syntax
+
+```bash
+# Filter out Microsoft services (default)
+Seatbelt.exe Services
+
+# Enumerate all services
+Seatbelt.exe Services -full
+```
+
+<Note>
+This command does **not** support remote execution for standard enumeration.
+</Note>
+
+## Output
+
+Returns service information:
+- Service name
+- Display name
+- Company name
+- Service state (Running, Stopped)
+- Start type (Auto, Manual, Disabled)
+- Service path
+- Service account
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Identify security products and monitoring services
+    - Find services running as SYSTEM or privileged accounts
+    - Discover unquoted service paths
+    - Locate modifiable service binaries
+    - Identify services for persistence
+  </Tab>
+  <Tab title="Blue Team">
+    - Audit running services
+    - Detect unauthorized services
+    - Validate security service status
+    - Identify unnecessary services
+    - Hunt for malicious services
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== Services ======
+
+Name         : Sysmon64
+DisplayName  : Sysmon64
+CompanyName  : Sysinternals - www.sysinternals.com
+State        : Running
+StartMode    : Auto
+PathName     : C:\Windows\sysmon64.exe
+ServiceAccount: LocalSystem
+
+Name         : CustomBackup
+DisplayName  : Custom Backup Service
+CompanyName  : Custom Software Inc.
+State        : Running
+StartMode    : Auto
+PathName     : "C:\Program Files\CustomBackup\BackupService.exe"
+ServiceAccount: NT AUTHORITY\SYSTEM
+
+Name         : VulnService
+DisplayName  : Vulnerable Service
+CompanyName  :
+State        : Running
+StartMode    : Auto
+PathName     : C:\Program Files\Vulnerable App\service.exe
+ServiceAccount: LocalSystem
+[!] Unquoted service path detected
+```
+
+## Remote Execution
+
+<Warning>
+This command does **NOT support remote execution**.
+</Warning>
+
+## Detection Considerations
+
+<Info>
+Low detection risk - service enumeration is common administrative activity.
+</Info>
+
+- **API Calls**: Uses Service Control Manager (SCM) APIs
+- **WMI Queries**: May use WMI for additional service details
+- **EDR Telemetry**: Service enumeration may be logged
+
+## Related Commands
+
+- [AutoRuns](/commands/autoruns) - Auto-start programs including services
+- [Processes](/commands/processes) - Running processes
+- [InterestingProcesses](/commands/interestingprocesses) - Security products
+- [AntiVirus](/commands/antivirus) - Registered antivirus

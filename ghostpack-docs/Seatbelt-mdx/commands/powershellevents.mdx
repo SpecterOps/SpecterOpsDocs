@@ -1,0 +1,164 @@
+---
+title: 'PowerShellEvents'
+description: 'PowerShell script block logs (4104) with sensitive data'
+icon: 'terminal'
+---
+
+## Overview
+
+The PowerShellEvents command parses Windows PowerShell Event Logs for Event ID 4104 (Script Block Logging) and searches for entries containing sensitive data patterns. Script Block Logging records the content of PowerShell scripts and commands executed on the system. This command filters for script blocks containing potentially sensitive information such as passwords, credentials, API keys, and other security-relevant data.
+
+## Syntax
+
+```
+Seatbelt.exe PowerShellEvents
+```
+
+This command does not accept arguments but uses built-in pattern matching to identify sensitive data.
+
+## Output
+
+The command returns:
+- Event timestamp
+- Script block ID
+- Script block text (containing sensitive patterns)
+- Path to script (if applicable)
+- User context
+- Computer name
+- PowerShell version
+- Matched sensitive pattern type
+
+Sensitive patterns include:
+- Password keywords and variables
+- Credential objects
+- API keys and tokens
+- Connection strings
+- Authentication headers
+- Secret keys
+- Private keys
+- Certificate passwords
+
+## Use Cases
+
+### Red Team
+- Discover credentials in PowerShell history
+- Identify hardcoded passwords in scripts
+- Locate API keys and authentication tokens
+- Find connection strings with credentials
+- Identify sensitive commands executed by administrators
+- Discover internal infrastructure details
+- Locate encrypted credential usage
+- Identify security tool configurations
+
+### Blue Team
+- Detect malicious PowerShell activity
+- Identify credential exposure in scripts
+- Audit PowerShell usage for sensitive data handling
+- Investigate suspicious script execution
+- Detect credential theft attempts
+- Identify policy violations (hardcoded credentials)
+- Support incident response investigations
+- Detect PowerShell-based attacks (Empire, Cobalt Strike, etc.)
+- Identify fileless malware execution
+- Audit administrative PowerShell usage
+- Detect obfuscated scripts with credentials
+
+## Example Output
+
+```
+====== PowerShellEvents (Script Block Logging - Event ID 4104) ======
+
+  Time         : 10/19/2023 2:15:43 PM
+  Block ID     : abc123de-f456-7890-abcd-ef1234567890
+  User         : CORP\john.doe
+  Computer     : WORKSTATION42
+  PS Version   : 5.1
+
+  Script Block :
+    $password = ConvertTo-SecureString "P@ssw0rd123!" -AsPlainText -Force
+    $credential = New-Object System.Management.Automation.PSCredential("admin", $password)
+    Enter-PSSession -ComputerName DC01 -Credential $credential
+
+  Pattern Match: Password, Credential
+
+====== PowerShellEvents (Script Block Logging - Event ID 4104) ======
+
+  Time         : 10/18/2023 9:30:21 AM
+  Block ID     : def456gh-i789-0123-defg-hi4567890123
+  User         : CORP\administrator
+  Computer     : ADMIN-WS01
+  PS Version   : 5.1
+
+  Script Block :
+    $apiKey = "sk-1234567890abcdefghijklmnopqrstuv"
+    Invoke-RestMethod -Uri "https://api.service.com/data" -Headers @{Authorization="Bearer $apiKey"}
+
+  Pattern Match: API Key, Authorization
+
+====== PowerShellEvents (Script Block Logging - Event ID 4104) ======
+
+  Time         : 10/17/2023 3:45:18 PM
+  Block ID     : ghi789jk-l012-3456-ghij-kl7890123456
+  User         : CORP\svc_admin
+  Computer     : SERVER01
+  PS Version   : 5.1
+
+  Script Block :
+    $connectionString = "Server=DB01;Database=Production;User Id=sa;Password=DBP@ss2023;"
+    $connection = New-Object System.Data.SqlClient.SqlConnection($connectionString)
+
+  Pattern Match: Connection String, Password
+```
+
+## Performance Considerations
+
+This command reads from the PowerShell Event Logs, which can be time-intensive depending on:
+- Size of PowerShell Operational and Analytic logs
+- Volume of PowerShell activity on the system
+- Number of script blocks logged
+- Event log retention settings
+- System performance and disk I/O
+
+Script Block Logging can generate substantial log volume, especially on systems with heavy PowerShell usage. Query times may vary from seconds to minutes.
+
+## Remote Execution
+
+This command supports remote execution via WMI. Use the `-computername` parameter to query PowerShell events on remote systems:
+
+```
+Seatbelt.exe PowerShellEvents -computername=TARGET.domain.com
+Seatbelt.exe PowerShellEvents -computername=DC01.domain.com -username=DOMAIN\admin -password=Pass123
+```
+
+## Detection Considerations
+
+### Indicators
+- Event log access to PowerShell logs
+- Queries to Event IDs 4104, 4103, 4105, 4106
+- WMI queries to remote PowerShell event logs
+- Large-scale event log enumeration
+- Access to Microsoft-Windows-PowerShell/Operational log
+
+### Defensive Recommendations
+- Enable PowerShell Script Block Logging (Event ID 4104)
+- Enable PowerShell Module Logging (Event ID 4103)
+- Enable PowerShell Transcription for full command logging
+- Monitor for event log access by unauthorized tools
+- Alert on mass PowerShell event log queries
+- Implement SIEM correlation for PowerShell events
+- Restrict event log access to authorized accounts
+- Use Constrained Language Mode to limit PowerShell capabilities
+- Implement JEA (Just Enough Administration) for privileged operations
+- Monitor for sensitive patterns in PowerShell script blocks
+- Alert on obfuscated PowerShell commands
+- Track PowerShell execution from unusual locations
+- Correlate PowerShell events with process creation events
+
+## Related Commands
+
+- **PowerShellHistory** - Searches PowerShell console history files for sensitive regex matches
+- **PowerShell** - PowerShell versions and security settings
+- **ProcessCreationEvents** - Process creation logs (Event ID 4688) with sensitive data
+- **SysmonEvents** - Sysmon process creation logs (Event ID 1) with sensitive data
+- **LogonEvents** - Logon events (Event ID 4624) from the security event log
+- **ExplicitLogonEvents** - Explicit Logon events (Event ID 4648)

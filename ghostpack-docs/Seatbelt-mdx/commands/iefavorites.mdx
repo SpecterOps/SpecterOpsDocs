@@ -1,0 +1,109 @@
+---
+title: 'IEFavorites'
+description: 'Internet Explorer favorites'
+icon: 'star'
+---
+
+## Overview
+
+The `IEFavorites` command enumerates Internet Explorer favorites (bookmarks). This reveals websites and resources frequently accessed by users, which can provide intelligence about organizational infrastructure, internal applications, and user browsing patterns.
+
+**Important:** User commands run for the current user if not elevated and for ALL users if elevated.
+
+## Syntax
+
+```
+Seatbelt.exe IEFavorites
+```
+
+No additional arguments are supported. This command supports remote execution.
+
+## Output
+
+The command returns:
+- Favorite names and URLs
+- Folder organization structure
+- File paths to favorite (.url) files
+- User context for each favorite
+- Creation and modification timestamps
+
+## Use Cases
+
+### Red Team
+- **Infrastructure Discovery**: Identify internal web applications and portals
+- **Network Mapping**: Discover internal IP addresses and hostnames from bookmarked sites
+- **Target Identification**: Find high-value web applications (VPN portals, admin panels)
+- **User Profiling**: Understand user roles based on bookmarked resources
+- **Phishing Preparation**: Identify legitimate sites for targeted phishing campaigns
+
+### Blue Team
+- **Asset Discovery**: Identify internal web applications in use
+- **Security Audit**: Review bookmarked sites for security risks or policy violations
+- **User Training**: Identify users accessing risky or inappropriate sites
+- **Incident Response**: Track user browsing patterns during investigations
+- **Compliance Monitoring**: Ensure bookmarked sites align with acceptable use policies
+
+## Example Output
+
+```
+====== IEFavorites ======
+
+User: john.doe
+
+  Favorites\Work
+    Intranet Portal   : http://intranet.contoso.com
+    VPN Login         : https://vpn.contoso.com/login
+    SharePoint        : https://contoso.sharepoint.com/sites/Finance
+
+  Favorites\Admin Tools
+    vCenter           : https://vcenter.contoso.local
+    SCCM Console      : http://sccm.contoso.local/adminui
+    Exchange Admin    : https://mail.contoso.com/ecp
+
+  Favorites
+    Office 365        : https://portal.office.com
+```
+
+## Privilege Context
+
+- **Non-Elevated**: Returns Internet Explorer favorites for the current user only
+- **Elevated**: Returns Internet Explorer favorites for ALL users on the system, providing comprehensive visibility of bookmarked sites across all user accounts
+
+## Remote Execution
+
+This command **supports** remote execution (marked with + in the command list).
+
+Remote syntax:
+```
+Seatbelt.exe IEFavorites -computername=TARGET.domain.com -username=DOMAIN\user -password=pass
+```
+
+## Detection Considerations
+
+### Indicators
+- File system enumeration in Favorites directories
+- Access to user profile Favorites folders
+- Reading .url shortcut files
+- Enumeration across multiple user profiles
+
+### Defensive Monitoring
+- Monitor access to Favorites directories by unexpected processes
+- Alert on automated enumeration of browser bookmarks
+- Track processes reading multiple .url files
+- Log bulk access to user Favorites folders
+- Detect reconnaissance tools accessing browser data
+- Monitor for bookmark data exfiltration
+
+### Privacy Considerations
+- Favorites may reveal personal browsing habits
+- Can contain links to sensitive or personal sites
+- May expose internal infrastructure details
+- Consider user privacy when collecting bookmark data
+
+## Related Commands
+
+- **IETabs**: Lists currently open Internet Explorer tabs
+- **IEUrls**: Shows Internet Explorer typed URLs history
+- **ChromiumBookmarks**: Parses Chromium-based browser bookmarks
+- **ChromiumPresence**: Checks for Chromium browser files
+- **FirefoxPresence**: Checks for Firefox browser files

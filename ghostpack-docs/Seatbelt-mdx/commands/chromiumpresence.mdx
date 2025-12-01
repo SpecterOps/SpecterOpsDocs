@@ -1,0 +1,99 @@
+---
+title: 'ChromiumPresence'
+description: 'Checks if interesting Chrome/Edge/Brave/Opera files exist'
+icon: 'chrome'
+---
+
+## Overview
+
+The `ChromiumPresence` command checks for the existence of interesting files associated with Chromium-based browsers including Google Chrome, Microsoft Edge, Brave, and Opera. This command identifies the presence of browser data files without parsing their contents, providing a quick assessment of which browsers are installed and actively used.
+
+**Important:** User commands run for the current user if not elevated and for ALL users if elevated.
+
+## Syntax
+
+```
+Seatbelt.exe ChromiumPresence
+```
+
+No additional arguments are supported. This command supports remote execution.
+
+## Output
+
+The command returns:
+- Presence of Chromium-based browser installations
+- Locations of browser profile directories
+- Existence of key browser data files (history, cookies, bookmarks, login data)
+- Browser version information when available
+- User profiles associated with each browser
+
+## Use Cases
+
+### Red Team
+- **Browser Targeting**: Identify which Chromium-based browsers are installed for credential harvesting
+- **Data Exfiltration Planning**: Determine which browsers contain potential sensitive information
+- **User Profiling**: Understand user browser preferences and usage patterns
+- **Pre-Exploitation Reconnaissance**: Identify browsers before deploying browser-specific exploits
+
+### Blue Team
+- **Asset Inventory**: Track which browsers are installed across the environment
+- **Security Posture**: Identify outdated or unapproved browsers
+- **Data Loss Prevention**: Locate browsers that may contain sensitive cached data
+- **Compliance Auditing**: Ensure browser usage aligns with organizational policies
+
+## Example Output
+
+```
+====== ChromiumPresence ======
+
+  Chrome
+    ProfilePath       : C:\Users\john\AppData\Local\Google\Chrome\User Data\Default
+    HistoryFile       : Present
+    BookmarksFile     : Present
+    LoginDataFile     : Present
+    CookiesFile       : Present
+
+  Edge
+    ProfilePath       : C:\Users\john\AppData\Local\Microsoft\Edge\User Data\Default
+    HistoryFile       : Present
+    BookmarksFile     : Present
+    LoginDataFile     : Present
+    CookiesFile       : Present
+```
+
+## Privilege Context
+
+- **Non-Elevated**: Checks for Chromium browser files in the current user's profile only
+- **Elevated**: Checks for Chromium browser files across all user profiles on the system, providing comprehensive browser presence information
+
+## Remote Execution
+
+This command **supports** remote execution (marked with + in the command list).
+
+Remote syntax:
+```
+Seatbelt.exe ChromiumPresence -computername=TARGET.domain.com -username=DOMAIN\user -password=pass
+```
+
+## Detection Considerations
+
+### Indicators
+- File system enumeration in browser profile directories
+- Access to multiple user AppData directories
+- Pattern-based searching for browser-specific file paths
+- Rapid sequential access to browser data locations
+
+### Defensive Monitoring
+- Monitor access to browser profile directories, especially by non-browser processes
+- Alert on enumeration of multiple users' AppData folders
+- Track automated tools accessing browser file locations
+- Log unusual file system queries targeting browser data paths
+- Detect processes reading browser databases without being a browser
+
+## Related Commands
+
+- **ChromiumBookmarks**: Parses bookmark files from Chromium-based browsers
+- **ChromiumHistory**: Parses history files from Chromium-based browsers
+- **FirefoxPresence**: Checks for Firefox browser files
+- **IEFavorites**: Enumerates Internet Explorer favorites
+- **IETabs**: Lists open Internet Explorer tabs

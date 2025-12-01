@@ -1,0 +1,71 @@
+---
+title: "P2P Connections"
+---
+
+
+This describes how to report back p2p connection information to the server
+
+## What is it
+
+This message type allows agents to report back new or removed connections between themselves or elsewhere within a p2p mesh. Mythic uses these messages to construct a graph of connectivity that's displayed to the user and for handling routing for messages through the mesh.
+
+### Agent message to Mythic
+
+The agent message to Mythic has the following form:
+
+```json
+{
+ "user_output": "some user output here",
+ "task_id": "uuid of task here",
+ "edges": [
+    {
+      "source": "uuid of source callback",
+      "destination": "uuid of destination callback",
+      "metadata": "{ optional metadata json string }",
+      "action": "add or remove",
+      "c2_profile": "name of the c2 profile used in this connection"
+     }
+   ]
+}
+```
+
+<Note>
+    This same `edges` array can be sent outside of a `responses` array. This is handy if your agent suddenly loses connection, not because of a task, but because of other factors and still wants to report back that information to Mythic.
+</Note>
+
+Just like other [post\_response](/Mythic_docs/customizing/payload-type-development/create_tasking/agent-side-coding/action-post_response) messages, this message has the same UUID and encryption requirements found in [Agent Message Format](/Mythic_docs/customizing/payload-type-development/create_tasking/agent-side-coding/agent-message-format). Some things to note about the fields:
+
+* `edges` is an array of JSON objects describing the state of the connections that the agent is adding/removing. Each edge in this array has the following fields:
+
+  * `source` this is one end of the p2p connection (more often than not, this is the agent that's reporting this information)
+
+  * `destination` this is the other end of the p2p connection
+
+  * `metadata` is additional information about the connection that the agent wants to report. For example, when dealing with SMB bind pipes, this could contain information about the specific pipe name instances that are being used if they're being programmatically generated.
+
+  * `action` this indicates if the connection described above is to be added or removed from Mythic.
+
+  * `c2_profile` this indicates which c2 profile is used for the connection
+
+### Response message from Mythic
+
+After getting a message like this, Mythic responds with a message of the following form:
+
+```json
+{
+    "status": "success or error",
+    "error": "error message if status was error",
+    "task_id": "id of task"
+}
+```
+
+This is very similar to most other response messages from the Mythic server.
+
+### Automatic Connection Announcements
+
+When an agent sends a message to Mythic with a `delegate` component, Mythic will automatically add a route between the delegate and the agent that sent the message.
+
+For example: If agentA is an egress agent and it links to agentB, a p2p agent. When agentA sends a message to Mythic with a delegate message from agentB, Mythic will automatically create a route between the two agents.
+
+When connecting via P2P, the linked agent should always send _something_ to Mythic. If it has already gone through the `Checkin` process, then it should resend the checkin message data.
+This just forces Mythic to become aware of the connection between the two callbacks.

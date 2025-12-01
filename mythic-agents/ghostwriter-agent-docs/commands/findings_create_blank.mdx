@@ -1,0 +1,43 @@
+---
+title: "findings_create_blank"
+description: "Create a new blank finding in a report"
+---
+
+## Summary
+
+Create a new empty finding that can be populated later. Useful for quickly documenting discovered issues.
+
+- Needs Admin: False
+- Version: 1-2
+- Author: @its_a_feature_
+
+### Arguments
+
+#### title
+- Description: Title of the new finding
+- Required: True
+- Default: None
+
+#### report_title
+- Description: Which report to add the finding to (if multiple exist)
+- Required: False
+- Default: ""
+
+
+## Usage
+
+```
+findings_create_blank -title "Weak Password Policy"
+```
+
+## Detailed Summary
+
+Creates a new blank finding in the specified report. The finding will have minimal information and can be updated later with full details using findings_update.
+
+The blank finding will include:
+- The specified title
+- Default severity (typically informational)
+- Empty description field
+- Current timestamp
+
+This is useful for quickly documenting issues during testing that can be filled in with details later.

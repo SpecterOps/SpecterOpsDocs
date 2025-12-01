@@ -1,0 +1,65 @@
+---
+title: 'Account Persistence Techniques Overview'
+description: 'Overview of PERSIST1-3 techniques for maintaining persistent access to user accounts using certificate-based authentication.'
+icon: 'user-lock'
+sidebarTitle: 'Account Persistence'
+---
+
+<Info>
+This section demonstrates how to use Certify to implement certificate-based persistence techniques for maintaining long-term access to user accounts.
+</Info>
+
+## Account Persistence Techniques
+
+Certificate-based persistence allows attackers to maintain access to compromised accounts even after password changes or other remediation efforts. The following techniques leverage Active Directory Certificate Services (AD CS) to establish persistent authentication mechanisms:
+
+<CardGroup cols={1}>
+  <Card title="PERSIST1 - User Persistence via Certificates" icon="user" href="./persist1-user-persistence-via-certificates">
+    Extend initial access to a user into persistent access by requesting a client authentication certificate in the context of the user account, which can be used for future authentication.
+  </Card>
+
+  <Card title="PERSIST2 - Machine Persistence via Certificates" icon="server" href="./persist2-machine-persistence-via-certificates">
+    Extend initial access to a machine into persistent access by requesting a client authentication certificate in the context of the machine account.
+  </Card>
+
+  <Card title="PERSIST3 - Account Persistence via Certificate Renewal" icon="arrows-rotate" href="./persist3-account-persistence-via-certificate-renewal">
+    Extend the lifetime of persistence obtained through PERSIST1 or PERSIST2 by continuously renewing certificates before expiration.
+  </Card>
+</CardGroup>
+
+## Key Concepts
+
+<Accordion title="Certificate-Based Authentication">
+Certificate-based authentication in Active Directory allows users and machines to authenticate using X.509 certificates instead of traditional passwords. When properly configured, these certificates can be used with Kerberos PKINIT to obtain Ticket Granting Tickets (TGTs).
+</Accordion>
+
+<Accordion title="Template Requirements">
+For persistence techniques to work, certificate templates must meet specific criteria including enrollment rights, disabled manager approval, and appropriate Extended Key Usages (EKUs) for client authentication.
+</Accordion>
+
+<Accordion title="Strong vs Weak Certificate Mapping">
+Microsoft's Strong Certificate Mapping includes the Security Identifier (SID) in certificates to prevent certain attacks, while Weak Certificate Mapping relies only on Subject Alternative Names (SANs) and is more vulnerable to abuse.
+</Accordion>
+
+## Prerequisites
+
+<Warning>
+These techniques require existing access to Active Directory and appropriate certificate enrollment permissions. They should only be used in authorized testing scenarios.
+</Warning>
+
+- Access to an Active Directory environment with AD CS deployed
+- User or machine account with certificate enrollment permissions
+- Knowledge of vulnerable certificate templates
+- Understanding of the target environment's certificate mapping configuration
+
+## Detection and Mitigation
+
+Organizations should monitor for:
+- Unusual certificate enrollment activities
+- Certificates with suspicious Subject Alternative Names
+- Authentication events using certificates for unexpected accounts
+- Regular auditing of certificate template configurations
+
+<Card title="Next Steps" icon="arrow-right">
+Select a specific persistence technique from the list above to learn detailed implementation steps, enumeration methods, and exploitation techniques.
+</Card>

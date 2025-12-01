@@ -1,0 +1,125 @@
+---
+title: 'RDPSavedConnections'
+description: 'Saved RDP connections stored in the registry'
+icon: 'floppy-disk'
+---
+
+## Overview
+
+The `RDPSavedConnections` command enumerates saved Remote Desktop Protocol (RDP) connections stored in the Windows registry. These entries reveal systems that users have previously connected to via RDP, providing valuable intelligence about infrastructure and lateral movement opportunities.
+
+**Important:** User commands run for the current user if not elevated and for ALL users if elevated.
+
+## Syntax
+
+```
+Seatbelt.exe RDPSavedConnections
+```
+
+No additional arguments are supported. This command supports remote execution.
+
+## Output
+
+The command returns:
+- RDP server hostnames and IP addresses
+- Saved connection names
+- Username hints (when available)
+- Last connection timestamps (when available)
+- User context for each saved connection
+- Connection settings and preferences
+
+## Use Cases
+
+### Red Team
+- **Network Mapping**: Discover RDP-accessible servers and workstations
+- **Lateral Movement Planning**: Identify targets for RDP-based lateral movement
+- **Infrastructure Discovery**: Map organizational server topology
+- **User Profiling**: Understand which systems users regularly access
+- **Target Prioritization**: Identify frequently accessed systems
+
+### Blue Team
+- **Asset Discovery**: Document RDP connection patterns across the organization
+- **Access Audit**: Review RDP access history and patterns
+- **Incident Response**: Track RDP connections during security investigations
+- **Anomaly Detection**: Identify unusual RDP connection patterns
+- **Compliance Monitoring**: Ensure remote access aligns with policies
+
+## Example Output
+
+```
+====== RDPSavedConnections ======
+
+User: john.doe
+
+  Saved Connections (Terminal Server Client\Default)
+
+  Server: dc01.contoso.com
+    UsernameHint      : CONTOSO\john.doe
+
+  Server: sql-prod-01.contoso.com
+    UsernameHint      : CONTOSO\sqladmin
+
+  Server: 192.168.10.50
+
+  Server: web-server.contoso.local
+    UsernameHint      : administrator
+
+  Saved Connections (Terminal Server Client\Servers)
+
+  MRU 0: dc01.contoso.com
+  MRU 1: sql-prod-01.contoso.com
+  MRU 2: 192.168.10.50
+  MRU 3: fileserver01
+```
+
+## Privilege Context
+
+- **Non-Elevated**: Returns saved RDP connections for the current user only
+- **Elevated**: Returns saved RDP connections for ALL users on the system, providing comprehensive RDP connection mapping
+
+## Remote Execution
+
+This command **supports** remote execution (marked with + in the command list).
+
+Remote syntax:
+```
+Seatbelt.exe RDPSavedConnections -computername=TARGET.domain.com -username=DOMAIN\user -password=pass
+```
+
+## Detection Considerations
+
+### Indicators
+- Registry enumeration of RDP connection keys
+- Access to HKCU\Software\Microsoft\Terminal Server Client
+- Reading Default and Servers registry values
+- Enumeration across multiple user profiles
+
+### Defensive Monitoring
+- Monitor registry access to Terminal Server Client keys
+- Alert on automated enumeration of RDP connection history
+- Track processes reading RDP configuration data
+- Log bulk access to RDP settings across multiple users
+- Detect reconnaissance tools mapping RDP infrastructure
+- Monitor for unusual RDP connection patterns
+
+### What Saved Connections Reveal
+- Complete list of RDP servers accessed by users
+- Internal infrastructure (domain controllers, SQL servers, etc.)
+- IP addresses and hostnames of critical systems
+- Admin access patterns (administrator accounts)
+- Lateral movement history
+- Network topology and naming conventions
+
+### Registry Locations
+- `HKCU\Software\Microsoft\Terminal Server Client\Default` - Default username
+- `HKCU\Software\Microsoft\Terminal Server Client\Servers` - Server MRU list
+- Individual server entries contain UsernameHint values
+
+## Related Commands
+
+- **RDCManFiles**: Finds Remote Desktop Connection Manager configuration files
+- **RDPSessions**: Shows current incoming RDP sessions
+- **RDPsettings**: Displays Remote Desktop Server/Client settings
+- **LogonEvents**: Shows logon event logs which include RDP logons
+- **PuttySessions**: Enumerates saved Putty/SSH sessions
+- **MappedDrives**: Shows mapped network drives

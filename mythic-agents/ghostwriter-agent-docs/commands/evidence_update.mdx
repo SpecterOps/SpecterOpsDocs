@@ -1,0 +1,38 @@
+---
+title: "evidence_update"
+description: "Update an existing evidence entry"
+---
+
+## Summary
+
+Modify the description, caption, or other details of existing evidence.
+
+- Needs Admin: False
+- Version: 1-2
+- Author: @its_a_feature_
+
+### Arguments
+
+#### evidence_id
+- Description: ID of the evidence to update
+- Required: True
+
+#### description
+- Description: New description for the evidence
+- Required: False
+
+
+## Usage
+
+```
+evidence_update -evidence_id 15 -description "Updated caption"
+```
+
+## Detailed Summary
+
+Updates metadata for an existing evidence entry. You can modify:
+- Description/caption
+- Tags
+- Associations
+
+The actual evidence file cannot be changed - create new evidence if you need to replace the file.

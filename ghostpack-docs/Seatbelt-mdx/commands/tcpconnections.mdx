@@ -1,0 +1,100 @@
+---
+title: 'TcpConnections'
+description: 'Current TCP connections and their associated processes and services'
+icon: 'network-wired'
+---
+
+## Overview
+
+The TcpConnections command enumerates all active TCP connections on the system, including local and remote addresses, ports, connection states, and associated processes. This provides visibility into current network activity and can reveal C2 communications, lateral movement, or data exfiltration channels.
+
+## Syntax
+
+```bash
+Seatbelt.exe TcpConnections
+```
+
+<Note>
+This command does **not** support remote execution.
+</Note>
+
+## Output
+
+Returns TCP connection information:
+- Local address and port
+- Remote address and port
+- Connection state (Established, Listening, etc.)
+- Process ID (PID)
+- Process name
+- Service name (if applicable)
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Identify active network connections
+    - Discover listening services and ports
+    - Locate potential lateral movement targets
+    - Identify security product communications
+    - Map network topology
+  </Tab>
+  <Tab title="Blue Team">
+    - Hunt for C2 communications
+    - Detect unauthorized network connections
+    - Identify suspicious listening ports
+    - Investigate lateral movement
+    - Monitor for data exfiltration
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== TcpConnections ======
+
+LocalAddress   : 0.0.0.0:445
+RemoteAddress  : 0.0.0.0:0
+State          : Listening
+PID            : 4
+ProcessName    : System
+Service        : LanmanServer
+
+LocalAddress   : 192.168.1.100:49852
+RemoteAddress  : 192.168.1.50:445
+State          : Established
+PID            : 2156
+ProcessName    : powershell.exe
+Service        :
+
+LocalAddress   : 192.168.1.100:443
+RemoteAddress  : 185.220.101.50:44332
+State          : Established
+PID            : 5624
+ProcessName    : suspicious.exe
+Service        :
+[!] Potentially suspicious external connection
+```
+
+## Remote Execution
+
+<Warning>
+This command does **NOT support remote execution**.
+</Warning>
+
+## Detection Considerations
+
+<Info>
+Low detection risk - reads TCP connection table from system.
+</Info>
+
+- **API Calls**: Uses GetTcpTable2 or similar networking APIs
+- **No Network Traffic**: Local enumeration only
+- **EDR Telemetry**: May be logged as process behavior
+
+## Related Commands
+
+- [UdpConnections](/commands/udpconnections) - Active UDP connections
+- [ARPTable](/commands/arptable) - ARP cache entries
+- [DNSCache](/commands/dnscache) - DNS resolver cache
+- [NetworkShares](/commands/networkshares) - Network shares
+- [Processes](/commands/processes) - Running processes

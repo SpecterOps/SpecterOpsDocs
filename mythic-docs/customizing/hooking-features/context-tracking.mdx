@@ -1,0 +1,51 @@
+---
+title: "Context Tracking"
+---
+
+## Tasking Context Tabs
+
+Mythic allows you to track a bunch of different attributes about your callback as little "tabs" right above where you issue tasks.
+This allows you to have a quick access to a few pieces of information without having to look back up at the top table.
+
+The default tracking shows the `impersonation_context` and `cwd` attributes of a callback.
+
+In your user settings you can change what fields you want displayed (if any) and what color you want them to be.
+
+### cwd and impersonation_context
+
+Using the `callback` keyword, agents can update any part of a callback as part of a task response.
+This data can also be set as part of your initial checkin data.
+
+#### As part of a task
+
+As part of a task, you can use another keyword, `callback` to send the following structure.
+Inside the `callback` key you can set anything that you could when checking in.
+
+```json
+"responses": [
+    {
+        "task_id": "some uuid here",
+        "callback": {
+            "cwd": "C:\\Users\\tywin.lannister\\Desktop", //optional
+            "impersonation_context": "sevenkingdoms.local\\",
+            "sleep_info": "some string",
+            "pid": 2345,
+            "extra_info": "something else"
+        }
+    }
+]
+```
+
+#### Not as part of a task
+
+Sometimes you have other aspects to your agent that might be monitoring or running tasks and you want to report that data back to the user, but you don't have a specific task to associate it with. In that case, you can do the exact same `alerts` structure, but at a higher level in the structure:
+
+```json
+{
+    "action": "checkin", // any action
+    "cwd": "C:\\Users\\tywin.lannister\\Desktop",
+    "pid": 12334,
+    "user": "tywin.lannister",
+    "domain": "sevenkingdoms.local"
+}
+```

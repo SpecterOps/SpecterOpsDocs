@@ -1,0 +1,197 @@
+---
+title: "Agent Menu"
+description: "Commands for interacting with and controlling Merlin agents"
+icon: "robot"
+---
+
+The agent menu context is used to interact with a single agent. The Merlin prompt will include the word `agent` along
+with the identifier for the selected agent. Type `help` to see a list of available commands for the agent menu context.
+
+Prefix any command with `help` (e.g., `help run`) to view the command's help information.
+Use any of the following flags after a command name to view the help information for that command:
+`help`, `-h`, `--help`, `?`, `/?`
+
+## help
+
+<Note>
+The help menu will only show commands available to agent depending on its operating system
+</Note>
+
+- [core](#core)
+- [linux](#linux)
+- [windows](#windows)
+
+### core
+
+The `core` commands are available to every agent regardless of which operating system they are running on
+
+```text
+Merlin[agent][c1090dbc-f2f7-4d90-a241-86e0c0217786]» help
+
+   COMMAND  |          DESCRIPTION           |                 USAGE
+------------+--------------------------------+----------------------------------------
+  !         | Execute a command on the local | ! command [args]
+            | system                         |
+  back      | Go to the main menu            | back
+  banner    | Display the Merlin ASCII art   | banner
+            | banner                         |
+  cd        | Change the Agent's current     | cd directory
+            | working directory to provided  |
+            | file system path               |
+  checkin   | Force the agent check in by    | checkin
+            | sending back an AgentInfo      |
+            | message                        |
+  clear     | Cancel all Agent jobs that     | clear
+            | have not been sent             |
+  connect   | Instruct an Agent to           | connect uri
+            | re-connect it's primary        |
+            | communicate channel to the     |
+            | provide address                |
+  debug     | Switch debug output to the     | debug
+            | console on or off              |
+  download  | Download a file from the host  | download filePath
+            | the Agent is running on to the |
+            | Server                         |
+  env       | View or modify operating       | env {get|set|showall|unset}
+            | system environment variables   | [variable] [value]
+  exit      | Instruct the Agent to exit and | exit [-y]
+            | quit running                   |
+  ifconfig  | Get the network interface      | ifconfig
+            | information where the Agent is |
+            | running                        |
+  info      | Display information about the  | info
+            | Agent                          |
+  interact  | Interact with an agent or a    | interact {agentID|listenerID}
+            | listener                       |
+  ipconfig  | Get the network interface      | ipconfig
+            | information where the Agent is |
+            | running                        |
+  ja3       | Change the Agent's JA3 TLS     | ja3 signature
+            | signature to the one provided  |
+  jobs      | Display all unfinished jobs    | jobs
+  kill      | Terminate a running process    | kill pid
+            | by its numerical process       |
+            | identifier                     |
+  killdate  | Set the epoch date/time the    | killdate epochDateTime
+            | agent will quit running        |
+  link      | Establish a connection link    | link
+            | with a peer-to-peer Agent      | {add|list|remove|refresh|tcp|udp|smb}
+            |                                | address
+  listener  | Start, stop, or list           | listener {list|start|stop}
+            | peer-to-peer listeners on the  | [protocol] [address]
+            | Agent                          |
+  listeners | Move to the listeners menu     | listeners
+  ls        | List the files and folders of  | ls [filePath]
+            | the provided filepath          |
+  main      | Go to the Main menu            | main
+  maxretry  | Change the maximum number of   | maxretry number
+            | failed connection attempts     |
+            | before the Agent exits.        |
+  modules   | Move to the modules menu       | modules
+  note      | Create a server-side note for  | note message
+            | the current agent.             |
+  nslookup  | Natively resolve a hostname or | nslookup {hostname|ip address}
+            | IP address                     | [hostname|ip address] ...
+  padding   | Set the MAXIMUM amount of      | padding size
+            | random message padding         |
+  parrot    | Change the HTTP TLS            | parrot browserString
+            | configuration to match         |
+            | (parrot) the provided browser  |
+  printenv  | List all environment           | printenv
+            | variables.                     |
+  pwd       | Print the current working      | pwd
+            | directory.                     |
+  quit      | Stop and exit Merlin           | quit [-y]
+  rm        | Remove a file or directory     | rm filePath
+  run       | Execute a program and return   | run program [arguments]
+            | output                         |
+  sdelete   | Securely delete a file by      | sdelete filePath
+            | zeroing out the data           |
+  sessions  | List established Agent         | sessions
+            | sessions                       |
+  shell     | Execute commands through the   | shell command [arguments]
+            | host's default command shell   |
+  skew      | Change the jitter, or skew,    | skew amount
+            | of the Agent's beaconing       |
+            | interval.                      |
+  sleep     | Change the Agent's sleep       | sleep duration
+            | interval                       |
+  socks     | Start, stop, or list a SOCKS5  | socks {list | start
+            | server on the Merlin server    | [interface:]port agentID |stop
+            |                                | [interface:]port agentID}
+  ssh       | Execute a command on a remote  | ssh username password
+            | host via SSH                   | host:port program [args]
+  status    | Display if the Agent is        | status
+            | active, delayed, or dead       |
+  touch     | Copy a file's timestamp to     | touch sourceFilePath
+            | another file                   | destinationFilePath
+  unlink    | Task parent Agent to           | unlink childAgentID
+            | disconnect the child           |
+            | peer-to-peer Agent             |
+  upload    | Upload a file to the target    | upload sourceFilePath
+            | system                         | destinationFilePath
+  verbose   | Switch verbose output to the   | verbose
+            | console on or off              |
+```
+
+### linux
+
+These commands are only available to agents running on a `Linux` operating system.
+
+```text
+   COMMAND  |          DESCRIPTION           |                 USAGE
+------------+--------------------------------+----------------------------------------
+  memfd     | Execute a program from memory  | memfd filePath [args]
+```
+
+### windows
+
+These commands are only available to agents running on a `Windows` operating system.
+
+```text
+       COMMAND      |          DESCRIPTION           |                   USAGE
+--------------------+--------------------------------+--------------------------------------------
+  execute-assembly  | Execute .NET assembly as       | execute-assembly assemblyPath
+                    | shellcode in a child process   | [assemblyArguments]
+                    |                                | [spawnToPath]
+                    |                                | [spawnToArguments]
+  execute-pe        | Execute Windows PE as          | execute-pe peFilePath
+                    | shellcode in a child process   | [peArgumentes] [spawnToPath]
+                    |                                | [spawnToArguments]
+  execute-shellcode | Execute Windows shellcode      | execute-shellcode
+                    |                                | {self|remote|RtlCreateUserThread|UserAPC}
+                    |                                | [PID] {shellcode | shellcodeFilePath}
+  invoke-assembly   | Execute a .NET assembly that   | invoke-assembly assemblyName
+                    | was previously loaded into the | [assemblyArguments]
+                    | agent with the 'load-assembly' |
+                    | command.                       |
+  load-clr          | Load a specific version of the | load-clr VERSION
+                    | .NET CLR                       |
+  list-assemblies   | Lists .NET assemblies that     | list-assemblies
+                    | have been loaded into the      |
+                    | agent's process with the       |
+                    | 'load-assembly' command.       |
+  load-assembly     | Load a .NET assembly into the  | load-assembly filePath [alias]
+                    | agent's process.               |
+  make_token        | Create a new Windows access    | make_token DOMAIN\USERNAME
+                    | token                          | PASSWORD
+  memory            | Read, write, or patch the      | memory {read|write|patch}
+                    | Agent process' virtual memory  | module procedure {readLength |
+                    |                                | hexData}
+  netstat           | Get a list of network          | netstat [-p tcp|udp]
+                    | connections                    |
+  pipes             | List all named pipes on the    | pipes
+                    | system                         |
+  ps                | List running processes         | ps
+  rev2self          | Revert the thread              | rev2self
+                    | impersonation token to the     |
+                    | process token                  |
+  runas             | Run a program as a different   | runas domain\user password
+                    | user.                          | program [arguments]
+  sharpgen          | Compile & execute arbitrary C# | sharpgen <C# code> [spawnto]
+                    | code.                          | [spawnto_args]
+```
+
+<Note>
+This is a condensed version of the agent menu documentation. The original RST file contains extensive details for each command which would require additional conversion work due to its size.
+</Note>

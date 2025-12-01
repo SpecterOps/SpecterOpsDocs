@@ -1,0 +1,38 @@
+---
+title: "project_notes_update"
+description: "Update an existing project note"
+---
+
+## Summary
+
+Modify the content or title of an existing project note.
+
+- Needs Admin: False
+- Version: 1-2
+- Author: @its_a_feature_
+
+### Arguments
+
+#### note_id
+- Description: ID of the note to update
+- Required: True
+
+#### content
+- Description: New content for the note
+- Required: False
+
+
+## Usage
+
+```
+project_notes_update -note_id 7 -content "Updated information"
+```
+
+## Detailed Summary
+
+Updates an existing project note. Can modify:
+- Title
+- Content
+- Tags
+
+Useful for maintaining living documentation as the engagement progresses and new information is discovered.

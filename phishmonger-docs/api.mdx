@@ -1,0 +1,643 @@
+---
+title: 'API Reference'
+description: 'Programmatic access to Phishmonger via RESTful API'
+icon: 'code'
+---
+
+## Interactive API Documentation
+
+Phishmonger includes built-in interactive API documentation powered by Swagger UI:
+
+```
+https://yourdomain.com/documentation
+```
+
+<CardGroup cols={2}>
+  <Card title="Complete Endpoint List" icon="list">
+    Browse all available API endpoints organized by category (Templates, Campaigns, Targets, Events)
+  </Card>
+
+  <Card title="Interactive Testing" icon="flask">
+    Test API calls directly from the browser with "Try it out" functionality
+  </Card>
+
+  <Card title="Request Examples" icon="file-code">
+    View detailed request/response schemas and example payloads for every endpoint
+  </Card>
+
+  <Card title="OpenAPI Spec" icon="file-export">
+    Download the OpenAPI specification in JSON format for import into API clients
+  </Card>
+</CardGroup>
+
+## OpenAPI Specification
+
+Access the raw OpenAPI 3.0 specification:
+
+```
+https://yourdomain.com/documentation/json
+```
+
+**Use Cases**:
+- Import into Postman or Insomnia
+- Generate API clients for various programming languages
+- Integrate with API testing tools
+- Reference for development
+
+## Authentication
+
+All API endpoints (except `/documentation`) require cookie-based authentication.
+
+### Admin Cookie Authentication
+
+**Cookie Name**: `admin_cookie` (configurable in config.json)
+
+**Cookie Value**: Secret value from your config.json
+
+**Setting the Cookie**:
+
+<CodeGroup>
+
+```bash cURL
+curl -H "Cookie: admin_cookie=YOUR_COOKIE_VALUE" \
+  https://yourdomain.com/list_campaigns
+```
+
+```python Python
+import requests
+
+headers = {
+    'Cookie': 'admin_cookie=YOUR_COOKIE_VALUE'
+}
+
+response = requests.get(
+    'https://yourdomain.com/list_campaigns',
+    headers=headers
+)
+
+print(response.json())
+```
+
+```javascript Node.js
+const got = require('got');
+
+const response = await got('https://yourdomain.com/list_campaigns', {
+  headers: {
+    'Cookie': 'admin_cookie=YOUR_COOKIE_VALUE'
+  }
+}).json();
+
+console.log(response);
+```
+
+```go Go
+package main
+
+import (
+    "fmt"
+    "io/ioutil"
+    "net/http"
+)
+
+func main() {
+    client := &http.Client{}
+
+    req, _ := http.NewRequest("GET", "https://yourdomain.com/list_campaigns", nil)
+    req.Header.Add("Cookie", "admin_cookie=YOUR_COOKIE_VALUE")
+
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+
+    body, _ := ioutil.ReadAll(resp.Body)
+    fmt.Println(string(body))
+}
+```
+
+</CodeGroup>
+
+### Security Considerations
+
+<Warning>
+  **Cookie Security**: The admin cookie provides full access to Phishmonger. Protect this value and use HTTPS for all API communications.
+</Warning>
+
+- Cookie is HttpOnly and Secure (HTTPS only)
+- Valid for 1 year (max-age=31536000)
+- Single authentication token for all API access
+- No per-user or per-request tokens
+
+## API Categories
+
+Phishmonger's API is organized into four main categories:
+
+### Templates
+
+Manage reusable email templates.
+
+**Key Endpoints**:
+- `GET /list_templates` - List all template names
+- `GET /get_template` - Retrieve template by name
+- `POST /save_template` - Create or update template
+- `DELETE /delete_template` - Remove template
+
+**Tags**: `Template`
+
+### Campaigns
+
+Create, configure, and manage phishing campaigns.
+
+**Key Endpoints**:
+- `GET /list_campaigns` - List all campaigns
+- `GET /get_campaign` - Get campaign details
+- `POST /save_campaign` - Create new campaign
+- `PUT /update_campaign` - Modify campaign
+- `PUT /send_campaign` - Start sending immediately
+- `PUT /schedule_campaign` - Schedule for future start
+- `PUT /cancel_campaign` - Stop campaign
+- `DELETE /delete_campaign` - Delete campaign and data
+- `POST /send_test_email` - Send test email
+
+**Tags**: `Campaign`, `Template` (for test emails)
+
+### Targets
+
+Manage target lists and recipient information.
+
+**Key Endpoints**:
+- `GET /get_targets` - Get all targets for campaign
+- `GET /get_target_info` - Get specific target details
+- `POST /create_target` - Add target to campaign
+- `DELETE /delete_target` - Remove target
+- `PUT /update_phished_status` - Reset email sent status
+
+**Tags**: `Target`
+
+### Events
+
+Track and query campaign events and interactions.
+
+**Key Endpoints**:
+- `POST /create_event` - Log new event
+- `GET /get_campaign_events` - Get all campaign events
+- `GET /get_target_events` - Get events for specific target
+- `GET /get_search_events` - Search events with filters
+- `PUT /ignore_event` - Mark event as ignored
+- `PUT /unignore_events` - Restore ignored events
+
+**Tags**: `Event`
+
+## Quick Start Examples
+
+### List All Campaigns
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET "https://yourdomain.com/list_campaigns" \
+  -H "Cookie: admin_cookie=YOUR_COOKIE_VALUE"
+```
+
+```python Python
+import requests
+
+response = requests.get(
+    'https://yourdomain.com/list_campaigns',
+    headers={'Cookie': 'admin_cookie=YOUR_COOKIE_VALUE'}
+)
+
+campaigns = response.json()
+for campaign in campaigns:
+    print(f"{campaign['name']}: {campaign['mail_server']}")
+```
+
+```javascript Node.js
+const got = require('got');
+
+const campaigns = await got('https://yourdomain.com/list_campaigns', {
+  headers: { 'Cookie': 'admin_cookie=YOUR_COOKIE_VALUE' }
+}).json();
+
+campaigns.forEach(campaign => {
+  console.log(`${campaign.name}: ${campaign.mail_server}`);
+});
+```
+
+</CodeGroup>
+
+### Create a Target
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST "https://yourdomain.com/create_target" \
+  -H "Cookie: admin_cookie=YOUR_COOKIE_VALUE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "campaign": "Q4_2023_Campaign",
+    "address": "john.smith@target.com",
+    "first_name": "John",
+    "last_name": "Smith",
+    "position": "IT Administrator",
+    "custom": "+1-555-0123"
+  }'
+```
+
+```python Python
+import requests
+
+target_data = {
+    'campaign': 'Q4_2023_Campaign',
+    'address': 'john.smith@target.com',
+    'first_name': 'John',
+    'last_name': 'Smith',
+    'position': 'IT Administrator',
+    'custom': '+1-555-0123'
+}
+
+response = requests.post(
+    'https://yourdomain.com/create_target',
+    headers={'Cookie': 'admin_cookie=YOUR_COOKIE_VALUE'},
+    json=target_data
+)
+
+target = response.json()
+print(f"Created target with ID: {target['target_id']}")
+```
+
+```javascript Node.js
+const got = require('got');
+
+const target = await got.post('https://yourdomain.com/create_target', {
+  headers: { 'Cookie': 'admin_cookie=YOUR_COOKIE_VALUE' },
+  json: {
+    campaign: 'Q4_2023_Campaign',
+    address: 'john.smith@target.com',
+    first_name: 'John',
+    last_name: 'Smith',
+    position: 'IT Administrator',
+    custom: '+1-555-0123'
+  }
+}).json();
+
+console.log(`Created target with ID: ${target.target_id}`);
+```
+
+</CodeGroup>
+
+### Log an Event
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST "https://yourdomain.com/create_event" \
+  -H "Cookie: admin_cookie=YOUR_COOKIE_VALUE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "event_ip": "203.0.113.45",
+    "target": "a7k2m9",
+    "event_type": "CLICK",
+    "event_data": "User-Agent: Mozilla/5.0..."
+  }'
+```
+
+```python Python
+import requests
+
+event_data = {
+    'event_ip': '203.0.113.45',
+    'target': 'a7k2m9',
+    'event_type': 'CLICK',
+    'event_data': 'User-Agent: Mozilla/5.0...'
+}
+
+response = requests.post(
+    'https://yourdomain.com/create_event',
+    headers={'Cookie': 'admin_cookie=YOUR_COOKIE_VALUE'},
+    json=event_data
+)
+
+print(response.text)  # "Event created"
+```
+
+```javascript Node.js
+const got = require('got');
+
+await got.post('https://yourdomain.com/create_event', {
+  headers: { 'Cookie': 'admin_cookie=YOUR_COOKIE_VALUE' },
+  json: {
+    event_ip: '203.0.113.45',
+    target: 'a7k2m9',
+    event_type: 'CLICK',
+    event_data: 'User-Agent: Mozilla/5.0...'
+  }
+});
+
+console.log('Event logged successfully');
+```
+
+</CodeGroup>
+
+### Start Campaign
+
+<CodeGroup>
+
+```bash cURL
+curl -X PUT "https://yourdomain.com/send_campaign" \
+  -H "Cookie: admin_cookie=YOUR_COOKIE_VALUE" \
+  -H "Content-Type: application/json" \
+  -d '{"campaign": "Q4_2023_Campaign"}'
+```
+
+```python Python
+import requests
+
+response = requests.put(
+    'https://yourdomain.com/send_campaign',
+    headers={'Cookie': 'admin_cookie=YOUR_COOKIE_VALUE'},
+    json={'campaign': 'Q4_2023_Campaign'}
+)
+
+print(response.text)  # "Sending Campaign" or warning if already sending
+```
+
+```javascript Node.js
+const got = require('got');
+
+const response = await got.put('https://yourdomain.com/send_campaign', {
+  headers: { 'Cookie': 'admin_cookie=YOUR_COOKIE_VALUE' },
+  json: { campaign: 'Q4_2023_Campaign' }
+}).text();
+
+console.log(response);  // "Sending Campaign"
+```
+
+</CodeGroup>
+
+## HTTP Status Codes
+
+| Status Code | Meaning |
+|-------------|---------|
+| 200 OK | Request successful |
+| 401 Unauthorized | Missing or invalid admin cookie |
+| 404 Not Found | Endpoint does not exist |
+| 500 Internal Server Error | Server error (check logs) |
+
+## Response Formats
+
+All API endpoints return JSON (except error messages which may be plain text).
+
+**Successful Response Example**:
+```json
+{
+  "target_id": "a7k2m9",
+  "address": "john.smith@target.com",
+  "campaign": "Q4_2023_Campaign",
+  "phished": 0
+}
+```
+
+**Error Response (401)**:
+```
+Not Authorized
+```
+
+## Rate Limiting
+
+Phishmonger does not implement built-in rate limiting. Consider:
+
+- Implementing rate limiting at the reverse proxy level (NGINX)
+- Monitoring API usage and database performance
+- Restricting API access to trusted IP addresses
+- Using appropriate campaign delays to avoid overwhelming the server
+
+## API Clients
+
+### Generating Clients
+
+Use the OpenAPI spec to generate clients for various languages:
+
+```bash
+# Install OpenAPI Generator
+npm install @openapitools/openapi-generator-cli -g
+
+# Generate Python client
+openapi-generator-cli generate \
+  -i https://yourdomain.com/documentation/json \
+  -g python \
+  -o ./phishmonger-python-client
+
+# Generate JavaScript client
+openapi-generator-cli generate \
+  -i https://yourdomain.com/documentation/json \
+  -g javascript \
+  -o ./phishmonger-js-client
+```
+
+### Postman Collection
+
+Import the OpenAPI spec into Postman:
+
+1. Open Postman
+2. Click "Import"
+3. Enter URL: `https://yourdomain.com/documentation/json`
+4. Postman generates a collection with all endpoints
+5. Configure "Cookie" header with your admin cookie value
+
+## API Best Practices
+
+<Accordion title="Security">
+  **Always Use HTTPS**: Never send API requests over HTTP
+
+  **Protect Admin Cookie**: Store cookie value securely, never commit to source control
+
+  **Rotate Credentials**: Periodically change admin cookie value in config.json
+
+  **IP Whitelisting**: Restrict API access to known IP addresses at firewall level
+</Accordion>
+
+<Accordion title="Performance">
+  **Cache Responses**: Cache template and campaign lists when possible
+
+  **Batch Operations**: Use bulk imports for targets instead of individual API calls
+
+  **Monitor Resources**: Watch database size and server load during API-driven campaigns
+
+  **Database Queries**: For complex analytics, query SQLite database directly
+</Accordion>
+
+<Accordion title="Error Handling">
+  **Check Status Codes**: Always verify HTTP status before processing response
+
+  **Retry Logic**: Implement exponential backoff for transient failures
+
+  **Validate Data**: Verify response structure matches expected schema
+
+  **Log Errors**: Capture and log API errors for troubleshooting
+</Accordion>
+
+<Accordion title="Data Management">
+  **Clean Up**: Delete old campaigns and events regularly
+
+  **Export Data**: Archive important campaign data before deletion
+
+  **Monitor Size**: Track database growth and optimize as needed
+
+  **Backup**: Regular backups of database before bulk operations
+</Accordion>
+
+## Common Use Cases
+
+### Automated Target Import
+
+Import targets from CSV programmatically:
+
+```python
+import csv
+import requests
+
+def import_targets(csv_file, campaign_name, cookie_value):
+    base_url = 'https://yourdomain.com'
+    headers = {'Cookie': f'admin_cookie={cookie_value}'}
+
+    with open(csv_file, 'r') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            target = {
+                'campaign': campaign_name,
+                'address': row['email'],
+                'first_name': row['first_name'],
+                'last_name': row['last_name'],
+                'position': row['position'],
+                'custom': row.get('custom', '')
+            }
+
+            response = requests.post(
+                f'{base_url}/create_target',
+                headers=headers,
+                json=target
+            )
+
+            if response.status_code == 200:
+                print(f"Added: {target['address']}")
+            else:
+                print(f"Failed: {target['address']}")
+
+import_targets('targets.csv', 'Q4_2023_Campaign', 'YOUR_COOKIE_VALUE')
+```
+
+### Campaign Monitoring Script
+
+Monitor campaign progress in real-time:
+
+```python
+import requests
+import time
+
+def monitor_campaign(campaign_name, cookie_value):
+    base_url = 'https://yourdomain.com'
+    headers = {'Cookie': f'admin_cookie={cookie_value}'}
+
+    while True:
+        # Get campaign events
+        events = requests.get(
+            f'{base_url}/get_campaign_events',
+            headers=headers,
+            params={'campaign': campaign_name}
+        ).json()
+
+        # Count event types
+        email_sent = len([e for e in events if e['event_type'] == 'EMAIL_SENT'])
+        clicks = len([e for e in events if e['event_type'] == 'CLICK'])
+        submissions = len([e for e in events if e['event_type'] == 'POST_DATA'])
+
+        print(f"Campaign: {campaign_name}")
+        print(f"  Emails Sent: {email_sent}")
+        print(f"  Clicks: {clicks}")
+        print(f"  Submissions: {submissions}")
+        print(f"  CTR: {(clicks/email_sent*100) if email_sent > 0 else 0:.2f}%")
+        print()
+
+        time.sleep(60)  # Check every minute
+
+monitor_campaign('Q4_2023_Campaign', 'YOUR_COOKIE_VALUE')
+```
+
+### Export Campaign Results
+
+Export campaign data to CSV:
+
+```python
+import requests
+import csv
+
+def export_campaign_results(campaign_name, cookie_value, output_file):
+    base_url = 'https://yourdomain.com'
+    headers = {'Cookie': f'admin_cookie={cookie_value}'}
+
+    # Get targets
+    targets = requests.get(
+        f'{base_url}/get_targets',
+        headers=headers,
+        params={'campaign': campaign_name}
+    ).json()
+
+    # Get events for each target
+    results = []
+    for target in targets:
+        events = requests.get(
+            f'{base_url}/get_target_events',
+            headers=headers,
+            params={'target_id': target['target_id']}
+        ).json()
+
+        clicked = any(e['event_type'] == 'CLICK' for e in events)
+        submitted = any(e['event_type'] == 'POST_DATA' for e in events)
+
+        results.append({
+            'email': target['address'],
+            'first_name': target['first_name'],
+            'last_name': target['last_name'],
+            'position': target['position'],
+            'email_sent': target['phished'] == 1,
+            'clicked': clicked,
+            'submitted_data': submitted
+        })
+
+    # Write to CSV
+    with open(output_file, 'w', newline='') as f:
+        writer = csv.DictWriter(f, fieldnames=results[0].keys())
+        writer.writeheader()
+        writer.writerows(results)
+
+    print(f"Exported {len(results)} results to {output_file}")
+
+export_campaign_results('Q4_2023_Campaign', 'YOUR_COOKIE_VALUE', 'results.csv')
+```
+
+## Additional Resources
+
+<CardGroup cols={2}>
+  <Card title="OpenAPI Specification" icon="file-code" href="https://swagger.io/specification/">
+    Learn more about OpenAPI 3.0 specification format
+  </Card>
+
+  <Card title="Fastify OAS" icon="bolt" href="https://github.com/SkeLLLa/fastify-oas">
+    Documentation for Phishmonger's OpenAPI plugin
+  </Card>
+
+  <Card title="Postman" icon="cube" href="https://www.postman.com/">
+    API development and testing platform
+  </Card>
+
+  <Card title="Insomnia" icon="moon" href="https://insomnia.rest/">
+    Alternative API client and testing tool
+  </Card>
+</CardGroup>
+
+## Support
+
+For API-specific questions:
+- Review the interactive documentation at `/documentation`
+- Check the OpenAPI spec for detailed schemas
+- Refer to other documentation sections for operational guidance
+- Report API bugs on [GitHub](https://github.com/fkasler/phishmonger/issues)

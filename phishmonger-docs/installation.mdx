@@ -1,0 +1,491 @@
+---
+title: 'Installation and Setup'
+description: 'Complete guide to installing and configuring Phishmonger'
+icon: 'download'
+---
+
+This guide covers the complete installation and configuration process for Phishmonger on a Linux server.
+
+<Info>
+  **Automated Setup**: For faster deployment, check out [Flik](https://github.com/fkasler/flik) to automate Phishmonger setup. Using a Gandi.net account makes DNS setup particularly streamlined.
+</Info>
+
+## Prerequisites
+
+Before beginning installation, ensure you have:
+
+- A Linux server (Debian/Ubuntu recommended) with root or sudo access
+- A registered domain name with DNS control
+- Public IP address
+- Node.js 12+ and npm installed
+- Port 25 open for SMTP (both inbound and outbound)
+- Ports 80 and 443 available for web interface
+
+<Warning>
+  **Port 25 Requirement**: Many cloud providers block outbound port 25 by default. Verify port 25 is accessible before proceeding, or request unblocking from your provider.
+</Warning>
+
+## Step 1: Clone Repository
+
+Clone the Phishmonger repository to your server:
+
+```bash
+git clone https://github.com/fkasler/phishmonger
+cd phishmonger
+```
+
+## Step 2: Install Node.js Dependencies
+
+Install the required Node.js packages:
+
+```bash
+npm install
+```
+
+### Key Dependencies Installed
+
+The installation includes:
+
+**Core Framework**
+- **fastify**: High-performance web framework
+- **express**: Compatibility layer
+- **fastify-socket.io**: WebSocket support for real-time updates
+- **fastify-cookie**: Cookie parsing and handling
+- **fastify-oas**: OpenAPI documentation
+
+**Email Functionality**
+- **nodemailer**: SMTP client for sending emails
+- **smtp-server**: SMTP server for capturing emails
+- **smtp-client**: Low-level SMTP protocol control
+
+**Database and Utilities**
+- **better-sqlite3**: SQLite database
+- **bunyan**: Structured logging
+- **dateformat**: Date formatting for email headers
+- **node-schedule**: Campaign scheduling
+- **prompts**: Interactive CLI prompts
+
+**Security and Crypto**
+- **node-rsa**: RSA key generation for DKIM
+- **got**: HTTP client for API calls
+
+## Step 3: Configure DNS Records
+
+Proper DNS configuration is critical for email deliverability. You need to configure several DNS records for your phishing domain.
+
+### Manual DNS Configuration
+
+Configure the following DNS records at your domain registrar:
+
+**A Records**
+```
+@ IN A <your-server-ip>
+* IN A <your-server-ip>
+mx IN A <your-server-ip>
+```
+
+**MX Record**
+```
+@ IN MX 10 mx.yourdomain.com.
+```
+
+**SPF Record (TXT)**
+```
+@ IN TXT "v=spf1 mx a ptr ip4:<your-server-ip>/32 -all"
+```
+
+**DMARC Record (TXT)**
+```
+_dmarc IN TXT "v=DMARC1; p=none"
+```
+
+**DKIM Record (TXT)**
+```
+default._domainkey IN TXT "v=DKIM1; k=rsa; p=<your-public-key>"
+```
+
+<Info>
+  The DKIM public key will be generated in the next step. You'll need to update this record after generating your DKIM keypair.
+</Info>
+
+### Automated DNS Configuration (Gandi)
+
+If using Gandi.net as your domain registrar, Phishmonger includes an automated setup script:
+
+```bash
+cd setup
+node gandi_setup.js
+```
+
+The script will prompt for:
+- Your Gandi domain
+- Gandi API key
+- Server IP address (defaults to current server's public IP)
+
+**What the Script Does:**
+1. Generates or uses existing DKIM keypair (dkim_private.pem, dkim_public.pem)
+2. Queries existing DNS records via Gandi API
+3. Creates/updates all required DNS records (A, MX, SPF, DMARC, DKIM)
+4. Deletes any conflicting stock records
+
+### Generate DKIM Keypair
+
+If not using the Gandi automated script, generate a DKIM keypair manually:
+
+```bash
+cd setup
+node -e "const NodeRSA = require('node-rsa'); const key = new NodeRSA({b: 1024}); const fs = require('fs'); fs.writeFileSync('dkim_private.pem', key.exportKey('pkcs8-private')); fs.writeFileSync('dkim_public.pem', key.exportKey('public')); console.log(key.exportKey('public').replace(/^-.*-$/mg,'').replace(/[\r\n]+/g, ''));"
+```
+
+This generates:
+- **dkim_private.pem**: Private key for signing (keep secure)
+- **dkim_public.pem**: Public key for DNS TXT record
+
+The one-liner output is the public key for your DNS TXT record.
+
+## Step 4: Configure Reverse Proxy
+
+Phishmonger runs on port 4005 by default. Configure a reverse proxy with TLS termination.
+
+### NGINX Configuration
+
+The included `domain_setup.sh` script generates an NGINX configuration:
+
+```bash
+cd setup
+chmod +x domain_setup.sh
+./domain_setup.sh yourdomain.com
+```
+
+**Prerequisites for the script:**
+- NGINX installed (`apt install nginx`)
+- Let's Encrypt certificates already obtained
+- Certificates located at `/etc/letsencrypt/live/yourdomain.com/`
+
+### Obtain Let's Encrypt Certificates
+
+Before running the setup script, obtain TLS certificates:
+
+```bash
+sudo apt install certbot python3-certbot-nginx
+sudo certbot certonly --nginx -d yourdomain.com -d *.yourdomain.com
+```
+
+<Accordion title="Alternative: Manual Certificate with DNS Challenge">
+  For wildcard certificates without NGINX pre-configuration:
+
+  ```bash
+  sudo certbot certonly --manual --preferred-challenges dns -d yourdomain.com -d *.yourdomain.com
+  ```
+
+  Follow the prompts to create required TXT records for domain verification.
+</Accordion>
+
+### Generated NGINX Configuration
+
+The script creates `/etc/nginx/sites-available/yourdomain.com.conf`:
+
+```nginx
+server {
+    listen       0.0.0.0:443;
+    server_name ~^(.*)\.yourdomain\.com;
+
+    ssl                  on;
+    ssl_certificate      /etc/letsencrypt/live/yourdomain.com/fullchain.pem;
+    ssl_certificate_key  /etc/letsencrypt/live/yourdomain.com/privkey.pem;
+
+    ssl_session_timeout  5m;
+    ssl_protocols TLSv1.3 TLSv1.2 TLSv1.1;
+    ssl_prefer_server_ciphers on;
+
+    access_log      /var/log/nginx/vhosts/yourdomain.com/access.log;
+    error_log       /var/log/nginx/vhosts/yourdomain.com/error.log;
+
+    location / {
+        proxy_pass http://127.0.0.1:4005;
+        proxy_pass_request_headers on;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_ssl_session_reuse off;
+    }
+}
+
+server {
+    listen      0.0.0.0:80;
+    server_name ~^(.*)\.yourdomain.com;
+    add_header Strict-Transport-Security max-age=2592000;
+    rewrite ^/.*$ https://$host$request_uri? permanent;
+}
+```
+
+### Enable and Restart NGINX
+
+```bash
+sudo ln -s /etc/nginx/sites-available/yourdomain.com.conf /etc/nginx/sites-enabled/
+sudo systemctl restart nginx
+```
+
+Verify NGINX configuration:
+
+```bash
+sudo nginx -t
+```
+
+## Step 5: Configure Phishmonger
+
+Create a `config.json` file in the Phishmonger root directory. An example configuration:
+
+```json
+{
+  "timezone": "America/New_York",
+  "set_admin": {
+    "switch": true,
+    "search_string": "SetMeAdmin"
+  },
+  "admin_cookie": {
+    "cookie_name": "admin_cookie",
+    "cookie_value": "CHANGE_THIS_TO_RANDOM_VALUE"
+  },
+  "signal_bot": {
+    "bot_id": "bot123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11",
+    "chat_id": "123456789"
+  },
+  "phishmarket": {
+    "url": "https://yourphishmarket.com",
+    "token": "your_api_token_here"
+  }
+}
+```
+
+### Configuration Parameters
+
+**timezone** (required)
+- Server timezone for campaign scheduling
+- Use IANA timezone format (e.g., "America/New_York", "Europe/London")
+
+**set_admin** (required)
+- **switch**: Set to `true` for first-time setup
+- **search_string**: URL parameter to set admin cookie on first visit
+- After accessing `https://yourdomain.com/?SetMeAdmin`, the switch sets to `false`
+
+**admin_cookie** (required)
+- **cookie_name**: Name of the authentication cookie (default: "admin_cookie")
+- **cookie_value**: Secret value for admin authentication (CHANGE THIS!)
+
+**signal_bot** (optional)
+- **bot_id**: Telegram bot ID for notifications
+- **chat_id**: Telegram chat ID for notifications
+- Sends notifications on EMAIL_SENT, CLICK, POST_DATA, and ERROR events
+
+**phishmarket** (optional)
+- **url**: Phishmarket server URL for remote template integration
+- **token**: API authentication token
+
+<Warning>
+  **Security Critical**: Change the `admin_cookie.cookie_value` from the default to a strong random value. This is the primary authentication mechanism for the admin interface.
+</Warning>
+
+## Step 6: Launch Phishmonger
+
+Start the Phishmonger server in a screen or tmux session:
+
+```bash
+screen -S phishmonger
+cd /path/to/phishmonger
+node index.js
+```
+
+Press `Ctrl+A` then `D` to detach from the screen session.
+
+### Expected Console Output
+
+Successful startup shows:
+
+```
+{"level":30,"time":1234567890123,"msg":"Server listening at http://127.0.0.1:4005"}
+{"level":30,"time":1234567890124,"msg":"server listening on 4005"}
+```
+
+### Verify Server Status
+
+Check that the server is running:
+
+```bash
+curl http://localhost:4005/
+```
+
+You should receive HTML content from the homepage.
+
+## Step 7: Access Admin Interface
+
+### Set Admin Cookie
+
+On first access, visit:
+
+```
+https://yourdomain.com/?SetMeAdmin
+```
+
+Replace `SetMeAdmin` with the value specified in `config.json` under `set_admin.search_string`.
+
+This sets the admin cookie and redirects to `/admin`. The `set_admin.switch` automatically sets to `false` in the config file after first use.
+
+### Access Admin Dashboard
+
+Navigate to:
+
+```
+https://yourdomain.com/admin
+```
+
+You should see the Phishmonger admin interface with options to:
+- Create Campaign
+- View Campaigns
+- Manage Templates
+- Access Phishmarket (if configured)
+
+## File Structure
+
+After installation and configuration, your directory structure should include:
+
+```
+phishmonger/
+├── index.js                # Main server application
+├── package.json            # Node.js dependencies
+├── config.json             # Server configuration
+├── config/
+│   └── swagger.js          # API documentation settings
+├── db/
+│   └── aquarium.db         # SQLite database (created on first run)
+├── setup/
+│   ├── dkim_private.pem    # DKIM private key
+│   ├── dkim_public.pem     # DKIM public key
+│   ├── gandi_setup.js      # Automated Gandi DNS setup
+│   ├── domain_setup.sh     # NGINX configuration generator
+│   └── kali_setup.sh       # Kali Linux specific setup
+└── resources/
+    ├── js/                 # JavaScript files
+    ├── styles/             # CSS files
+    ├── misc/               # Favicon and other assets
+    └── pages/              # HTML interface pages
+        ├── admin.html
+        ├── create_campaign.html
+        ├── edit_campaign.html
+        ├── track_campaign.html
+        ├── edit_targets.html
+        ├── view_target.html
+        └── search_events.html
+```
+
+## Verification
+
+### Test Web Interface
+
+1. Access homepage: `https://yourdomain.com/`
+2. Access admin interface: `https://yourdomain.com/admin`
+3. Access API documentation: `https://yourdomain.com/documentation`
+
+### Test Email Capture
+
+From a local machine running Outlook:
+
+1. Navigate to `https://yourdomain.com/create_campaign`
+2. Click "Capture Email" button
+3. Send an email from Outlook to `test@yourdomain.com`
+4. Verify the email appears in the web interface
+
+### Test Database
+
+Verify the SQLite database was created:
+
+```bash
+ls -la db/aquarium.db
+sqlite3 db/aquarium.db "SELECT name FROM sqlite_master WHERE type='table';"
+```
+
+You should see tables: `templates`, `campaigns`, `targets`, `events`
+
+## Post-Installation Steps
+
+After successful installation:
+
+1. Review the [Configuration](/phishmonger-docs/configuration) guide for advanced settings
+2. Review [Creating Campaigns](/phishmonger-docs/campaigns) to create your first phishing campaign
+3. Review [Templates](/phishmonger-docs/templates) for email templating
+4. Configure [Integrations](/phishmonger-docs/integrations) for Humble Chameleon or Phishmarket
+5. Set up [Telegram notifications](/phishmonger-docs/configuration#telegram-notifications) for real-time alerts
+
+## Troubleshooting Installation
+
+### Port 25 Blocked
+
+If port 25 is blocked:
+
+```bash
+# Test outbound SMTP
+telnet gmail-smtp-in.l.google.com 25
+```
+
+If connection fails, contact your hosting provider to unblock port 25.
+
+### NGINX Fails to Start
+
+Check for port conflicts:
+
+```bash
+sudo netstat -tulpn | grep :443
+sudo netstat -tulpn | grep :80
+```
+
+Verify NGINX configuration syntax:
+
+```bash
+sudo nginx -t
+```
+
+### Node.js Server Fails to Start
+
+Check if port 4005 is already in use:
+
+```bash
+sudo netstat -tulpn | grep :4005
+```
+
+Review server logs for errors:
+
+```bash
+cd /path/to/phishmonger
+node index.js
+```
+
+### Cannot Access Admin Interface
+
+Verify admin cookie is set:
+- Clear browser cookies
+- Re-visit `https://yourdomain.com/?SetMeAdmin`
+- Check `config.json` to verify `set_admin.switch` is now `false`
+
+Check NGINX logs:
+
+```bash
+sudo tail -f /var/log/nginx/vhosts/yourdomain.com/access.log
+sudo tail -f /var/log/nginx/vhosts/yourdomain.com/error.log
+```
+
+## Security Recommendations
+
+After installation:
+
+1. **Firewall Configuration**: Restrict port 4005 to localhost only
+2. **Admin Cookie**: Use a cryptographically random value for `admin_cookie.cookie_value`
+3. **HTTPS Only**: Ensure all traffic uses HTTPS via NGINX redirect
+4. **Regular Updates**: Keep Node.js dependencies updated with `npm audit`
+5. **Log Monitoring**: Regularly review NGINX and application logs
+6. **Backup Database**: Regularly backup `db/aquarium.db`
+7. **DKIM Private Key**: Protect `setup/dkim_private.pem` with appropriate file permissions
+
+```bash
+chmod 600 setup/dkim_private.pem
+```

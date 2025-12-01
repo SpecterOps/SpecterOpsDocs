@@ -1,0 +1,69 @@
+---
+title: 'LastShutdown'
+description: 'Returns the DateTime of the last system shutdown (via the registry)'
+icon: 'power-off'
+---
+
+## Overview
+
+The LastShutdown command retrieves the timestamp of the last system shutdown from the registry. This information helps understand system uptime, reboot schedules, and can be useful for timeline analysis during investigations.
+
+## Syntax
+
+```bash
+Seatbelt.exe LastShutdown
+```
+
+### Remote Execution
+```bash
+Seatbelt.exe LastShutdown -computername=TARGET.domain.com [-username=DOMAIN\user -password=pass]
+```
+
+## Output
+
+Returns:
+- Last shutdown date and time
+- Registry source of information
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Estimate system uptime
+    - Plan persistence requiring reboots
+    - Assess maintenance windows
+    - Understand patch/reboot schedules
+  </Tab>
+  <Tab title="Blue Team">
+    - Timeline analysis during investigations
+    - Verify maintenance schedules
+    - Correlate with security events
+    - Detect unexpected reboots
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== LastShutdown ======
+
+Last Shutdown : 10/15/2024 2:30:42 AM
+```
+
+## Remote Execution
+
+<Check>
+This command **supports remote execution** using the `-computername` parameter.
+</Check>
+
+## Detection Considerations
+
+<Info>
+Minimal detection surface - reads single registry value.
+</Info>
+
+## Related Commands
+
+- [OSInfo](/commands/osinfo) - Operating system information including boot time
+- [PoweredOnEvents](/commands/poweredoneevents) - Reboot and sleep schedule
+- [Processes](/commands/processes) - Running processes with start times

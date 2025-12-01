@@ -1,0 +1,262 @@
+---
+title: 'get applications'
+description: 'Enumerate available applications'
+icon: 'cube'
+sidebarTitle: 'applications'
+---
+
+## Overview
+
+Enumerate applications available in SCCM. Applications represent software packages that can be deployed to collections, making them potential attack vectors for lateral movement and privilege escalation.
+
+## Syntax
+
+```bash
+SharpSCCM get applications [options]
+```
+
+## Parameters
+
+<ParamField path="sms-provider" type="string">
+  The IP address, FQDN, or NetBIOS name of the SMS Provider to connect to
+</ParamField>
+
+<ParamField path="site-code" type="string">
+  The three-character site code (e.g., "PS1")
+</ParamField>
+
+<ParamField path="name" type="string">
+  Filter applications by name pattern (supports partial matching)
+</ParamField>
+
+<ParamField path="properties" type="string">
+  Specify properties to retrieve (can be used multiple times)
+</ParamField>
+
+<ParamField path="where-condition" type="string">
+  Custom WQL WHERE clause for advanced filtering
+</ParamField>
+
+<ParamField path="count" type="boolean">
+  Return count of results only
+</ParamField>
+
+<ParamField path="verbose" type="boolean">
+  Display all application properties
+</ParamField>
+
+## Examples
+
+<CodeGroup>
+```bash Basic Usage
+# List all applications
+SharpSCCM get applications -sms SCCM01.corp.local -sc PS1
+
+# Count applications
+SharpSCCM get applications -c -sms SCCM01.corp.local -sc PS1
+```
+
+```bash Application Search
+# Find specific applications
+SharpSCCM get applications -n "Office" -sms SCCM01.corp.local -sc PS1
+
+# Find PowerShell applications
+SharpSCCM get applications -n "PowerShell" -sms SCCM01.corp.local -sc PS1
+```
+
+```bash Security Analysis
+# Find hidden applications
+SharpSCCM get applications -w "IsHidden = True" -sms SCCM01.corp.local -sc PS1
+
+# Applications running as SYSTEM
+SharpSCCM get applications -w "ExecutionContext = 0" -sms SCCM01.corp.local -sc PS1
+
+# Recently created applications
+SharpSCCM get applications -w "DateCreated > '2023-01-01'" -sms SCCM01.corp.local -sc PS1
+```
+</CodeGroup>
+
+## Key Properties
+
+| Property | Description | Values |
+|----------|-------------|--------|
+| `LocalizedDisplayName` | Application name | User-defined |
+| `ExecutionContext` | Execution context | 0 (System), 1 (User) |
+| `IsHidden` | Hidden from console | True/False |
+| `IsDeployed` | Deployment status | True/False |
+| `CreatedBy` | Creator account | Domain\username |
+| `DateCreated` | Creation date | Timestamp |
+| `DateLastModified` | Last modification | Timestamp |
+| `IsSuperseded` | Superseded status | True/False |
+
+## Required Permissions
+
+<Info>
+  **Application Administrator** or **Read-only Analyst** role
+</Info>
+
+## Security Analysis
+
+<Accordion title="High-Risk Applications">
+  **System Context Applications (ExecutionContext = 0):**
+  - Run with SYSTEM privileges
+  - Potential privilege escalation vectors
+  - High impact for lateral movement
+
+  **Hidden Applications (IsHidden = True):**
+  - Not visible in Software Center
+  - Often administrative or testing applications
+  - May contain sensitive functionality
+
+  **Recently Created Applications:**
+  - New applications may have weak security
+  - Testing applications with elevated privileges
+  - Recently added attack tools
+</Accordion>
+
+<Accordion title="Attack Vector Analysis">
+  **Privilege Escalation:**
+  - System context applications for privilege escalation
+  - Applications with excessive permissions
+  - Custom applications with security flaws
+
+  **Lateral Movement:**
+  - Applications deployed to multiple systems
+  - Network-accessible applications
+  - Remote execution capabilities
+
+  **Persistence:**
+  - Applications with startup or scheduled execution
+  - Service-based applications
+  - Applications with persistence mechanisms
+</Accordion>
+
+## Application Intelligence
+
+<Accordion title="Application Types">
+  **Standard Software:**
+  - Microsoft Office, browsers, utilities
+  - Business applications and tools
+  - Development and administrative software
+
+  **Custom Applications:**
+  - Organization-specific software
+  - In-house developed applications
+  - Third-party business applications
+
+  **Administrative Tools:**
+  - System administration utilities
+  - Security tools and agents
+  - Monitoring and management software
+</Accordion>
+
+<Accordion title="Deployment Patterns">
+  **Broad Deployment:**
+  - Standard software packages
+  - Security updates and patches
+  - Compliance and monitoring tools
+
+  **Targeted Deployment:**
+  - Specialized software for specific groups
+  - Administrative tools for IT staff
+  - Development tools for developers
+</Accordion>
+
+## Common Queries
+
+<CodeGroup>
+```sql System Context
+ExecutionContext = 0
+```
+
+```sql Hidden Applications
+IsHidden = True
+```
+
+```sql Recently Created
+DateCreated > '2023-01-01'
+```
+
+```sql Deployed Applications
+IsDeployed = True
+```
+
+```sql Custom Applications
+CreatedBy NOT LIKE '%SYSTEM%'
+```
+</CodeGroup>
+
+## Attack Opportunities
+
+<Accordion title="Application Abuse">
+  **Malicious Applications:**
+  - Create malicious applications for deployment
+  - Modify existing applications
+  - Abuse application deployment mechanisms
+
+  **Legitimate Application Abuse:**
+  - Exploit applications with excessive privileges
+  - Abuse legitimate tools for malicious purposes
+  - Use applications for persistence and lateral movement
+</Accordion>
+
+<Accordion title="Deployment Manipulation">
+  **Deployment Targeting:**
+  - Target specific collections with malicious applications
+  - Abuse existing deployment assignments
+  - Create new deployments for lateral movement
+
+  **Application Modification:**
+  - Modify application content or commands
+  - Change deployment types and requirements
+  - Abuse application supersedence
+</Accordion>
+
+## Use Cases
+
+<Accordion title="Attack Vector Identification">
+  **High-Privilege Applications:**
+  - System context applications for privilege escalation
+  - Administrative tools with elevated permissions
+  - Custom applications with security weaknesses
+
+  **Deployment Analysis:**
+  - Understand application deployment patterns
+  - Identify potential deployment targets
+  - Analyze organizational software usage
+</Accordion>
+
+<Accordion title="Lateral Movement Planning">
+  **Application Deployment:**
+  - Use legitimate deployment mechanisms
+  - Target specific device collections
+  - Abuse application execution contexts
+
+  **Persistence Establishment:**
+  - Applications with startup execution
+  - Service-based applications
+  - Scheduled application execution
+</Accordion>
+
+## Output Analysis
+
+<Accordion title="Application Categories">
+  **By Execution Context:**
+  - System applications: High privilege, high risk
+  - User applications: Lower privilege, user-focused
+
+  **By Visibility:**
+  - Visible applications: Standard user software
+  - Hidden applications: Administrative or testing tools
+
+  **By Creation Source:**
+  - System-created: Built-in or imported applications
+  - User-created: Custom or organizational applications
+</Accordion>
+
+## Related Commands
+
+- [`get deployments`](/commands/get/deployments) - Analyze application deployments
+- [`get collections`](/commands/get/collections) - Identify deployment targets
+- [`new application`](/commands/new/application) - Create malicious applications
+- [`remove application`](/commands/remove/application) - Clean up applications

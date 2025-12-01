@@ -1,0 +1,142 @@
+---
+title: 'PuttySessions'
+description: 'Saved Putty configuration (interesting fields) and SSH host keys'
+icon: 'terminal'
+---
+
+## Overview
+
+The `PuttySessions` command enumerates saved PuTTY session configurations, extracting interesting fields including hostnames, usernames, port numbers, and SSH host keys. PuTTY sessions often contain connection details for critical infrastructure and may include stored credentials.
+
+**Important:** User commands run for the current user if not elevated and for ALL users if elevated.
+
+## Syntax
+
+```
+Seatbelt.exe PuttySessions
+```
+
+No additional arguments are supported. This command supports remote execution.
+
+## Output
+
+The command returns:
+- Saved session names
+- Hostnames and IP addresses
+- Port numbers
+- Usernames (when saved)
+- Protocol types (SSH, Telnet, Serial, etc.)
+- Proxy configurations
+- SSH host keys
+- Connection settings and preferences
+- User context for each session
+
+## Use Cases
+
+### Red Team
+- **Credential Harvesting**: Extract usernames from saved PuTTY sessions
+- **Network Mapping**: Discover SSH/Telnet servers and infrastructure
+- **Lateral Movement**: Identify targets for SSH-based access
+- **Infrastructure Discovery**: Map organizational network topology
+- **Target Prioritization**: Identify critical systems based on session names
+
+### Blue Team
+- **Asset Discovery**: Document SSH/Telnet accessible systems
+- **Access Audit**: Review saved connection configurations
+- **Incident Response**: Track SSH access patterns during investigations
+- **Compliance Monitoring**: Ensure remote access aligns with policies
+- **Security Baseline**: Identify insecure protocols (Telnet) in use
+
+## Example Output
+
+```
+====== PuttySessions ======
+
+User: john.doe
+
+  Session: Production Database Server
+    HostName          : db-prod-01.contoso.com
+    Port              : 22
+    Protocol          : SSH
+    UserName          : dbadmin
+    ProxyType         : None
+    HostKey           : ssh-rsa 0x23,0x9a,0x15,0xc3,...
+
+  Session: Web Server (Dev)
+    HostName          : 192.168.10.50
+    Port              : 22
+    Protocol          : SSH
+    UserName          : root
+    ProxyType         : None
+    HostKey           : ssh-ed25519 0xb4,0x2e,0x7f,...
+
+  Session: Legacy System
+    HostName          : legacy.contoso.local
+    Port              : 23
+    Protocol          : Telnet
+    UserName          : admin
+    ProxyType         : None
+
+  Session: VPN Gateway
+    HostName          : vpn.contoso.com
+    Port              : 2222
+    Protocol          : SSH
+    UserName          : vpnadmin
+    ProxyType         : HTTP
+    ProxyHost         : proxy.contoso.com:8080
+```
+
+## Privilege Context
+
+- **Non-Elevated**: Returns Putty sessions for the current user only
+- **Elevated**: Returns Putty sessions for ALL users on the system, providing comprehensive SSH/Telnet connection mapping
+
+## Remote Execution
+
+This command **supports** remote execution (marked with + in the command list).
+
+Remote syntax:
+```
+Seatbelt.exe PuttySessions -computername=TARGET.domain.com -username=DOMAIN\user -password=pass
+```
+
+## Detection Considerations
+
+### Indicators
+- Registry enumeration of PuTTY configuration keys
+- Access to HKCU\Software\SimonTatham\PuTTY\Sessions
+- Reading session configuration data
+- Enumeration across multiple user profiles
+
+### Defensive Monitoring
+- Monitor registry access to PuTTY session storage
+- Alert on automated enumeration of SSH configurations
+- Track processes reading PuTTY session data
+- Log bulk access to session information across users
+- Detect reconnaissance tools mapping SSH infrastructure
+- Monitor for credential harvesting tools accessing PuTTY data
+
+### What PuTTY Sessions Reveal
+- Complete inventory of SSH/Telnet servers accessed
+- Usernames associated with remote systems
+- System naming conventions and network structure
+- Use of insecure protocols (Telnet)
+- Proxy configurations and network routing
+- Critical infrastructure (databases, web servers, etc.)
+- External SSH access points
+
+### Security Considerations
+- PuTTY does not store passwords in sessions (by design)
+- However, usernames and hostnames are valuable intelligence
+- Telnet usage indicates insecure connections
+- Session names often reveal system purpose
+- Proxy settings may reveal network architecture
+
+## Related Commands
+
+- **PuttyHostKeys**: Lists saved Putty SSH host keys
+- **MTPuTTY**: Searches for MTPuTTY configuration files
+- **SuperPutty**: Finds SuperPutty configuration files
+- **FileZilla**: Searches for FileZilla credentials
+- **RDPSavedConnections**: Lists saved RDP connections
+- **MappedDrives**: Shows mapped network drives

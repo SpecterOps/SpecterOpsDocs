@@ -1,0 +1,37 @@
+---
+title: "findings_search"
+description: "Search for findings across all reports in the project"
+---
+
+## Summary
+
+Search for specific findings across all reports using keyword matching.
+
+- Needs Admin: False
+- Version: 1-2
+- Author: @its_a_feature_
+
+### Arguments
+
+#### search
+- Description: Search term to find in finding titles and descriptions
+- Required: True
+- Default: None
+
+
+## Usage
+
+```
+findings_search -search "SQL injection"
+findings_search -search "privilege escalation"
+```
+
+## Detailed Summary
+
+This command searches across all findings in all reports for the project. Search is case-insensitive and matches against:
+- Finding titles
+- Descriptions
+- Affected entities
+- Tags
+
+Useful for finding similar issues across multiple reports or tracking recurring vulnerabilities.

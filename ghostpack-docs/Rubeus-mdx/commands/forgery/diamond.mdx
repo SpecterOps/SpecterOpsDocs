@@ -1,0 +1,339 @@
+---
+title: 'diamond'
+description: 'Create diamond tickets using a combination of legitimate and forged ticket components'
+icon: 'gem'
+sidebarTitle: 'diamond'
+---
+
+## Overview
+
+Create diamond tickets, a sophisticated ticket forgery technique that combines legitimate TGT components with forged elements. This approach leverages legitimate authentication while modifying specific ticket attributes, making detection significantly more challenging than traditional golden tickets.
+
+## Syntax
+
+```bash
+Rubeus.exe diamond /user:USER /password:PASSWORD [krbkey] [options]
+```
+
+## Authentication Parameters
+
+<ParamField path="user" type="string" required>
+  Username for authentication
+</ParamField>
+
+<ParamField path="password" type="string">
+  Password for authentication
+</ParamField>
+
+<ParamField path="rc4" type="string">
+  RC4/NTLM hash for authentication
+</ParamField>
+
+<ParamField path="aes128" type="string">
+  AES128 key for authentication
+</ParamField>
+
+<ParamField path="aes256" type="string">
+  AES256 key for authentication
+</ParamField>
+
+## Kerberos Key Parameters
+
+<ParamField path="krbkey" type="string">
+  Kerberos key for ticket decryption/modification (AES256 preferred)
+</ParamField>
+
+<ParamField path="krbenctype" type="string">
+  Encryption type for Kerberos key (default: aes256)
+</ParamField>
+
+## Modification Options
+
+<ParamField path="groups" type="string">
+  Comma-separated list of group RIDs to inject
+</ParamField>
+
+<ParamField path="sids" type="string">
+  Additional SIDs to include in ticket
+</ParamField>
+
+<ParamField path="endtime" type="string">
+  Custom ticket end time
+</ParamField>
+
+<ParamField path="renew" type="string">
+  Custom ticket renew time
+</ParamField>
+
+## Output Options
+
+<ParamField path="outfile" type="string">
+  Save forged ticket to file
+</ParamField>
+
+<ParamField path="ptt" type="boolean">
+  Pass-the-ticket (inject immediately)
+</ParamField>
+
+## Examples
+
+<CodeGroup>
+```bash Basic Diamond Tickets
+# Create diamond ticket with password
+Rubeus.exe diamond /user:testuser /password:password123 /krbkey:aes256_key /groups:512
+
+# Create with hash authentication
+Rubeus.exe diamond /user:serviceaccount /rc4:ntlm_hash /krbkey:aes256_key /groups:512,519
+
+# Create and inject immediately
+Rubeus.exe diamond /user:normaluser /password:pass /krbkey:key /groups:512 /ptt
+```
+
+```bash Advanced Configuration
+# Custom groups and SIDs
+Rubeus.exe diamond /user:user /password:pass /krbkey:key /groups:512,513 /sids:S-1-5-21-...-1001
+
+# Custom timing
+Rubeus.exe diamond /user:user /rc4:hash /krbkey:key /endtime:"12/31/2025 23:59:59" /groups:512
+
+# Save to file for analysis
+Rubeus.exe diamond /user:user /password:pass /krbkey:key /groups:512 /outfile:diamond.kirbi
+```
+</CodeGroup>
+
+## Technical Overview
+
+<Accordion title="Diamond Ticket Concept">
+  **Hybrid Approach:**
+  - Starts with legitimate TGT from real authentication
+  - Decrypts legitimate ticket components
+  - Modifies specific attributes (groups, privileges)
+  - Re-encrypts with legitimate structure
+
+  **Advantages over Golden Tickets:**
+  - Uses legitimate authentication patterns
+  - Maintains realistic ticket characteristics
+  - Harder to detect than purely forged tickets
+  - Leverages actual user credentials
+</Accordion>
+
+<Accordion title="Attack Flow">
+  **Process Steps:**
+  1. **Legitimate Authentication**: Request TGT with valid credentials
+  2. **Ticket Decryption**: Decrypt TGT using KDC key material
+  3. **Attribute Modification**: Add privileged groups or SIDs
+  4. **Re-encryption**: Encrypt modified ticket with KDC key
+  5. **Ticket Injection**: Use modified ticket for authentication
+
+  **Key Requirements:**
+  - Valid user credentials (password or hash)
+  - KDC key material (KRBTGT key)
+  - Understanding of ticket structure
+  - Proper encryption handling
+</Accordion>
+
+## Credential Requirements
+
+<Accordion title="User Authentication">
+  **Legitimate Credentials:**
+  - Valid domain user password
+  - User NTLM hash from previous compromise
+  - User AES keys from Kerberos operations
+  - Any authentication method accepted by KDC
+
+  **Account Targeting:**
+  - Low-privilege user accounts (less suspicious)
+  - Service accounts with legitimate access
+  - Test accounts with known credentials
+  - Accounts with minimal monitoring
+</Accordion>
+
+<Accordion title="KDC Key Material">
+  **KRBTGT Key Sources:**
+  - DCSync attacks against domain controllers
+  - Memory dumps from compromised DCs
+  - Cached KRBTGT keys from previous operations
+  - Golden ticket creation prerequisites
+
+  **Key Types:**
+  ```bash
+  # AES256 preferred for stronger encryption
+  Rubeus.exe diamond /user:user /password:pass /krbkey:aes256_krbtgt_key
+
+  # AES128 alternative
+  Rubeus.exe diamond /user:user /rc4:hash /krbkey:aes128_krbtgt_key /krbenctype:aes128
+
+  # RC4 for legacy compatibility
+  Rubeus.exe diamond /user:user /password:pass /krbkey:rc4_krbtgt_key /krbenctype:rc4
+  ```
+</Accordion>
+
+## Privilege Escalation
+
+<Accordion title="Group Injection">
+  **Administrative Groups:**
+  ```bash
+  # Domain Admins
+  Rubeus.exe diamond /user:lowpriv /password:pass /krbkey:key /groups:512
+
+  # Enterprise Admins
+  Rubeus.exe diamond /user:user /rc4:hash /krbkey:key /groups:519
+
+  # Multiple administrative groups
+  Rubeus.exe diamond /user:user /password:pass /krbkey:key /groups:512,519,520
+  ```
+
+  **Group RID Reference:**
+  - 512: Domain Admins
+  - 519: Enterprise Admins
+  - 520: Group Policy Creator Owners
+  - 518: Schema Admins
+  - Custom organizational groups
+</Accordion>
+
+<Accordion title="SID Injection">
+  **Additional Privileges:**
+  ```bash
+  # Inject custom SIDs
+  Rubeus.exe diamond /user:user /password:pass /krbkey:key /sids:S-1-5-21-domain-1001,S-1-5-21-domain-1002
+
+  # Combine groups and SIDs
+  Rubeus.exe diamond /user:user /rc4:hash /krbkey:key /groups:512 /sids:S-1-5-21-domain-custom
+  ```
+
+  **SID Sources:**
+  - High-privilege custom groups
+  - Service-specific permissions
+  - Cross-domain trust relationships
+  - Application-specific roles
+</Accordion>
+
+## Operational Advantages
+
+<Accordion title="Detection Evasion">
+  **Legitimate Characteristics:**
+  - Real authentication event logs
+  - Valid ticket structure and timing
+  - Proper encryption and signatures
+  - Normal user authentication patterns
+
+  **Reduced Indicators:**
+  - No purely forged ticket artifacts
+  - Matches expected user behavior
+  - Uses legitimate authentication flows
+  - Maintains realistic ticket attributes
+</Accordion>
+
+<Accordion title="Persistence Benefits">
+  **Long-term Access:**
+  - Survives normal password changes (until KRBTGT rotation)
+  - Maintains elevated privileges
+  - Provides stealth administrative access
+  - Supports long-term operations
+
+  **Flexibility:**
+  - Use any legitimate user account
+  - Modify privilege levels as needed
+  - Create multiple variants for different purposes
+  - Adapt to changing operational requirements
+</Accordion>
+
+## Integration Workflows
+
+<Accordion title="Post-Compromise Escalation">
+  **Complete Attack Chain:**
+  ```bash
+  # 1. Obtain legitimate user credentials
+  # Through various attack vectors (phishing, hash dumping, etc.)
+
+  # 2. Obtain KRBTGT key material
+  # Through DCSync or other domain controller compromise
+
+  # 3. Create diamond ticket
+  Rubeus.exe diamond /user:compromised_user /password:known_pass /krbkey:krbtgt_aes256 /groups:512 /ptt
+
+  # 4. Use elevated privileges
+  # Access domain controllers, perform administrative tasks
+  ```
+</Accordion>
+
+<Accordion title="Stealth Administrative Access">
+  **Low-Profile Operations:**
+  ```bash
+  # 1. Use low-privilege account with known credentials
+  Rubeus.exe diamond /user:testuser /password:simple_pass /krbkey:krbtgt_key /groups:512
+
+  # 2. Perform administrative tasks
+  # Access restricted resources, modify domain objects
+
+  # 3. Clean up and return to normal operations
+  # Remove elevated access, return to baseline
+  ```
+</Accordion>
+
+## Defensive Considerations
+
+<Accordion title="Detection Challenges">
+  **Limited Indicators:**
+  - Legitimate authentication events
+  - Valid ticket structure and encryption
+  - Normal user behavior patterns
+  - Difficult to distinguish from legitimate access
+
+  **Detection Opportunities:**
+  - Unusual privilege escalation patterns
+  - Administrative access from low-privilege accounts
+  - Ticket analysis for modified attributes
+  - Behavioral analysis of user activities
+</Accordion>
+
+<Accordion title="Mitigation Strategies">
+  **Technical Controls:**
+  - Regular KRBTGT key rotation
+  - Enhanced authentication monitoring
+  - Privileged access management (PAM)
+  - Ticket inspection and validation
+
+  **Operational Measures:**
+  - Regular credential rotation
+  - Monitoring for unusual administrative access
+  - User behavior analytics
+  - Incident response procedures
+</Accordion>
+
+## Troubleshooting
+
+<Accordion title="Common Issues">
+  **Authentication Failures:**
+  - Invalid user credentials
+  - Account lockout or disabled status
+  - Network connectivity problems
+  - Domain controller accessibility
+
+  **Ticket Creation Errors:**
+  - Incorrect KRBTGT key material
+  - Encryption type mismatches
+  - Invalid group or SID specifications
+  - Timing or format issues
+</Accordion>
+
+<Accordion title="Optimization">
+  **Performance Improvements:**
+  - Use AES256 encryption for better security
+  - Optimize group selections for specific targets
+  - Cache KRBTGT keys for repeated use
+  - Streamline authentication processes
+
+  **Success Rate Enhancement:**
+  - Verify user account status before operation
+  - Test KRBTGT key validity
+  - Use realistic timing and attribute values
+  - Monitor for defensive responses
+</Accordion>
+
+## Related Commands
+
+- [`golden`](/commands/forgery/golden) - Traditional golden ticket forgery
+- [`asktgt`](/commands/ticket-requests/asktgt) - Legitimate TGT requests
+- [`ptt`](/commands/management/ptt) - Inject diamond tickets
+- [`describe`](/commands/management/describe) - Analyze ticket structure

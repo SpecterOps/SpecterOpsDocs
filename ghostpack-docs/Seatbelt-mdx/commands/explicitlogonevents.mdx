@@ -1,0 +1,150 @@
+---
+title: 'ExplicitLogonEvents'
+description: 'Explicit Logon events (Event ID 4648) from the security event log. Default of 7 days, argument == last X days'
+icon: 'user-lock'
+---
+
+## Overview
+
+The ExplicitLogonEvents command parses Windows Security Event Log entries for Event ID 4648 (Explicit Logon events). These events are generated when a user explicitly provides credentials to access a resource, such as using RunAs, mapping a network drive with credentials, or accessing a remote system. This command helps identify lateral movement, credential usage patterns, and potential privilege escalation attempts.
+
+## Syntax
+
+```
+Seatbelt.exe ExplicitLogonEvents
+```
+
+To specify a custom time range:
+
+```
+Seatbelt.exe "ExplicitLogonEvents [days]"
+```
+
+### Arguments
+
+- **days** (optional) - Number of days to search backwards from the current date. Default is 7 days.
+
+### Examples
+
+```
+Seatbelt.exe ExplicitLogonEvents          # Last 7 days (default)
+Seatbelt.exe "ExplicitLogonEvents 30"     # Last 30 days
+Seatbelt.exe "ExplicitLogonEvents 1"      # Last 24 hours
+```
+
+## Output
+
+The command returns:
+- Event timestamp
+- Subject account (user who initiated the action)
+- Subject domain
+- Target account (account whose credentials were used)
+- Target domain
+- Target server name
+- Process name that initiated the logon
+- Process ID
+- IP address (if applicable)
+
+## Use Cases
+
+### Red Team
+- Identify credential reuse patterns across the network
+- Map lateral movement paths between systems
+- Discover administrative accounts and their usage
+- Identify potential targets based on credential access patterns
+- Detect accounts with elevated privileges
+- Find systems where credentials have been used
+- Identify service accounts and their usage patterns
+
+### Blue Team
+- Detect lateral movement and credential theft
+- Investigate suspicious privilege escalation attempts
+- Identify unauthorized use of administrative credentials
+- Audit credential usage across the network
+- Detect Pass-the-Hash and credential replay attacks
+- Monitor for abnormal RunAs or explicit credential usage
+- Correlate explicit logon events with other security events
+- Identify compromised accounts based on unusual logon patterns
+- Validate least privilege principles
+
+## Example Output
+
+```
+====== ExplicitLogonEvents (Last 7 Days) ======
+
+  Time         : 10/19/2023 2:15:43 PM
+  Subject User : john.doe
+  Subject Dom  : CORP
+  Target User  : administrator
+  Target Dom   : CORP
+  Target Server: DC01.corp.local
+  Process      : C:\Windows\System32\runas.exe
+  Process ID   : 4832
+  IP Address   : 192.168.1.100
+
+  Time         : 10/18/2023 9:32:11 AM
+  Subject User : jane.smith
+  Subject Dom  : CORP
+  Target User  : svc_admin
+  Target Dom   : CORP
+  Target Server: FILESERVER01
+  Process      : C:\Windows\explorer.exe
+  Process ID   : 2156
+  IP Address   : -
+
+  Time         : 10/17/2023 4:47:22 PM
+  Subject User : bob.jones
+  Subject Dom  : CORP
+  Target User  : helpdesk
+  Target Dom   : CORP
+  Target Server: WORKSTATION42
+  Process      : C:\Windows\System32\mstsc.exe
+  Process ID   : 3344
+  IP Address   : 192.168.1.42
+```
+
+## Performance Considerations
+
+This command reads from the Windows Security Event Log, which can be time-intensive depending on:
+- Size of the Security Event Log
+- Number of days specified in the argument
+- Event log rotation and retention settings
+- System performance and disk I/O
+
+For large environments with extensive logging, querying longer time periods (30+ days) may take considerable time to complete.
+
+## Remote Execution
+
+This command supports remote execution via WMI. Use the `-computername` parameter to query explicit logon events on remote systems:
+
+```
+Seatbelt.exe "ExplicitLogonEvents 7" -computername=TARGET.domain.com
+Seatbelt.exe "ExplicitLogonEvents 30" -computername=DC01.domain.com -username=DOMAIN\admin -password=Pass123
+```
+
+## Detection Considerations
+
+### Indicators
+- Security Event Log access (Event ID 4663, 4656)
+- WMI queries to remote event logs
+- Large-scale event log enumeration
+- Access to HKLM\SYSTEM\CurrentControlSet\Services\EventLog
+- Unusual processes reading Security event logs
+
+### Defensive Recommendations
+- Enable Security Event Log auditing (Event ID 4663)
+- Monitor for mass event log queries
+- Alert on event log access by non-authorized tools
+- Implement SIEM correlation for explicit logon patterns
+- Restrict event log access to authorized accounts only
+- Monitor for abnormal explicit logon events (e.g., after-hours, unusual accounts)
+- Correlate Event ID 4648 with other logon events (4624, 4625, 4672)
+- Baseline normal explicit logon behavior per user/system
+
+## Related Commands
+
+- **LogonEvents** - Logon events (Event ID 4624) from the security event log
+- **ProcessCreationEvents** - Process creation logs (Event ID 4688) with sensitive data
+- **PowerShellEvents** - PowerShell script block logs (Event ID 4104) with sensitive data
+- **SysmonEvents** - Sysmon process creation logs (Event ID 1) with sensitive data
+- **PoweredOnEvents** - Reboot and sleep schedule based on System event log

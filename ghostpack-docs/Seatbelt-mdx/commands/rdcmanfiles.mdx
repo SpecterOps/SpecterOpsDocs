@@ -1,0 +1,125 @@
+---
+title: 'RDCManFiles'
+description: 'Windows Remote Desktop Connection Manager settings files'
+icon: 'desktop'
+---
+
+## Overview
+
+The `RDCManFiles` command searches for Remote Desktop Connection Manager (RDCMan) configuration files on the system. RDCMan is a Microsoft tool for managing multiple RDP connections, and its .rdg files contain server lists, connection settings, and sometimes stored credentials.
+
+**Important:** User commands run for the current user if not elevated and for ALL users if elevated.
+
+## Syntax
+
+```
+Seatbelt.exe RDCManFiles
+```
+
+No additional arguments are supported.
+
+## Output
+
+The command returns:
+- RDCMan .rdg file locations
+- File paths and names
+- File sizes and timestamps
+- User context for each configuration file
+- Potential credential storage indicators
+
+## Use Cases
+
+### Red Team
+- **Credential Harvesting**: Extract RDP credentials from RDCMan configuration files
+- **Network Mapping**: Discover RDP-accessible servers and infrastructure
+- **Lateral Movement**: Identify targets for RDP-based lateral movement
+- **Infrastructure Discovery**: Map organizational server topology
+- **Target Prioritization**: Find production vs. development servers from group names
+
+### Blue Team
+- **Asset Discovery**: Document RDP-accessible systems in the environment
+- **Credential Hygiene**: Identify users storing RDP credentials in RDCMan
+- **Security Audit**: Review RDP access patterns and configurations
+- **Incident Response**: Track RDP connections during investigations
+- **Compliance Monitoring**: Ensure remote access aligns with policies
+
+## Example Output
+
+```
+====== RDCManFiles ======
+
+User: john.doe
+
+  RDCMan File       : C:\Users\john.doe\Documents\Production-Servers.rdg
+    Size            : 15,234 bytes
+    Created         : 2024-08-15 10:30:00
+    Modified        : 2024-10-19 14:22:15
+
+  RDCMan File       : C:\Users\john.doe\Desktop\IT-Infrastructure.rdg
+    Size            : 8,192 bytes
+    Created         : 2024-09-01 08:15:30
+    Modified        : 2024-10-18 16:45:00
+
+  RDCMan File       : \\fileserver\shared\Admin-Tools\servers.rdg
+    Size            : 22,567 bytes
+    Created         : 2024-07-20 12:00:00
+    Modified        : 2024-10-20 09:30:15
+```
+
+## Privilege Context
+
+- **Non-Elevated**: Searches for RDCMan files for the current user only
+- **Elevated**: Searches for RDCMan files for ALL users on the system, providing comprehensive RDP connection discovery
+
+## Remote Execution
+
+This command does **not** support remote execution (not marked with + in the command list).
+
+## Detection Considerations
+
+### Indicators
+- File system enumeration for .rdg files
+- Access to common RDCMan storage locations (Documents, Desktop, etc.)
+- Reading XML configuration files
+- Enumeration across multiple user profiles
+
+### Defensive Monitoring
+- Monitor access to .rdg files by non-RDCMan processes
+- Alert on automated enumeration of RDCMan configurations
+- Track processes reading RDCMan XML files
+- Log bulk access to .rdg files across multiple users
+- Detect credential dumping tools accessing RDCMan data
+- Monitor for exfiltration of .rdg files
+
+### RDCMan File Contents
+- Server hostnames and IP addresses
+- Server group organization revealing infrastructure
+- Usernames for RDP connections
+- Passwords (encrypted but can be decrypted)
+- Connection settings and preferences
+- Gateway configurations
+
+### Security Considerations
+- RDCMan stores passwords encrypted with DPAPI
+- Encryption key is user-specific and recoverable
+- Passwords can be decrypted with user context or DPAPI master keys
+- .rdg files are XML and easily parseable
+- Files often contain complete server inventories
+
+### Security Recommendations
+- Discourage storing passwords in RDCMan files
+- Use network-level authentication and SSO where possible
+- Implement file access monitoring on .rdg files
+- Regularly audit RDCMan usage and configurations
+- Consider using enterprise RDP management solutions
+- Rotate credentials if .rdg files are compromised
+- Enable RDP connection auditing
+
+## Related Commands
+
+- **RDPSavedConnections**: Lists saved RDP connections from the registry
+- **RDPSessions**: Shows current incoming RDP sessions
+- **RDPsettings**: Displays Remote Desktop settings
+- **PuttySessions**: Enumerates saved Putty/SSH sessions
+- **WindowsCredentialFiles**: Finds Windows credential DPAPI blobs
+- **DpapiMasterKeys**: Lists DPAPI master keys needed for decryption

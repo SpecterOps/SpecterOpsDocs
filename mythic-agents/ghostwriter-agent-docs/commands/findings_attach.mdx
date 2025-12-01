@@ -1,0 +1,35 @@
+---
+title: "findings_attach"
+description: "Attach evidence to a finding"
+---
+
+## Summary
+
+Link evidence (screenshots, files, etc.) to a specific finding to support the vulnerability documentation.
+
+- Needs Admin: False
+- Version: 1-2
+- Author: @its_a_feature_
+
+### Arguments
+
+#### finding_id
+- Description: ID of the finding to attach evidence to
+- Required: True
+
+#### evidence_id
+- Description: ID of the evidence to attach
+- Required: True
+
+
+## Usage
+
+```
+findings_attach -finding_id 42 -evidence_id 15
+```
+
+## Detailed Summary
+
+Attaches existing evidence to a finding, creating the association in Ghostwriter. This allows findings to reference supporting screenshots, log files, or other documentation.
+
+Evidence must already exist in the report before it can be attached to a finding. Use evidence_create first if needed.

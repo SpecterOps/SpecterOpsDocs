@@ -1,0 +1,156 @@
+---
+title: 'local triage'
+description: 'Gather information about the site from local log files'
+icon: 'file-magnifying-glass'
+sidebarTitle: 'triage'
+---
+
+## Overview
+
+Gather comprehensive information about the SCCM site from local log files. This command performs automated analysis of SCCM client logs to extract configuration details, network paths, URLs, and other reconnaissance data.
+
+## Syntax
+
+```bash
+SharpSCCM local triage [options]
+```
+
+## Parameters
+
+This command requires no additional parameters beyond the standard debug and help options.
+
+## Examples
+
+<CodeGroup>
+```bash Basic Usage
+# Perform comprehensive log file analysis
+SharpSCCM local triage
+```
+
+```diff Example Output
+[+] Client cache contents and permissions for the current user:
+    Perms      Size  Date modified          Name
+      drw             1/13/2023 1:31:56 PM  C:\Windows\ccmcache
+      -rw      0.0B   1/13/2023 1:32:47 PM  C:\Windows\ccmcache\skpswi.dat
+
+[+] Searching logs for possible UNC paths:
+    Found match in C:\Windows\CCM\Logs\AppEnforce.log
+      \\192.168.57.130\C$
+
+[+] Searching logs for possible URLs:
+    Found match in C:\Windows\CCM\Logs\CcmMessaging.log
+      http://ATLAS.APERTURE.SCI/ccm_system/request
+      http://ATLAS.APERTURE.SCI/CCM_Incoming/
+```
+</CodeGroup>
+
+## Analysis Categories
+
+<Accordion title="Client Cache Analysis">
+  Examines the SCCM client cache directory:
+  - **Cache contents** and file permissions
+  - **Application packages** stored locally
+  - **Size and modification dates** of cached content
+  - **Access permissions** for the current user
+</Accordion>
+
+<Accordion title="UNC Path Discovery">
+  Searches logs for Universal Naming Convention paths:
+  - **Distribution points** and file shares
+  - **Administrative shares** (C$, ADMIN$)
+  - **Application source paths**
+  - **Network resource locations**
+</Accordion>
+
+<Accordion title="URL Enumeration">
+  Extracts URLs from log files:
+  - **Management point URLs** and endpoints
+  - **Distribution point URLs**
+  - **Web service endpoints**
+  - **Internal application URLs**
+</Accordion>
+
+## Log Files Analyzed
+
+<Accordion title="Core Client Logs">
+  - **CcmExec.log** - Main client executive service
+  - **CcmMessaging.log** - Client-server communication
+  - **PolicyAgent.log** - Policy processing and retrieval
+  - **LocationServices.log** - Site assignment and discovery
+</Accordion>
+
+<Accordion title="Application and Deployment Logs">
+  - **AppEnforce.log** - Application installation and enforcement
+  - **AppDiscovery.log** - Application detection
+  - **DataTransferService.log** - Content download operations
+  - **SoftwareCatalogUpdateEndpoint.log** - Software catalog updates
+</Accordion>
+
+<Accordion title="Setup and Configuration Logs">
+  - **ccmsetup.log** - Client installation and setup
+  - **ClientLocation.log** - Management point discovery
+  - **InternetProxy.log** - Proxy configuration
+</Accordion>
+
+## Discovered Information Types
+
+<Accordion title="Network Infrastructure">
+  - Management point servers and ports
+  - Distribution point locations
+  - Internal network segments and IP ranges
+  - DNS names and FQDN patterns
+</Accordion>
+
+<Accordion title="Authentication Details">
+  - Authentication methods and endpoints
+  - Certificate information
+  - Service principal names (SPNs)
+  - Windows authentication vs. certificate authentication
+</Accordion>
+
+<Accordion title="Application Intelligence">
+  - Deployed applications and versions
+  - Source file locations
+  - Download URLs and content hashes
+  - Installation command lines and parameters
+</Accordion>
+
+## Use Cases
+
+<Accordion title="Comprehensive Reconnaissance">
+  First-stage reconnaissance to understand the complete SCCM environment layout, including servers, network paths, and configurations.
+</Accordion>
+
+<Accordion title="Lateral Movement Planning">
+  Identify network paths, shares, and servers that can be targeted for lateral movement within the environment.
+</Accordion>
+
+<Accordion title="Infrastructure Mapping">
+  Build a complete map of the SCCM infrastructure including management points, distribution points, and network topology.
+</Accordion>
+
+## Performance Considerations
+
+<Warning>
+  This command may take significant time to complete (20+ seconds) as it:
+  - Searches through multiple large log files
+  - Performs pattern matching across thousands of log entries
+  - Analyzes file system permissions and metadata
+</Warning>
+
+## Security Implications
+
+<Info>
+  Information gathered by triage can reveal:
+  - **Internal network topology** and server locations
+  - **Administrative access patterns** and privileged paths
+  - **Application deployment methods** and source locations
+  - **Authentication mechanisms** and security configurations
+</Info>
+
+## Related Commands
+
+- [`local grep`](/sharpsccm/commands/local/grep) - Search specific files for targeted information
+- [`local site-info`](/sharpsccm/commands/local/site-info) - Get basic site configuration
+- [`local client-info`](/sharpsccm/commands/local/client-info) - Get client version information
+- [`get collections`](/sharpsccm/commands/get/collections) - Use discovered management points for remote enumeration

@@ -1,0 +1,100 @@
+---
+title: 'LocalGroups'
+description: 'Non-empty local groups, "-full" displays all groups'
+icon: 'users'
+---
+
+## Overview
+
+The LocalGroups command enumerates local group memberships on the system. By default, it shows only non-empty groups, but the `-full` flag displays all local groups. This is crucial for understanding privilege levels and access controls.
+
+## Syntax
+
+```bash
+# Show non-empty groups only
+Seatbelt.exe LocalGroups
+
+# Show all groups
+Seatbelt.exe LocalGroups -full
+
+# Enumerate remote computer
+Seatbelt.exe "LocalGroups <computername>"
+```
+
+### Remote Execution
+```bash
+Seatbelt.exe LocalGroups -computername=TARGET.domain.com [-username=DOMAIN\user -password=pass]
+```
+
+## Output
+
+Returns local group information:
+- Group name
+- Group members (users and groups)
+- Member types (local, domain)
+- SID information
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Identify privileged users (Administrators, Remote Desktop Users)
+    - Find domain users in local admin groups
+    - Discover service accounts
+    - Plan privilege escalation paths
+    - Identify lateral movement targets
+  </Tab>
+  <Tab title="Blue Team">
+    - Audit local admin group membership
+    - Detect unauthorized privilege escalation
+    - Validate least privilege principles
+    - Identify security group violations
+    - Track privileged access
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== LocalGroups ======
+
+[*] Non-empty Local Groups (use -full to display all groups)
+
+Administrators
+  WORKSTATION01\Administrator
+  CORP\Domain Admins
+  CORP\Workstation Admins
+  CORP\john.doe
+
+Remote Desktop Users
+  CORP\IT Support
+  CORP\help.desk
+
+Users
+  NT AUTHORITY\INTERACTIVE
+  NT AUTHORITY\Authenticated Users
+```
+
+## Remote Execution
+
+<Check>
+This command **supports remote execution** using the `-computername` parameter.
+</Check>
+
+## Detection Considerations
+
+<Warning>
+Group enumeration is common reconnaissance activity.
+</Warning>
+
+- **API Calls**: Uses NetLocalGroupEnum/NetLocalGroupGetMembers
+- **WMI Activity**: Remote execution generates WMI events
+- **Network Traffic**: Remote queries over SMB/RPC
+- **Event Logs**: May trigger 4799 (local group membership enumerated)
+
+## Related Commands
+
+- [LocalUsers](/commands/localusers) - Local user accounts
+- [LogonSessions](/commands/logonsessions) - Active logon sessions
+- [TokenGroups](/commands/tokengroups) - Current token groups
+- [UserRightAssignments](/commands/userrightsassignments) - User rights

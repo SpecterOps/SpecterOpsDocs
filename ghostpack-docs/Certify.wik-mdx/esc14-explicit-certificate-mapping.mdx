@@ -1,0 +1,41 @@
+---
+title: 'ESC14 - Explicit Certificate Mapping'
+description: 'Exploit the altSecurityIdentities attribute of domain principals to compromise accounts through explicit certificate mapping'
+icon: 'address-card'
+sidebarTitle: 'ESC14'
+---
+
+ESC14 is a misconfiguration in Active Directory, which stems from insecure management of security attributes. Specifically, the `altSecurityIdentities` attribute (explicit certificate mapping) of a domain principal can be abused to compromise its account.
+
+## Background
+
+The configuration was first described by [Géraud de Drouas](https://github.com/gdedrouas) in [this git page](https://github.com/gdedrouas/Exchange-AD-Privesc/Alt-Security-Identities/Alt-Security-Identities), later highlighted by [Jean Marsault](https://twitter.com/iansus) in [this blogpost](https://www.riskinsight-wavestone.com/en/2021/06/microsoft-adcs-abusing-pki-in-active-directory-environment/#section-3-4), and then tagged `ESC14` by [Jonas Bülow Knudsen](https://medium.com/@jonasblowknudsen) in [this blogpost](https://posts.specterops.io/adcs-esc14-abuse-technique-333a004dc2b9).
+
+## Exploitation Methods
+
+There are currently three documented methods for exploiting this vulnerability:
+
+<Accordion title="Method 1: Overwrite altSecurityIdentities">
+**Overwrite the `altSecurityIdentities` attribute to compromise an account.**
+- Enroll in a certificate with an attacker-controlled principal.
+- Add an explicit certificate mapping from the certificate to the attribute.
+- Authenticate as the target account.
+</Accordion>
+
+<Accordion title="Method 2: Abuse X509RFC822 Entry">
+**Abuse an existing `X509RFC822` entry in the `altSecurityIdentities` attribute of a principal.**
+- Modify the `mail` attribute of an attacker-controlled principal.
+- Enroll in a certificate with the attacker-controlled principal.
+- Authenticate as the target principal (only works against users).
+</Accordion>
+
+<Accordion title="Method 3: Abuse X509IssuerSubject or X509SubjectOnly Entry">
+**Abuse an existing `X509IssuerSubject` or `X509SubjectOnly` entry in the `altSecurityIdentities` attribute of a principal.**
+- Modify the `cn` or `dNSHostName` attribute of an attacker-controlled principal.
+- Enroll in a certificate with the attacker-controlled principal.
+- Authenticate as the target principal.
+</Accordion>
+
+<Warning>
+While these are interesting attack techniques, there are little to no relevant functionality in Certify that supports the ESC14 abuse scenario (except for requesting certificates), so we refer to [this blogpost](https://posts.specterops.io/adcs-esc14-abuse-technique-333a004dc2b9) for further information about ESC14.
+</Warning>

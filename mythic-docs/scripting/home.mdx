@@ -1,0 +1,27 @@
+---
+title: "Introduction"
+description: ""
+---
+
+## What is GraphQL?
+
+GraphQL is a query language that allows you, the user, to ask for very specific pieces of information from the database.
+Whereas REST might have you hit 3-4 different endpoints to get all the data you need, GraphQL has you construct the query to get it all in one go.
+
+All requests are POST requests to a single endpoint that are then processed by a local [Hasura](https://hasura.io/) docker container.
+To determine what it is you're trying to do, GraphQL has a leading action of `query`, `mutation`, or `subscription` in each message.
+
+## Authentication
+
+Authentication is via JSON Web Tokens (JWTs) and Mythic's API tokens. To use a JWT just specify in the headers:
+<CodeGroup>
+    ```json Header
+    Authorization: Bearer {token value}
+    ```
+    ```json API Token
+    apitoken: {tokenvalue}
+    ```
+</CodeGroup>
+
+
+

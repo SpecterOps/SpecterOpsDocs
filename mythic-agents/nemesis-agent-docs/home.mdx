@@ -1,0 +1,37 @@
+---
+title: "Nemesis"
+description: "Nemesis is a service agent for Mythic that provides an easy interface to work with an external instance of the Nemesis data processing platform from SpecterOps."
+---
+
+<img
+  src="./images/nemesis.svg"
+  alt="Nemesis Logo"
+  width="50%"
+  style={{ margin: "0 auto" }}
+/>
+
+## Summary
+
+Nemesis is a service agent for Mythic - it doesn't generate any payloads, but instead provides an easy interface to work with an external instance of the [Nemesis](https://github.com/SpecterOps/Nemesis) data processing platform.
+
+This doesn't build a payload, but instead generates a "callback" within Mythic that allows you to interact with Nemesis's API.
+
+<Info>
+You must set your Nemesis basic auth values as NEMESIS_USERNAME and NEMESIS_PASSWORD as user secrets in the Mythic UI (red key on your operator settings page).
+</Info>
+
+### Highlighted Agent Features
+
+- File uploads to Nemesis for automatic processing and enrichment
+- Query Chromium browser data (logins, history, downloads)
+- Retrieve extracted hashes with crack status
+- Access credential information from processed files
+- View file triage status
+
+## Authors
+
+- [@its_a_feature_](https://twitter.com/its_a_feature_)
+
+### Special Thanks to These Contributors
+
+- SpecterOps Nemesis Team for their amazing data processing platform

@@ -1,0 +1,132 @@
+---
+title: 'InstalledProducts'
+description: 'Installed products via the registry'
+icon: 'box-open'
+---
+
+## Overview
+
+The InstalledProducts command enumerates all software products installed on the system by querying the Windows Registry. It retrieves installation information from the Uninstall registry keys, providing a comprehensive inventory of installed applications including their versions, publishers, and installation dates.
+
+## Syntax
+
+```
+Seatbelt.exe InstalledProducts
+```
+
+This command does not accept arguments.
+
+## Output
+
+The command returns:
+- Product name
+- Version number
+- Publisher/Vendor
+- Installation date
+- Install location
+- Uninstall string
+- Registry key location
+
+## Use Cases
+
+### Red Team
+- Identify security products (AV, EDR, HIPS) installed on the system
+- Discover vulnerable software versions for exploitation
+- Identify administrative and development tools
+- Map the software inventory for attack planning
+- Identify remote management tools (TeamViewer, VNC, etc.)
+- Discover database clients and development frameworks
+- Locate backup software and file synchronization tools
+- Identify virtualization and containerization software
+
+### Blue Team
+- Audit software inventory for compliance
+- Identify unauthorized or unapproved software installations
+- Track software versions for vulnerability management
+- Verify patch levels and update status
+- Detect suspicious or malicious software
+- Validate software licensing compliance
+- Identify end-of-life or unsupported software
+- Generate asset inventory for security assessments
+- Correlate installed software with security incidents
+
+## Example Output
+
+```
+====== InstalledProducts ======
+
+  Product      : Microsoft Office Professional Plus 2019
+  Version      : 16.0.10396.20032
+  Publisher    : Microsoft Corporation
+  Install Date : 20230215
+  Location     : C:\Program Files\Microsoft Office\Office16
+  Uninstall    : "C:\Program Files\Common Files\Microsoft Shared\ClickToRun\OfficeClickToRun.exe"
+
+  Product      : Google Chrome
+  Version      : 118.0.5993.89
+  Publisher    : Google LLC
+  Install Date : 20231012
+  Location     : C:\Program Files\Google\Chrome\Application
+  Uninstall    : "C:\Program Files\Google\Chrome\Application\118.0.5993.89\Installer\setup.exe"
+
+  Product      : 7-Zip 22.01 (x64)
+  Version      : 22.01
+  Publisher    : Igor Pavlov
+  Install Date : 20230618
+  Location     : C:\Program Files\7-Zip\
+  Uninstall    : "C:\Program Files\7-Zip\Uninstall.exe"
+
+  Product      : Wireshark 4.0.6 64-bit
+  Version      : 4.0.6
+  Publisher    : The Wireshark developer community
+  Install Date : 20230820
+  Location     : C:\Program Files\Wireshark
+  Uninstall    : MsiExec.exe /X{ABC123-DEF4-5678-90AB-CDEF12345678}
+
+  Product      : VMware Tools
+  Version      : 12.2.5.42684
+  Publisher    : VMware, Inc.
+  Install Date : 20230101
+  Location     : C:\Program Files\VMware\VMware Tools\
+  Uninstall    : MsiExec.exe /X{FEDCBA98-7654-3210-FEDC-BA9876543210}
+```
+
+## Performance Considerations
+
+This command has minimal performance impact as it only reads registry values. Execution time depends on the number of installed products but is generally very fast, completing in seconds even on systems with many applications installed.
+
+## Remote Execution
+
+This command supports remote execution via WMI. Use the `-computername` parameter to enumerate installed products on remote systems:
+
+```
+Seatbelt.exe InstalledProducts -computername=TARGET.domain.com
+Seatbelt.exe InstalledProducts -computername=WORKSTATION01 -username=DOMAIN\admin -password=Pass123
+```
+
+## Detection Considerations
+
+### Indicators
+- Registry access to `HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall`
+- Registry access to `HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall`
+- Registry access to `HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall`
+- WMI registry queries to remote systems
+- Enumeration of registry subkeys under Uninstall paths
+
+### Defensive Recommendations
+- Monitor for mass registry enumeration operations
+- Alert on registry access patterns consistent with reconnaissance
+- Log registry access to software inventory keys
+- Restrict remote WMI access to authorized accounts
+- Implement least privilege for registry access
+- Use AppLocker or similar to control execution of enumeration tools
+- Track processes accessing software inventory registry keys
+- Correlate software enumeration with other suspicious activity
+
+## Related Commands
+
+- **MicrosoftUpdates** - All Microsoft updates via COM
+- **Hotfixes** - Installed hotfixes via WMI
+- **OptionalFeatures** - List Optional Features/Roles via WMI
+- **AntiVirus** - Registered antivirus via WMI
+- **InterestingProcesses** - "Interesting" processes including defensive products

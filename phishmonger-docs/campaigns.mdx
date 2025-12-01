@@ -1,0 +1,665 @@
+---
+title: 'Campaign Management'
+description: 'Creating, launching, and managing phishing campaigns'
+icon: 'rocket'
+---
+
+Campaigns in Phishmonger represent complete phishing operations with email content, SMTP configuration, target lists, and tracking. This guide covers the full campaign lifecycle.
+
+## Campaign Lifecycle
+
+<Steps>
+  <Step title="Creation">
+    Campaign is created and saved with email content and SMTP settings
+  </Step>
+
+  <Step title="Target Addition">
+    Target list is added or imported with email addresses and metadata
+  </Step>
+
+  <Step title="Testing">
+    Test emails are sent to verify deliverability and appearance
+  </Step>
+
+  <Step title="Launch or Schedule">
+    Campaign is either sent immediately or scheduled for future start
+  </Step>
+
+  <Step title="Sending">
+    Emails are sent sequentially with configured delay between sends
+  </Step>
+
+  <Step title="Monitoring">
+    Events are tracked in real-time as targets interact with emails
+  </Step>
+
+  <Step title="Completion">
+    Campaign ends when all targets have been sent emails or campaign is manually stopped
+  </Step>
+</Steps>
+
+## Viewing Campaigns
+
+### Campaign List
+
+Navigate to the admin interface:
+
+```
+https://yourdomain.com/admin
+```
+
+The campaign list displays:
+- Campaign name (clickable to access campaign details)
+- SMTP server
+- SMTP From address
+- Phishing link
+- ID parameter
+- Email delay (seconds)
+- Scheduled start time (if scheduled)
+- Start timestamp (when campaign began sending)
+- End timestamp (when campaign completed)
+- Phishmarket ID (if created from remote template)
+- Sending status (1 = currently sending, 0 = not sending)
+
+### Campaign Details
+
+Click any campaign name to access:
+- Target management
+- Campaign tracking
+- Scheduling controls
+- Campaign settings
+
+## Creating Campaigns
+
+Campaigns are created through the email capture workflow. See [Usage Guide](/phishmonger-docs/usage) for detailed instructions.
+
+**Quick Summary**:
+1. Navigate to "Create Campaign"
+2. Capture email from Outlook or load from template
+3. Edit email content and configure SMTP settings
+4. Click "Save as Campaign"
+5. Enter unique campaign name
+6. Campaign is saved and appears in campaign list
+
+## Campaign Configuration
+
+### Email Content
+
+**Storage**: Complete raw MIME message stored in the `email` column
+
+**Includes**:
+- All headers (SMTP and email headers)
+- Email body (HTML and/or plain text)
+- Embedded images and attachments
+- Content-Type declarations
+- Character encoding
+
+**Editing**: Access via "Edit Campaign" to modify email content
+
+### SMTP Configuration
+
+**mail_server** (string)
+- Hostname or IP of target mail server or relay
+- Examples: `mx.target-domain.com`, `smtp.sendgrid.net`
+
+**smtp_from** (string)
+- Envelope sender address
+- Must be from a domain you control
+- Used for SPF/DKIM alignment
+
+**secure** (0 or 1)
+- 0: Port 25, no TLS (direct delivery)
+- 1: Port 465, TLS (authenticated relay)
+
+**username** (string)
+- SMTP authentication username (optional)
+- Required for authenticated relays
+
+**password** (string)
+- SMTP authentication password (optional)
+- Stored in plaintext in database
+
+<Warning>
+  **Password Security**: Passwords are stored unencrypted in the SQLite database. Secure the database file appropriately.
+</Warning>
+
+**dkim** (0 or 1)
+- 0: No DKIM signing
+- 1: Sign emails with DKIM private key
+
+### Campaign Parameters
+
+**phishing_link** (string)
+- Base URL for phishing/payload delivery
+- Example: `https://payload-domain.com`
+
+**id_parameter** (string)
+- URL parameter name for target tracking
+- Example: `id` results in `?id=abc123`
+
+**delay** (integer)
+- Seconds between each email send
+- Default: 30 seconds
+- Minimum: 1 second
+
+**scheduled_start** (integer or null)
+- Unix timestamp (milliseconds) for scheduled start
+- Null if not scheduled
+
+**start_timestamp** (integer or null)
+- Unix timestamp (milliseconds) when campaign started sending
+- Null if not yet started
+
+**end_timestamp** (integer or null)
+- Unix timestamp (milliseconds) when campaign completed
+- Null if not yet completed
+
+**is_sending** (0 or 1)
+- 0: Campaign not currently sending
+- 1: Campaign currently sending or scheduled
+
+**market_id** (integer)
+- Phishmarket template ID if campaign was created from remote template
+- 0 if created locally
+
+## Editing Campaigns
+
+To modify an existing campaign:
+
+<Steps>
+  <Step title="Access Campaign">
+    From admin interface, click campaign name
+  </Step>
+
+  <Step title="Navigate to Edit">
+    The campaign details page provides access to edit functionality
+  </Step>
+
+  <Step title="Modify Settings">
+    Change SMTP settings, email content, phishing link, or delay
+  </Step>
+
+  <Step title="Save Changes">
+    Changes are immediately saved to the database
+  </Step>
+</Steps>
+
+<Warning>
+  **Active Campaign Editing**: Do not edit campaigns that are currently sending. Stop the campaign first.
+</Warning>
+
+### What Can Be Edited
+
+**Allowed**:
+- Email content (MIME message)
+- SMTP settings (server, auth, DKIM)
+- Phishing link and ID parameter
+- Email delay
+
+**Not Editable**:
+- Campaign name (primary identifier)
+- Historical timestamps (start, end)
+- Sending status (managed automatically)
+
+## Launching Campaigns
+
+### Prerequisites
+
+Before launching:
+
+<Checklist>
+  - [ ] Campaign created and saved
+  - [ ] Target list added (at least one target)
+  - [ ] Test email sent and verified
+  - [ ] SMTP configuration tested
+  - [ ] DNS records verified (SPF, DKIM, DMARC)
+  - [ ] Payload delivery server ready (if using)
+</Checklist>
+
+### Send Campaign Immediately
+
+<Steps>
+  <Step title="Access Campaign">
+    Click campaign name from admin interface
+  </Step>
+
+  <Step title="Verify Targets">
+    Confirm target list is populated and correct
+  </Step>
+
+  <Step title="Click Send Campaign">
+    The "Send Campaign" button starts immediate sending
+  </Step>
+
+  <Step title="Monitor Progress">
+    Campaign tracking page shows real-time email sending and events
+  </Step>
+</Steps>
+
+**Campaign Behavior**:
+- Emails sent sequentially with configured delay
+- First target is sent immediately upon clicking "Send Campaign"
+- Subsequent targets sent after delay interval
+- Campaign continues until all targets marked as "phished"
+- `EMAIL_SENT` events logged for each successful send
+- `ERROR` events logged for failures
+
+### Schedule Campaign
+
+To start a campaign at a specific future time:
+
+<Steps>
+  <Step title="Access Campaign Tracking">
+    Navigate to campaign tracking page
+  </Step>
+
+  <Step title="Set Schedule Time">
+    Modify the datetime input field with desired start time
+  </Step>
+
+  <Step title="Click Schedule Campaign">
+    The "Schedule Campaign" button schedules the campaign
+  </Step>
+
+  <Step title="Confirmation">
+    Campaign status shows as scheduled
+  </Step>
+
+  <Step title="Automatic Start">
+    Campaign automatically begins at scheduled time
+  </Step>
+</Steps>
+
+**Important Notes**:
+- All times are in the server's timezone (configured in `config.json`)
+- Current server time is displayed when refreshing the page
+- Update the time input to the desired start time before clicking "Schedule Campaign"
+- Cannot schedule a campaign that is already sending
+
+**Scheduled Campaign Behavior**:
+- Campaign waits until scheduled time
+- At scheduled time, first email is sent
+- Subsequent emails sent with configured delay
+- Can be cancelled before start time
+
+## Stopping Campaigns
+
+### Cancel Active Campaign
+
+To stop a campaign that is currently sending:
+
+<Steps>
+  <Step title="Access Campaign Tracking">
+    Navigate to the campaign tracking page
+  </Step>
+
+  <Step title="Click Cancel Campaign">
+    The "Cancel Campaign" button stops email sending
+  </Step>
+
+  <Step title="Immediate Stop">
+    No additional emails will be sent after cancel
+  </Step>
+
+  <Step title="Status Update">
+    Campaign status changes to not sending (is_sending = 0)
+  </Step>
+</Steps>
+
+**Effects of Cancelling**:
+- Current email being sent completes
+- No additional emails are queued
+- Targets marked as "phished=1" remain marked
+- Targets marked as "phished=0" can be retried later
+- End timestamp is set
+- Can be restarted by clicking "Send Campaign" again
+
+### Cancel Scheduled Campaign
+
+Scheduled campaigns can be cancelled before they start:
+
+<Steps>
+  <Step title="Access Campaign Tracking">
+    Navigate to the campaign tracking page
+  </Step>
+
+  <Step title="Click Cancel Campaign">
+    Cancels the scheduled start
+  </Step>
+
+  <Step title="Status Update">
+    Scheduled start time cleared, campaign not sending
+  </Step>
+</Steps>
+
+## Campaign Statistics
+
+### Database Queries
+
+Get campaign statistics directly from the database:
+
+**Total Targets**:
+```sql
+SELECT COUNT(*) FROM targets WHERE campaign = 'campaign_name';
+```
+
+**Emails Sent**:
+```sql
+SELECT COUNT(*) FROM targets WHERE campaign = 'campaign_name' AND phished = 1;
+```
+
+**Emails Remaining**:
+```sql
+SELECT COUNT(*) FROM targets WHERE campaign = 'campaign_name' AND phished = 0;
+```
+
+**Total Events**:
+```sql
+SELECT COUNT(*) FROM events WHERE campaign = 'campaign_name';
+```
+
+**Events by Type**:
+```sql
+SELECT event_type, COUNT(*) as count
+FROM events
+WHERE campaign = 'campaign_name'
+GROUP BY event_type;
+```
+
+**Click-Through Rate**:
+```sql
+SELECT
+    (SELECT COUNT(DISTINCT target) FROM events WHERE campaign = 'campaign_name' AND event_type = 'CLICK') * 100.0 /
+    (SELECT COUNT(*) FROM targets WHERE campaign = 'campaign_name' AND phished = 1) as ctr;
+```
+
+### Campaign Duration
+
+Calculate campaign duration:
+
+```sql
+SELECT
+    name,
+    start_timestamp,
+    end_timestamp,
+    (end_timestamp - start_timestamp) / 1000.0 as duration_seconds,
+    (end_timestamp - start_timestamp) / 60000.0 as duration_minutes
+FROM campaigns
+WHERE name = 'campaign_name';
+```
+
+## Managing Multiple Campaigns
+
+### Campaign Naming Convention
+
+Use clear, descriptive names:
+
+**Good Examples**:
+- `Q4_2023_Office365_Phish`
+- `RedTeam_VPN_Campaign_Dec2023`
+- `Awareness_Training_Test_1`
+
+**Avoid**:
+- `test`
+- `campaign1`
+- `asdf`
+
+### Running Multiple Campaigns
+
+Phishmonger supports multiple concurrent campaigns:
+
+**Considerations**:
+- Each campaign runs independently
+- Shared SMTP server may have rate limits
+- Monitor total sending rate across all campaigns
+- Database handles concurrent writes
+- WebSocket events are campaign-specific
+
+**Best Practices**:
+- Use different SMTP servers for concurrent campaigns when possible
+- Stagger campaign start times to avoid simultaneous bursts
+- Monitor server load and database performance
+- Keep campaign delays reasonable (30+ seconds)
+
+## Campaign Templates
+
+Campaigns can be used as templates for future campaigns by duplicating and modifying:
+
+<Steps>
+  <Step title="Export Campaign Email">
+    Query database to extract email content
+  </Step>
+
+  <Step title="Create New Campaign">
+    Use email capture or template workflow
+  </Step>
+
+  <Step title="Load Previous Content">
+    Paste email content or use template system
+  </Step>
+
+  <Step title="Modify as Needed">
+    Update content, SMTP settings, and targets
+  </Step>
+
+  <Step title="Save with New Name">
+    Save as a distinct campaign
+  </Step>
+</Steps>
+
+**Database Query to Extract Campaign Email**:
+```sql
+SELECT email FROM campaigns WHERE name = 'source_campaign_name';
+```
+
+## Deleting Campaigns
+
+To remove a campaign completely:
+
+<Steps>
+  <Step title="Stop Campaign">
+    If campaign is sending, cancel it first
+  </Step>
+
+  <Step title="Access Campaign">
+    Navigate to campaign details
+  </Step>
+
+  <Step title="Delete Campaign">
+    Use delete functionality (or API DELETE /delete_campaign)
+  </Step>
+
+  <Step title="Confirmation">
+    Campaign, associated targets, and events are removed
+  </Step>
+</Steps>
+
+**What Gets Deleted**:
+- Campaign record
+- All targets for the campaign
+- All events for the campaign
+
+**What Does NOT Get Deleted**:
+- Templates (unaffected)
+- Other campaigns (unaffected)
+
+<Warning>
+  **Permanent Deletion**: Deleting a campaign cannot be undone. Export data first if needed for reporting.
+</Warning>
+
+**Database Deletion**:
+
+```bash
+sqlite3 db/aquarium.db
+```
+
+```sql
+DELETE FROM campaigns WHERE name = 'campaign_name';
+DELETE FROM targets WHERE campaign = 'campaign_name';
+DELETE FROM events WHERE campaign = 'campaign_name';
+```
+
+## Campaign Best Practices
+
+### Before Launch
+
+**Verify Deliverability**:
+- Send test to your own inbox
+- Send test to mail-tester.com (aim for 8/10 or higher)
+- Test rendering on multiple clients (Outlook, Gmail, mobile)
+- Verify all links work correctly
+
+**Review Target List**:
+- Remove duplicates
+- Verify email format is correct
+- Check for internal/team email addresses
+- Confirm authorization scope includes all targets
+
+**Timing Considerations**:
+- Launch during business hours for better engagement
+- Avoid Monday mornings and Friday afternoons
+- Consider target organization's timezone
+- Allow enough time to monitor campaign actively
+
+### During Campaign
+
+**Active Monitoring**:
+- Keep campaign tracking page open
+- Watch for ERROR events
+- Monitor overall sending rate
+- Check for unexpected patterns
+
+**Response to Errors**:
+- 450/451 errors: Greylist or rate limit - slow down
+- 550 errors: Permanent failure - check address validity
+- Connection refused: Mail server down or blocked
+- Authentication failures: Verify SMTP credentials
+
+**Campaign Control**:
+- Pause campaign if suspicious activity detected
+- Stop campaign if technical issues occur
+- Adjust delay if rate limiting occurs
+
+### After Campaign
+
+**Reporting**:
+- Export events for analysis
+- Calculate success metrics (delivery rate, CTR)
+- Document lessons learned
+- Archive campaign data if needed
+
+**Cleanup**:
+- Stop campaign after completion
+- Export data before deletion
+- Delete campaign when no longer needed
+- Clear old database entries
+
+## Campaign Metrics
+
+### Key Performance Indicators
+
+**Delivery Rate**:
+```
+(Emails Sent / Total Targets) * 100
+```
+
+**Open Rate**:
+```
+(Unique Opens / Emails Sent) * 100
+```
+*Requires tracking pixel in email*
+
+**Click-Through Rate (CTR)**:
+```
+(Unique Clicks / Emails Sent) * 100
+```
+
+**Submission Rate**:
+```
+(Credential Submissions / Unique Clicks) * 100
+```
+
+**Overall Success Rate**:
+```
+(Credential Submissions / Total Targets) * 100
+```
+
+### Reporting
+
+Generate campaign report:
+
+```sql
+SELECT
+    c.name as campaign_name,
+    COUNT(DISTINCT t.target_id) as total_targets,
+    SUM(t.phished) as emails_sent,
+    COUNT(DISTINCT CASE WHEN e.event_type = 'CLICK' THEN e.target END) as unique_clicks,
+    COUNT(DISTINCT CASE WHEN e.event_type = 'POST_DATA' THEN e.target END) as submissions,
+    (COUNT(DISTINCT CASE WHEN e.event_type = 'CLICK' THEN e.target END) * 100.0 / SUM(t.phished)) as ctr,
+    (COUNT(DISTINCT CASE WHEN e.event_type = 'POST_DATA' THEN e.target END) * 100.0 / SUM(t.phished)) as success_rate
+FROM campaigns c
+LEFT JOIN targets t ON c.name = t.campaign
+LEFT JOIN events e ON c.name = e.campaign
+WHERE c.name = 'campaign_name'
+GROUP BY c.name;
+```
+
+## Troubleshooting Campaigns
+
+### Campaign Won't Start
+
+**Symptoms**: Clicking "Send Campaign" has no effect
+
+**Possible Causes**:
+- No targets added to campaign
+- All targets already marked as phished
+- Campaign is already sending (is_sending = 1)
+
+**Solutions**:
+```sql
+-- Check target count
+SELECT COUNT(*) FROM targets WHERE campaign = 'campaign_name';
+
+-- Check remaining targets
+SELECT COUNT(*) FROM targets WHERE campaign = 'campaign_name' AND phished = 0;
+
+-- Reset phished status if needed
+UPDATE targets SET phished = 0 WHERE campaign = 'campaign_name';
+
+-- Check sending status
+SELECT is_sending FROM campaigns WHERE name = 'campaign_name';
+
+-- Reset sending status if stuck
+UPDATE campaigns SET is_sending = 0 WHERE name = 'campaign_name';
+```
+
+### Campaign Stuck Sending
+
+**Symptoms**: Campaign shows as sending but no emails are going out
+
+**Possible Causes**:
+- Node.js process crashed
+- Database lock
+- SMTP connection hung
+
+**Solutions**:
+- Restart Node.js server
+- Check server logs for errors
+- Reset is_sending flag in database
+
+### Emails Not Delivering
+
+**Symptoms**: ERROR events logged for all or most targets
+
+**Common Error Codes**:
+- **550 5.7.1**: SPF or authentication failure
+- **550 5.1.1**: User unknown (invalid email address)
+- **554**: Message rejected (content filtering)
+- **Connection refused**: Port 25 blocked or mail server down
+
+**Solutions**:
+- Verify DNS records (SPF, DKIM, DMARC)
+- Check target email addresses are valid
+- Review email content for spam triggers
+- Verify SMTP server is reachable
+- Try authenticated relay instead of direct delivery

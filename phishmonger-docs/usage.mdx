@@ -1,0 +1,672 @@
+---
+title: 'Usage Guide'
+description: 'Day-to-day operational guide for Phishmonger'
+icon: 'book'
+---
+
+This guide covers the day-to-day operational procedures for using Phishmonger during authorized security assessments.
+
+<Warning>
+  **Authorization Required**: Only use Phishmonger during authorized penetration tests with explicit written permission. Unauthorized use is illegal.
+</Warning>
+
+## Operational Workflow
+
+A typical Phishmonger operation follows this workflow:
+
+<Steps>
+  <Step title="Craft Email in Outlook">
+    Create your phishing email in Outlook with all formatting, images, and links
+  </Step>
+
+  <Step title="Capture Email">
+    Use Phishmonger's capture feature to receive the email and parse it into sections
+  </Step>
+
+  <Step title="Modify and Template">
+    Make modifications, add string substitutions, and save as template or campaign
+  </Step>
+
+  <Step title="Configure Campaign">
+    Set SMTP settings, phishing link, and email delay parameters
+  </Step>
+
+  <Step title="Add Targets">
+    Import or manually add target email addresses with metadata
+  </Step>
+
+  <Step title="Test Email">
+    Send test emails to verify deliverability and appearance
+  </Step>
+
+  <Step title="Launch Campaign">
+    Send immediately or schedule for later execution
+  </Step>
+
+  <Step title="Monitor Results">
+    Track email delivery, clicks, and interactions in real-time
+  </Step>
+</Steps>
+
+## Accessing Phishmonger
+
+### Admin Interface
+
+Navigate to your Phishmonger domain:
+
+```
+https://yourdomain.com/admin
+```
+
+You should see the admin dashboard with the following options:
+- **Create Campaign**: Start email capture and campaign creation workflow
+- **Campaign List**: Table of existing campaigns with names and links
+- **Phishmarket** (if configured): Access remote template library
+
+### API Documentation
+
+Phishmonger includes built-in OpenAPI documentation:
+
+```
+https://yourdomain.com/documentation
+```
+
+This interface provides interactive API documentation for programmatic access.
+
+## Creating Your First Email
+
+### Starting Email Capture
+
+<Steps>
+  <Step title="Navigate to Create Campaign">
+    From the admin interface, click "Create Campaign"
+  </Step>
+
+  <Step title="Start SMTP Listener">
+    Click the "Capture Email" button. The button should turn grey indicating the listener is active on port 25
+  </Step>
+
+  <Step title="Send from Outlook">
+    Open Outlook and create your phishing email with all desired formatting, images, and content
+  </Step>
+
+  <Step title="Send to Phishmonger">
+    Send the email to any address at your phishmonger domain:
+    ```
+    To: anything@yourdomain.com
+    ```
+    The username portion is ignored - all emails to your domain are captured
+  </Step>
+
+  <Step title="Automatic Parsing">
+    Phishmonger automatically parses the email and displays all MIME sections in the web interface
+  </Step>
+</Steps>
+
+### Understanding Captured Email Sections
+
+After capture, you'll see the email broken into sections:
+
+**Headers**
+- SMTP headers and email headers
+- Subject, From, To, Date, Content-Type, etc.
+
+**Body Sections**
+- Plain text body (if present)
+- HTML body (if present)
+- Attachments and embedded images
+
+Each section can be individually edited, encoded, or modified.
+
+## Email Editing Buttons
+
+Phishmonger provides several buttons to help process captured emails:
+
+### Global Email Buttons
+
+These buttons affect the entire email:
+
+**Reset Captured Email**
+- Reverts all changes to the original captured state
+- Useful when you make mistakes and want to start over
+- Does not require re-sending the email from Outlook
+
+**RFC Only Headers**
+- Strips out unnecessary and revealing SMTP headers
+- Keeps only RFC-required headers (From, To, Subject, Date, Message-ID, MIME-Version)
+- Recommended for reducing email fingerprinting
+
+**Preview Email**
+- Shows a rendered preview of the HTML email
+- Displays how the email will appear to recipients
+- Useful for verifying formatting and layout
+
+**Find & Replace**
+- Global find and replace across all email sections and headers
+- Case-sensitive string replacement
+- Example: Replace company names or specific URLs
+
+### Section-Specific Buttons
+
+These buttons operate on individual content sections:
+
+**Base64 Decode**
+- Decodes Base64-encoded content sections
+- Email bodies are often Base64 encoded for transmission
+- Decode before editing, or Phishmonger will send as-is
+
+**Quoted Printable Decode**
+- Decodes Quoted-Printable encoded text
+- Identified by `=` at end of lines
+- Common in email bodies with special characters
+
+**Pretty Print**
+- Formats and indents HTML content for readability
+- Makes manual HTML editing easier
+- Does not change rendered output
+
+**Attach Images**
+- Replaces external image URLs with CID references
+- Downloads external images and embeds them in the email
+- Converts `<img src="http://...">` to `<img src="cid:image1">`
+- Adds images as MIME attachments
+
+**Preview Image**
+- Shows a preview of an individual image attachment
+- Does NOT preview the entire email
+- Only works on image content sections
+
+## String Substitutions
+
+Phishmonger automatically replaces specific strings in your email with target-specific values:
+
+| String | Replaced With | Example |
+|--------|---------------|---------|
+| `SuppliedPhishingLink` | Campaign phishing URL + tracking parameter | `https://evil.com/?id=abc123` |
+| `SuppliedFirstName` | Target's first name | `John` |
+| `SuppliedLastName` | Target's last name | `Smith` |
+| `SuppliedPosition` | Target's job title | `IT Administrator` |
+| `SuppliedCustomReplacement` | Custom field per target | `+1-555-0123` |
+| `SuppliedToAddress` | Target's email address | `john.smith@target.com` |
+| `DateTimeStamp` | Current timestamp (RFC 2822 format) | `Mon, 15 Dec 2023 14:30:00 -0500` |
+
+### Using String Substitutions
+
+In your HTML content:
+
+```html
+<p>Hello SuppliedFirstName,</p>
+
+<p>We noticed unusual activity on your account SuppliedToAddress.</p>
+
+<p>Please verify your identity by clicking below:</p>
+
+<a href="SuppliedPhishingLink">Verify Account</a>
+
+<p>Thank you,<br>
+IT Security Team</p>
+```
+
+After substitution for John Smith:
+
+```html
+<p>Hello John,</p>
+
+<p>We noticed unusual activity on your account john.smith@target.com.</p>
+
+<p>Please verify your identity by clicking below:</p>
+
+<a href="https://yourdomain.com/?id=abc123">Verify Account</a>
+
+<p>Thank you,<br>
+IT Security Team</p>
+```
+
+<Info>
+  String substitutions are case-sensitive. Use exact spelling shown in the table above.
+</Info>
+
+## Configuring Campaign Settings
+
+After capturing and editing your email, configure campaign settings:
+
+### Campaign Name
+
+**Purpose**: Unique identifier for the campaign
+
+**Requirements**:
+- Unique across all campaigns
+- No spaces recommended
+- Used in event tracking and database queries
+
+**Example**: `Q4_2023_VPN_Phish`
+
+### SMTP Settings
+
+#### Mail Server
+
+**Options**:
+- Target's MX server for direct delivery
+- SMTP relay for authenticated sending
+
+**Finding Target MX**:
+
+```bash
+dig target-domain.com MX +short
+```
+
+**Example Configuration for Direct Delivery**:
+```
+Mail Server: mx.target-domain.com
+```
+
+**Example Configuration for Relay**:
+```
+Mail Server: smtp.sendgrid.net
+```
+
+#### SMTP From
+
+**Format**: `sender@yourdomain.com`
+
+**Considerations**:
+- Must use a domain you control
+- Should have SPF/DKIM records configured
+- Used for bounce messages
+
+**Example**: `it-security@yourdomain.com`
+
+#### Secure Mail
+
+**Options**:
+- **Enabled**: Port 465 with TLS (for authenticated relays)
+- **Disabled**: Port 25 without TLS (for direct delivery)
+
+**Recommendation**: Disable for direct server-to-server delivery
+
+#### Username/Password
+
+**When Required**:
+- Using authenticated SMTP relay (SendGrid, AWS SES, etc.)
+
+**When Not Required**:
+- Direct server-to-server delivery
+- Anonymous SMTP relays
+
+#### DKIM Signing
+
+**Options**: Enable/Disable
+
+**When to Enable**:
+- You have DKIM properly configured in DNS
+- Sending from a domain you control
+- Want maximum deliverability
+
+**When to Disable**:
+- Testing without proper DNS
+- Using a relay that does its own signing
+
+### Phishing Link Configuration
+
+#### Phishing Link URL
+
+**Purpose**: Base URL for your payload delivery or credential harvesting server
+
+**Format**: `https://payload-domain.com` or `https://payload-domain.com/path`
+
+**Recommendation**: Use Humble Chameleon for advanced payload delivery
+
+#### ID Parameter
+
+**Purpose**: URL parameter name for tracking individual targets
+
+**Default**: `id`
+
+**Example**: If set to `id`, links become:
+```
+https://payload-domain.com/?id=abc123
+```
+
+If set to `user`, links become:
+```
+https://payload-domain.com/?user=abc123
+```
+
+### Email Delay
+
+**Purpose**: Seconds to wait between sending each email
+
+**Minimum**: 1 second
+**Recommended**: 30-60 seconds
+**Maximum**: No hard limit
+
+**Considerations**:
+- Slower sending reduces chance of rate limiting
+- Faster sending completes campaign quicker
+- Very fast sending may trigger spam filters
+
+## Testing Emails
+
+Before launching a campaign, always test:
+
+### Send Test Email
+
+<Steps>
+  <Step title="Configure SMTP Settings">
+    Fill in all SMTP configuration fields
+  </Step>
+
+  <Step title="Add Test Target">
+    Enter a test email address you control
+  </Step>
+
+  <Step title="Click Send Test">
+    The "Send Test" button sends one email to the specified address
+  </Step>
+
+  <Step title="Check Inbox">
+    Verify the email arrived and displays correctly
+  </Step>
+
+  <Step title="Check Spam Folder">
+    If not in inbox, check spam/junk folder
+  </Step>
+</Steps>
+
+### Test with mail-tester.com
+
+For detailed deliverability analysis:
+
+<Steps>
+  <Step title="Visit mail-tester.com">
+    Go to [https://www.mail-tester.com/](https://www.mail-tester.com/)
+  </Step>
+
+  <Step title="Get Test Address">
+    Copy the unique test email address provided (e.g., test-abc123@srv1.mail-tester.com)
+  </Step>
+
+  <Step title="Send Test to Address">
+    Use Phishmonger's "Send Test" with the mail-tester address
+  </Step>
+
+  <Step title="Check Score">
+    Click "Then check your score" on mail-tester.com
+  </Step>
+
+  <Step title="Review Results">
+    Examine SPF, DKIM, DMARC, blacklist status, and spam score
+  </Step>
+</Steps>
+
+**Target Score**: 8/10 or higher for good deliverability
+
+**Common Issues**:
+- Missing or failed DKIM signature
+- SPF record not configured
+- Reverse DNS not set
+- IP on blacklist
+- Suspicious content patterns
+
+## Saving Work
+
+After editing and testing, save your work:
+
+### Save as Template
+
+**Purpose**: Reusable generic email template
+
+**Use When**:
+- Creating templates for future campaigns
+- Want to reuse email content with different targets
+- Building a template library
+
+**What Gets Saved**:
+- Email content (all MIME sections)
+- Headers (optional - can be reset to RFC only)
+
+**What Does NOT Get Saved**:
+- SMTP settings
+- Target list
+- Campaign scheduling
+
+**To Use Template**:
+1. Navigate to admin interface
+2. Click "Create Campaign"
+3. Select template from dropdown
+4. Click "Campaign from Template"
+
+### Save as Campaign
+
+**Purpose**: Complete campaign ready for target list
+
+**Use When**:
+- Ready to create a specific campaign
+- Have configured all SMTP settings
+- Want to preserve complete email + settings
+
+**What Gets Saved**:
+- Email content (all MIME sections)
+- SMTP settings (server, auth, DKIM)
+- Phishing link and ID parameter
+- Email delay
+
+**What Does NOT Get Saved**:
+- Target list (added separately)
+- Campaign scheduling (configured later)
+
+**To Access Campaign**:
+1. Navigate to admin interface (/admin)
+2. Click campaign name in the list
+3. Add targets and launch
+
+## Campaign from Template
+
+To quickly create a campaign from an existing template:
+
+<Steps>
+  <Step title="Create Campaign Page">
+    Navigate to "Create Campaign" from admin interface
+  </Step>
+
+  <Step title="Select Template">
+    Choose template from the "Select Template" dropdown
+  </Step>
+
+  <Step title="Load Template">
+    Click "Campaign from Template" button
+  </Step>
+
+  <Step title="Configure Settings">
+    Email content is loaded. Configure SMTP settings and phishing link
+  </Step>
+
+  <Step title="Save as Campaign">
+    Save as a new campaign with a unique name
+  </Step>
+</Steps>
+
+This workflow is faster than capturing emails repeatedly for similar campaigns.
+
+## Navigation
+
+### Back to Campaigns
+
+The "Back to Campaigns" button returns you to the admin interface showing all campaigns.
+
+### Campaign Management
+
+From the admin interface (`/admin`):
+
+**View Campaign**:
+- Click campaign name to open campaign details
+
+**Edit Campaign**:
+- Modify campaign settings (SMTP, link, email content)
+
+**Track Campaign**:
+- View real-time events and statistics
+
+**Manage Targets**:
+- Add, remove, or modify target list
+
+**Delete Campaign**:
+- Remove campaign, targets, and associated events
+
+## SMTP Command Monitoring
+
+During email sending (test or campaign), SMTP protocol commands are displayed in real-time via WebSocket.
+
+**Example Output**:
+```
+220 mx.target.com ESMTP
+EHLO yourdomain.com
+250-mx.target.com
+250-PIPELINING
+250-SIZE 35882577
+250-ETRN
+250-STARTTLS
+250-8BITMIME
+250 DSN
+MAIL FROM:<sender@yourdomain.com>
+250 2.1.0 Ok
+RCPT TO:<target@target-domain.com>
+250 2.1.5 Ok
+DATA
+354 End data with <CR><LF>.<CR><LF>
+250 2.0.0 Ok: queued as ABC123
+QUIT
+221 2.0.0 Bye
+```
+
+**Purpose**:
+- Debugging delivery issues
+- Understanding SMTP protocol interaction
+- Identifying authentication problems
+- Learning SMTP behavior
+
+## Best Practices
+
+### Crafting Effective Emails
+
+**Subject Lines**:
+- Use urgency or authority
+- Keep under 50 characters
+- Avoid spam trigger words
+
+**Email Content**:
+- Match target organization's branding
+- Use appropriate tone (formal vs casual)
+- Include legitimate-looking links and images
+- Minimal spelling/grammar errors
+- Avoid excessive capitalization or exclamation marks
+
+**Sender Address**:
+- Use realistic sender names
+- Match organizational structure (it-security@, noreply@, admin@)
+- Consider using lookalike domains
+
+### Operational Security
+
+**Testing**:
+- Always send test emails first
+- Test to multiple email providers (Gmail, Outlook, internal)
+- Verify all links work correctly
+- Check rendering on mobile devices
+
+**Campaign Timing**:
+- Business hours increase open rates
+- Avoid Friday afternoons and Monday mornings
+- Consider target organization's timezone
+- Stagger emails to avoid detection
+
+**Rate Limiting**:
+- Use appropriate delays (30-60 seconds recommended)
+- Don't send too fast to single domain
+- Monitor for bounce backs or blocks
+
+**Monitoring**:
+- Keep campaign tracking page open
+- Watch for ERROR events
+- Check real-time event feed
+- Respond to unexpected behaviors
+
+### Troubleshooting During Operations
+
+**Email Not Sending**:
+- Check SMTP settings
+- Verify port 25 is open
+- Test with authenticated relay
+- Check server logs
+
+**Emails Going to Spam**:
+- Verify SPF record
+- Check DKIM signing
+- Test with mail-tester.com
+- Reduce suspicious content
+
+**Capture Not Working**:
+- Verify "Capture Email" button is grey (active)
+- Check DNS MX record points to your server
+- Test with telnet to port 25
+- Review server logs
+
+## Common Workflows
+
+### Workflow 1: Simple Campaign
+
+For a straightforward phishing campaign:
+
+1. Create email in Outlook → Send to Phishmonger
+2. Click "RFC Only Headers"
+3. Add `SuppliedPhishingLink` to HTML body
+4. Configure direct SMTP delivery
+5. Save as campaign
+6. Add target list
+7. Send test email
+8. Launch campaign
+
+### Workflow 2: Template-Based Campaign
+
+For campaigns using existing templates:
+
+1. Select template from dropdown
+2. Load campaign from template
+3. Modify email content if needed
+4. Configure SMTP settings
+5. Set phishing link
+6. Save as campaign
+7. Add targets
+8. Launch campaign
+
+### Workflow 3: Testing Email Deliverability
+
+For testing and improving deliverability:
+
+1. Craft email in Outlook
+2. Capture in Phishmonger
+3. Enable DKIM signing
+4. Send test to mail-tester.com
+5. Review mail-tester score
+6. Fix identified issues (SPF, DKIM, content)
+7. Re-test until score is 8+
+8. Launch campaign
+
+### Workflow 4: Scheduled Campaign
+
+For campaigns that start at a specific time:
+
+1. Create and save campaign
+2. Add target list
+3. Navigate to campaign tracking page
+4. Set schedule time
+5. Click "Schedule Campaign"
+6. Campaign automatically starts at specified time
+7. Monitor events in real-time
+
+## Next Steps
+
+- Learn about [Campaign Management](/phishmonger-docs/campaigns) for launching and scheduling
+- Review [Target Management](/phishmonger-docs/targets) for adding target lists
+- Explore [Event Tracking](/phishmonger-docs/tracking) for monitoring campaigns
+- Configure [Integrations](/phishmonger-docs/integrations) for Humble Chameleon

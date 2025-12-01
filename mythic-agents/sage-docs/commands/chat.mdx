@@ -1,0 +1,158 @@
+---
+title: "chat"
+description: "Start an interactive chat session with an AI model"
+---
+
+## Summary
+
+Start an interactive chat session with a selected AI model provider. This command maintains conversational context across multiple messages, allowing for natural back-and-forth interactions.
+
+- Needs Admin: False
+- Version: 0
+- Author: @Ne0nd0g
+
+### Arguments
+
+#### provider
+
+- Description: The model provider to chat with (Anthropic, Bedrock, OpenAI, ollama, OpenWebUI)
+- Required: False (uses build parameters, user secrets, or environment variables if not specified)
+- Type: Choose One
+- Choices: Anthropic, Bedrock, OpenAI, ollama, OpenWebUI
+
+#### model
+
+- Description: The model to use for inference from the selected provider
+- Required: False (uses build parameters, user secrets, or environment variables if not specified)
+- Type: String
+
+#### prompt
+
+- Description: The initial prompt to send to the model
+- Required: True
+- Type: String
+
+#### tools
+
+- Description: Use tools to enhance the model's capabilities
+- Required: False
+- Default: true
+- Type: Boolean
+
+#### verbose
+
+- Description: Show verbose output of all user and AI messages
+- Required: False
+- Default: false
+- Type: Boolean
+
+#### API_ENDPOINT
+
+- Description: The API endpoint to use for the selected provider
+- Required: False
+- Type: String
+
+#### API_KEY
+
+- Description: The API key to authenticate with the provider
+- Required: False
+- Type: String
+
+#### AWS_ACCESS_KEY_ID
+
+- Description: AWS Access Key ID for Bedrock
+- Required: False
+- Type: String
+
+#### AWS_SECRET_ACCESS_KEY
+
+- Description: AWS Secret Access Key for Bedrock
+- Required: False
+- Type: String
+
+#### AWS_SESSION_TOKEN
+
+- Description: AWS Session Token for Bedrock
+- Required: False
+- Type: String
+
+#### AWS_DEFAULT_REGION
+
+- Description: AWS Region for Bedrock
+- Required: False
+- Type: String
+
+## Usage
+
+```
+chat
+chat -prompt "Explain lateral movement techniques"
+chat -provider Anthropic -model claude-3-7-sonnet-latest -prompt "Analyze this log file"
+chat -provider OpenAI -model gpt-4o-mini -API_KEY sk-abc123... -prompt "Hello"
+```
+
+## Detailed Summary
+
+The `chat` command creates an interactive session with an AI model, maintaining conversation history throughout the session. This is ideal for complex queries that require multiple exchanges or when you need to provide follow-up information.
+
+### Features
+
+**Session Management**
+- Maintains message history throughout the conversation
+- Each response includes context from previous messages
+- Sessions are tracked per task ID in Mythic
+
+**Interactive Mode**
+- After the initial prompt, continue sending messages
+- Type responses directly in the Mythic interface
+- Exit the session by closing the interactive task
+
+**Tool Enhancement**
+When tools are enabled (default), the model can:
+- Access Mythic file storage
+- Query task information
+- Perform enhanced reasoning with external context
+
+**Verbose Output**
+Enable verbose mode to see:
+- All user messages with 👤 icon
+- All AI responses with 🤖 icon
+- Tool usage and intermediate reasoning steps
+
+### Provider-Specific Notes
+
+**Anthropic**
+- Supports the latest Claude models
+- Tool use is highly effective with Claude
+- Recommended for complex analytical tasks
+
+**Bedrock**
+- Only Anthropic Claude models are supported
+- Model strings must contain `.anthropic.`
+- Requires valid AWS credentials
+
+**OpenAI**
+- Works with OpenAI API and compatible endpoints
+- Supports GPT models and compatible alternatives
+- Can connect to ollama or other OpenAI-compatible services
+
+### Authentication Priority
+
+Credentials are checked in this order:
+1. Command parameters (highest priority)
+2. User secrets in Mythic UI
+3. Payload build parameters
+4. Container environment variables (lowest priority)
+
+<Info>
+The first chat message includes your prompt. Subsequent messages in the session only need the message text - provider and model settings are remembered.
+</Info>
+
+### Best Practices
+
+- Use descriptive initial prompts to set context
+- Enable tools for enhanced capabilities
+- Use verbose mode when debugging or learning
+- Keep sessions focused on related topics
+- Start a new session for unrelated queries
+

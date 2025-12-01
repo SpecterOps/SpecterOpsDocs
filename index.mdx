@@ -1,0 +1,640 @@
+---
+title: 'SpecterOps Open Source Tools'
+description: 'A comprehensive collection of offensive security tools and frameworks'
+---
+
+<div style={{ textAlign: 'center', marginBottom: '30px' }}>
+  <img src="/logo/specterops-banner.png" alt="SpecterOps Banner" />
+</div>
+
+<div style={{ textAlign: 'center', marginBottom: '20px' }}>
+  <a href="https://join.slack.com/t/bloodhoundhq/shared_invite/zt-1tgq6ojd2-ixpx5nz9Wjtbhc3i8AVAWw">
+    <img src="https://img.shields.io/badge/Slack-SpecterOps-02B36C" alt="Slack" style={{ display: 'inline', margin: '0 5px' }} />
+  </a>
+  <img src="https://img.shields.io/twitter/follow/specterops?style=social" style={{ display: 'inline', margin: '0 5px' }} />
+</div>
+
+## Welcome
+
+Welcome to the SpecterOps open source toolkit documentation. This collection represents years of offensive security research and tool development, covering command and control frameworks, Active Directory security, reconnaissance platforms, and specialized attack tools.
+
+<Note>
+  All tools are provided for legitimate security research, penetration testing, and red team operations. Always obtain proper authorization before use.
+</Note>
+
+---
+
+## 🎯 Command & Control Frameworks
+
+Enterprise-grade C2 platforms for red team operations and adversary emulation.
+
+<CardGroup cols={3}>
+  <Card
+    title="Mythic"
+    img="/mythic-docs/logo/mythic.png"
+    color="#d73502"
+    href="/mythic-docs/home"
+  >
+    **Author:** Cody Thomas (@its_a_feature_)
+
+    **Platform:** Cross-platform
+
+    Multiplayer command and control platform with plug-n-play architecture. Supports multiple agents, communication profiles, and real-time collaboration.
+  </Card>
+
+  <Card
+    title="Merlin"
+    img="/merlin-docs/logo/Merlin-transparent.png"
+    color="#9370db"
+    href="/merlin-docs/introduction"
+  >
+    **Author:** Russel Van Tuyl (@Ne0nd0g)
+
+    **Platform:** Cross-platform
+
+    Post-exploitation C2 framework supporting HTTP/1.1, HTTP/2, and HTTP/3 protocols with modular architecture.
+  </Card>
+</CardGroup>
+
+---
+
+## 🤖 Mythic Agents
+
+Comprehensive collection of Mythic agents for post-exploitation, system integration, and command augmentation. [View all Mythic agents →](/mythic-agents/index)
+
+### Payload Agents
+
+<CardGroup cols={3}>
+  <Card
+    title="Apollo"
+    color="#d73502"
+    img="/mythic-agents/apollo-docs/agent_icons/apollo.svg"
+    href="/mythic-agents/apollo-docs/documentation-payload/apollo/_index"
+  >
+    **Platform:** Windows
+
+    C# agent designed for training with advanced OPSEC capabilities, process injection, and extensive post-exploitation commands.
+  </Card>
+
+  <Card
+    title="Poseidon"
+    img="/mythic-agents/poseidon-docs/images/poseidon.svg"
+    color="#1e90ff"
+    href="/mythic-agents/poseidon-docs/home"
+  >
+    **Platform:** macOS, Linux
+
+    Python-based agent with robust command execution, file operations, and credential harvesting capabilities.
+  </Card>
+
+  <Card
+    title="Apfell"
+    img="/mythic-agents/apfell-docs/images/apfell.svg"
+    color="#32cd32"
+    href="/mythic-agents/apfell-docs/home"
+  >
+    **Platform:** macOS, Linux
+
+    Python agent focused on cross-platform post-exploitation with emphasis on stealth and flexibility.
+  </Card>
+
+  <Card
+    title="Merlin"
+    img="/merlin-docs/logo/Merlin-transparent.png"
+    color="#9370db"
+    href="/mythic-agents/merlin-agent-docs/home"
+  >
+    **Platform:** Windows, Linux, macOS
+
+    Golang agent with advanced execution and credential manipulation features across all major platforms.
+  </Card>
+
+  <Card
+    title="Arachne"
+    img="/mythic-agents/arachne-docs/images/arachne.svg"
+    color="#ff6347"
+    href="/mythic-agents/arachne-docs/home"
+  >
+    **Type:** Webshell
+
+    .NET spider agent for BloodHound SharpHound-based Active Directory enumeration and reconnaissance.
+  </Card>
+</CardGroup>
+
+### Service & Integration Agents
+
+<CardGroup cols={3}>
+  <Card
+    title="Bloodhound"
+    img="/mythic-agents/bloodhound-agent-docs/images/bloodhound.svg"
+    color="#dc143c"
+    href="/mythic-agents/bloodhound-agent-docs/home"
+  >
+    **Type:** BloodHound Integration
+
+    Service agent providing seamless integration with BloodHound Community Edition for AD analysis.
+  </Card>
+
+  <Card
+    title="Nemesis"
+    img="/mythic-agents/nemesis-agent-docs/images/nemesis.svg"
+    color="#ff8c00"
+    href="/mythic-agents/nemesis-agent-docs/home"
+  >
+    **Type:** File Enrichment
+
+    Service agent for automatic file processing, triage, and credential extraction via Nemesis platform.
+  </Card>
+
+  <Card
+    title="Ghostwriter"
+    img="/mythic-agents/ghostwriter-agent-docs/images/ghostwriter.png"
+    color="#4b0082"
+    href="/mythic-agents/ghostwriter-agent-docs/home"
+  >
+    **Type:** Project Management
+
+    Service agent integrating with Ghostwriter for collaborative operations and automated report generation.
+  </Card>
+
+  <Card
+    title="Sage"
+    img="/mythic-agents/sage-docs/images/sage.png"
+    color="#20b2aa"
+    href="/mythic-agents/sage-docs/home"
+  >
+    **Type:** AI/LLM Integration
+
+    Virtual agent providing AI capabilities supporting Anthropic, OpenAI, AWS Bedrock, and ollama.
+  </Card>
+  <Card
+    title="Forge"
+    img="/mythic-agents/forge-docs/images/forge.svg"
+    color="#b8860b"
+    href="/mythic-agents/forge-docs/home"
+  >
+    **Type:** BOF & .NET Executor
+
+    Command augmentation providing BOF and .NET assembly execution across multiple Mythic agents. Pre-configured with SharpCollection and Sliver Armory.
+  </Card>
+</CardGroup>
+
+---
+
+## 👻 GhostPack Suite
+
+Collection of C# offensive security tools for Windows and Active Directory environments by @harmj0y and team.
+
+<CardGroup cols={3}>
+  <Card
+    title="Rubeus"
+    color="#28a745"
+    href="/ghostpack-docs/Rubeus-mdx/overview"
+    icon="ticket"
+  >
+    **Focus:** Kerberos Attacks
+
+    Raw Kerberos interaction and abuses: ticket requests, extraction, manipulation, roasting, and forgery operations.
+  </Card>
+
+  <Card
+    title="Certify"
+    color="#28a745"
+    href="/ghostpack-docs/Certify.wik-mdx/overview"
+    icon="certificate"
+  >
+    **Focus:** AD CS Attacks
+
+    Comprehensive toolkit for Active Directory Certificate Services enumeration and exploitation (ESC1-ESC16).
+  </Card>
+
+  <Card
+    title="SharpDPAPI"
+    color="#28a745"
+    href="/ghostpack-docs/SharpDPAPI-mdx/overview"
+    icon="key"
+  >
+    **Focus:** Credential Theft
+
+    DPAPI credential extraction from vaults, Chrome, RDG files, KeePass, certificates, and SCCM secrets.
+  </Card>
+
+  <Card
+    title="Seatbelt"
+    color="#28a745"
+    href="/ghostpack-docs/Seatbelt-mdx/overview"
+    icon="list-check"
+  >
+    **Focus:** Host Enumeration
+
+    Comprehensive Windows security enumeration with 120+ commands for system reconnaissance and situational awareness.
+  </Card>
+
+  <Card
+    title="SharpUp"
+    color="#28a745"
+    href="/ghostpack-docs/SharpUp-mdx/overview"
+    icon="arrow-up"
+  >
+    **Focus:** Privilege Escalation
+
+    Windows privilege escalation enumeration with 15 checks for services, registry, credentials, and misconfigurations.
+  </Card>
+
+  <Card
+    title="SharpWMI"
+    color="#28a745"
+    href="/ghostpack-docs/SharpWMI-mdx/overview"
+    icon="network-wired"
+  >
+    **Focus:** WMI Operations
+
+    WMI-based enumeration and lateral movement with AMSI evasion and multiple authentication methods.
+  </Card>
+</CardGroup>
+
+---
+
+## 🖥️ SCCM Security
+
+Specialized tools for attacking and defending Microsoft Configuration Manager (SCCM) environments.
+
+<CardGroup cols={3}>
+  <Card
+    title="SharpSCCM"
+    img="/sharpsccm-docs/logo/sharpsccm.png"
+    color="#d73502"
+    href="/sharpsccm-docs/overview"
+  >
+    **Author:** Chris Thompson (@_Mayyhem)
+
+    **Language:** C#/.NET
+
+    Post-exploitation tool for SCCM lateral movement and credential gathering without requiring admin console access.
+  </Card>
+
+  <Card
+    title="SCCMHunter"
+    img="/sccmhunter-docs/logo/sccmhunter.png"
+    color="#28a745"
+    href="/sccmhunter-docs/overview"
+  >
+    **Author:** Garrett Foster (@garrfoster)
+
+    **Language:** Python
+
+    Post-exploitation tool for identifying, profiling, and attacking SCCM infrastructure in Active Directory domains.
+  </Card>
+
+  <Card
+    title="Misconfiguration Manager"
+    img="/misconfiguration-manager-docs/misconfiguration_manager.png"
+    color="#6366f1"
+    href="/misconfiguration-manager-docs/README"
+  >
+    **Author:** Duane Michael (@subat0mik)
+
+    **Type:** Knowledge Base
+
+    Central repository for SCCM attack techniques, tradecraft, defensive guidance, and hardening recommendations.
+  </Card>
+</CardGroup>
+
+---
+
+## 🔍 Reconnaissance & OSINT
+
+Tools for intelligence gathering, social engineering preparation, and offensive reconnaissance operations.
+
+<CardGroup cols={2}>
+  <Card
+    title="AtlasReaper"
+    color="#ef4444"
+    href="/atlasreaper-docs/overview"
+    icon="scythe"
+  >
+    **Author:** (@werdhaihai)
+
+    **Language:** C#
+
+    **Target:** Confluence & Jira
+
+    Offensive reconnaissance tool for Atlassian platforms. Enumerate spaces, search for secrets, harvest credentials, and perform social engineering via embedded content.
+  </Card>
+
+  <Card
+    title="Ghost Scout"
+    color="#8b5cf6"
+    href="/ghostscout-docs/overview"
+    icon="ghost"
+  >
+    **Language:** Node.js
+
+    **Features:** LLM-Assisted
+
+    **Target:** Companies & Employees
+
+    OSINT and phishing preparation platform. Automated employee discovery, profile enrichment, and AI-generated personalized pretexts for phishing campaigns.
+  </Card>
+</CardGroup>
+
+---
+
+## 🎣 Phishing Infrastructure
+
+Comprehensive phishing platforms for social engineering assessments and credential harvesting operations.
+
+<CardGroup cols={3}>
+  <Card
+    title="CuddlePhish"
+    img="/cuddlephish-docs/CuddlePhish.png"
+    color="#f59e0b"
+    href="/cuddlephish-docs/overview"
+  >
+    **Author:** Forrest Kasler (@fkasler)
+
+    **Type:** Browser-in-the-Middle (BitM)
+
+    Multi-user reverse proxy for bypassing MFA on high-value web applications through real-time session hijacking.
+  </Card>
+
+  <Card
+    title="Phishmonger"
+    color="#f59e0b"
+    href="/phishmonger-docs/overview"
+    icon="fish"
+  >
+    **Author:** Forrest Kasler (@fkasler)
+
+    **Type:** Campaign Management
+
+    Full-featured phishing platform for crafting, templating, scheduling, and tracking phishing campaigns at scale.
+  </Card>
+
+  <Card
+    title="Ghost Scout"
+    color="#8b5cf6"
+    href="/ghostscout-docs/overview"
+    icon="ghost"
+  >
+    **Type:** OSINT & Pretext Generation
+
+    Automated reconnaissance and AI-powered phishing content creation. Discovers targets and generates personalized pretexts.
+  </Card>
+</CardGroup>
+
+---
+
+## 🛠️ Operations Support
+
+Supporting tools for data enrichment, analysis, and operational efficiency during engagements.
+
+<CardGroup cols={3}>
+  <Card
+    title="Nemesis"
+    color="#10b981"
+    img="/nemesis-docs/docs/images/nemesis-black.png"
+    href="/nemesis-docs/docs/"
+  >
+    **Authors:** Will Schroeder (@harmj0y) & Lee Chagolla-Christensen (@tifkin)
+
+    **Purpose:** File Enrichment Pipeline
+
+    Automated file triage and enrichment platform for processing captured data during red team operations. Extracts credentials, metadata, and intelligence from common file formats.
+  </Card>
+
+  <Card
+    title="Misconfiguration Manager"
+    img="/misconfiguration-manager-docs/misconfiguration_manager.png"
+    color="#6366f1"
+    href="/misconfiguration-manager-docs/README"
+  >
+    **Author:** Duane Michael (@subat0mik)
+
+    **Purpose:** Knowledge Repository
+
+    Comprehensive database of SCCM attack techniques (CRED, TAKEOVER, ELEVATE, EXEC, etc.) with both offensive and defensive documentation.
+  </Card>
+  <Card
+    title="GhostWriter"
+    img="/ghostwriter-docs/images/logo.png"
+    color="#6366f1"
+    href="/ghostwriter-docs/home"
+  >
+    **Author:** Christopher Maddalena (@chrismaddalena)
+
+    **Purpose:** Red Team Project Management
+
+    Ghostwriter is an open-source platform designed to enhance offensive security operations by simplifying report writing, asset tracking, and assessment management.
+  </Card>
+</CardGroup>
+
+---
+
+## 📚 Tool Categories
+
+<Tabs>
+  <Tab title="By Target">
+    **Windows Systems**
+    - [Apollo](/mythic-agents/apollo-docs/documentation-payload/apollo/_index) (Mythic C# Agent)
+    - [Merlin](/mythic-agents/merlin-agent-docs/home) (Mythic Golang Agent)
+    - [GhostPack Suite](/ghostpack-docs/index) (Offensive Tools)
+    - [Forge](/mythic-agents/forge-docs/home) (BOF & .NET Execution)
+
+    **macOS Systems**
+    - [Poseidon](/mythic-agents/poseidon-docs/home) (Mythic Python Agent)
+    - [Apfell](/mythic-agents/apfell-docs/home) (Mythic Python Agent)
+    - [Merlin](/mythic-agents/merlin-agent-docs/home) (Mythic Golang Agent)
+
+    **Linux Systems**
+    - [Poseidon](/mythic-agents/poseidon-docs/home) (Mythic Python Agent)
+    - [Apfell](/mythic-agents/apfell-docs/home) (Mythic Python Agent)
+    - [Merlin](/mythic-agents/merlin-agent-docs/home) (Mythic Golang Agent)
+
+    **Active Directory**
+    - [Bloodhound](/mythic-agents/bloodhound-agent-docs/home) (BloodHound Integration)
+    - [Rubeus](/ghostpack-docs/Rubeus-mdx/overview) (Kerberos)
+    - [Certify](/ghostpack-docs/Certify.wik-mdx/overview) (AD CS)
+
+    **SCCM Environments**
+    - [SharpSCCM](/sharpsccm-docs/overview) (Exploitation)
+    - [SCCMHunter](/sccmhunter-docs/overview) (Reconnaissance)
+    - [Misconfiguration Manager](/misconfiguration-manager-docs/README) (Knowledge Base)
+
+    **Cloud & SaaS**
+    - [AtlasReaper](/atlasreaper-docs/overview) (Confluence/Jira)
+    - [CuddlePhish](/cuddlephish-docs/overview) (Web Applications)
+
+    **Social Engineering**
+    - [Ghost Scout](/ghostscout-docs/overview) (OSINT & Pretexts)
+    - [Phishmonger](/phishmonger-docs/overview) (Campaign Management)
+    - [CuddlePhish](/cuddlephish-docs/overview) (MFA Bypass)
+  </Tab>
+
+  <Tab title="By Language">
+    **C# / .NET**
+    - [GhostPack Suite](/ghostpack-docs/index) ([Rubeus](/ghostpack-docs/Rubeus-mdx/overview), [Certify](/ghostpack-docs/Certify.wik-mdx/overview), [SharpDPAPI](/ghostpack-docs/SharpDPAPI-mdx/overview), [SharpUp](/ghostpack-docs/SharpUp-mdx/overview), [SharpWMI](/ghostpack-docs/SharpWMI-mdx/overview), [Seatbelt](/ghostpack-docs/Seatbelt-mdx/overview))
+    - [Apollo](/mythic-agents/apollo-docs/documentation-payload/apollo/_index) (Mythic Agent)
+    - [Arachne](/mythic-agents/arachne-docs/home) (Mythic Agent)
+    - [SharpSCCM](/sharpsccm-docs/overview)
+    - [AtlasReaper](/atlasreaper-docs/overview)
+
+    **Python**
+    - [Poseidon](/mythic-agents/poseidon-docs/home) (Mythic Agent)
+    - [Apfell](/mythic-agents/apfell-docs/home) (Mythic Agent)
+    - [SCCMHunter](/sccmhunter-docs/overview)
+    - [Mythic](/mythic-docs/home) (Backend)
+
+    **Go**
+    - [Merlin](/mythic-agents/merlin-agent-docs/home) (Mythic Agent)
+    - [Merlin](/merlin-docs/introduction) (Standalone C2)
+    - [Forge](/mythic-agents/forge-docs/home) (Mythic Command Augmentation)
+    - [Sage](/mythic-agents/sage-docs/home) (Mythic Virtual Agent)
+
+    **Node.js / JavaScript**
+    - [Ghost Scout](/ghostscout-docs/overview)
+    - [Phishmonger](/phishmonger-docs/overview) (Components)
+    - [CuddlePhish](/cuddlephish-docs/overview)
+  </Tab>
+
+  <Tab title="By Phase">
+    **Initial Access**
+    - [CuddlePhish](/cuddlephish-docs/overview) (MFA Bypass)
+    - [Phishmonger](/phishmonger-docs/overview) (Phishing Campaigns)
+    - [Ghost Scout](/ghostscout-docs/overview) (Social Engineering)
+
+    **Execution**
+    - [Mythic](/mythic-docs/home) (C2 Framework)
+    - [Merlin](/merlin-docs/introduction) (C2 Framework)
+    - [Apollo](/mythic-agents/apollo-docs/documentation-payload/apollo/_index) (Mythic Agent - Windows)
+    - [Poseidon](/mythic-agents/poseidon-docs/home) (Mythic Agent - macOS/Linux)
+    - [Apfell](/mythic-agents/apfell-docs/home) (Mythic Agent - macOS/Linux)
+    - [Merlin](/mythic-agents/merlin-agent-docs/home) (Mythic Agent - Cross-platform)
+    - [Forge](/mythic-agents/forge-docs/home) (BOF & .NET Execution)
+
+    **Persistence**
+    - [Rubeus](/ghostpack-docs/Rubeus-mdx/overview) (Golden/Silver Tickets)
+    - [Certify](/ghostpack-docs/Certify.wik-mdx/overview) (Certificate Persistence)
+
+    **Privilege Escalation**
+    - [SharpUp](/ghostpack-docs/SharpUp-mdx/overview) (Enumeration)
+    - [Certify](/ghostpack-docs/Certify.wik-mdx/overview) (AD CS ESCs)
+    - [SharpSCCM](/sharpsccm-docs/overview) (SCCM Abuse)
+
+    **Credential Access**
+    - [SharpDPAPI](/ghostpack-docs/SharpDPAPI-mdx/overview) (DPAPI Secrets)
+    - [Rubeus](/ghostpack-docs/Rubeus-mdx/overview) (Kerberoasting)
+    - [SCCMHunter](/sccmhunter-docs/overview) (SCCM Secrets)
+    - [Poseidon](/mythic-agents/poseidon-docs/home) (Credential Harvesting)
+
+    **Discovery**
+    - [Seatbelt](/ghostpack-docs/Seatbelt-mdx/overview) (Host Enumeration)
+    - [SharpWMI](/ghostpack-docs/SharpWMI-mdx/overview) (WMI Queries)
+    - [AtlasReaper](/atlasreaper-docs/overview) (Confluence/Jira)
+    - [Ghost Scout](/ghostscout-docs/overview) (OSINT)
+    - [Arachne](/mythic-agents/arachne-docs/home) (Active Directory Enumeration)
+    - [Bloodhound](/mythic-agents/bloodhound-agent-docs/home) (AD Attack Paths)
+
+    **Lateral Movement**
+    - [SharpSCCM](/sharpsccm-docs/overview) (SCCM Abuse)
+    - [SharpWMI](/ghostpack-docs/SharpWMI-mdx/overview) (WMI Execution)
+    - [SCCMHunter](/sccmhunter-docs/overview) (SCCM Pivot)
+
+    **Collection**
+    - [Nemesis](/mythic-agents/nemesis-agent-docs/home) (File Enrichment & Triage)
+    - [SharpDPAPI](/ghostpack-docs/SharpDPAPI-mdx/overview) (Credential Extraction)
+    - [AtlasReaper](/atlasreaper-docs/overview) (Data Exfiltration)
+
+    **Command and Control**
+    - [Mythic](/mythic-docs/home) (C2 Platform)
+    - [Merlin](/merlin-docs/introduction) (C2 Platform)
+    - [Apollo](/mythic-agents/apollo-docs/documentation-payload/apollo/_index) (Windows Agent)
+    - [Poseidon](/mythic-agents/poseidon-docs/home) (macOS/Linux Agent)
+    - [Apfell](/mythic-agents/apfell-docs/home) (macOS/Linux Agent)
+    - [Merlin](/mythic-agents/merlin-agent-docs/home) (Cross-platform Agent)
+    - [Sage](/mythic-agents/sage-docs/home) (AI/LLM Integration)
+  </Tab>
+</Tabs>
+
+---
+
+## 🎓 Resources & Community
+
+<CardGroup cols={3}>
+  <Card
+    title="SpecterOps Blog"
+    icon="newspaper"
+    href="https://posts.specterops.io"
+  >
+    Latest research, attack techniques, and defensive guidance from SpecterOps researchers
+  </Card>
+
+  <Card
+    title="BloodHound Slack"
+    icon="slack"
+    href="http://ghst.ly/BHSlack"
+  >
+    Join the community for tool discussions, support, and collaboration
+  </Card>
+
+  <Card
+    title="GitHub Organization"
+    icon="github"
+    href="https://github.com/SpecterOps"
+  >
+    Source code, issues, and contributions for all SpecterOps open source projects
+  </Card>
+
+  <Card
+    title="Training"
+    icon="graduation-cap"
+    href="https://specterops.io/how-we-help/training-offerings"
+  >
+    Professional training courses from SpecterOps
+  </Card>
+
+  <Card
+    title="Research Papers"
+    icon="file-lines"
+    href="https://specterops.io/blog/category/research"
+  >
+    In-depth research papers and whitepapers on offensive security topics
+  </Card>
+
+  <Card
+    title="Twitter/X"
+    icon="x-twitter"
+    href="https://twitter.com/specterops"
+  >
+    Follow @SpecterOps for tool updates, research releases, and security insights
+  </Card>
+</CardGroup>
+
+---
+
+## ⚖️ Responsible Use
+
+<Warning>
+  **All tools in this collection are provided for legitimate security testing purposes only.**
+</Warning>
+
+These tools should only be used:
+- During authorized penetration testing engagements
+- In controlled lab environments for research
+- For defensive detection development
+- With explicit written permission from system owners
+
+**Unauthorized use of these tools may be illegal and unethical.**
+
+Always:
+- Obtain proper authorization before testing
+- Follow scope and rules of engagement
+- Document all activities for client reporting
+- Respect privacy laws and regulations
+- Use tools responsibly and ethically
+
+<div style={{ textAlign: 'center', marginTop: '40px', paddingTop: '20px', borderTop: '1px solid #e5e7eb' }}>
+  <p style={{ color: '#6b7280' }}>
+    Maintained by <a href="https://specterops.io">SpecterOps</a>
+  </p>
+</div>

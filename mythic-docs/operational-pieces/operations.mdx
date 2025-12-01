@@ -1,0 +1,46 @@
+---
+title: "Operations"
+---
+
+## What is an operation?
+
+Operations are collections of operators, payloads, tasks, artifacts, callbacks, and files. While payload types and c2 profiles are shared across an entire Mythic instance, operations allow fine grained control over the visibility and access during an assessment.
+
+## Where are operations?
+
+Operation information can be found via the hamburger icon in the top left, then selecting "Operations" -> "Modify Operations" page. If you're a global Mythic admin, you'll see *all* operations here. Otherwise, you'll only see operations that are associated with your account.
+
+<Frame>
+    <img src="../images/version-3.3/image-1-8.png"/>
+</Frame>
+
+## How do you use operations?
+
+Every operation has at least one member - the lead operator. Other operators can be assigned to the operation with varied levels of access.
+
+- `operator` is your normal user.
+- `lead` is the lead of that operation
+- `spectator` can't do anything within Mythic. They essentially have Read-Only access across the entire operation. They can't create payloads, issue tasking, add comments, send messages, etc. They can search and view callbacks/tasking, but that's it.
+
+For more fine-grained control than that listed above, you can also create *block lists*. These are named lists of commands that an operator is *not allowed to execute* for a specific payload type. These block lists are then tied to specific operators. This offers a middle-ground between normal operator with full access and a spectator with no access. You can edit these block lists via the edit button.
+
+For the configure button for the operation, there are many options. You can specify a Slack webhook along with the channel. By default, whenever you create a payload via the "Create Payloads" page, it is tagged as alert-able - any time a new callback is created based on that payload, this slack webhook will be invoked. If you want to prevent that for a specific payload, go to the payloads page, select the "Actions" dropdown for the payload in question, and select to stop alerting. If you have the Slack webhook set on the operation overall, other payloads will continue to generate alerts, but not the ones you manually disable. You can always enable this feature again in the same way.
+
+For the operators edit button, you can edit who is assigned to the operation, what their roles are, and specify which (if any) block lists should be assigned to that user.
+
+<Frame>
+    <img src="../images/version-3.3/image-1-9.png"/>
+</Frame>
+
+## Current Operations
+
+Because many aspects of an assessment are tied to a specific operation (payloads, callbacks, tasks, files, artifacts, etc), there are many things that will appear empty within the Mythic UI until you have an operation selected as your current operation. This lets the Mythic back-end know which data to fetch for you. If you don't have an operation as your active one, then you'll see no operation name listed on the top center of your screen. Go to the operations page and, if you're assigned to an operation that you can see, you can select to "Make Current".
+
+<iframe
+  className="w-full aspect-video rounded-xl"
+  src="https://www.youtube.com/embed/HN1ka0NQOzA?si=WUQdVCc41erf_OYb"
+  title="Mythic Operator Video Series — Operation Settings"
+  frameBorder="0"
+  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+  allowFullScreen
+></iframe>

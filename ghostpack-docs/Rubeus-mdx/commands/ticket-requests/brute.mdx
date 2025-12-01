@@ -1,0 +1,145 @@
+---
+title: 'brute'
+description: 'Perform Kerberos-based password bruteforce attacks'
+icon: 'hammer'
+sidebarTitle: 'brute'
+---
+
+## Overview
+
+Perform Kerberos-based password bruteforce attacks against domain accounts. This technique leverages Kerberos pre-authentication to test passwords without triggering traditional account lockout mechanisms in many configurations.
+
+<Warning>
+  Password bruteforce attacks can trigger account lockouts and generate significant authentication logs. Use carefully in production environments.
+</Warning>
+
+## Syntax
+
+```bash
+Rubeus.exe brute /passwords:PASSWORDS [targeting] [options]
+```
+
+## Targeting Options
+
+<ParamField path="password" type="string">
+  Single password to test against multiple users
+</ParamField>
+
+<ParamField path="passwords" type="string">
+  File containing list of passwords to test
+</ParamField>
+
+<ParamField path="user" type="string">
+  Single username to test against multiple passwords
+</ParamField>
+
+<ParamField path="users" type="string">
+  File containing list of usernames to test
+</ParamField>
+
+## Optional Parameters
+
+<ParamField path="domain" type="string">
+  Target domain (default: current domain)
+</ParamField>
+
+<ParamField path="dc" type="string">
+  Domain controller to target
+</ParamField>
+
+<ParamField path="outfile" type="string">
+  Output successful credentials to file
+</ParamField>
+
+<ParamField path="noticket" type="boolean">
+  Don't request TGT for valid credentials
+</ParamField>
+
+<ParamField path="verbose" type="boolean">
+  Show failed authentication attempts
+</ParamField>
+
+## Examples
+
+<CodeGroup>
+```bash Password Spray
+# Test single password against multiple users
+Rubeus.exe brute /password:Password123! /users:C:\temp\users.txt
+
+# Test multiple passwords against single user
+Rubeus.exe brute /passwords:C:\temp\passwords.txt /user:admin
+
+# Full matrix attack
+Rubeus.exe brute /passwords:C:\temp\passwords.txt /users:C:\temp\users.txt
+```
+
+```bash Targeted Attacks
+# Test against specific domain
+Rubeus.exe brute /password:Summer2024! /users:users.txt /domain:corp.local
+
+# Output results to file
+Rubeus.exe brute /passwords:common.txt /users:users.txt /outfile:valid_creds.txt
+
+# Verbose output for debugging
+Rubeus.exe brute /password:Password123! /users:users.txt /verbose
+```
+</CodeGroup>
+
+## Attack Strategies
+
+<Accordion title="Password Spraying">
+  **Low and Slow:**
+  - Test common passwords against many accounts
+  - Avoid account lockout by testing few passwords
+  - Focus on seasonal/company-specific passwords
+
+  **Common Password Lists:**
+  - Password123!, Welcome123!, Summer2024!
+  - Company name variations
+  - Season + year combinations
+  - Default passwords (admin, password, etc.)
+</Accordion>
+
+<Accordion title="Targeted Bruteforce">
+  **High-Value Accounts:**
+  - Focus on administrative accounts
+  - Service accounts with predictable passwords
+  - Accounts with known password patterns
+
+  **Intelligence-Driven:**
+  - Use OSINT for password hints
+  - Company-specific terminology
+  - Personal information from social media
+</Accordion>
+
+## Evasion and OpSec
+
+<Accordion title="Account Lockout Avoidance">
+  **Lockout Policy Awareness:**
+  - Understand domain lockout thresholds
+  - Stay below lockout attempt limits
+  - Implement delays between attempts
+
+  **Safe Testing Strategies:**
+  - Test 1-2 passwords per account per day
+  - Distribute attempts across time
+  - Use multiple source IPs if possible
+</Accordion>
+
+<Accordion title="Detection Avoidance">
+  **Timing Strategies:**
+  - Perform during business hours
+  - Mimic normal authentication patterns
+  - Implement random delays
+
+  **Volume Management:**
+  - Limit total authentication attempts
+  - Rotate target accounts
+  - Monitor for defensive responses
+</Accordion>
+
+## Related Commands
+
+- [`preauthscan`](/GhostPack/Rubeus-mdx/commands/ticket-requests/preauthscan) - Find accounts without pre-auth
+- [`asktgt`](/GhostPack/Rubeus-mdx/commands/ticket-requests/asktgt) - Use discovered credentials
+- [`asreproast`](/GhostPack/Rubeus-mdx/commands/roasting/asreproast) - Alternative credential attack

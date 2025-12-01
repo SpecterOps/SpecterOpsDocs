@@ -1,0 +1,792 @@
+---
+title: 'Target Management'
+description: 'Managing target lists and phishing recipients'
+icon: 'users'
+---
+
+Targets in Phishmonger represent individual recipients of phishing emails with associated metadata. This guide covers adding, managing, and organizing target lists.
+
+## Target Structure
+
+Each target contains:
+
+| Field | Type | Description | Required |
+|-------|------|-------------|----------|
+| target_id | string | Unique randomly generated ID | Auto-generated |
+| address | string | Email address | Yes |
+| campaign | string | Associated campaign name | Yes |
+| first_name | string | First name for personalization | No |
+| last_name | string | Last name for personalization | No |
+| position | string | Job title for personalization | No |
+| custom | string | Custom field for any additional data | No |
+| phished | integer | 0 = not sent, 1 = email sent | Auto-managed |
+
+### Target ID
+
+**Purpose**: Unique identifier for tracking
+
+**Format**: 6-character alphanumeric string (e.g., `a7k2m9`)
+
+**Generation**: Automatically generated using:
+```javascript
+Math.random().toString(36).slice(2).substr(0, 6)
+```
+
+**Usage**: Appended to phishing links as tracking parameter
+
+**Example**:
+```
+https://payload-domain.com/?id=a7k2m9
+```
+
+### Phished Status
+
+**Values**:
+- `0`: Target has not been sent an email yet
+- `1`: Email has been sent to this target
+
+**Behavior**:
+- Initially set to `0` when target is created
+- Automatically set to `1` after email is successfully sent
+- Campaign only sends to targets where `phished = 0`
+- Can be manually reset to retry sending
+
+## Adding Targets
+
+### Via Web Interface
+
+<Steps>
+  <Step title="Access Campaign">
+    From admin interface, click campaign name
+  </Step>
+
+  <Step title="Navigate to Edit Targets">
+    Click "Edit Targets" or similar option
+  </Step>
+
+  <Step title="Add Individual Target">
+    Fill in target form:
+    - Email address (required)
+    - First name
+    - Last name
+    - Position
+    - Custom field
+  </Step>
+
+  <Step title="Click Add Target">
+    Target is added to campaign
+  </Step>
+</Steps>
+
+### Via API
+
+Add target using the API:
+
+```bash
+curl -X POST https://yourdomain.com/create_target \
+  -H "Cookie: admin_cookie=YOUR_COOKIE_VALUE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "campaign": "campaign_name",
+    "address": "john.smith@target.com",
+    "first_name": "John",
+    "last_name": "Smith",
+    "position": "IT Administrator",
+    "custom": "+1-555-0123"
+  }'
+```
+
+**Response**:
+```json
+{
+  "target_id": "a7k2m9",
+  "address": "john.smith@target.com",
+  "campaign": "campaign_name",
+  "first_name": "John",
+  "last_name": "Smith",
+  "position": "IT Administrator",
+  "custom": "+1-555-0123",
+  "phished": 0
+}
+```
+
+### Via Database
+
+Add targets directly to database:
+
+```bash
+sqlite3 db/aquarium.db
+```
+
+```sql
+INSERT INTO targets VALUES (
+  'a7k2m9',                    -- target_id
+  'john.smith@target.com',     -- address
+  'campaign_name',             -- campaign
+  'John',                      -- first_name
+  'Smith',                     -- last_name
+  'IT Administrator',          -- position
+  '+1-555-0123',              -- custom
+  0                            -- phished
+);
+```
+
+## Bulk Importing Targets
+
+### CSV Format
+
+Create a CSV file with target information:
+
+```csv
+address,first_name,last_name,position,custom
+john.smith@target.com,John,Smith,IT Administrator,+1-555-0123
+jane.doe@target.com,Jane,Doe,HR Manager,+1-555-0124
+bob.jones@target.com,Bob,Jones,CEO,+1-555-0125
+```
+
+### Import Script
+
+Create a script to import CSV:
+
+```javascript
+const fs = require('fs');
+const Database = require('better-sqlite3');
+
+const db = new Database('./db/aquarium.db');
+const campaign = 'campaign_name';
+
+// Read CSV file
+const csv = fs.readFileSync('targets.csv', 'utf8');
+const lines = csv.split('\n');
+const headers = lines[0].split(',');
+
+// Insert each target
+const insert = db.prepare(`
+  INSERT INTO targets VALUES (?, ?, ?, ?, ?, ?, ?, 0)
+`);
+
+for (let i = 1; i < lines.length; i++) {
+  if (!lines[i].trim()) continue;
+
+  const values = lines[i].split(',');
+  const targetId = Math.random().toString(36).slice(2).substr(0, 6);
+
+  insert.run(
+    targetId,
+    values[0], // address
+    campaign,
+    values[1], // first_name
+    values[2], // last_name
+    values[3], // position
+    values[4]  // custom
+  );
+
+  console.log(`Added: ${values[0]}`);
+}
+
+console.log('Import complete!');
+```
+
+Run the script:
+
+```bash
+node import_targets.js
+```
+
+### SQL Import
+
+Import directly via SQL:
+
+```bash
+sqlite3 db/aquarium.db
+```
+
+```sql
+-- Create temporary table for CSV data
+CREATE TEMP TABLE temp_targets (
+  address TEXT,
+  first_name TEXT,
+  last_name TEXT,
+  position TEXT,
+  custom TEXT
+);
+
+-- Import CSV
+.mode csv
+.import targets.csv temp_targets
+
+-- Insert into targets table with generated IDs
+INSERT INTO targets
+SELECT
+  lower(hex(randomblob(3))),  -- target_id (6 char hex)
+  address,
+  'campaign_name',             -- Replace with actual campaign name
+  first_name,
+  last_name,
+  position,
+  custom,
+  0                            -- phished
+FROM temp_targets
+WHERE address IS NOT NULL AND address != 'address';  -- Skip header row
+
+-- Cleanup
+DROP TABLE temp_targets;
+```
+
+## Viewing Targets
+
+### Via Web Interface
+
+<Steps>
+  <Step title="Access Campaign">
+    Click campaign name from admin interface
+  </Step>
+
+  <Step title="View Targets List">
+    Target list displays all added targets with:
+    - Email address
+    - Name
+    - Position
+    - Phished status
+    - Actions (view details, delete)
+  </Step>
+</Steps>
+
+### Via API
+
+Retrieve campaign targets:
+
+```bash
+curl -X GET "https://yourdomain.com/get_targets?campaign=campaign_name" \
+  -H "Cookie: admin_cookie=YOUR_COOKIE_VALUE"
+```
+
+**Response**:
+```json
+[
+  {
+    "target_id": "a7k2m9",
+    "address": "john.smith@target.com",
+    "campaign": "campaign_name",
+    "first_name": "John",
+    "last_name": "Smith",
+    "position": "IT Administrator",
+    "custom": "+1-555-0123",
+    "phished": 0
+  },
+  {
+    "target_id": "b8n3p1",
+    "address": "jane.doe@target.com",
+    "campaign": "campaign_name",
+    "first_name": "Jane",
+    "last_name": "Doe",
+    "position": "HR Manager",
+    "custom": "+1-555-0124",
+    "phished": 1
+  }
+]
+```
+
+### Via Database
+
+Query targets directly:
+
+```sql
+-- All targets for campaign
+SELECT * FROM targets WHERE campaign = 'campaign_name';
+
+-- Only targets not yet sent
+SELECT * FROM targets WHERE campaign = 'campaign_name' AND phished = 0;
+
+-- Only targets already sent
+SELECT * FROM targets WHERE campaign = 'campaign_name' AND phished = 1;
+
+-- Count by status
+SELECT
+  COUNT(*) as total,
+  SUM(phished) as sent,
+  COUNT(*) - SUM(phished) as remaining
+FROM targets
+WHERE campaign = 'campaign_name';
+```
+
+## Editing Targets
+
+### Update Phished Status
+
+Reset phished status to resend emails:
+
+**Via API**:
+```bash
+curl -X PUT https://yourdomain.com/update_phished_status \
+  -H "Cookie: admin_cookie=YOUR_COOKIE_VALUE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "campaign": "campaign_name",
+    "address": "john.smith@target.com",
+    "phished": 0
+  }'
+```
+
+**Via Database**:
+```sql
+-- Reset specific target
+UPDATE targets
+SET phished = 0
+WHERE campaign = 'campaign_name' AND address = 'john.smith@target.com';
+
+-- Reset all targets in campaign
+UPDATE targets
+SET phished = 0
+WHERE campaign = 'campaign_name';
+
+-- Reset only failed targets (with ERROR events)
+UPDATE targets
+SET phished = 0
+WHERE target_id IN (
+  SELECT DISTINCT target
+  FROM events
+  WHERE campaign = 'campaign_name' AND event_type = 'ERROR'
+);
+```
+
+### Update Target Information
+
+Modify target details:
+
+```sql
+-- Update name
+UPDATE targets
+SET first_name = 'Jonathan', last_name = 'Smith'
+WHERE target_id = 'a7k2m9';
+
+-- Update position
+UPDATE targets
+SET position = 'Senior IT Administrator'
+WHERE target_id = 'a7k2m9';
+
+-- Update custom field
+UPDATE targets
+SET custom = '+1-555-9999'
+WHERE target_id = 'a7k2m9';
+```
+
+<Info>
+  **Campaign Must Be Stopped**: Do not edit targets while a campaign is actively sending. Stop the campaign first.
+</Info>
+
+## Deleting Targets
+
+### Via API
+
+Remove individual target:
+
+```bash
+curl -X DELETE https://yourdomain.com/delete_target \
+  -H "Cookie: admin_cookie=YOUR_COOKIE_VALUE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "campaign": "campaign_name",
+    "address": "john.smith@target.com"
+  }'
+```
+
+**Behavior**: Deletes target AND all associated events
+
+### Via Database
+
+Delete targets directly:
+
+```sql
+-- Delete specific target
+DELETE FROM targets
+WHERE campaign = 'campaign_name' AND address = 'john.smith@target.com';
+
+-- Delete all targets for campaign
+DELETE FROM targets WHERE campaign = 'campaign_name';
+
+-- Delete targets that have already been sent
+DELETE FROM targets WHERE campaign = 'campaign_name' AND phished = 1;
+
+-- Delete targets with ERROR events (failed delivery)
+DELETE FROM targets
+WHERE target_id IN (
+  SELECT DISTINCT target
+  FROM events
+  WHERE campaign = 'campaign_name' AND event_type = 'ERROR'
+);
+```
+
+**Associated Events**: When deleting via API, associated events are automatically deleted. When deleting via database, manually delete events:
+
+```sql
+-- Delete events for specific target
+DELETE FROM events WHERE target = 'a7k2m9';
+
+-- Delete events for all targets in campaign
+DELETE FROM events WHERE campaign = 'campaign_name';
+```
+
+## Target Personalization
+
+### String Substitutions
+
+Phishmonger replaces placeholders in emails with target-specific values:
+
+| Placeholder | Target Field | Example |
+|-------------|-------------|---------|
+| `SuppliedFirstName` | first_name | John |
+| `SuppliedLastName` | last_name | Smith |
+| `SuppliedPosition` | position | IT Administrator |
+| `SuppliedCustomReplacement` | custom | +1-555-0123 |
+| `SuppliedToAddress` | address | john.smith@target.com |
+| `SuppliedPhishingLink` | (computed) | https://payload-domain.com/?id=a7k2m9 |
+
+### Example Email with Substitutions
+
+**Template**:
+```html
+<p>Hello SuppliedFirstName SuppliedLastName,</p>
+
+<p>As SuppliedPosition at the company, you are required to complete
+annual security training.</p>
+
+<p>Your employee ID: SuppliedCustomReplacement</p>
+
+<p>Please confirm your email address (SuppliedToAddress) and complete
+the training:</p>
+
+<p><a href="SuppliedPhishingLink">Start Training</a></p>
+```
+
+**After Substitution**:
+```html
+<p>Hello John Smith,</p>
+
+<p>As IT Administrator at the company, you are required to complete
+annual security training.</p>
+
+<p>Your employee ID: +1-555-0123</p>
+
+<p>Please confirm your email address (john.smith@target.com) and complete
+the training:</p>
+
+<p><a href="https://payload-domain.com/?id=a7k2m9">Start Training</a></p>
+```
+
+### Best Practices
+
+**Required Fields**:
+- Always provide `first_name` if using `SuppliedFirstName`
+- Emails look less legitimate with blank substitutions
+
+**Fallback Values**:
+If target data is missing, consider providing defaults:
+
+```sql
+-- Add default values for missing names
+UPDATE targets
+SET first_name = 'User'
+WHERE campaign = 'campaign_name' AND (first_name IS NULL OR first_name = '');
+```
+
+**Custom Field Usage**:
+- Phone numbers
+- Employee IDs
+- Department names
+- Office locations
+- Account numbers
+- Manager names
+
+## Target List Management
+
+### Deduplication
+
+Remove duplicate email addresses:
+
+```sql
+-- Find duplicates
+SELECT address, COUNT(*)
+FROM targets
+WHERE campaign = 'campaign_name'
+GROUP BY address
+HAVING COUNT(*) > 1;
+
+-- Keep first occurrence, delete duplicates
+DELETE FROM targets
+WHERE rowid NOT IN (
+  SELECT MIN(rowid)
+  FROM targets
+  WHERE campaign = 'campaign_name'
+  GROUP BY address
+);
+```
+
+### Validation
+
+Validate email addresses:
+
+```sql
+-- Find invalid email formats (basic check)
+SELECT * FROM targets
+WHERE campaign = 'campaign_name'
+AND address NOT LIKE '%_@%_._%';
+
+-- Find missing @ symbol
+SELECT * FROM targets
+WHERE campaign = 'campaign_name'
+AND address NOT LIKE '%@%';
+```
+
+**External Validation**: Export and validate with email verification tools
+
+```bash
+# Export email addresses
+sqlite3 db/aquarium.db "SELECT address FROM targets WHERE campaign = 'campaign_name';" > emails.txt
+```
+
+### Categorization
+
+Organize targets by attributes:
+
+```sql
+-- Group by domain
+SELECT
+  SUBSTR(address, INSTR(address, '@') + 1) as domain,
+  COUNT(*) as count
+FROM targets
+WHERE campaign = 'campaign_name'
+GROUP BY domain;
+
+-- Group by position
+SELECT position, COUNT(*) as count
+FROM targets
+WHERE campaign = 'campaign_name'
+GROUP BY position
+ORDER BY count DESC;
+```
+
+## Target Statistics
+
+### Campaign Metrics
+
+```sql
+-- Total targets
+SELECT COUNT(*) as total_targets
+FROM targets
+WHERE campaign = 'campaign_name';
+
+-- Emails sent vs remaining
+SELECT
+  COUNT(*) as total,
+  SUM(phished) as sent,
+  COUNT(*) - SUM(phished) as remaining,
+  (SUM(phished) * 100.0 / COUNT(*)) as percent_complete
+FROM targets
+WHERE campaign = 'campaign_name';
+
+-- Targets with clicks
+SELECT COUNT(DISTINCT t.target_id) as targets_clicked
+FROM targets t
+JOIN events e ON t.target_id = e.target
+WHERE t.campaign = 'campaign_name'
+AND e.event_type = 'CLICK';
+
+-- Targets with submissions
+SELECT COUNT(DISTINCT t.target_id) as targets_submitted
+FROM targets t
+JOIN events e ON t.target_id = e.target
+WHERE t.campaign = 'campaign_name'
+AND e.event_type = 'POST_DATA';
+```
+
+### Target Details
+
+View specific target and their events:
+
+```sql
+-- Target information
+SELECT * FROM targets WHERE target_id = 'a7k2m9';
+
+-- Target events
+SELECT event_timestamp, event_type, event_data
+FROM events
+WHERE target = 'a7k2m9'
+ORDER BY event_timestamp ASC;
+
+-- Target timeline
+SELECT
+  datetime(event_timestamp / 1000, 'unixepoch') as timestamp,
+  event_type,
+  event_ip,
+  event_data
+FROM events
+WHERE target = 'a7k2m9'
+ORDER BY event_timestamp ASC;
+```
+
+## Exporting Targets
+
+### Export to CSV
+
+```bash
+sqlite3 db/aquarium.db
+```
+
+```sql
+.mode csv
+.output targets_export.csv
+SELECT * FROM targets WHERE campaign = 'campaign_name';
+.output stdout
+```
+
+### Export Email List Only
+
+```bash
+sqlite3 db/aquarium.db "SELECT address FROM targets WHERE campaign = 'campaign_name';" > email_list.txt
+```
+
+### Export with Status
+
+```bash
+sqlite3 db/aquarium.db <<EOF
+.mode csv
+.output campaign_results.csv
+SELECT
+  t.address,
+  t.first_name,
+  t.last_name,
+  t.position,
+  t.phished,
+  CASE WHEN e_click.target IS NOT NULL THEN 1 ELSE 0 END as clicked,
+  CASE WHEN e_submit.target IS NOT NULL THEN 1 ELSE 0 END as submitted
+FROM targets t
+LEFT JOIN (SELECT DISTINCT target FROM events WHERE event_type = 'CLICK') e_click
+  ON t.target_id = e_click.target
+LEFT JOIN (SELECT DISTINCT target FROM events WHERE event_type = 'POST_DATA') e_submit
+  ON t.target_id = e_submit.target
+WHERE t.campaign = 'campaign_name';
+.output stdout
+EOF
+```
+
+## Target Privacy and Security
+
+### Sensitive Data
+
+**What to Store**:
+- Email addresses (required)
+- First/last names (for personalization)
+- Job titles (for targeting)
+
+**What NOT to Store**:
+- Passwords
+- Social Security Numbers
+- Sensitive personal information
+- Financial data
+
+**Custom Field Usage**:
+- Use for campaign-specific tracking only
+- Avoid storing data not needed for phishing
+- Clear custom fields after campaign completion
+
+### Data Retention
+
+After campaign completion:
+
+```sql
+-- Delete target data after reporting
+DELETE FROM targets WHERE campaign = 'completed_campaign_name';
+
+-- Or anonymize targets
+UPDATE targets
+SET
+  first_name = 'REDACTED',
+  last_name = 'REDACTED',
+  position = 'REDACTED',
+  custom = 'REDACTED'
+WHERE campaign = 'completed_campaign_name';
+```
+
+### Database Security
+
+Protect target data:
+
+```bash
+# Restrict database file permissions
+chmod 600 db/aquarium.db
+
+# Encrypt database at rest (example with SQLCipher)
+# Note: Requires code changes to use encrypted database
+```
+
+## Troubleshooting Targets
+
+### Targets Not Receiving Emails
+
+**Check target exists**:
+```sql
+SELECT * FROM targets WHERE campaign = 'campaign_name' AND phished = 0;
+```
+
+**Verify email format**:
+```sql
+SELECT * FROM targets
+WHERE campaign = 'campaign_name'
+AND (address NOT LIKE '%@%' OR address LIKE '% %');
+```
+
+**Check for ERROR events**:
+```sql
+SELECT t.address, e.event_data
+FROM targets t
+JOIN events e ON t.target_id = e.target
+WHERE t.campaign = 'campaign_name'
+AND e.event_type = 'ERROR';
+```
+
+### Duplicate Target IDs
+
+If target IDs collide (very rare with 6-character random IDs):
+
+```sql
+-- Find duplicate target_ids
+SELECT target_id, COUNT(*)
+FROM targets
+GROUP BY target_id
+HAVING COUNT(*) > 1;
+
+-- Generate new IDs for duplicates
+UPDATE targets
+SET target_id = lower(hex(randomblob(3)))
+WHERE target_id IN (
+  SELECT target_id FROM targets GROUP BY target_id HAVING COUNT(*) > 1
+)
+AND rowid NOT IN (
+  SELECT MIN(rowid) FROM targets GROUP BY target_id HAVING COUNT(*) > 1
+);
+```
+
+### Missing Target Data
+
+If string substitutions appear blank in emails:
+
+```sql
+-- Find targets with missing data
+SELECT target_id, address
+FROM targets
+WHERE campaign = 'campaign_name'
+AND (
+  first_name IS NULL OR first_name = '' OR
+  last_name IS NULL OR last_name = ''
+);
+
+-- Populate with defaults
+UPDATE targets
+SET
+  first_name = COALESCE(first_name, 'User'),
+  last_name = COALESCE(last_name, ''),
+  position = COALESCE(position, ''),
+  custom = COALESCE(custom, '')
+WHERE campaign = 'campaign_name';
+```

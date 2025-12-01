@@ -1,0 +1,78 @@
+---
+title: 'local client-info'
+description: 'Get the client software version for the local host via WMI'
+icon: 'info'
+sidebarTitle: 'client-info'
+---
+
+## Overview
+
+Get the client software version for the local host via WMI. This command provides information about the SCCM client installation, including version details that can be useful for compatibility checks and vulnerability assessments.
+
+## Syntax
+
+```bash
+SharpSCCM local client-info [options]
+```
+
+## Parameters
+
+This command requires no additional parameters beyond the standard debug and help options.
+
+## Examples
+
+<CodeGroup>
+```bash Basic Usage
+# Get local SCCM client version information
+SharpSCCM local client-info
+```
+</CodeGroup>
+
+## Output Format
+
+The command outputs client version information:
+
+```text
+[+] Connecting to \\127.0.0.1\root\CCM
+[+] Executing WQL query: SELECT Name,Version FROM CCM_InstalledComponent WHERE Name='SmsClient'
+-----------------------------------
+CCM_InstalledComponent
+-----------------------------------
+Version: 5.00.9078.1003
+-----------------------------------
+```
+
+## Version Information Analysis
+
+<Accordion title="Version Number Format">
+  SCCM client versions follow the format: Major.Minor.Build.Revision
+  - **5.00.9078.1003** indicates SCCM Current Branch
+  - Different version ranges correspond to different SCCM releases and feature sets
+</Accordion>
+
+<Accordion title="Security Implications">
+  Knowing the exact client version helps identify:
+  - Known vulnerabilities in specific SCCM client versions
+  - Available features and attack vectors
+  - Compatibility with different exploitation techniques
+</Accordion>
+
+## Common Use Cases
+
+<Accordion title="Compatibility Assessment">
+  Verify client version compatibility before attempting specific SCCM exploitation techniques.
+</Accordion>
+
+<Accordion title="Vulnerability Research">
+  Identify the exact client version to research known security issues and available exploits.
+</Accordion>
+
+<Accordion title="Environment Reconnaissance">
+  Gather basic information about the SCCM deployment as part of initial reconnaissance.
+</Accordion>
+
+## Related Commands
+
+- [`local site-info`](/sharpsccm/commands/local/site-info) - Get management point and site code information
+- [`local triage`](/sharpsccm/commands/local/triage) - Comprehensive site information gathering
+- [`local class-instances`](/sharpsccm/commands/local/class-instances) - Query CCM_InstalledComponent for more details

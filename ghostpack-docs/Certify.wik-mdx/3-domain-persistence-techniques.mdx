@@ -1,0 +1,97 @@
+---
+title: 'Domain Persistence Techniques Overview'
+description: 'Overview of DPERSIST1-3 techniques for establishing unrestricted domain-level persistence using compromised Certificate Authority infrastructure.'
+icon: 'building-lock'
+sidebarTitle: 'Domain Persistence'
+---
+
+<Warning>
+Domain persistence techniques provide unrestricted access across the entire environment and should only be used in authorized testing scenarios with proper approval.
+</Warning>
+
+## Domain Persistence Techniques
+
+Domain persistence techniques represent the most powerful forms of persistence in Active Directory environments. These techniques leverage compromised Certificate Authority infrastructure to establish unrestricted access that persists across password changes, account modifications, and standard remediation efforts.
+
+<CardGroup cols={1}>
+  <Card title="DPERSIST1 - Forging Certificates with Stolen CA" icon="key" href="./dpersist1-forging-certificates-with-stolen-ca">
+    Extend one-time privileged access to a CA server into unrestricted privileged access across the entire environment by extracting and using the CA signing certificate.
+  </Card>
+
+  <Card title="DPERSIST2 - Trusting Rogue CA Certificates" icon="certificate" href="./dpersist2-trusting-rogue-ca-certificates">
+    Install a rogue Certificate Authority certificate in the domain to enable arbitrary certificate creation and authentication.
+  </Card>
+
+  <Card title="DPERSIST3 - Malicious Misconfiguration" icon="gear" href="./dpersist3-malicious-misconfiguration">
+    Establish persistence through deliberate misconfigurations of certificate templates and CA settings.
+  </Card>
+</CardGroup>
+
+## Key Concepts
+
+<Accordion title="Certificate Authority (CA) Infrastructure">
+Active Directory Certificate Services relies on Certificate Authorities to issue and manage certificates. Compromising the CA infrastructure provides attackers with the ability to create trusted certificates for any identity in the domain.
+</Accordion>
+
+<Accordion title="Certificate Signing">
+The CA's private key is used to sign certificates, making them trusted by all domain members. Access to this private key allows attackers to forge certificates that appear legitimate to the entire Active Directory environment.
+</Accordion>
+
+<Accordion title="Golden Certificates">
+Similar to Golden Tickets in Kerberos attacks, "Golden Certificates" are forged certificates created using compromised CA infrastructure that provide unrestricted authentication capabilities.
+</Accordion>
+
+<Accordion title="Tier 0 Assets">
+Certificate Authorities should be treated as Tier 0 assets in the Active Directory administrative tier model, as compromise provides domain-wide administrative access.
+</Accordion>
+
+## Prerequisites
+
+<Warning>
+These techniques require high-level privileges and should only be attempted in authorized penetration testing or red team exercises.
+</Warning>
+
+- Administrative access to Certificate Authority servers
+- Understanding of PKI infrastructure and certificate management
+- Knowledge of Active Directory trust relationships
+- Appropriate authorization for destructive testing activities
+
+## Attack Impact
+
+Domain persistence through compromised CA infrastructure provides:
+
+- **Unrestricted Authentication**: Create certificates for any user or computer account
+- **Stealth**: Certificate-based authentication appears legitimate in logs
+- **Persistence**: Survives password resets and account modifications
+- **Privilege Escalation**: Access to any account including Domain Admins
+- **Lateral Movement**: Authenticate to any system in the domain
+
+## Detection and Mitigation
+
+Organizations should implement comprehensive monitoring for:
+
+<Card title="Certificate Authority Security" icon="shield-check">
+- Unusual certificate issuance patterns
+- Unexpected certificate requests for high-privilege accounts
+- CA configuration changes and administrative actions
+- Certificate usage from unexpected sources or locations
+- Regular auditing of CA private key security
+</Card>
+
+<Card title="Infrastructure Protection" icon="server">
+- Treat CA servers as Tier 0 assets with appropriate security controls
+- Implement multi-person authorization for CA operations
+- Regular backup and secure storage of CA private keys
+- Network segmentation and monitoring of CA infrastructure
+- Strong access controls and privileged access management
+</Card>
+
+## Recovery Considerations
+
+<Warning>
+Recovery from domain persistence attacks may require complete PKI infrastructure rebuild, including certificate revocation and re-issuance across the entire environment.
+</Warning>
+
+<Card title="Next Steps" icon="arrow-right">
+Select a specific domain persistence technique from the list above to learn detailed implementation steps and attack methodologies. Remember that these techniques should only be used in authorized testing scenarios.
+</Card>

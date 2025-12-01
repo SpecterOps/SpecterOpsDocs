@@ -1,0 +1,133 @@
+---
+title: 'WindowsAutoLogon'
+description: 'Registry autologon information'
+icon: 'right-to-bracket'
+---
+
+## Overview
+
+The WindowsAutoLogon command checks the registry for Windows AutoLogon configuration. When AutoLogon is enabled, user credentials (including plaintext passwords) are stored in the registry to automatically log on a user at system startup. This is a significant security risk and provides easy credential access.
+
+## Syntax
+
+```bash
+Seatbelt.exe WindowsAutoLogon
+```
+
+### Remote Execution
+```bash
+Seatbelt.exe WindowsAutoLogon -computername=TARGET.domain.com [-username=DOMAIN\user -password=pass]
+```
+
+## Output
+
+Returns AutoLogon configuration:
+- AutoAdminLogon status (enabled/disabled)
+- Default domain name
+- Default username
+- Default password (plaintext)
+- AutoLogon count
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Extract plaintext credentials from registry
+    - Discover service account credentials
+    - Find kiosk or shared system credentials
+    - Identify easy credential access
+    - Locate automatic logon accounts
+  </Tab>
+  <Tab title="Blue Team">
+    - Detect insecure AutoLogon configurations
+    - Identify exposed credentials in registry
+    - Audit kiosk and shared systems
+    - Validate credential management policies
+    - Remediate AutoLogon misconfigurations
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== WindowsAutoLogon ======
+
+AutoAdminLogon       : 1 (Enabled) [!]
+DefaultDomainName    : CORP
+DefaultUserName      : kiosk_user
+DefaultPassword      : P@ssw0rd123! [!]
+AutoLogonCount       : 0 (Infinite)
+
+[!] WARNING: AutoLogon is enabled with stored credentials
+[!] WARNING: Credentials stored in plaintext in registry
+```
+
+Example when disabled:
+```
+====== WindowsAutoLogon ======
+
+AutoAdminLogon       : 0 (Disabled)
+
+[*] AutoLogon is not configured
+```
+
+## Remote Execution
+
+<Check>
+This command **supports remote execution** using the `-computername` parameter.
+</Check>
+
+Remote execution reads the registry keys via WMI on the target system.
+
+## Detection Considerations
+
+<Warning>
+Accessing AutoLogon credentials may generate security alerts.
+</Warning>
+
+- **Registry Access**: Queries `HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon`
+- **Event Logs**: Registry access may be logged (Event ID 4656/4663)
+- **WMI Activity**: Remote execution generates WMI events
+- **EDR Telemetry**: Credential access attempts are often flagged
+
+### Registry Keys Checked
+
+The command queries these registry values:
+```
+HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon:
+  - AutoAdminLogon
+  - DefaultDomainName
+  - DefaultUserName
+  - DefaultPassword
+  - AutoLogonCount
+```
+
+### Defensive Recommendations
+
+<Accordion title="Remediation Steps">
+1. **Disable AutoLogon** if not required:
+   - Set `AutoAdminLogon` to 0
+   - Remove `DefaultPassword` value
+
+2. **For Kiosks/Shared Systems**:
+   - Use dedicated kiosk mode
+   - Implement application restrictions
+   - Use separate, limited-privilege accounts
+
+3. **Monitoring**:
+   - Enable registry auditing on Winlogon keys
+   - Alert on AutoAdminLogon modifications
+   - Monitor for credential extraction patterns
+
+4. **Alternative Solutions**:
+   - Use Assigned Access for kiosk mode
+   - Implement shell launcher
+   - Use credential guard on sensitive systems
+</Accordion>
+
+## Related Commands
+
+- [LocalUsers](/commands/localusers) - Local user accounts
+- [CredGuard](/commands/credguard) - Credential Guard configuration
+- [LSASettings](/commands/lsasettings) - LSA configuration
+- [LogonSessions](/commands/logonsessions) - Active logon sessions

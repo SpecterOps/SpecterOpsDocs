@@ -1,0 +1,129 @@
+---
+title: 'OracleSQLDeveloper'
+description: 'Finds Oracle SQLDeveloper connections.xml files'
+icon: 'database'
+---
+
+## Overview
+
+The `OracleSQLDeveloper` command searches for Oracle SQL Developer connections.xml files on the system. These configuration files contain database connection information including server addresses, database names, usernames, and sometimes credentials that can be used to access Oracle databases.
+
+**Important:** User commands run for the current user if not elevated and for ALL users if elevated.
+
+## Syntax
+
+```
+Seatbelt.exe OracleSQLDeveloper
+```
+
+No additional arguments are supported.
+
+## Output
+
+The command returns:
+- SQL Developer connections.xml file locations
+- Database connection details (hostname, port, SID/service name)
+- Stored usernames
+- Connection names and descriptions
+- User context for each configuration file
+- File paths and timestamps
+
+## Use Cases
+
+### Red Team
+- **Credential Harvesting**: Extract database credentials from SQL Developer configurations
+- **Database Discovery**: Identify Oracle database servers and instances
+- **Lateral Movement**: Use harvested credentials to access database systems
+- **Network Mapping**: Discover database infrastructure and network topology
+- **Target Prioritization**: Identify production vs. development databases
+
+### Blue Team
+- **Credential Hygiene**: Identify users storing database credentials insecurely
+- **Security Audit**: Review database access patterns and saved connections
+- **Incident Response**: Quickly identify potentially compromised database credentials
+- **Compliance Checking**: Ensure credential storage aligns with security policies
+- **Asset Discovery**: Document Oracle database infrastructure
+
+## Example Output
+
+```
+====== OracleSQLDeveloper ======
+
+User: john.doe
+
+  ConfigFile        : C:\Users\john.doe\AppData\Roaming\SQL Developer\system4.1.3.20.78\o.jdeveloper.db.connection\connections.xml
+
+  Database Connection
+    Name              : Production DB
+    Host              : oracle-prod.contoso.com
+    Port              : 1521
+    SID               : PRODDB
+    Username          : dbadmin
+    SavePassword      : True
+
+  Database Connection
+    Name              : Dev Database
+    Host              : 192.168.10.100
+    Port              : 1521
+    ServiceName       : DEVDB
+    Username          : developer
+    SavePassword      : False
+
+  Database Connection
+    Name              : Finance DB
+    Host              : oracle-finance.contoso.local
+    Port              : 1521
+    SID               : FINDB
+    Username          : fin_readonly
+    SavePassword      : True
+```
+
+## Privilege Context
+
+- **Non-Elevated**: Searches for SQL Developer connection files for the current user only
+- **Elevated**: Searches for SQL Developer connection files for ALL users on the system, providing comprehensive database credential discovery
+
+## Remote Execution
+
+This command does **not** support remote execution (not marked with + in the command list).
+
+## Detection Considerations
+
+### Indicators
+- File system access to SQL Developer configuration directories
+- Reading connections.xml files in AppData\Roaming\SQL Developer
+- Pattern-based searching for Oracle configuration files
+- Enumeration across multiple user profiles
+
+### Defensive Monitoring
+- Monitor access to SQL Developer configuration directories
+- Alert on non-SQL Developer processes reading connections.xml
+- Track automated enumeration of database credential files
+- Log access to Oracle configuration files
+- Detect credential harvesting tools accessing SQL Developer data
+- Monitor for bulk configuration file enumeration across users
+- Alert on exfiltration of connections.xml files
+
+### Security Recommendations
+- Discourage storing database passwords in SQL Developer
+- Use wallet-based authentication or Kerberos where possible
+- Implement file access monitoring on configuration directories
+- Regularly audit SQL Developer installations and configurations
+- Rotate database credentials if configuration files are compromised
+- Use connection-specific audit logging on databases
+- Consider using enterprise database credential management
+
+### Password Storage in SQL Developer
+- Passwords in connections.xml may be encrypted but can be decrypted
+- Encryption key is stored locally and can be recovered
+- Saved passwords pose significant security risk
+- Users should be trained to avoid saving database passwords
+
+## Related Commands
+
+- **FileZilla**: Finds FTP credentials in FileZilla configurations
+- **PuttySessions**: Enumerates saved Putty/SSH credentials
+- **MTPuTTY**: Searches for MTPuTTY configuration files
+- **WindowsCredentialFiles**: Finds Windows credential files
+- **CredEnum**: Lists saved credentials using Windows API
+- **InterestingFiles**: Searches for files with sensitive patterns

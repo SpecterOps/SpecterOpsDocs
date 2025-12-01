@@ -1,0 +1,38 @@
+---
+title: "oplog_search"
+description: "Search operation log entries"
+---
+
+## Summary
+
+Search through oplog entries to find specific commands, tools, or actions.
+
+- Needs Admin: False
+- Version: 1-2
+- Author: @its_a_feature_
+
+### Arguments
+
+#### search
+- Description: Search term to find in oplog entries
+- Required: True
+
+
+## Usage
+
+```
+oplog_search -search "nmap"
+oplog_search -search "10.0.0.5"
+```
+
+## Detailed Summary
+
+Searches across all oplog entries for the project. Searches against:
+- Commands
+- Descriptions
+- Comments
+- IP addresses
+- Tool names
+- Operator names
+
+Useful for finding when specific commands were run, tracking activity against targets, or reviewing operator actions.

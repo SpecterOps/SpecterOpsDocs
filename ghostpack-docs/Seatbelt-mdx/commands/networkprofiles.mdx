@@ -1,0 +1,85 @@
+---
+title: 'NetworkProfiles'
+description: 'Windows network profiles'
+icon: 'wifi'
+---
+
+## Overview
+
+The NetworkProfiles command enumerates Windows network profiles, providing information about configured network connections including WiFi networks, VPNs, and Ethernet connections. This reveals network connectivity history and potential targets for lateral movement.
+
+## Syntax
+
+```bash
+Seatbelt.exe NetworkProfiles
+```
+
+### Remote Execution
+```bash
+Seatbelt.exe NetworkProfiles -computername=TARGET.domain.com [-username=DOMAIN\user -password=pass]
+```
+
+## Output
+
+Returns network profile information:
+- Profile name
+- Network category (Public, Private, Domain)
+- Connection type (Wired, Wireless, VPN)
+- Date created
+- Date last connected
+- Managed/Unmanaged status
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Identify previously connected networks
+    - Discover VPN configurations
+    - Map network movement history
+    - Find WiFi networks for SSID tracking
+    - Identify corporate vs guest networks
+  </Tab>
+  <Tab title="Blue Team">
+    - Audit network connection history
+    - Detect unauthorized network access
+    - Validate network segmentation
+    - Investigate suspicious connections
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== NetworkProfiles ======
+
+ProfileName    : CORP-WIRELESS
+Category       : Domain
+Created        : 1/15/2024 9:00:00 AM
+LastConnected  : 10/15/2024 8:30:15 AM
+Managed        : True
+
+ProfileName    : Starbucks WiFi
+Category       : Public
+Created        : 9/20/2024 2:15:30 PM
+LastConnected  : 9/20/2024 4:45:22 PM
+Managed        : False
+```
+
+## Remote Execution
+
+<Check>
+This command **supports remote execution** using the `-computername` parameter.
+</Check>
+
+## Detection Considerations
+
+<Info>
+Low detection risk - queries network profile registry data.
+</Info>
+
+## Related Commands
+
+- [WifiProfile](/commands/wifiprofile) - WiFi profiles with passwords
+- [NetworkShares](/commands/networkshares) - Network shares
+- [DNSCache](/commands/dnscache) - DNS cache entries
+- [ARPTable](/commands/arptable) - ARP table

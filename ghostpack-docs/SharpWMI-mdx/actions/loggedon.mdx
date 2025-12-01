@@ -1,0 +1,410 @@
+---
+title: 'loggedon'
+description: 'Enumerate logged-on users on local and remote systems'
+icon: 'users'
+---
+
+## Overview
+
+The `loggedon` action enumerates currently logged-on users on local and remote systems. It queries the `Win32_LoggedOnUser` WMI class to identify all active user sessions, including interactive, remote desktop, and service sessions.
+
+<Tip>
+  This is particularly useful for identifying high-value targets during lateral movement or determining if administrators are logged into systems.
+</Tip>
+
+## Syntax
+
+<Tabs>
+  <Tab title="Local Query">
+    ```bash
+    SharpWMI.exe action=loggedon
+    ```
+  </Tab>
+
+  <Tab title="Remote Query">
+    ```bash
+    SharpWMI.exe action=loggedon computername=HOST[,HOST2,...] [username=DOMAIN\user] [password=Password]
+    ```
+  </Tab>
+</Tabs>
+
+## Parameters
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `action` | Yes | Must be `loggedon` |
+| `computername` | No | Target host(s), comma-separated. Defaults to localhost |
+| `username` | No | Username for authentication (requires password) |
+| `password` | No | Password for authentication (requires username) |
+
+## Usage Examples
+
+### Basic Usage
+
+<CodeGroup>
+```bash Local System
+SharpWMI.exe action=loggedon
+```
+
+```bash Single Remote Host
+SharpWMI.exe action=loggedon computername=server.domain.com
+```
+
+```bash Multiple Hosts
+SharpWMI.exe action=loggedon computername=dc.domain.com,fileserver.domain.com,sql.domain.com
+```
+
+```bash With Credentials
+SharpWMI.exe action=loggedon computername=target.domain.com username="DOMAIN\admin" password="Password123!"
+```
+</CodeGroup>
+
+### Example Output
+
+```
+server.domain.com: DOMAIN\Administrator
+server.domain.com: DOMAIN\jdoe
+server.domain.com: DOMAIN\serviceaccount
+server.domain.com: NT AUTHORITY\SYSTEM
+server.domain.com: NT AUTHORITY\LOCAL SERVICE
+```
+
+<Note>
+  The output includes system accounts (SYSTEM, LOCAL SERVICE, NETWORK SERVICE) and service accounts. Filter these when looking for interactive user sessions.
+</Note>
+
+## Operational Scenarios
+
+### Scenario 1: Domain Admin Hunting
+
+Identify which systems have domain administrators logged in:
+
+```bash
+# Check domain controller
+SharpWMI.exe action=loggedon computername=dc.domain.com
+
+# Check multiple servers
+SharpWMI.exe action=loggedon computername=dc1,dc2,fileserver,appserver,sql01
+
+# With credentials
+SharpWMI.exe action=loggedon computername=dc1,dc2,fs1,fs2 username="DOMAIN\user" password="Password123!"
+```
+
+**Look for:**
+- Domain Admin accounts
+- Enterprise Admin accounts
+- Service accounts with elevated privileges
+- Administrator workstations
+
+### Scenario 2: Lateral Movement Target Selection
+
+Determine the best targets for lateral movement:
+
+```bash
+# Enumerate logged-on users across subnet
+SharpWMI.exe action=loggedon computername=10.0.0.10,10.0.0.11,10.0.0.12,10.0.0.13,10.0.0.14,10.0.0.15
+```
+
+**Target systems where:**
+- Multiple administrators are logged in
+- High-value users are present
+- Service accounts are running (for credential theft)
+
+### Scenario 3: Operational Security
+
+Ensure administrators aren't logged in before conducting operations:
+
+```bash
+# Check target before executing payload
+SharpWMI.exe action=loggedon computername=target-workstation.domain.com
+
+# If no admins present, proceed with execution
+SharpWMI.exe action=exec computername=target-workstation.domain.com command="payload.exe"
+```
+
+### Scenario 4: Network Mapping
+
+Map user activity across the network:
+
+```bash
+# Enumerate all domain systems (example with PowerShell wrapper)
+# Get-ADComputer -Filter * | Select -ExpandProperty Name | ForEach-Object {
+#   SharpWMI.exe action=loggedon computername=$_
+# }
+```
+
+## Understanding Session Types
+
+The `Win32_LoggedOnUser` class returns various types of sessions:
+
+| Session Type | Description | Indicator |
+|--------------|-------------|-----------|
+| Interactive | Console login | Physical or VM access |
+| RemoteInteractive | RDP/Terminal Services | Remote desktop session |
+| Network | File share/network access | SMB connections |
+| Service | Service account sessions | Running services |
+| Batch | Scheduled tasks | Task Scheduler |
+
+<Accordion title="Filtering System Accounts">
+  SharpWMI automatically filters out some system accounts (DWM-, UMFD-) but still returns:
+  - `NT AUTHORITY\SYSTEM`
+  - `NT AUTHORITY\LOCAL SERVICE`
+  - `NT AUTHORITY\NETWORK SERVICE`
+
+  When analyzing output, focus on domain and local user accounts.
+</Accordion>
+
+## Remote vs Local Usage
+
+<Tabs>
+  <Tab title="Local Enumeration">
+    **When to use:**
+    - Post-exploitation on compromised system
+    - Determining current logged-on users
+    - Identifying potential credential theft targets
+
+    **Advantages:**
+    - No network traffic
+    - Works without admin privileges
+    - Immediate results
+
+    ```bash
+    SharpWMI.exe action=loggedon
+    ```
+  </Tab>
+
+  <Tab title="Remote Enumeration">
+    **When to use:**
+    - Reconnaissance phase
+    - Domain admin hunting
+    - Network mapping
+    - Lateral movement planning
+
+    **Requirements:**
+    - Admin privileges on target
+    - Network access to RPC/DCOM
+    - WMI service running
+
+    ```bash
+    SharpWMI.exe action=loggedon computername=server1,server2,server3
+    ```
+  </Tab>
+</Tabs>
+
+## Detection Considerations
+
+<Warning>
+  Enumerating logged-on users across multiple systems can generate detectable patterns, especially when done in bulk.
+</Warning>
+
+<AccordionGroup>
+  <Accordion title="Detection Indicators" icon="radar">
+    - WMI queries for Win32_LoggedOnUser class
+    - Bulk WMI queries from single source
+    - Queries originating from non-administrative systems
+    - Rapid sequential WMI connections
+    - Queries outside business hours
+  </Accordion>
+
+  <Accordion title="Event Log Indicators" icon="list">
+    - Event ID 4624: Account logon (WMI connection)
+    - Event ID 4672: Special privileges assigned to new logon
+    - Event ID 5857: WMI activity
+    - Sysmon Event ID 19-21: WMI activity
+    - Multiple 4624 events from same source IP
+  </Accordion>
+
+  <Accordion title="Network Detection" icon="network-wired">
+    - DCOM traffic on port 135
+    - Dynamic RPC connections
+    - Multiple WMI connections in short timeframe
+    - WMI queries from workstation to servers
+  </Accordion>
+
+  <Accordion title="Behavioral Detection" icon="brain">
+    - User account querying multiple systems
+    - Queries against high-value targets (DCs, servers)
+    - Reconnaissance pattern: loggedon → ps → exec
+    - Queries correlating with other suspicious activity
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Operational Security" icon="user-secret">
+    - Limit query frequency to avoid detection
+    - Blend in with legitimate admin activity
+    - Use during business hours when WMI traffic is common
+    - Don't query all systems at once
+  </Card>
+
+  <Card title="Target Selection" icon="bullseye">
+    - Prioritize high-value systems (DCs, app servers)
+    - Focus on systems likely to have admin sessions
+    - Cross-reference with network shares
+    - Use information for lateral movement planning
+  </Card>
+
+  <Card title="Credential Management" icon="key">
+    - Use current context when possible
+    - Rotate credentials between operations
+    - Minimize use of domain admin accounts
+    - Monitor for account lockouts
+  </Card>
+
+  <Card title="Data Handling" icon="database">
+    - Parse output to identify high-value accounts
+    - Filter system accounts from results
+    - Track user session patterns
+    - Correlate with other enumeration data
+  </Card>
+</CardGroup>
+
+## Comparison with Alternatives
+
+<Tabs>
+  <Tab title="WMI (SharpWMI)">
+    **Advantages:**
+    - Native Windows functionality
+    - No additional tools required
+    - Works over existing RPC/DCOM
+
+    **Disadvantages:**
+    - Requires admin privileges
+    - Generates WMI event logs
+    - Network traffic visible
+
+    ```bash
+    SharpWMI.exe action=loggedon computername=target
+    ```
+  </Tab>
+
+  <Tab title="NetSessionEnum API">
+    **Advantages:**
+    - Can enumerate sessions without admin rights (sometimes)
+    - Less suspicious than WMI in some environments
+
+    **Disadvantages:**
+    - Only shows network sessions (not interactive)
+    - May be restricted by security policies
+
+    ```bash
+    net session \\target
+    ```
+  </Tab>
+
+  <Tab title="Registry Query">
+    **Advantages:**
+    - Very stealthy
+    - Works with registry access
+
+    **Disadvantages:**
+    - Requires registry access
+    - Less complete information
+
+    ```bash
+    reg query "\\target\HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList"
+    ```
+  </Tab>
+
+  <Tab title="PowerShell Invoke-Command">
+    **Advantages:**
+    - Flexible scripting options
+    - Native PowerShell cmdlets
+
+    **Disadvantages:**
+    - PowerShell logging
+    - May require PSRemoting
+    - More suspicious
+
+    ```powershell
+    Invoke-Command -ComputerName target -ScriptBlock { quser }
+    ```
+  </Tab>
+</Tabs>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Access Denied">
+    **Cause:** Insufficient privileges
+
+    **Solution:**
+    - Verify you have admin rights on target
+    - Use username/password parameters
+    - Check UAC remote restrictions
+    - Verify WMI permissions: `wmimgmt.msc`
+  </Accordion>
+
+  <Accordion title="RPC Server Unavailable">
+    **Cause:** Network or firewall issue
+
+    **Solution:**
+    - Verify target is online
+    - Check firewall rules for ports 135, 445
+    - Ensure WMI service is running
+    - Test with: `wmic /node:target computersystem get name`
+  </Accordion>
+
+  <Accordion title="No Users Returned">
+    **Cause:** No active sessions or query issue
+
+    **Solution:**
+    - Verify users are actually logged in
+    - Check if system is a workstation vs server
+    - Test locally first: `SharpWMI.exe action=loggedon`
+    - Try manual WMI query: `wmic /node:target path Win32_LoggedOnUser get Antecedent`
+  </Accordion>
+
+  <Accordion title="Duplicate User Entries">
+    **Cause:** Multiple sessions for same user
+
+    **Solution:**
+    - This is expected behavior (console + RDP sessions)
+    - Parse output to deduplicate if needed
+    - Each session type appears separately
+  </Accordion>
+</AccordionGroup>
+
+## Related Actions
+
+<CardGroup cols={2}>
+  <Card title="query" icon="database" href="/ghostpack-docs/SharpWMI-mdx/actions/query">
+    Execute custom WMI queries
+  </Card>
+  <Card title="ps" icon="list" href="/ghostpack-docs/SharpWMI-mdx/actions/ps">
+    List processes with owner information
+  </Card>
+  <Card title="exec" icon="terminal" href="/ghostpack-docs/SharpWMI-mdx/actions/exec">
+    Execute processes remotely
+  </Card>
+  <Card title="getenv" icon="eye" href="/ghostpack-docs/SharpWMI-mdx/actions/getenv">
+    Get environment variables
+  </Card>
+</CardGroup>
+
+## Additional Resources
+
+<Accordion title="Manual WMI Equivalent">
+  ```bash
+  # Using wmic
+  wmic /node:target path Win32_LoggedOnUser get Antecedent
+
+  # Using PowerShell
+  Get-WmiObject -Class Win32_LoggedOnUser -ComputerName target | Select Antecedent
+  ```
+</Accordion>
+
+<Accordion title="PowerShell Alternative">
+  ```powershell
+  # Get logged-on users with PowerShell
+  $users = Get-WmiObject -Class Win32_LoggedOnUser -ComputerName target
+  $users | ForEach-Object {
+      $user = $_.Antecedent
+      if ($user -match 'Domain="(.+?)",Name="(.+?)"') {
+          "$($matches[1])\$($matches[2])"
+      }
+  } | Select-Object -Unique
+  ```
+</Accordion>

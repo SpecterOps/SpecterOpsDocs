@@ -1,0 +1,107 @@
+---
+title: 'ARPTable'
+description: 'Lists the current ARP table and adapter information (equivalent to arp -a)'
+icon: 'network-wired'
+---
+
+## Overview
+
+The ARPTable command enumerates the Address Resolution Protocol (ARP) cache, which maps IP addresses to MAC (Media Access Control) addresses. This provides visibility into recent network communications and can reveal other systems on the local network segment that the target has recently communicated with.
+
+This command is equivalent to running `arp -a` on the command line but provides the output in Seatbelt's structured format.
+
+## Syntax
+
+```bash
+Seatbelt.exe ARPTable
+```
+
+<Note>
+This command does **not** support remote execution as ARP tables are specific to local network interfaces.
+</Note>
+
+## Output
+
+The command returns ARP table entries including:
+
+- IP addresses
+- MAC (physical) addresses
+- Interface information
+- Entry type (dynamic, static)
+- Adapter details
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Discover other systems on the local network
+    - Identify potential lateral movement targets
+    - Map network topology and connected devices
+    - Identify gateway and DNS server MAC addresses
+    - Detect network segmentation
+    - Discover previously communicated hosts
+  </Tab>
+  <Tab title="Blue Team">
+    - Audit network communication patterns
+    - Detect unauthorized devices on the network
+    - Identify suspicious network connections
+    - Validate network segmentation
+    - Investigate lateral movement indicators
+    - Correlate with firewall and IDS logs
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== ARPTable ======
+
+Interface: 192.168.1.100 --- 0xb
+  Internet Address      Physical Address      Type
+  192.168.1.1           00-11-22-33-44-55     dynamic
+  192.168.1.50          aa-bb-cc-dd-ee-ff     dynamic
+  192.168.1.254         11-22-33-44-55-66     dynamic
+
+Interface: 10.0.0.50 --- 0xc
+  Internet Address      Physical Address      Type
+  10.0.0.1              ff-ee-dd-cc-bb-aa     dynamic
+  10.0.0.25             12-34-56-78-9a-bc     dynamic
+```
+
+## Remote Execution
+
+<Warning>
+This command does **NOT support remote execution**.
+</Warning>
+
+The ARP table is specific to the local system's network interfaces and cannot be queried remotely via Seatbelt's standard remote execution mechanism.
+
+## Detection Considerations
+
+<Info>
+This command has minimal detection surface as it reads locally cached data:
+</Info>
+
+- **API Calls**: Uses standard Windows API calls (GetIpNetTable) to read ARP cache
+- **No Network Traffic**: Does not generate network traffic
+- **Low Privilege**: No special privileges required
+- **EDR Visibility**: May be logged by endpoint security products as process behavior
+
+### Defensive Recommendations
+
+- While difficult to detect in isolation, correlate with other enumeration activities
+- Monitor for automated reconnaissance tool execution
+- Track process creation for known offensive security tools
+- Look for patterns of multiple enumeration commands
+
+<Tip>
+ARP table enumeration is typically part of a broader reconnaissance phase. Look for it in combination with other network discovery commands.
+</Tip>
+
+## Related Commands
+
+- [TcpConnections](/commands/tcpconnections) - Active TCP connections
+- [UdpConnections](/commands/udpconnections) - Active UDP connections
+- [NetworkProfiles](/commands/networkprofiles) - Network profile information
+- [NetworkShares](/commands/networkshares) - Network shares on the system
+- [DNSCache](/commands/dnscache) - DNS resolver cache entries

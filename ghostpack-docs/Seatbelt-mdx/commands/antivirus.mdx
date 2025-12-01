@@ -1,0 +1,105 @@
+---
+title: 'AntiVirus'
+description: 'Registered antivirus (via WMI)'
+icon: 'virus'
+---
+
+## Overview
+
+The AntiVirus command enumerates all registered antivirus and security products on the system by querying WMI (Windows Management Instrumentation). This provides crucial information about the endpoint protection landscape, including product names, versions, and operational status.
+
+The command queries the `SecurityCenter2` WMI namespace, which maintains a registry of security products installed on Windows systems.
+
+## Syntax
+
+```bash
+Seatbelt.exe AntiVirus
+```
+
+### Remote Execution
+```bash
+Seatbelt.exe AntiVirus -computername=TARGET.domain.com [-username=DOMAIN\user -password=pass]
+```
+
+## Output
+
+The command returns details about registered antivirus products:
+
+- Product name
+- Product state (enabled/disabled)
+- Product executable path
+- Version information
+- Last update timestamp
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Identify security products before payload execution
+    - Assess endpoint protection posture
+    - Select appropriate evasion techniques based on AV vendor
+    - Plan persistence mechanisms that avoid detection
+    - Understand the security landscape of the target environment
+  </Tab>
+  <Tab title="Blue Team">
+    - Verify antivirus installation and operational status
+    - Audit security product compliance across endpoints
+    - Validate that AV definitions are up to date
+    - Detect systems with disabled or missing protection
+    - Generate security posture reports
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== AntiVirus ======
+
+Engine                 : Windows Defender
+ProductEXE             : windowsdefender://
+ReportingEXE           : %ProgramFiles%\Windows Defender\MsMpeng.exe
+ProductState           : 397568 (Enabled)
+
+Engine                 : Symantec Endpoint Protection
+ProductEXE             : C:\Program Files\Symantec\Symantec Endpoint Protection\Smc.exe
+ReportingEXE           : C:\Program Files\Symantec\Symantec Endpoint Protection\Rtvscan.exe
+ProductState           : 266240 (Enabled)
+```
+
+## Remote Execution
+
+<Check>
+This command **supports remote execution** using the `-computername` parameter.
+</Check>
+
+Remote execution queries the `SecurityCenter2` WMI namespace on the target system, making it ideal for rapid security posture assessment across multiple endpoints.
+
+## Detection Considerations
+
+<Warning>
+This command may generate the following detection opportunities:
+</Warning>
+
+- **WMI Queries**: Queries to `root\SecurityCenter2` namespace can be monitored
+- **Event ID 5857-5861**: WMI activity events in Microsoft-Windows-WMI-Activity/Operational log
+- **Network Traffic**: Remote WMI connections over RPC/DCOM
+- **EDR Telemetry**: Security products may flag enumeration of AV products
+- **PowerShell Logging**: If executed via PowerShell wrapper, script block logging may capture activity
+
+### Defensive Recommendations
+
+<Accordion title="Monitoring Strategies">
+- Enable WMI logging via Group Policy
+- Monitor for queries to `SecurityCenter2` namespace
+- Alert on multiple enumeration commands from single source
+- Track RPC connections to WMI service (135/tcp, dynamic high ports)
+- Correlate with process creation and authentication events
+</Accordion>
+
+## Related Commands
+
+- [AMSIProviders](/commands/amsiproviders) - AMSI provider registration details
+- [WindowsDefender](/commands/windowsdefender) - Windows Defender specific settings and exclusions
+- [Sysmon](/commands/sysmon) - Sysmon configuration and status
+- [Services](/commands/services) - Running services including security products
+- [Processes](/commands/processes) - Running processes that may include security tools

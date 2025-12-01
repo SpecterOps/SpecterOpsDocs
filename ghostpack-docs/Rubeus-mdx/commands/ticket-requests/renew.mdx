@@ -1,0 +1,101 @@
+---
+title: 'renew'
+description: 'Renew existing Kerberos tickets to extend their validity'
+icon: 'arrows-rotate'
+sidebarTitle: 'renew'
+---
+
+## Overview
+
+Renew existing Kerberos tickets to extend their validity period. This command allows you to refresh TGTs before they expire, maintaining persistent access without re-authentication.
+
+## Syntax
+
+```bash
+Rubeus.exe renew /ticket:TICKET [options]
+```
+
+## Required Parameters
+
+<ParamField path="ticket" type="string" required>
+  Base64-encoded ticket data or path to .kirbi file to renew
+</ParamField>
+
+## Optional Parameters
+
+<ParamField path="dc" type="string">
+  Domain controller to contact for renewal
+</ParamField>
+
+<ParamField path="outfile" type="string">
+  Save renewed ticket to file
+</ParamField>
+
+<ParamField path="ptt" type="boolean">
+  Pass-the-ticket (inject renewed ticket)
+</ParamField>
+
+<ParamField path="autorenew" type="boolean">
+  Automatically renew ticket until renew-till limit
+</ParamField>
+
+<ParamField path="nowrap" type="boolean">
+  Don't wrap base64 output
+</ParamField>
+
+## Examples
+
+<CodeGroup>
+```bash Basic Renewal
+# Renew a TGT
+Rubeus.exe renew /ticket:doIFuj... /ptt
+
+# Renew from file and save
+Rubeus.exe renew /ticket:C:\temp\ticket.kirbi /outfile:renewed.kirbi
+
+# Renew without wrapping output
+Rubeus.exe renew /ticket:ticket.kirbi /nowrap
+```
+
+```bash Automatic Renewal
+# Auto-renew until expiration
+Rubeus.exe renew /ticket:ticket.kirbi /autorenew
+
+# Auto-renew with PTT
+Rubeus.exe renew /ticket:ticket.kirbi /autorenew /ptt
+```
+</CodeGroup>
+
+## Renewal Requirements
+
+<Accordion title="Ticket Renewability">
+  **Renewable Flag:**
+  - Ticket must have the renewable flag set
+  - Original ticket request must specify renewable option
+  - Not all tickets are renewable by default
+
+  **Validity Period:**
+  - Tickets can only be renewed within their renew-till time
+  - Default domain policy: 7 days renewable period
+  - Cannot renew expired tickets
+</Accordion>
+
+## Use Cases
+
+<Accordion title="Persistence Maintenance">
+  **Long-term Access:**
+  - Maintain access without re-authentication
+  - Extend ticket lifetime for persistent operations
+  - Avoid credential re-exposure
+
+  **Operational Continuity:**
+  - Keep tickets valid during long engagements
+  - Maintain session state across operations
+  - Reduce authentication frequency
+</Accordion>
+
+## Related Commands
+
+- [`asktgt`](/GhostPack/Rubeus-mdx/commands/ticket-requests/asktgt) - Request renewable TGTs
+- [`ptt`](/GhostPack/Rubeus-mdx/commands/management/ptt) - Inject renewed tickets
+- [`describe`](/GhostPack/Rubeus-mdx/commands/management/describe) - Check ticket renewable status

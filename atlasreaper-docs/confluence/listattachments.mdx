@@ -1,0 +1,324 @@
+---
+title: 'listattachments'
+description: 'Enumerate and filter attachments across Confluence spaces and pages'
+icon: 'list'
+---
+
+## Overview
+
+The `confluence listattachments` command enumerates attachments stored in Confluence, providing reconnaissance capabilities for identifying sensitive documents, credentials, and other valuable data. This command supports flexible filtering by space, page, file extension, and can enumerate attachments across the entire Confluence instance.
+
+This is a powerful reconnaissance tool for identifying high-value targets before downloading or analyzing specific attachments.
+
+## Syntax
+
+```bash
+.\AtlasReaper.exe confluence listattachments [options]
+```
+
+## Required Parameters
+
+<ParamField path="--url" type="string" required>
+  The base URL of the Confluence instance (e.g., `https://example.atlassian.net`)
+</ParamField>
+
+## Optional Parameters
+
+<ParamField path="--cookie" type="string">
+  Authentication cookie (`cloud.session.token` or `tenant.session.token`). If omitted, the command will attempt anonymous access (if enabled on the target)
+</ParamField>
+
+<ParamField path="--page" type="string">
+  Specific page ID to list attachments from. Useful when you've identified a target page
+</ParamField>
+
+<ParamField path="--space" type="string">
+  Space key to list attachments from (e.g., "ENG", "HR", "IT"). Returns attachments for all pages in the space
+</ParamField>
+
+<ParamField path="--all" type="boolean" default="false">
+  Return all attachments for the specified space (overrides limit parameter)
+</ParamField>
+
+<ParamField path="--all-spaces" type="boolean" default="false">
+  Return attachments from ALL spaces in the Confluence instance. **WARNING**: This can make many API requests and may be very slow or trigger rate limiting
+</ParamField>
+
+<ParamField path="--limit" type="string" default="200">
+  Maximum number of attachments to return. Default is 200
+</ParamField>
+
+<ParamField path="--include" type="string">
+  Comma-separated list of file extensions to include (e.g., `pdf,docx,xlsx`). Only attachments with these extensions will be returned
+</ParamField>
+
+<ParamField path="--exclude" type="string">
+  Comma-separated list of file extensions to exclude (e.g., `png,jpg,gif`). Attachments with these extensions will be filtered out
+</ParamField>
+
+<ParamField path="--output" type="string">
+  Save command output to a specified file. Useful for processing large result sets
+</ParamField>
+
+## Examples
+
+<Tabs>
+  <Tab title="List Page Attachments">
+    ```bash
+    .\AtlasReaper.exe confluence listattachments \
+      --page "12345" \
+      --url https://example.atlassian.net \
+      --cookie "cloud.session.token=abc123..."
+    ```
+    Lists all attachments on a specific page.
+  </Tab>
+
+  <Tab title="List Space Attachments">
+    ```bash
+    .\AtlasReaper.exe confluence listattachments \
+      --space "ENG" \
+      --limit 500 \
+      --url https://example.atlassian.net \
+      --cookie "cloud.session.token=abc123..."
+    ```
+    Lists up to 500 attachments from the Engineering space.
+  </Tab>
+
+  <Tab title="Filter by Extension">
+    ```bash
+    .\AtlasReaper.exe confluence listattachments \
+      --space "IT" \
+      --include "key,pem,pfx,p12,config,env" \
+      --url https://example.atlassian.net \
+      --cookie "cloud.session.token=abc123..."
+    ```
+    Lists only attachments that may contain credentials or certificates.
+  </Tab>
+
+  <Tab title="Exclude Common Files">
+    ```bash
+    .\AtlasReaper.exe confluence listattachments \
+      --space "MARKETING" \
+      --exclude "png,jpg,jpeg,gif,bmp,svg" \
+      --limit 1000 \
+      --url https://example.atlassian.net \
+      --cookie "cloud.session.token=abc123..."
+    ```
+    Lists documents while filtering out image files.
+  </Tab>
+
+  <Tab title="Comprehensive Enumeration">
+    ```bash
+    .\AtlasReaper.exe confluence listattachments \
+      --all-spaces \
+      --include "xlsx,docx,pdf,txt,config,key,pem" \
+      --output "confluence_attachments.txt" \
+      --url https://example.atlassian.net \
+      --cookie "cloud.session.token=abc123..."
+    ```
+    Enumerates valuable document types across all spaces and saves to file.
+  </Tab>
+
+  <Tab title="Target Credentials">
+    ```bash
+    .\AtlasReaper.exe confluence listattachments \
+      --space "IT" \
+      --all \
+      --include "txt,config,conf,ini,env,key,pem,ppk,rdp" \
+      --url https://example.atlassian.net \
+      --cookie "cloud.session.token=abc123..."
+    ```
+    Hunts for configuration files and credential stores in the IT space.
+  </Tab>
+</Tabs>
+
+## Use Cases
+
+<AccordionGroup>
+  <Accordion title="Red Team Perspectives" icon="user-secret">
+    **Reconnaissance and Target Identification**
+    - Identify high-value attachments before downloading (credentials, IP lists, architecture diagrams)
+    - Map organizational structure through document organization and naming conventions
+    - Discover sensitive projects and initiatives from attachment names
+    - Identify active spaces and frequently updated pages
+
+    **Credential and Secret Hunting**
+    - Search for configuration files that may contain credentials (.config, .env, .ini)
+    - Identify SSL certificates and private keys (.key, .pem, .pfx, .p12)
+    - Find SSH keys and connection files (.ppk, .rdp)
+    - Locate password lists, credential dumps, or key management files
+
+    **Data Exfiltration Planning**
+    - Estimate total data volume before bulk download operations
+    - Identify specific high-value targets to prioritize
+    - Understand document classification and sensitivity levels from file names
+    - Plan staged exfiltration based on file sizes and types
+
+    **Infrastructure Mapping**
+    - Find network diagrams, architecture documents, and topology files
+    - Identify documentation about internal systems and services
+    - Locate runbooks and operational procedures that reveal infrastructure details
+    - Discover IP addressing schemes, DNS information, and network segments
+
+    **Social Engineering Preparation**
+    - Identify document types commonly shared in the organization
+    - Understand naming conventions for crafting convincing filenames
+    - Find examples of legitimate documents to clone for phishing
+    - Identify high-traffic pages where malicious attachments would blend in
+  </Accordion>
+
+  <Accordion title="Blue Team Perspectives" icon="shield-halved">
+    **Security Posture Assessment**
+    - Identify sensitive files stored in Confluence that should be elsewhere
+    - Audit for credential files and secrets that should be in vaults
+    - Review file types to ensure compliance with data governance policies
+    - Discover shadow IT documentation and unauthorized data repositories
+
+    **Threat Hunting**
+    - Search for suspicious file types (executables, scripts) uploaded to Confluence
+    - Identify recently uploaded files during incident response
+    - Correlate attachment enumeration activity with data exfiltration events
+    - Find anomalous attachments uploaded by compromised accounts
+
+    **Access Control Review**
+    - Verify that sensitive attachments have appropriate space/page restrictions
+    - Identify over-permissioned spaces with sensitive document access
+    - Audit anonymous access to attachments (if anonymous access is enabled)
+    - Review which users have downloaded sensitive attachments
+
+    **Data Loss Prevention (DLP)**
+    - Inventory sensitive data stored in Confluence attachments
+    - Classify attachments based on sensitivity and business impact
+    - Identify documents that should have watermarking or additional protections
+    - Discover PII, PHI, financial data, or other regulated information
+
+    **Incident Response**
+    - During compromise, quickly identify what data may have been exposed
+    - Determine which attachments were accessed by compromised accounts
+    - Assess the business impact of potentially exfiltrated documents
+    - Prioritize containment efforts based on attachment sensitivity
+
+    **Detection Indicators**
+    - Monitor for bulk attachment enumeration (many API calls in short time)
+    - Alert on enumeration with suspicious filters (targeting credential file types)
+    - Track accounts enumerating spaces they don't typically access
+    - Identify enumeration followed by bulk download operations
+  </Accordion>
+</AccordionGroup>
+
+## Output
+
+The command returns detailed information about each attachment:
+
+- Attachment ID (needed for download operations)
+- File name and extension
+- File size
+- Page ID and page title where the attachment resides
+- Space key
+- Upload date and uploader username
+- Media type (MIME type)
+
+Example output structure:
+```
+[+] Listing attachments from space: IT
+
+Attachment ID: att123456
+  File Name: vpn_configuration.conf
+  Size: 12 KB
+  Page: Network Setup (ID: 789012)
+  Space: IT
+  Uploaded: 2024-10-15 by john.doe
+  Type: text/plain
+
+Attachment ID: att789012
+  File Name: ssh_private_key.pem
+  Size: 3 KB
+  Page: Server Access (ID: 345678)
+  Space: IT
+  Uploaded: 2024-10-18 by admin
+  Type: application/x-pem-file
+
+[+] Total attachments found: 2
+```
+
+## Detection Considerations
+
+<Warning>
+  Attachment enumeration generates audit logs and API activity that security teams can detect:
+</Warning>
+
+**API Request Monitoring**
+- Multiple rapid API calls to list attachments may trigger rate limiting or alerts
+- Unusual API usage patterns (volume, frequency, scope) can be detected
+- Web application firewalls may flag enumeration behavior
+
+**Confluence Audit Logs**
+- Viewing attachment lists may generate audit events
+- Access to attachment metadata is logged with username and timestamp
+- Enumeration across many spaces may create distinct audit patterns
+
+**Behavioral Analytics**
+- UEBA solutions may flag accounts accessing unusual spaces or high volumes of metadata
+- Enumeration of all spaces is highly anomalous and likely to trigger alerts
+- Accessing sensitive spaces without business justification raises suspicion
+
+**Performance Impact**
+- Large-scale enumeration (--all-spaces) can cause performance degradation
+- Database queries for attachment metadata may be monitored by DBAs
+- Infrastructure teams may notice unusual load patterns
+
+## OPSEC Considerations
+
+<Tip>
+  Reduce detection risk with these operational security practices:
+</Tip>
+
+1. **Scope and Targeting**
+   - Enumerate specific spaces rather than all spaces when possible
+   - Focus on high-value targets identified through other reconnaissance
+   - Avoid blanket enumeration that creates excessive noise
+   - Use filters to reduce API call volume and focus results
+
+2. **Timing and Rate Limiting**
+   - Space out API calls to avoid rate limiting and reduce detection likelihood
+   - Perform enumeration during business hours when activity is normal
+   - Break large enumeration operations into smaller chunks over time
+   - Consider the compromised account's typical usage patterns
+
+3. **Account Context**
+   - Ensure the account normally has access to the spaces being enumerated
+   - Match the user's typical behavior and access patterns
+   - Avoid enumerating spaces the account has never accessed before
+   - Consider the account's role and whether enumeration fits their job function
+
+4. **Filter Strategy**
+   - Use include/exclude filters strategically to reduce conspicuous activity
+   - Avoid obviously malicious filter patterns (only credential file types)
+   - Balance specificity with operational security
+   - Consider that filter parameters may be logged
+
+5. **Output Management**
+   - Use the --output parameter to save results locally for analysis
+   - Avoid re-running enumeration commands unnecessarily
+   - Process results offline to minimize interactive sessions
+   - Secure output files as they may contain sensitive intelligence
+
+6. **Operational Planning**
+   - Use enumeration results to plan targeted download operations
+   - Prioritize high-value attachments to minimize required operations
+   - Consider the total operational footprint of enumeration + download
+   - Balance intelligence gathering with operational security
+
+7. **Alternative Approaches**
+   - Consider using search functionality instead of bulk enumeration
+   - Leverage other reconnaissance methods to identify specific targets
+   - Use social engineering to obtain attachment information from users
+   - Evaluate whether enumeration is necessary or if you have sufficient intelligence
+
+## Related Commands
+
+- [confluence download](/confluence/download) - Download specific attachments after enumeration
+- [confluence listpages](/confluence/listpages) - Enumerate pages before listing their attachments
+- [confluence listspaces](/confluence/listspaces) - Identify spaces before enumerating their attachments
+- [confluence search](/confluence/search) - Alternative method to find specific documents
+- [jira listattachments](/jira/listattachments) - Similar functionality for Jira issues

@@ -1,0 +1,253 @@
+---
+title: 'get primary-users'
+description: 'Map device-to-user relationships'
+icon: 'link'
+sidebarTitle: 'primary-users'
+---
+
+## Overview
+
+Map device-to-user relationships by analyzing primary user assignments. This command reveals which users are primarily associated with specific devices, providing valuable intelligence for targeting and lateral movement planning.
+
+## Syntax
+
+```bash
+SharpSCCM get primary-users [options]
+```
+
+## Parameters
+
+<ParamField path="sms-provider" type="string">
+  The IP address, FQDN, or NetBIOS name of the SMS Provider to connect to
+</ParamField>
+
+<ParamField path="site-code" type="string">
+  The three-character site code (e.g., "PS1")
+</ParamField>
+
+<ParamField path="user" type="string">
+  Filter by specific user (supports partial matching)
+</ParamField>
+
+<ParamField path="device" type="string">
+  Filter by specific device name
+</ParamField>
+
+<ParamField path="properties" type="string">
+  Specify properties to retrieve (can be used multiple times)
+</ParamField>
+
+<ParamField path="where-condition" type="string">
+  Custom WQL WHERE clause for advanced filtering
+</ParamField>
+
+<ParamField path="count" type="boolean">
+  Return count of results only
+</ParamField>
+
+<ParamField path="verbose" type="boolean">
+  Display all relationship properties
+</ParamField>
+
+## Examples
+
+<CodeGroup>
+```bash Basic Usage
+# List all primary user relationships
+SharpSCCM get primary-users -sms SCCM01.corp.local -sc PS1
+
+# Count total relationships
+SharpSCCM get primary-users -c -sms SCCM01.corp.local -sc PS1
+```
+
+```bash User-Specific Analysis
+# Find devices for specific user
+SharpSCCM get primary-users -u "admin" -sms SCCM01.corp.local -sc PS1
+
+# Find primary user for specific device
+SharpSCCM get primary-users -d "WORKSTATION01" -sms SCCM01.corp.local -sc PS1
+```
+
+```bash Advanced Filtering
+# Admin user relationships
+SharpSCCM get primary-users -w "UniqueUserName LIKE '%admin%'" -sms SCCM01.corp.local -sc PS1
+
+# Active relationships only
+SharpSCCM get primary-users -w "IsActive = True" -sms SCCM01.corp.local -sc PS1
+```
+</CodeGroup>
+
+## Key Properties
+
+| Property | Description | Use Case |
+|----------|-------------|----------|
+| `UniqueUserName` | Domain\username | User identification |
+| `ResourceName` | Device name | Device identification |
+| `ResourceID` | Device resource ID | Cross-referencing |
+| `UserResourceID` | User resource ID | User cross-referencing |
+| `IsActive` | Relationship status | Active mapping verification |
+| `CreationDate` | Relationship creation | Timeline analysis |
+| `Sources` | Relationship sources | Trust level assessment |
+
+## Required Permissions
+
+<Info>
+  **SMS Admins local group** membership on the SMS Provider server
+</Info>
+
+## Relationship Analysis
+
+<Accordion title="Primary User Sources">
+  **Automatic Detection:**
+  - User Device Affinity (UDA) based on logon frequency
+  - Usage patterns and session duration
+  - Windows logon events and activity
+
+  **Manual Assignment:**
+  - Administrative assignment
+  - Help desk assignments
+  - Self-service assignments
+
+  **Configuration Manager Sources:**
+  - Exchange Server connector
+  - Active Directory integration
+  - Third-party connectors
+</Accordion>
+
+<Accordion title="Trust Levels">
+  **High Confidence:**
+  - Multiple source confirmations
+  - Long-term usage patterns
+  - Administrative verification
+
+  **Medium Confidence:**
+  - Single source detection
+  - Recent relationship establishment
+  - Automated detection only
+
+  **Low Confidence:**
+  - Temporary assignments
+  - Shared device usage
+  - Conflicting sources
+</Accordion>
+
+## Intelligence Gathering
+
+<Accordion title="Administrative Targeting">
+  **High-Value Relationships:**
+  ```bash
+  # Admin user devices
+  SharpSCCM get primary-users -u "admin" -sms SCCM01.corp.local -sc PS1
+
+  # Service account devices
+  SharpSCCM get primary-users -u "svc" -sms SCCM01.corp.local -sc PS1
+
+  # Privileged user workstations
+  SharpSCCM get primary-users -w "UniqueUserName LIKE '%administrator%'" -sms SCCM01.corp.local -sc PS1
+  ```
+
+  **Infrastructure Analysis:**
+  ```bash
+  # Server primary users
+  SharpSCCM get primary-users -d "SRV" -sms SCCM01.corp.local -sc PS1
+
+  # Domain controller relationships
+  SharpSCCM get primary-users -d "DC" -sms SCCM01.corp.local -sc PS1
+  ```
+</Accordion>
+
+<Accordion title="Attack Planning">
+  **Credential Targeting:**
+  - Identify devices used by high-privilege users
+  - Map service account usage patterns
+  - Find administrative workstations
+
+  **Lateral Movement:**
+  - User-device relationship exploitation
+  - Cross-device credential reuse
+  - Privilege escalation paths
+</Accordion>
+
+## Use Cases
+
+<Accordion title="Target Identification">
+  **High-Privilege Users:**
+  - Administrative account workstations
+  - Service account device assignments
+  - Privileged user system access
+
+  **Device Ownership:**
+  - Personal vs shared device identification
+  - Administrative device assignments
+  - Service account system usage
+</Accordion>
+
+<Accordion title="Lateral Movement Planning">
+  **User Path Mapping:**
+  - Track user access across devices
+  - Identify cross-system relationships
+  - Map administrative boundaries
+
+  **Credential Harvesting:**
+  - Target devices with high-value users
+  - Focus on administrative workstations
+  - Identify credential reuse patterns
+</Accordion>
+
+## Common Queries
+
+<CodeGroup>
+```sql Administrative Users
+UniqueUserName LIKE '%admin%' OR UniqueUserName LIKE '%administrator%'
+```
+
+```sql Service Accounts
+UniqueUserName LIKE '%svc%' OR UniqueUserName LIKE '%service%'
+```
+
+```sql Active Relationships
+IsActive = True
+```
+
+```sql Recent Assignments
+CreationDate > '2023-01-01'
+```
+</CodeGroup>
+
+## Output Analysis
+
+<Accordion title="Relationship Patterns">
+  **One-to-One:**
+  - Personal workstations and laptops
+  - Dedicated administrative systems
+  - Individual user assignments
+
+  **One-to-Many:**
+  - Users with multiple devices
+  - Administrative access across systems
+  - Service account system usage
+
+  **Many-to-One:**
+  - Shared workstations
+  - Terminal servers
+  - Kiosk systems
+</Accordion>
+
+<Accordion title="Security Implications">
+  **High-Value Targets:**
+  - Administrative user workstations
+  - Service account assigned systems
+  - Multi-device administrative access
+
+  **Risk Indicators:**
+  - Privileged users on multiple devices
+  - Service accounts with device assignments
+  - Administrative access patterns
+</Accordion>
+
+## Related Commands
+
+- [`get devices`](/commands/get/devices) - Get device details for analysis
+- [`get users`](/commands/get/users) - Enumerate users for targeting
+- [`get collections`](/commands/get/collections) - Analyze device and user collections
+- [`get admins`](/commands/get/admins) - Identify administrative accounts

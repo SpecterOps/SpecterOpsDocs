@@ -1,0 +1,449 @@
+---
+title: 'Installation and Setup'
+description: 'Complete guide to installing and configuring CuddlePhish'
+icon: 'download'
+---
+
+<Warning>
+  **Important**: CuddlePhish requires a public IP address for proper operation. The admin functionality relies on public IP information for access control. Local testing without a public IP requires significant configuration workarounds.
+</Warning>
+
+## Prerequisites
+
+Before beginning installation, ensure you have:
+
+- A Debian 11 (Bullseye) server with public IP address
+- Root or sudo access
+- A registered domain name with DNS control
+- API credentials for your DNS provider (for automatic TLS certificates)
+- x64 architecture (ARM is not fully supported)
+
+<Info>
+  **ARM Warning**: Chromium is not supported on ARM architectures. While technically possible to force ARM Chromium binaries, you will lose additional features and protections provided by puppeteer-extra.
+</Info>
+
+## Step 1: Clone Repository
+
+Clone the CuddlePhish repository to your server:
+
+```bash
+git clone https://github.com/fkasler/cuddlephish
+cd cuddlephish
+```
+
+## Step 2: Install Dependencies
+
+Run the dependency installation script to install Docker, Node.js, Xvfb, and required system libraries:
+
+```bash
+sudo bash install_deps.sh
+```
+
+### What Gets Installed
+
+The installation script installs the following components:
+
+**Docker Components**
+- docker-ce
+- docker-ce-cli
+- containerd.io
+- docker-buildx-plugin
+- docker-compose-plugin
+
+**Node.js Environment**
+- nodejs
+- npm
+
+**Display and Browser Dependencies**
+- xvfb (X Virtual Frame Buffer)
+- libnss3
+- libasound2
+- libgbm-dev
+- libgtk-3-0
+
+<Accordion title="Additional Dependencies for Kali Linux">
+  If running on Kali Linux, you may need additional libraries. Uncomment the last line in `install_deps.sh`:
+
+  ```bash
+  sudo apt install -y libx11-xcb1 libxcomposite1 libatk1.0-0 libatk-bridge2.0-0 \
+    libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgbm1 libgcc1 \
+    libglib2.0-0 libgtk-3-0 libnspr4 libpango-1.0-0 libpangocairo-1.0-0 \
+    libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 \
+    libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6
+  ```
+</Accordion>
+
+## Step 3: Install Node.js Dependencies
+
+Install the required Node.js packages:
+
+```bash
+npm install
+```
+
+This installs the following key dependencies:
+- **fastify**: Web framework for the HTTP server
+- **fastify-socket.io**: WebSocket support for real-time communication
+- **puppeteer**: Headless Chrome automation
+- **puppeteer-extra** and **puppeteer-extra-plugin-stealth**: Stealth plugins to evade detection
+- **xvfb**: Node.js wrapper for X Virtual Frame Buffer
+- **bootstrap** and **jquery**: Frontend UI dependencies
+
+## Step 4: Configure Caddy Reverse Proxy
+
+Caddy handles TLS certificate management, reverse proxying, and basic security filtering.
+
+### Build Caddy with DNS Provider Plugin
+
+The Dockerfile builds Caddy with the Gandi DNS provider plugin. If using a different DNS provider, modify the Dockerfile:
+
+```dockerfile
+FROM caddy:builder AS builder
+
+RUN xcaddy build \
+    --with github.com/caddy-dns/YOUR_PROVIDER
+
+FROM caddy:latest
+
+COPY --from=builder /usr/bin/caddy /usr/bin/caddy
+```
+
+Available DNS provider plugins: [Caddy DNS Modules](https://caddyserver.com/docs/modules/)
+
+Build the Caddy Docker image:
+
+```bash
+sudo docker build -t caddy .
+```
+
+### Configure Caddyfile
+
+Edit the `Caddyfile` to configure your domain and DNS provider credentials:
+
+```caddyfile
+(proxy_upstream) {
+	log
+
+	@ua_denylist {
+		header User-Agent curl*
+		header User-Agent Simple*
+		header User-Agent BBBike*
+		header User-Agent wget*
+		header User-Agent jorgee*
+		header User-Agent Python-urllib*
+		header User-Agent Lynx*
+		header User-Agent Slackbot-LinkExpanding*
+	}
+
+	header {
+		-Server
+		+X-Robots-Tag "noindex, nofollow, nosnippet, noarchive"
+		+X-Content-Type-Options "nosniff"
+	}
+
+	respond @ua_denylist "Forbidden" 403 {
+		close
+	}
+
+	reverse_proxy localhost:58082 {
+		header_up Host {host}
+		header_up X-Real-IP {remote_host}
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Forwarded-Proto {scheme}
+	}
+}
+
+# MODIFY THESE VALUES
+your-phishing-domain.com *.your-phishing-domain.com {
+	tls {
+		dns YOUR_PROVIDER YOUR_API_KEY
+	}
+	import proxy_upstream
+}
+```
+
+**Key Configuration Items:**
+- Replace `your-phishing-domain.com` with your actual domain
+- Replace `YOUR_PROVIDER` with your DNS provider (e.g., gandi, cloudflare, route53)
+- Replace `YOUR_API_KEY` with your DNS provider API credentials
+
+### Start Caddy
+
+Run Caddy in a screen or tmux session for persistence:
+
+```bash
+screen -S caddy
+sudo docker run -p 80:80 -p 443:443 -p 2019:2019 \
+  -v $PWD/Caddyfile:/etc/caddy/Caddyfile \
+  --network=host \
+  caddy:latest
+```
+
+Press `Ctrl+A` then `D` to detach from the screen session.
+
+<Info>
+  **Alternative Reverse Proxies**: You can use nginx or Apache instead of Caddy. The key requirements are TLS termination and passing the `X-Real-IP` header to the backend.
+</Info>
+
+## Step 5: Configure CuddlePhish
+
+### Edit config.json
+
+**CRITICAL**: Configure the admin access controls and socket key:
+
+```json
+{
+  "default_user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.54 Safari/537.36",
+  "socket_key": "CHANGE_THIS_TO_SECURE_RANDOM_VALUE",
+  "admin_ips": ["YOUR.PUBLIC.IP.ADDRESS", "ANOTHER.IP.IF.NEEDED"]
+}
+```
+
+**Configuration Parameters:**
+
+- **default_user_agent**: User-Agent string sent by automated browsers to target sites
+- **socket_key**: Shared secret for admin WebSocket authentication (change from default!)
+- **admin_ips**: Array of public IP addresses allowed to access /admin interface
+
+<Warning>
+  **Security Warning**: The `admin_ips` whitelist is the primary access control for the admin interface. Ensure these IPs are correct and change the default `socket_key` value before deployment.
+</Warning>
+
+### Optional: Configure Proxy
+
+If your target requires traffic to route through a proxy, add a proxy configuration:
+
+```json
+{
+  "default_user_agent": "Mozilla/5.0 ...",
+  "socket_key": "your_secure_key",
+  "admin_ips": ["1.2.3.4"],
+  "proxy": "http://proxy-server:port"
+}
+```
+
+### Optional: Configure Phishmonger Integration
+
+For logging integration with a phishing campaign management server, create `pm.json`:
+
+```json
+{
+  "tacking_id": "tracking_parameter_name",
+  "logging_endpoint": "https://your-phishing-server.com/create_event",
+  "admin_cookie": "admin_cookie=your_secret_cookie",
+  "post_url_search": "pattern_to_match_in_post_urls"
+}
+```
+
+When configured, CuddlePhish will log events to the specified endpoint:
+- Victim clicks
+- POST request data matching the URL pattern
+- Victim IP addresses and tracking IDs
+
+## Step 6: Add Target Services
+
+Use the `add_target.js` script to configure target login pages:
+
+```bash
+node add_target.js
+```
+
+The script will prompt for the target URL:
+
+```
+URL of Login Page to Target: https://accounts.example.com/login
+```
+
+The script performs the following actions:
+1. Launches a headless browser and navigates to the URL
+2. Extracts the page title for use with `--auto-select-desktop-capture-source`
+3. Attempts to download the favicon for spoofing
+4. Creates an entry in `targets.json` with configuration
+
+**Example targets.json entry:**
+
+```json
+{
+  "example": {
+    "login_page": "https://accounts.example.com/login",
+    "boot_location": "https://accounts.example.com/login",
+    "tab_title": "Sign In - Example Service",
+    "favicon": "example.ico",
+    "payload": "payload.txt"
+  }
+}
+```
+
+**Configuration Fields:**
+- **login_page**: URL of the target login page
+- **boot_location**: URL to redirect victim when using "Boot User" feature
+- **tab_title**: Browser tab title used for WebRTC screen capture selection
+- **favicon**: Filename of the favicon saved in `favicons/` directory
+- **payload**: Default payload file to send to victims
+
+<Accordion title="Troubleshooting Favicon Extraction">
+  If the script fails to extract the favicon automatically:
+
+  1. Manually download the target's favicon
+  2. Save it as `favicons/servicename.ico`
+  3. Update the `favicon` field in `targets.json`
+
+  The script attempts three extraction methods:
+  1. Passive capture from network responses
+  2. Active extraction from `<link rel="icon">` elements
+  3. Desperate fallback attempts with broader MIME type matching
+</Accordion>
+
+### Add Multiple Targets
+
+Run `add_target.js` multiple times to configure multiple services. Each target is identified by its shortened domain name (e.g., "example" for "example.com").
+
+## Step 7: Configure STUN/TURN Servers
+
+CuddlePhish uses STUN servers to establish WebRTC connections. The default configuration uses Google's public STUN server.
+
+### Default STUN Configuration
+
+The default STUN configuration in `cuddlephish.html` and `broadcast.html`:
+
+```javascript
+iceServers: [
+  {
+    "urls": "stun:stun.l.google.com:19302"
+  }
+]
+```
+
+### TURN Server Configuration (Optional)
+
+For better reliability and to support more network configurations, configure a TURN server:
+
+```javascript
+iceServers: [
+  {
+    "urls": "stun:stun.l.google.com:19302"
+  },
+  {
+    "urls": "turn:your-turn-server.com:3478?transport=tcp",
+    "username": "your_turn_username",
+    "credential": "your_turn_password"
+  }
+]
+```
+
+Update the configuration in both:
+- `cuddlephish.html` (victim-side)
+- `broadcast.html` (browser-side)
+
+<Info>
+  **TURN Server Requirement**: TURN servers provide the highest success rate for establishing WebRTC connections, especially when victims are behind restrictive NATs. However, they require hosting your own server or purchasing access to a TURN service.
+</Info>
+
+### Network Requirements
+
+WebRTC requires specific NAT types:
+- **Supported**: Full-cone NAT, Address-restricted-cone NAT, Port-restricted cone NAT
+- **Not Supported**: Symmetric NAT
+
+Test STUN connectivity from both server and client using: [https://icetest.info/](https://icetest.info/)
+
+## Step 8: Launch CuddlePhish
+
+Start the Node.js server, specifying which target service to use:
+
+```bash
+screen -S cuddlephish
+node index.js example
+```
+
+Replace `example` with the service name (key) from your `targets.json`.
+
+Press `Ctrl+A` then `D` to detach from the screen session.
+
+### Startup Process
+
+When launched, CuddlePhish:
+1. Loads configuration from `config.json` and target from `targets.json`
+2. Starts Fastify web server on port 58082
+3. Spawns an initial "empty phishbowl" Chrome instance with Xvfb
+4. Navigates the browser to the target login page
+5. Loads `broadcast.html` in a second tab to initialize WebRTC
+6. Browser checks in via WebSocket
+7. Server waits for victim connections
+
+### Expected Console Output
+
+Successful startup shows:
+
+```
+Socket connected! [socket_id]
+```
+
+This indicates the initial browser instance has connected via WebSocket.
+
+## Verification
+
+### Test Admin Interface
+
+1. From an IP address in your `admin_ips` whitelist, navigate to:
+   ```
+   https://your-domain.com/admin
+   ```
+
+2. You should see the CuddlePhish admin interface (no sessions will be visible until victims connect)
+
+### Test Victim Interface
+
+From any browser, navigate to:
+```
+https://your-domain.com/
+```
+
+You should see:
+- The spoofed favicon in the browser tab
+- The spoofed page title from your target
+- A video stream of the target login page
+
+If you see a blank page, proceed to the troubleshooting section.
+
+## File Structure
+
+After installation and configuration, your directory structure should include:
+
+```
+cuddlephish/
+├── admin.html              # Admin interface
+├── broadcast.html          # Browser broadcast page
+├── cuddlephish.html        # Victim page
+├── add_target.js           # Target configuration utility
+├── index.js                # Main server
+├── stealer.js              # Credential injection tool
+├── smooth_criminal.js      # Remote browser connector
+├── resize_window.js        # Browser window resizing
+├── config.json             # Server configuration
+├── targets.json            # Target service definitions
+├── pm.json                 # Optional Phishmonger integration
+├── Caddyfile               # Reverse proxy configuration
+├── Dockerfile              # Caddy build configuration
+├── install_deps.sh         # Dependency installation script
+├── package.json            # Node.js dependencies
+├── FileSaver.min.js        # File download library
+├── favicons/               # Target service favicons
+├── user_data/              # Browser profile directories
+│   └── [browser_id]/       # Per-session browser data
+│       └── keylog.txt      # Raw keylog for session
+└── stealerjs_extension/    # Chrome extension for credential injection
+    ├── manifest.json
+    ├── background.js
+    ├── popup.html
+    └── popup.js
+```
+
+## Next Steps
+
+After successful installation:
+
+1. Review the [Usage Guide](/cuddlephish-docs/usage) for operational procedures
+2. Familiarize yourself with [Admin Features](/cuddlephish-docs/admin-features)
+3. Review [Troubleshooting](/cuddlephish-docs/troubleshooting) for common issues
+4. Understand [Credential Extraction](/cuddlephish-docs/credential-extraction) methods

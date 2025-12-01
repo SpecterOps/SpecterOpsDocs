@@ -1,0 +1,127 @@
+---
+title: 'AuditPolicyRegistry'
+description: 'Audit settings via the registry'
+icon: 'clipboard-check'
+---
+
+## Overview
+
+The AuditPolicyRegistry command enumerates audit policy settings by reading them directly from the Windows registry. Unlike the AuditPolicies command which uses native APIs, this command queries the registry, making it suitable for remote execution scenarios.
+
+This provides insight into which security events are being logged, helping to assess the detection capabilities and logging posture of a target system.
+
+## Syntax
+
+```bash
+Seatbelt.exe AuditPolicyRegistry
+```
+
+### Remote Execution
+```bash
+Seatbelt.exe AuditPolicyRegistry -computername=TARGET.domain.com [-username=DOMAIN\user -password=pass]
+```
+
+## Output
+
+The command returns audit policy settings from the registry:
+
+- Advanced audit policy subcategories
+- Success/Failure audit configuration
+- Policy GUIDs and friendly names
+- Enforcement status
+
+Registry keys queried:
+- `HKLM\Security\Policy\PolAdtEv`
+- `HKLM\Software\Microsoft\Windows\CurrentVersion\Policies\System\Audit`
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Remotely enumerate audit policies without agent deployment
+    - Identify logging blind spots across multiple targets
+    - Assess detection capabilities before engagement
+    - Plan stealthy operations based on logging gaps
+    - Understand which credential access methods are monitored
+    - Determine if command-line logging is enabled
+  </Tab>
+  <Tab title="Blue Team">
+    - Remotely audit logging configuration across the enterprise
+    - Verify audit policy deployment through Group Policy
+    - Identify systems with inadequate logging
+    - Validate security baseline compliance
+    - Detect audit policy tampering
+    - Generate logging coverage reports
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== AuditPolicyRegistry ======
+
+[*] Enumerating audit policy settings from the registry
+
+Advanced Audit Policies:
+  {0CCE9215-69AE-11D9-BED3-505054503030} : Credential Validation - Success and Failure
+  {0CCE9217-69AE-11D9-BED3-505054503030} : Kerberos Service Ticket Operations - Success
+  {0CCE921C-69AE-11D9-BED3-505054503030} : Process Creation - Success
+  {0CCE9215-69AE-11D9-BED3-505054503030} : Logon - Success and Failure
+  {0CCE922B-69AE-11D9-BED3-505054503030} : Special Logon - Success
+
+Command Line Auditing:
+  ProcessCreationIncludeCmdLine_Enabled : 1
+```
+
+## Remote Execution
+
+<Check>
+This command **supports remote execution** using the `-computername` parameter.
+</Check>
+
+Remote execution uses WMI's StdRegProv to query registry values on the target system, making it ideal for bulk assessment of audit policies across multiple endpoints.
+
+## Detection Considerations
+
+<Warning>
+This command may generate the following detection opportunities:
+</Warning>
+
+- **Registry Access**: Queries to Security and Policies registry hives
+- **WMI Activity**: Remote execution generates WMI registry provider events
+- **Event Logs**:
+  - Event ID 4656/4663 - Registry object access (if audited)
+  - Event ID 5857-5861 - WMI activity
+- **Network Traffic**: Remote WMI connections over RPC/DCOM
+- **EDR Telemetry**: Security products may flag registry enumeration
+
+### Defensive Recommendations
+
+<Accordion title="Detection Strategies">
+**Registry Monitoring:**
+- Enable auditing on Security policy registry keys
+- Alert on access to `HKLM\Security\Policy` by non-system processes
+- Monitor for multiple registry queries in succession
+
+**WMI Monitoring:**
+- Track StdRegProv method calls to Security hive
+- Correlate WMI activity with authentication events
+- Alert on remote registry enumeration patterns
+
+**Network Detection:**
+- Monitor RPC/DCOM traffic for suspicious patterns
+- Track connections to port 135 and dynamic RPC ports
+- Correlate with authentication and privilege escalation attempts
+</Accordion>
+
+<Tip>
+Audit policy enumeration often indicates reconnaissance activity. Combine this signal with other enumeration indicators for high-confidence detection.
+</Tip>
+
+## Related Commands
+
+- [AuditPolicies](/commands/auditpolicies) - Native API-based audit policy enumeration
+- [Sysmon](/commands/sysmon) - Sysmon configuration and enhanced logging
+- [WindowsEventForwarding](/commands/windowseventforwarding) - WEF settings
+- [LocalGPOs](/commands/localgpos) - Local Group Policy configuration
+- [PowerShell](/commands/powershell) - PowerShell logging and transcription settings

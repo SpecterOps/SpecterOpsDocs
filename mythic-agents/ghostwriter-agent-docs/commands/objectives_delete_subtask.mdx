@@ -1,0 +1,33 @@
+---
+title: "objectives_delete_subtask"
+description: "Delete an objective subtask"
+---
+
+## Summary
+
+Remove a subtask from an objective.
+
+- Needs Admin: False
+- Version: 1-2
+- Author: @its_a_feature_
+
+### Arguments
+
+#### subtask_id
+- Description: ID of the subtask to delete
+- Required: True
+
+
+## Usage
+
+```
+objectives_delete_subtask -subtask_id 12
+```
+
+## Detailed Summary
+
+Permanently deletes a subtask from an objective.
+
+<Warning>
+This action cannot be undone.
+</Warning>

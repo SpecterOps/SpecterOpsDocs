@@ -1,0 +1,699 @@
+---
+title: 'Event Tracking'
+description: 'Real-time campaign monitoring and event tracking'
+icon: 'chart-line'
+---
+
+Phishmonger provides real-time event tracking for monitoring campaign progress and target interactions. Events are delivered via WebSockets and stored in the database for analysis.
+
+## Event System Overview
+
+### How Events Work
+
+<Steps>
+  <Step title="Event Creation">
+    An event occurs (email sent, link clicked, data submitted)
+  </Step>
+
+  <Step title="Event Logging">
+    Event is inserted into the database with timestamp and details
+  </Step>
+
+  <Step title="WebSocket Broadcast">
+    Event is broadcast to all connected clients via Socket.io
+  </Step>
+
+  <Step title="Real-Time Display">
+    Event appears immediately in the tracking interface
+  </Step>
+
+  <Step title="Optional Notification">
+    Telegram notification sent if configured
+  </Step>
+</Steps>
+
+**Benefits**:
+- No page refresh needed
+- Instant notification of target interactions
+- Complete event history
+- Searchable event logs
+
+## Event Types
+
+### EMAIL_SENT
+
+**Triggered When**: Email successfully sent to target via SMTP
+
+**Event Data**: Target email address
+
+**Example**:
+```json
+{
+  "event_timestamp": 1702656123456,
+  "event_ip": "localhost",
+  "campaign": "Q4_2023_VPN_Phish",
+  "target": "a7k2m9",
+  "event_type": "EMAIL_SENT",
+  "event_data": "john.smith@target.com",
+  "ignore": 0
+}
+```
+
+### CLICK
+
+**Triggered When**: Target clicks phishing link
+
+**Event Data**: Varies by integration (IP address, user agent, etc.)
+
+**Source**: Payload delivery server (e.g., Humble Chameleon) via `/create_event` API
+
+**Example**:
+```json
+{
+  "event_timestamp": 1702656234567,
+  "event_ip": "203.0.113.45",
+  "campaign": "Q4_2023_VPN_Phish",
+  "target": "a7k2m9",
+  "event_type": "CLICK",
+  "event_data": "User-Agent: Mozilla/5.0...",
+  "ignore": 0
+}
+```
+
+### POST_DATA
+
+**Triggered When**: Target submits form data (credentials, information)
+
+**Event Data**: Posted form data (may include credentials)
+
+**Source**: Payload delivery server via `/create_event` API
+
+**Example**:
+```json
+{
+  "event_timestamp": 1702656345678,
+  "event_ip": "203.0.113.45",
+  "campaign": "Q4_2023_VPN_Phish",
+  "target": "a7k2m9",
+  "event_type": "POST_DATA",
+  "event_data": "username=jsmith&password=P@ssw0rd123",
+  "ignore": 0
+}
+```
+
+<Warning>
+  **Sensitive Data**: POST_DATA events may contain credentials. Secure the database appropriately and follow data handling policies.
+</Warning>
+
+### COOKIE_DATA
+
+**Triggered When**: Session cookies captured from target browser
+
+**Event Data**: Cookie values and session tokens
+
+**Source**: Payload delivery server via `/create_event` API
+
+**Example**:
+```json
+{
+  "event_timestamp": 1702656456789,
+  "event_ip": "203.0.113.45",
+  "campaign": "Q4_2023_VPN_Phish",
+  "target": "a7k2m9",
+  "event_type": "COOKIE_DATA",
+  "event_data": "session_token=eyJhbGc...; auth_cookie=abc123...",
+  "ignore": 0
+}
+```
+
+### ERROR
+
+**Triggered When**: Email delivery fails or SMTP error occurs
+
+**Event Data**: Error message from SMTP server
+
+**Example**:
+```json
+{
+  "event_timestamp": 1702656123456,
+  "event_ip": "localhost",
+  "campaign": "Q4_2023_VPN_Phish",
+  "target": "a7k2m9",
+  "event_type": "ERROR",
+  "event_data": "550 5.1.1 User unknown",
+  "ignore": 0
+}
+```
+
+**Common Error Codes**:
+- **550 5.1.1**: User unknown (invalid email address)
+- **550 5.7.1**: SPF/DKIM failure (authentication issue)
+- **554**: Message rejected (spam filter)
+- **450/451**: Temporary failure (greylisting, rate limit)
+
+### Custom Event Types
+
+Additional event types can be created by payload delivery systems:
+
+- **DIRECT_DOWNLOAD**: File downloaded
+- **2FA_BYPASS**: Multi-factor authentication bypass
+- **SESSION_HIJACK**: Session takeover
+- **FORM_VIEW**: Target viewed form (but didn't submit)
+- Any custom type defined by integration
+
+## Campaign Tracking Interface
+
+### Accessing Campaign Tracking
+
+<Steps>
+  <Step title="Navigate to Admin">
+    Go to https://yourdomain.com/admin
+  </Step>
+
+  <Step title="Click Campaign Name">
+    Select campaign to track from the list
+  </Step>
+
+  <Step title="View Tracking Page">
+    Campaign tracking interface displays with real-time updates
+  </Step>
+</Steps>
+
+### Tracking Interface Components
+
+**Campaign Statistics**:
+- Total targets
+- Emails sent
+- Emails remaining
+- Current status (sending/stopped)
+
+**Real-Time Event Feed**:
+- Live scrolling list of events
+- Newest events appear at top
+- Color-coded by event type
+
+**Event Charts**:
+- Events over time
+- Events by type
+- Click-through rates
+
+**Target Status**:
+- List of targets
+- Phished status
+- Event counts per target
+
+**Campaign Controls**:
+- Send Campaign button
+- Schedule Campaign button
+- Cancel Campaign button
+
+## Real-Time Monitoring
+
+### WebSocket Connection
+
+The tracking interface connects via Socket.io:
+
+```javascript
+const socket = io();
+
+// Listen for new events
+socket.on('new_event', function(event) {
+  console.log('New event:', event);
+  // Update UI with event
+});
+
+// Listen for SMTP commands (during test sends)
+socket.on('smtp_command', function(data) {
+  console.log('SMTP:', data);
+});
+```
+
+**Connection States**:
+- **Connected**: Real-time updates active
+- **Disconnected**: Page shows connection lost
+- **Reconnecting**: Automatic reconnection attempt
+
+**Multiple Tabs**: All open tracking pages receive real-time updates
+
+### Event Feed
+
+Events appear instantly in the feed:
+
+**Display Format**:
+```
+[Timestamp] EVENT_TYPE - Target: target_id - IP: event_ip
+Event Data: event_data
+```
+
+**Example**:
+```
+[14:30:45] EMAIL_SENT - Target: a7k2m9 - IP: localhost
+Event Data: john.smith@target.com
+
+[14:32:12] CLICK - Target: a7k2m9 - IP: 203.0.113.45
+Event Data: User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)...
+
+[14:33:28] POST_DATA - Target: a7k2m9 - IP: 203.0.113.45
+Event Data: username=jsmith&password=P@ssw0rd123
+```
+
+## Searching Events
+
+### Event Search Interface
+
+Navigate to:
+```
+https://yourdomain.com/search_events
+```
+
+**Search Parameters**:
+- Campaign name (required)
+- Timestamp (partial match)
+- Event type (CLICK, POST_DATA, etc.)
+- Source IP address
+- Target ID
+- Event data (content search)
+
+**Example Search**:
+```
+Campaign: Q4_2023_VPN_Phish
+Event Type: POST_DATA
+Source IP: (empty)
+Target: (empty)
+Data: password
+```
+
+Returns all POST_DATA events containing "password".
+
+### API Search
+
+Search via API:
+
+```bash
+curl -X GET "https://yourdomain.com/get_search_events?\
+campaign=Q4_2023_VPN_Phish&\
+event_type=CLICK&\
+source=203.0.113.45" \
+  -H "Cookie: admin_cookie=YOUR_COOKIE_VALUE"
+```
+
+**Response**:
+```json
+[
+  {
+    "event_timestamp": 1702656234567,
+    "event_ip": "203.0.113.45",
+    "campaign": "Q4_2023_VPN_Phish",
+    "target": "a7k2m9",
+    "event_type": "CLICK",
+    "event_data": "...",
+    "ignore": 0
+  }
+]
+```
+
+### Database Search
+
+Direct SQL queries:
+
+```sql
+-- Search by event type
+SELECT * FROM events
+WHERE campaign = 'Q4_2023_VPN_Phish'
+AND event_type = 'POST_DATA';
+
+-- Search by IP address
+SELECT * FROM events
+WHERE campaign = 'Q4_2023_VPN_Phish'
+AND event_ip LIKE '%203.0.113.%';
+
+-- Search event data (credentials, specific content)
+SELECT * FROM events
+WHERE campaign = 'Q4_2023_VPN_Phish'
+AND event_data LIKE '%password%';
+
+-- Time range search
+SELECT * FROM events
+WHERE campaign = 'Q4_2023_VPN_Phish'
+AND event_timestamp BETWEEN 1702656000000 AND 1702659600000;
+
+-- Recent events
+SELECT
+  datetime(event_timestamp / 1000, 'unixepoch') as time,
+  event_type,
+  event_ip,
+  target,
+  event_data
+FROM events
+WHERE campaign = 'Q4_2023_VPN_Phish'
+ORDER BY event_timestamp DESC
+LIMIT 20;
+```
+
+## Event Filtering
+
+### Ignore Events
+
+Mark events as ignored to exclude from tracking:
+
+**Via API**:
+```bash
+curl -X PUT https://yourdomain.com/ignore_event \
+  -H "Cookie: admin_cookie=YOUR_COOKIE_VALUE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "campaign": "Q4_2023_VPN_Phish",
+    "timestamp": "1702656234567",
+    "event_type": "CLICK",
+    "source": "203.0.113.45",
+    "target": "a7k2m9",
+    "data": "..."
+  }'
+```
+
+**Via Database**:
+```sql
+-- Ignore specific event
+UPDATE events
+SET ignore = 1
+WHERE campaign = 'Q4_2023_VPN_Phish'
+AND event_timestamp = 1702656234567
+AND target = 'a7k2m9';
+
+-- Ignore all events from specific IP (testing IP, operator IP, etc.)
+UPDATE events
+SET ignore = 1
+WHERE campaign = 'Q4_2023_VPN_Phish'
+AND event_ip = '192.168.1.100';
+
+-- Ignore ERROR events
+UPDATE events
+SET ignore = 1
+WHERE campaign = 'Q4_2023_VPN_Phish'
+AND event_type = 'ERROR';
+```
+
+### Unignore Events
+
+Restore ignored events:
+
+**Via API**:
+```bash
+curl -X PUT https://yourdomain.com/unignore_events \
+  -H "Cookie: admin_cookie=YOUR_COOKIE_VALUE" \
+  -H "Content-Type: application/json" \
+  -d '{"campaign": "Q4_2023_VPN_Phish"}'
+```
+
+**Via Database**:
+```sql
+-- Unignore all events
+UPDATE events
+SET ignore = 0
+WHERE campaign = 'Q4_2023_VPN_Phish';
+```
+
+## Event Analytics
+
+### Campaign Metrics
+
+```sql
+-- Total events by type
+SELECT event_type, COUNT(*) as count
+FROM events
+WHERE campaign = 'Q4_2023_VPN_Phish'
+AND ignore = 0
+GROUP BY event_type
+ORDER BY count DESC;
+
+-- Events over time (hourly)
+SELECT
+  datetime(event_timestamp / 1000, 'unixepoch', 'start of hour') as hour,
+  COUNT(*) as count
+FROM events
+WHERE campaign = 'Q4_2023_VPN_Phish'
+AND ignore = 0
+GROUP BY hour
+ORDER BY hour;
+
+-- Click-through rate
+SELECT
+  (SELECT COUNT(DISTINCT target) FROM events
+   WHERE campaign = 'Q4_2023_VPN_Phish' AND event_type = 'CLICK') * 100.0 /
+  (SELECT SUM(phished) FROM targets WHERE campaign = 'Q4_2023_VPN_Phish')
+  as ctr;
+
+-- Submission rate
+SELECT
+  (SELECT COUNT(DISTINCT target) FROM events
+   WHERE campaign = 'Q4_2023_VPN_Phish' AND event_type = 'POST_DATA') * 100.0 /
+  (SELECT COUNT(DISTINCT target) FROM events
+   WHERE campaign = 'Q4_2023_VPN_Phish' AND event_type = 'CLICK')
+  as submission_rate;
+```
+
+### Target Analysis
+
+```sql
+-- Most active targets
+SELECT
+  t.address,
+  t.first_name,
+  t.last_name,
+  COUNT(e.event_timestamp) as event_count
+FROM targets t
+JOIN events e ON t.target_id = e.target
+WHERE t.campaign = 'Q4_2023_VPN_Phish'
+AND e.ignore = 0
+GROUP BY t.target_id
+ORDER BY event_count DESC;
+
+-- Targets with credentials submitted
+SELECT
+  t.address,
+  t.first_name,
+  t.last_name,
+  e.event_data
+FROM targets t
+JOIN events e ON t.target_id = e.target
+WHERE t.campaign = 'Q4_2023_VPN_Phish'
+AND e.event_type = 'POST_DATA'
+AND e.ignore = 0;
+
+-- Time to click (time between email sent and click)
+SELECT
+  t.address,
+  MIN(CASE WHEN e.event_type = 'EMAIL_SENT' THEN e.event_timestamp END) as sent_time,
+  MIN(CASE WHEN e.event_type = 'CLICK' THEN e.event_timestamp END) as click_time,
+  (MIN(CASE WHEN e.event_type = 'CLICK' THEN e.event_timestamp END) -
+   MIN(CASE WHEN e.event_type = 'EMAIL_SENT' THEN e.event_timestamp END)) / 60000.0 as minutes_to_click
+FROM targets t
+JOIN events e ON t.target_id = e.target
+WHERE t.campaign = 'Q4_2023_VPN_Phish'
+GROUP BY t.target_id
+HAVING click_time IS NOT NULL
+ORDER BY minutes_to_click ASC;
+```
+
+### IP Analysis
+
+```sql
+-- Unique IPs
+SELECT DISTINCT event_ip
+FROM events
+WHERE campaign = 'Q4_2023_VPN_Phish'
+AND event_type != 'EMAIL_SENT';
+
+-- Events by IP
+SELECT event_ip, COUNT(*) as count
+FROM events
+WHERE campaign = 'Q4_2023_VPN_Phish'
+AND event_ip != 'localhost'
+GROUP BY event_ip
+ORDER BY count DESC;
+
+-- Multiple targets from same IP (shared network/proxy)
+SELECT
+  event_ip,
+  COUNT(DISTINCT target) as target_count
+FROM events
+WHERE campaign = 'Q4_2023_VPN_Phish'
+AND event_ip != 'localhost'
+GROUP BY event_ip
+HAVING target_count > 1;
+```
+
+## Exporting Event Data
+
+### Export All Events
+
+```bash
+sqlite3 db/aquarium.db <<EOF
+.mode csv
+.output events_export.csv
+SELECT * FROM events WHERE campaign = 'Q4_2023_VPN_Phish' AND ignore = 0;
+.output stdout
+EOF
+```
+
+### Export Specific Event Types
+
+```bash
+# Export credentials (POST_DATA events)
+sqlite3 db/aquarium.db <<EOF
+.mode csv
+.output credentials.csv
+SELECT
+  event_timestamp,
+  event_ip,
+  target,
+  event_data
+FROM events
+WHERE campaign = 'Q4_2023_VPN_Phish'
+AND event_type = 'POST_DATA'
+AND ignore = 0;
+.output stdout
+EOF
+```
+
+### Export Timeline
+
+```bash
+sqlite3 db/aquarium.db <<EOF
+.mode csv
+.output timeline.csv
+SELECT
+  datetime(event_timestamp / 1000, 'unixepoch') as timestamp,
+  event_type,
+  event_ip,
+  target,
+  event_data
+FROM events
+WHERE campaign = 'Q4_2023_VPN_Phish'
+AND ignore = 0
+ORDER BY event_timestamp ASC;
+.output stdout
+EOF
+```
+
+## Telegram Notifications
+
+If Telegram bot is configured in `config.json`, notifications are sent for key events.
+
+### Notification Format
+
+```
+Campaign_Name:EVENT_TYPE:source_ip
+```
+
+**Examples**:
+```
+Q4_2023_VPN_Phish:EMAIL_SENT:localhost
+Q4_2023_VPN_Phish:CLICK:203.0.113.45
+Q4_2023_VPN_Phish:POST_DATA:203.0.113.45
+Q4_2023_VPN_Phish:ERROR:localhost
+```
+
+### Events That Trigger Notifications
+
+- EMAIL_SENT (every email)
+- CLICK (every click)
+- POST_DATA (every submission)
+- ERROR (every error)
+
+**Notification Volume**: For large campaigns, expect many notifications. Consider:
+- Muting non-critical events
+- Using a dedicated Telegram channel
+- Filtering notifications at payload server
+
+## Event Database Schema
+
+```sql
+CREATE TABLE events (
+    event_timestamp INTEGER,
+    event_ip TEXT,
+    campaign TEXT,
+    target TEXT,
+    event_type TEXT,
+    event_data TEXT,
+    ignore INTEGER
+);
+```
+
+**Fields**:
+- **event_timestamp**: Unix timestamp in milliseconds
+- **event_ip**: Source IP address
+- **campaign**: Campaign name
+- **target**: Target ID
+- **event_type**: Type of event (EMAIL_SENT, CLICK, etc.)
+- **event_data**: Event details (varies by type)
+- **ignore**: 0 = active, 1 = ignored
+
+**Indexes** (recommended for performance):
+
+```sql
+CREATE INDEX idx_events_campaign ON events(campaign);
+CREATE INDEX idx_events_target ON events(target);
+CREATE INDEX idx_events_type ON events(event_type);
+CREATE INDEX idx_events_timestamp ON events(event_timestamp);
+```
+
+## Troubleshooting Tracking
+
+### Events Not Appearing
+
+**Check WebSocket Connection**:
+- Open browser console (F12)
+- Look for Socket.io connection messages
+- Verify no console errors
+
+**Verify Event in Database**:
+```sql
+SELECT * FROM events
+WHERE campaign = 'Q4_2023_VPN_Phish'
+ORDER BY event_timestamp DESC
+LIMIT 10;
+```
+
+**Check Ignore Status**:
+```sql
+SELECT * FROM events
+WHERE campaign = 'Q4_2023_VPN_Phish'
+AND ignore = 1;
+```
+
+### Tracking Page Not Updating
+
+**Refresh Page**: Hard refresh (Ctrl+F5)
+
+**Check Server Status**:
+```bash
+ps aux | grep node
+```
+
+**Review Server Logs**: Check for WebSocket errors
+
+### Missing Click/POST_DATA Events
+
+**Verify Integration**: Ensure payload server is configured to send events to:
+```
+POST https://yourdomain.com/create_event
+```
+
+**Check Authentication**: Payload server must send admin cookie:
+```
+Cookie: admin_cookie=YOUR_COOKIE_VALUE
+```
+
+**Test Event Creation**:
+```bash
+curl -X POST https://yourdomain.com/create_event \
+  -H "Cookie: admin_cookie=YOUR_COOKIE_VALUE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "event_ip": "203.0.113.45",
+    "target": "a7k2m9",
+    "event_type": "CLICK",
+    "event_data": "Test event"
+  }'
+```

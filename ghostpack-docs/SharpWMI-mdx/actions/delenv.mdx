@@ -1,0 +1,276 @@
+---
+title: 'delenv'
+description: 'Delete environment variables from local and remote systems'
+icon: 'trash'
+---
+
+## Overview
+
+The `delenv` action removes environment variables from local and remote systems using the `Win32_Environment` WMI class. This is essential for cleanup after operations and removing persistence markers.
+
+## Syntax
+
+```bash
+SharpWMI.exe action=delenv name=VARIABLE_NAME [computername=HOST[,HOST2,...]] [username=DOMAIN\user] [password=Password]
+```
+
+## Parameters
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `action` | Yes | Must be `delenv` |
+| `name` | Yes | Environment variable name to delete |
+| `computername` | No | Target host(s), comma-separated. Defaults to localhost |
+| `username` | No | Username for authentication |
+| `password` | No | Password for authentication |
+
+## Usage Examples
+
+<CodeGroup>
+```bash Delete Local Variable
+SharpWMI.exe action=delenv name=TEST
+```
+
+```bash Delete Remote Variable
+SharpWMI.exe action=delenv name=CONFIG computername=target.domain.com
+```
+
+```bash With Credentials
+SharpWMI.exe action=delenv name=API_KEY computername=target.domain.com username="DOMAIN\admin" password="Password123!"
+```
+
+```bash Multiple Targets
+SharpWMI.exe action=delenv name=PAYLOAD computername=server1,server2,server3
+```
+</CodeGroup>
+
+## Operational Use Cases
+
+### Scenario 1: Cleanup After Operations
+
+```bash
+# 1. Use variable for operation
+SharpWMI.exe action=setenv name=TEMP_DATA value="<operational_data>" computername=target.domain.com
+
+# 2. Execute using the variable
+SharpWMI.exe action=exec computername=target.domain.com command="payload.exe"
+
+# 3. Clean up
+SharpWMI.exe action=delenv name=TEMP_DATA computername=target.domain.com
+```
+
+### Scenario 2: Remove Command Output
+
+```bash
+# Command output was stored in environment variable (via exec with result=true)
+# Clean up after retrieval
+SharpWMI.exe action=delenv name=_Context123456 computername=target.domain.com
+```
+
+<Note>
+  SharpWMI automatically cleans up environment variables used for command output retrieval. Manual cleanup is only needed if operations fail or for custom variables.
+</Note>
+
+### Scenario 3: Remove Persistence Markers
+
+```bash
+# Remove indicators of compromise
+SharpWMI.exe action=delenv name=SYSTEM_ID computername=target.domain.com
+SharpWMI.exe action=delenv name=C2_SERVER computername=target.domain.com
+SharpWMI.exe action=delenv name=IMPLANT_CONFIG computername=target.domain.com
+```
+
+### Scenario 4: Batch Cleanup
+
+```bash
+# Clean up across multiple systems
+SharpWMI.exe action=delenv name=BUILD_NUMBER computername=ws01,ws02,ws03,ws04 username="DOMAIN\admin" password="Password123!"
+```
+
+## User Context
+
+<Warning>
+  The `delenv` action deletes variables in the **user context**. Variables must match both name and username to be deleted.
+</Warning>
+
+Variables are user-specific:
+- System variables require SYSTEM context
+- User variables are tied to specific username
+- Cannot delete other users' variables without proper context
+
+## Remote vs Local Usage
+
+<Tabs>
+  <Tab title="Local Delete">
+    ```bash
+    SharpWMI.exe action=delenv name=TEST
+    ```
+
+    **Use for:**
+    - Local cleanup
+    - Testing
+    - Post-operation tidying
+  </Tab>
+
+  <Tab title="Remote Delete">
+    ```bash
+    SharpWMI.exe action=delenv name=TEST computername=target.domain.com
+    ```
+
+    **Use for:**
+    - Remote cleanup
+    - Removing indicators
+    - Multi-system operations
+  </Tab>
+</Tabs>
+
+## Detection Considerations
+
+<AccordionGroup>
+  <Accordion title="WMI Detection" icon="radar">
+    - Win32_Environment class deletions
+    - Event ID 5857: WMI activity
+    - Sysmon Event ID 19-21: WMI operations
+    - Environment variable removal
+  </Accordion>
+
+  <Accordion title="Registry Detection" icon="database">
+    - Registry deletions in environment key
+    - `HKCU\Environment` changes
+    - Event ID 4657: Registry value modification/deletion
+  </Accordion>
+
+  <Accordion title="Cleanup Patterns" icon="broom">
+    - Suspicious variable deletion
+    - Bulk deletion operations
+    - Deletion of recently created variables
+    - Cleanup correlated with other activity
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Always Clean Up" icon="broom">
+    - Remove variables after use
+    - Don't leave indicators
+    - Clean up on operation failure
+    - Automate cleanup in scripts
+  </Card>
+
+  <Card title="Verify Deletion" icon="check">
+    - Confirm variable was deleted
+    - Check with getenv action
+    - Handle errors gracefully
+    - Log cleanup operations
+  </Card>
+
+  <Card title="Operational Security" icon="user-secret">
+    - Clean up immediately after use
+    - Don't leave data in environment
+    - Remove all custom variables
+    - Check for orphaned variables
+  </Card>
+
+  <Card title="Error Handling" icon="triangle-exclamation">
+    - Handle variable not found
+    - Verify admin privileges
+    - Account for permission issues
+    - Retry on failure
+  </Card>
+</CardGroup>
+
+## Cleanup Workflow
+
+Complete cleanup example:
+
+```bash
+# 1. List all custom variables
+SharpWMI.exe action=getenv computername=target.domain.com
+
+# 2. Delete custom variables
+SharpWMI.exe action=delenv name=CONFIG computername=target.domain.com
+SharpWMI.exe action=delenv name=API_KEY computername=target.domain.com
+SharpWMI.exe action=delenv name=PAYLOAD computername=target.domain.com
+
+# 3. Verify deletion
+SharpWMI.exe action=getenv name=CONFIG computername=target.domain.com
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Variable Not Found">
+    **Cause:** Variable doesn't exist or wrong user context
+
+    **Solution:**
+    - Verify variable exists with getenv
+    - Check variable name spelling
+    - Ensure correct user context
+    - Variable may have been already deleted
+  </Accordion>
+
+  <Accordion title="Access Denied">
+    **Cause:** Insufficient privileges
+
+    **Solution:**
+    - Use `username` and `password` parameters
+    - Verify admin rights on target
+    - Check UAC remote restrictions
+    - May need SYSTEM context for system variables
+  </Accordion>
+
+  <Accordion title="Permission Denied for User Variable">
+    **Cause:** Trying to delete another user's variable
+
+    **Solution:**
+    - Variables are user-specific
+    - Must authenticate as that user
+    - Or use SYSTEM context
+    - Cannot delete other users' variables directly
+  </Accordion>
+</AccordionGroup>
+
+## Related Actions
+
+<CardGroup cols={2}>
+  <Card title="getenv" icon="eye" href="/ghostpack-docs/SharpWMI-mdx/actions/getenv">
+    Retrieve environment variables
+  </Card>
+  <Card title="setenv" icon="pencil" href="/ghostpack-docs/SharpWMI-mdx/actions/setenv">
+    Set environment variables
+  </Card>
+  <Card title="query" icon="database" href="/ghostpack-docs/SharpWMI-mdx/actions/query">
+    Query Win32_Environment directly
+  </Card>
+  <Card title="exec" icon="terminal" href="/ghostpack-docs/SharpWMI-mdx/actions/exec">
+    Execute cleanup commands
+  </Card>
+</CardGroup>
+
+## Alternative Methods
+
+<Accordion title="Delete via PowerShell">
+  ```bash
+  # Delete using exec action with PowerShell
+  SharpWMI.exe action=exec computername=target command="powershell -c \"[Environment]::SetEnvironmentVariable('VARNAME',$null,'User')\"" result=true
+  ```
+</Accordion>
+
+<Accordion title="Delete via Registry">
+  ```bash
+  # Delete using registry
+  SharpWMI.exe action=exec computername=target command="reg delete HKCU\Environment /v VARNAME /f" result=true
+  ```
+</Accordion>
+
+## Verification
+
+After deletion, verify the variable is gone:
+
+```bash
+# Check if variable still exists
+SharpWMI.exe action=getenv name=VARNAME computername=target.domain.com
+
+# Should return no results or "Variable not found"
+```

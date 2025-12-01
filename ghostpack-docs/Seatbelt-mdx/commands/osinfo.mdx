@@ -1,0 +1,94 @@
+---
+title: 'OSInfo'
+description: 'Basic OS info (i.e. architecture, OS version, etc.)'
+icon: 'desktop'
+---
+
+## Overview
+
+The OSInfo command gathers fundamental operating system information including version, architecture, build number, installation date, and system details. This baseline information is essential for understanding the target environment and planning compatible attacks or assessments.
+
+## Syntax
+
+```bash
+Seatbelt.exe OSInfo
+```
+
+### Remote Execution
+```bash
+Seatbelt.exe OSInfo -computername=TARGET.domain.com [-username=DOMAIN\user -password=pass]
+```
+
+## Output
+
+Returns operating system information:
+- OS Version and Build
+- Architecture (x86/x64)
+- Installation date
+- Boot time
+- Hostname
+- Domain/Workgroup
+- Is virtual machine
+- Product name
+- Registered owner/organization
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Determine OS version for exploit selection
+    - Identify architecture for payload compilation
+    - Assess system age and patch likelihood
+    - Detect virtualized environments
+    - Understand domain membership
+  </Tab>
+  <Tab title="Blue Team">
+    - Inventory system configurations
+    - Validate OS versions meet standards
+    - Track unsupported operating systems
+    - Audit domain membership
+    - Generate system reports
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== OSInfo ======
+
+Hostname                    : WORKSTATION01
+Domain                      : CORP
+Username                    : CORP\administrator
+ProductName                 : Windows 10 Enterprise
+EditionID                   : Enterprise
+ReleaseId                   : 22H2
+Build                       : 19045.3693
+BuildBranch                 : 19h1_release
+CurrentVersion              : 6.3
+Architecture                : AMD64
+ProcessorCount              : 4
+IsVirtualMachine            : True
+BootTime (approx)           : 10/14/2024 11:30:22 PM (Total uptime: 16:15:33)
+InstallDate                 : 1/15/2023 10:00:00 AM
+RegisteredOwner             : Corporation
+RegisteredOrganization      : CORP
+```
+
+## Remote Execution
+
+<Check>
+This command **supports remote execution** using the `-computername` parameter.
+</Check>
+
+## Detection Considerations
+
+<Info>
+Minimal detection risk - queries basic system information via WMI.
+</Info>
+
+## Related Commands
+
+- [Hotfixes](/commands/hotfixes) - Installed Windows updates
+- [DotNet](/commands/dotnet) - .NET Framework versions
+- [OptionalFeatures](/commands/optionalfeatures) - Windows optional features
+- [SecureBoot](/commands/secureboot) - Secure Boot status

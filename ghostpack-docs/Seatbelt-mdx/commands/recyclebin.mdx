@@ -1,0 +1,137 @@
+---
+title: 'RecycleBin'
+description: 'Items in the Recycle Bin deleted in the last 30 days - only works from a user context'
+icon: 'trash-can'
+---
+
+## Overview
+
+The RecycleBin command enumerates files and folders currently in the Windows Recycle Bin that were deleted within the last 30 days. This command can reveal recently deleted sensitive files, documents, credentials, scripts, and other artifacts that may be valuable for investigation or reconnaissance. The command must be run from a user context and cannot enumerate deleted items when running as SYSTEM.
+
+## Syntax
+
+```
+Seatbelt.exe RecycleBin
+```
+
+This command does not accept arguments and automatically searches for items deleted in the last 30 days.
+
+## Output
+
+The command returns:
+- Original file path (location before deletion)
+- File name
+- File size
+- Deletion timestamp
+- Current Recycle Bin path
+- File extension/type
+
+## Use Cases
+
+### Red Team
+- Discover recently deleted sensitive files
+- Locate deleted credentials and configuration files
+- Find deleted scripts and tools
+- Identify deleted documents with valuable information
+- Discover evidence of cleanup activities
+- Locate deleted private keys and certificates
+- Find deleted database files
+- Identify patterns of data destruction
+
+### Blue Team
+- Recover deleted evidence during investigations
+- Identify data destruction attempts by insiders
+- Detect malware cleanup activities
+- Investigate unauthorized file deletion
+- Support forensic analysis and incident response
+- Recover accidentally deleted security logs
+- Identify attempts to hide malicious activity
+- Detect anti-forensics techniques
+- Audit user file deletion patterns
+- Recover deleted configuration files
+- Support data loss prevention investigations
+
+## Example Output
+
+```
+====== RecycleBin (Last 30 Days) ======
+
+  Original Path : C:\Users\john\Desktop\passwords.txt
+  File Name     : passwords.txt
+  Size          : 2,345 bytes
+  Deleted       : 10/15/2023 11:22:18 PM
+  Recycle Path  : C:\$Recycle.Bin\S-1-5-21-...\$R3A2B1C.txt
+  Type          : Text Document
+
+  Original Path : C:\Users\john\Documents\database_backup.sql
+  File Name     : database_backup.sql
+  Size          : 5,678,901 bytes
+  Deleted       : 10/18/2023 2:15:43 PM
+  Recycle Path  : C:\$Recycle.Bin\S-1-5-21-...\$R7D6E5F.sql
+  Type          : SQL Script
+
+  Original Path : C:\Users\john\.ssh\id_rsa
+  File Name     : id_rsa
+  Size          : 1,679 bytes
+  Deleted       : 10/12/2023 9:30:21 AM
+  Recycle Path  : C:\$Recycle.Bin\S-1-5-21-...\$R9H8G7F.rsa
+  Type          : Private Key
+
+  Original Path : C:\Users\john\Desktop\company_secrets.docx
+  File Name     : company_secrets.docx
+  Size          : 45,678 bytes
+  Deleted       : 10/19/2023 8:42:15 AM
+  Recycle Path  : C:\$Recycle.Bin\S-1-5-21-...\$R2K1J0I.docx
+  Type          : Word Document
+
+  Original Path : C:\Users\john\Downloads\exploit.ps1
+  File Name     : exploit.ps1
+  Size          : 12,345 bytes
+  Deleted       : 10/17/2023 3:45:18 PM
+  Recycle Path  : C:\$Recycle.Bin\S-1-5-21-...\$R5N4M3L.ps1
+  Type          : PowerShell Script
+```
+
+## Performance Considerations
+
+This command has minimal performance impact as it only queries the Recycle Bin metadata. Execution time depends on:
+- Number of items in the Recycle Bin
+- File system performance
+- User context permissions
+
+Typically completes in seconds even with many deleted items.
+
+**Important:** This command only works from a user context. It cannot enumerate Recycle Bin contents when running as SYSTEM or other service accounts.
+
+## Remote Execution
+
+This command does not support remote execution. RecycleBin enumeration must be performed on the local system in a user context.
+
+## Detection Considerations
+
+### Indicators
+- File access to $Recycle.Bin directories
+- Enumeration of C:\$Recycle.Bin\SID folders
+- Read operations on Recycle Bin metadata files ($I files)
+- Access to hidden Recycle Bin system folders
+- Unusual processes accessing Recycle Bin locations
+
+### Defensive Recommendations
+- Monitor for access to $Recycle.Bin directories
+- Alert on enumeration of Recycle Bin contents by non-standard processes
+- Log file access to Recycle Bin metadata
+- Implement File Integrity Monitoring (FIM) on Recycle Bin
+- Track processes accessing hidden system folders
+- Use AppLocker or similar to control execution of enumeration tools
+- Monitor for Recycle Bin recovery operations
+- Correlate Recycle Bin access with other suspicious activity
+- Implement secure deletion policies for sensitive data
+- Educate users on proper data destruction methods
+
+## Related Commands
+
+- **InterestingFiles** - "Interesting" files matching various patterns
+- **FileInfo** - Information about specific files
+- **dir** - Lists files/folders in specified directories
+- **OutlookDownloads** - List files downloaded by Outlook
+- **SearchIndex** - Query results from the Windows Search Index

@@ -1,0 +1,324 @@
+---
+title: 'harvest'
+description: 'Continuously harvest TGTs from 4624 logon events'
+icon: 'scissors'
+sidebarTitle: 'harvest'
+---
+
+## Overview
+
+Continuously harvest TGTs from 4624 logon events by monitoring authentication activities and automatically extracting tickets from new logon sessions. This command provides persistent credential collection capabilities for long-term operations.
+
+## Syntax
+
+```bash
+Rubeus.exe harvest [options]
+```
+
+## Optional Parameters
+
+<ParamField path="interval" type="number">
+  Monitoring interval in seconds (default: 30)
+</ParamField>
+
+<ParamField path="outdir" type="string">
+  Directory to save extracted tickets
+</ParamField>
+
+<ParamField path="filteruser" type="string">
+  Filter by username pattern (supports wildcards)
+</ParamField>
+
+## Examples
+
+<CodeGroup>
+```bash Basic Harvesting
+# Start harvesting with default settings
+Rubeus.exe harvest
+
+# Custom monitoring interval
+Rubeus.exe harvest /interval:60
+
+# Save tickets to directory
+Rubeus.exe harvest /outdir:C:\temp\tickets
+```
+
+```bash Filtered Harvesting
+# Filter by username pattern
+Rubeus.exe harvest /filteruser:admin*
+
+# Combine filtering and output directory
+Rubeus.exe harvest /filteruser:svc_* /outdir:C:\harvested
+```
+</CodeGroup>
+
+## Harvesting Process
+
+<Accordion title="Event Monitoring">
+  **4624 Logon Events:**
+  - Monitors Windows Security log for new logons
+  - Detects interactive, network, and service logons
+  - Identifies high-value authentication events
+  - Tracks both local and domain authentications
+
+  **Real-Time Processing:**
+  - Immediate ticket extraction upon logon detection
+  - Automatic LUID identification
+  - Background processing capabilities
+  - Continuous operation support
+</Accordion>
+
+<Accordion title="Ticket Extraction">
+  **Automatic Collection:**
+  - Extracts TGT from new logon session
+  - Stores ticket in specified format
+  - Saves to files or displays output
+  - Maintains detailed logging
+
+  **Data Preservation:**
+  - Preserves original ticket structure
+  - Maintains encryption information
+  - Stores timing and user details
+  - Supports batch processing
+</Accordion>
+
+## Strategic Applications
+
+<Accordion title="Long-Term Collection">
+  **Persistent Harvesting:**
+  - Deploy for extended monitoring periods
+  - Capture credentials from multiple users
+  - Build comprehensive credential database
+  - Support long-term access operations
+
+  **Automated Operations:**
+  - Reduce manual intervention requirements
+  - Enable 24/7 credential collection
+  - Support large-scale deployments
+  - Facilitate bulk credential analysis
+</Accordion>
+
+<Accordion title="High-Value Targeting">
+  **Administrative Accounts:**
+  - Focus on domain administrator logons
+  - Target service account authentications
+  - Capture privileged user sessions
+  - Identify delegation-enabled accounts
+
+  **Timing Advantages:**
+  - Capture credentials during business hours
+  - Benefit from normal user activities
+  - Leverage authentication patterns
+  - Optimize collection windows
+</Accordion>
+
+## Output Management
+
+<Accordion title="File Storage">
+  **Directory Organization:**
+  ```bash
+  # Example output structure
+  C:\harvested\
+  ├── 2024-10-25_admin_0x54321.kirbi
+  ├── 2024-10-25_serviceaccount_0x12345.kirbi
+  └── 2024-10-25_user1_0x67890.kirbi
+  ```
+
+  **File Naming:**
+  - Date and time stamps
+  - Username identification
+  - LUID for session tracking
+  - Consistent naming conventions
+</Accordion>
+
+<Accordion title="Real-Time Display">
+  **Console Output:**
+  ```bash
+  # Example harvest output
+  [*] 10/25/2024 2:15:30 PM - 4624 logon event
+  [*] Username        : CORP\admin
+  [*] LogonType       : 3 (Network)
+  [*] LUID            : 0x54321
+  [*] Extracting TGT...
+  [*] TGT saved to    : C:\harvested\2024-10-25_admin_0x54321.kirbi
+
+  [*] 10/25/2024 2:18:45 PM - 4624 logon event
+  [*] Username        : CORP\serviceaccount
+  [*] LogonType       : 5 (Service)
+  [*] LUID            : 0x12345
+  [*] Extracting TGT...
+  [*] TGT saved to    : C:\harvested\2024-10-25_serviceaccount_0x12345.kirbi
+  ```
+</Accordion>
+
+## Filtering Capabilities
+
+<Accordion title="Username Filtering">
+  **Pattern Matching:**
+  - Wildcard support for flexible filtering
+  - Regular expression capabilities
+  - Domain-specific filtering
+  - Role-based targeting
+
+  **Filter Examples:**
+  ```bash
+  # Administrative accounts
+  Rubeus.exe harvest /filteruser:*admin*
+
+  # Service accounts
+  Rubeus.exe harvest /filteruser:svc_*
+
+  # Specific domain
+  Rubeus.exe harvest /filteruser:CORP\\*
+
+  # Multiple patterns (if supported)
+  Rubeus.exe harvest /filteruser:admin*,svc_*
+  ```
+</Accordion>
+
+<Accordion title="Strategic Filtering">
+  **High-Value Targets:**
+  - Domain administrators
+  - Enterprise administrators
+  - Service accounts with delegation
+  - Application service accounts
+  - Cross-domain trust accounts
+
+  **Exclusion Strategies:**
+  - Filter out low-privilege accounts
+  - Exclude computer accounts
+  - Skip guest and anonymous logons
+  - Avoid noisy service accounts
+</Accordion>
+
+## Integration Workflows
+
+<Accordion title="Collection and Analysis">
+  **Complete Workflow:**
+  ```bash
+  # 1. Start harvesting operation
+  Rubeus.exe harvest /outdir:C:\collected /filteruser:admin*
+
+  # 2. Let run for collection period
+  # Harvest captures tickets automatically
+
+  # 3. Analyze collected tickets
+  for /f %i in ('dir /b C:\collected\*.kirbi') do (
+    Rubeus.exe describe /ticket:C:\collected\%i
+  )
+
+  # 4. Use high-value tickets
+  Rubeus.exe ptt /ticket:C:\collected\admin_ticket.kirbi
+  ```
+</Accordion>
+
+<Accordion title="Automated Processing">
+  **Batch Operations:**
+  ```bash
+  # 1. Harvest to directory
+  Rubeus.exe harvest /outdir:C:\tickets
+
+  # 2. Process all collected tickets
+  Rubeus.exe ptt /ticket:C:\tickets\admin*.kirbi
+
+  # 3. Test access with collected credentials
+  dir \\target.corp.local\c$
+  ```
+</Accordion>
+
+## Operational Considerations
+
+<Accordion title="Performance Impact">
+  **System Resources:**
+  - Minimal CPU overhead
+  - Low memory consumption
+  - Efficient event processing
+  - Configurable monitoring intervals
+
+  **Scalability:**
+  - Supports long-term deployment
+  - Handles high-volume environments
+  - Manages storage requirements
+  - Optimizes for performance
+</Accordion>
+
+<Accordion title="Storage Management">
+  **Disk Space:**
+  - Monitor output directory size
+  - Implement rotation policies
+  - Compress old tickets
+  - Archive collected credentials
+
+  **Organization:**
+  - Consistent file naming
+  - Date-based directories
+  - User-based categorization
+  - Automated cleanup scripts
+</Accordion>
+
+## Detection and Evasion
+
+<Accordion title="Detection Vectors">
+  **Monitoring Indicators:**
+  - Event log access patterns
+  - Continuous background processes
+  - File system activity in output directories
+  - LSA authentication package interactions
+
+  **Behavioral Analysis:**
+  - Long-running processes
+  - Repeated authentication queries
+  - Unusual file creation patterns
+  - Network authentication anomalies
+</Accordion>
+
+<Accordion title="Evasion Techniques">
+  **Operational Security:**
+  - Use legitimate process names
+  - Vary monitoring intervals
+  - Implement random delays
+  - Correlate with normal activities
+
+  **Technical Evasion:**
+  - Deploy from system directories
+  - Use process hollowing techniques
+  - Implement encryption for stored tickets
+  - Employ anti-analysis measures
+</Accordion>
+
+## Troubleshooting
+
+<Accordion title="Common Issues">
+  **Access Problems:**
+  - Insufficient privileges for event log access
+  - LSA authentication package restrictions
+  - Output directory permission issues
+  - Anti-malware interference
+
+  **Collection Failures:**
+  - Missing logon events
+  - Ticket extraction errors
+  - Storage space limitations
+  - Process termination issues
+</Accordion>
+
+<Accordion title="Optimization">
+  **Performance Tuning:**
+  - Adjust monitoring intervals
+  - Optimize filtering patterns
+  - Manage output storage
+  - Balance collection vs. detection
+
+  **Reliability Improvements:**
+  - Implement error handling
+  - Add logging capabilities
+  - Create backup mechanisms
+  - Monitor process health
+</Accordion>
+
+## Related Commands
+
+- [`monitor`](/GhostPack/Rubeus-mdx/commands/extraction/monitor) - Real-time ticket monitoring
+- [`dump`](/GhostPack/Rubeus-mdx/commands/extraction/dump) - Extract existing tickets
+- [`ptt`](/GhostPack/Rubeus-mdx/commands/management/ptt) - Use harvested tickets
+- [`describe`](/GhostPack/Rubeus-mdx/commands/management/describe) - Analyze harvested tickets

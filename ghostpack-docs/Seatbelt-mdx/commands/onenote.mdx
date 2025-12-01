@@ -1,0 +1,120 @@
+---
+title: 'OneNote'
+description: 'List OneNote backup files'
+icon: 'note-sticky'
+---
+
+## Overview
+
+The `OneNote` command searches for OneNote backup files on the system. OneNote automatically creates backup copies of notebooks, which may contain sensitive information, meeting notes, credentials, and other valuable intelligence stored in users' notes.
+
+**Important:** User commands run for the current user if not elevated and for ALL users if elevated.
+
+## Syntax
+
+```
+Seatbelt.exe OneNote
+```
+
+No additional arguments are supported.
+
+## Output
+
+The command returns:
+- OneNote backup file locations
+- Notebook names and paths
+- Backup timestamps
+- File sizes
+- User context for each backup
+- Local and network notebook locations
+
+## Use Cases
+
+### Red Team
+- **Intelligence Gathering**: Discover sensitive information stored in OneNote notebooks
+- **Credential Discovery**: Find passwords and credentials documented in notes
+- **Network Mapping**: Identify systems and infrastructure mentioned in notes
+- **User Profiling**: Understand user roles, projects, and responsibilities
+- **Data Exfiltration**: Target notebooks containing valuable organizational information
+
+### Blue Team
+- **Data Loss Prevention**: Identify sensitive information stored in OneNote
+- **Incident Response**: Review notes for security-relevant information
+- **Compliance Auditing**: Ensure notebook content aligns with data handling policies
+- **Forensic Analysis**: Examine notebook contents during investigations
+- **Risk Assessment**: Evaluate exposure from information in OneNote backups
+
+## Example Output
+
+```
+====== OneNote ======
+
+User: john.doe
+
+  Backup Location   : C:\Users\john.doe\AppData\Local\Microsoft\OneNote\16.0\Backup
+
+  Notebook Backup
+    Name              : Work Notes
+    Path              : C:\Users\john.doe\AppData\Local\Microsoft\OneNote\16.0\Backup\Work Notes
+    LastBackup        : 2024-10-20 08:30:15
+    Size              : 15.2 MB
+
+  Notebook Backup
+    Name              : Passwords and Access
+    Path              : C:\Users\john.doe\AppData\Local\Microsoft\OneNote\16.0\Backup\Passwords and Access
+    LastBackup        : 2024-10-18 14:22:00
+    Size              : 2.3 MB
+
+  Notebook Backup
+    Name              : IT Infrastructure
+    Path              : C:\Users\john.doe\AppData\Local\Microsoft\OneNote\16.0\Backup\IT Infrastructure
+    LastBackup        : 2024-10-19 11:15:30
+    Size              : 8.7 MB
+```
+
+## Privilege Context
+
+- **Non-Elevated**: Lists OneNote backup files for the current user only
+- **Elevated**: Lists OneNote backup files for ALL users on the system, providing comprehensive notebook discovery
+
+## Remote Execution
+
+This command does **not** support remote execution (not marked with + in the command list).
+
+## Detection Considerations
+
+### Indicators
+- File system enumeration in OneNote backup directories
+- Access to AppData\Local\Microsoft\OneNote paths
+- Reading .one and .onepkg files
+- Enumeration across multiple user profiles
+
+### Defensive Monitoring
+- Monitor access to OneNote backup directories by non-OneNote processes
+- Alert on automated enumeration of notebook files
+- Track processes reading OneNote backup files
+- Log bulk access to notebook backup folders
+- Detect data exfiltration from OneNote directories
+- Monitor for unauthorized copying of notebook files
+
+### What OneNote May Contain
+- Passwords and credentials documented by users
+- Network diagrams and infrastructure details
+- Meeting notes with strategic information
+- Project plans and sensitive business data
+- Personal contact information
+- System documentation and procedures
+- Recovery keys and encryption passphrases
+
+### Privacy Considerations
+- OneNote backups may contain highly personal information
+- Notes often include sensitive business intelligence
+- Consider user privacy when accessing notebook data
+- Backups may contain deleted content not in active notebooks
+
+## Related Commands
+
+- **OfficeMRUs**: Lists recently used Office documents
+- **dir**: Can enumerate files in user directories
+- **InterestingFiles**: Searches for files with sensitive patterns
+- **ExplorerMRUs**: Shows recently accessed files

@@ -1,0 +1,153 @@
+---
+title: 'WMIEventFilter'
+description: 'Lists WMI Event Filters'
+icon: 'filter'
+---
+
+## Overview
+
+The WMIEventFilter command enumerates WMI Event Filters configured on the system. WMI Event Filters define the conditions that trigger WMI events. When combined with Event Consumers through Filter-to-Consumer bindings, they create a complete WMI-based persistence or automation mechanism.
+
+## Syntax
+
+```bash
+Seatbelt.exe WMIEventFilter
+```
+
+<Note>
+This command does **not** support remote execution.
+</Note>
+
+## Output
+
+Returns WMI Event Filter information:
+- Filter name
+- Event namespace
+- Query language (WQL)
+- Query/Condition
+- Creation timestamp
+- Creator SID
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Identify existing WMI event triggers
+    - Understand WMI event infrastructure
+    - Find appropriate events for persistence
+    - Discover timing-based triggers
+  </Tab>
+  <Tab title="Blue Team">
+    - Hunt for malicious WMI filters
+    - Audit WMI-based automation
+    - Detect suspicious event triggers
+    - Identify unauthorized filters
+    - Investigate persistence mechanisms
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== WMIEventFilter ======
+
+[*] Listing WMI Event Filters...
+
+Filter Name        : BVTFilter
+Event Namespace    : root\cimv2
+Query Language     : WQL
+Query              : SELECT * FROM __InstanceCreationEvent WITHIN 60 WHERE TargetInstance ISA 'Win32_Process' AND TargetInstance.Name = 'notepad.exe'
+Creator SID        : S-1-5-21-...
+Creation Time      : 1/15/2023 10:00:00 AM
+
+Filter Name        : SystemBootTrigger
+Event Namespace    : root\cimv2
+Query Language     : WQL
+Query              : SELECT * FROM __InstanceModificationEvent WITHIN 60 WHERE TargetInstance ISA 'Win32_PerfFormattedData_PerfOS_System' AND TargetInstance.SystemUpTime >= 240 AND TargetInstance.SystemUpTime < 325
+Creator SID        : S-1-5-21-...
+Creation Time      : 10/1/2024 3:45:22 PM
+[!] Boot-time trigger detected
+
+Filter Name        : UserLogonTrigger
+Event Namespace    : root\cimv2
+Query Language     : WQL
+Query              : SELECT * FROM Win32_LogonSession WHERE LogonType = 2
+Creator SID        : S-1-5-21-...
+Creation Time      : 10/5/2024 9:15:33 AM
+[!] Logon event trigger detected
+```
+
+## Remote Execution
+
+<Warning>
+This command does **NOT support remote execution**.
+</Warning>
+
+## Detection Considerations
+
+<Warning>
+WMI Event Filters are a key component of WMI-based persistence.
+</Warning>
+
+- **WMI Namespace**: Queries `root\subscription` namespace
+- **Sysmon Events**: Event ID 19 logs filter creation/modification
+- **Event Logs**: WMI-Activity logs may capture filter activity
+- **Persistence**: Filters survive reboots
+
+### Common Filter Patterns
+
+<Accordion title="Legitimate vs Malicious Filters">
+**Legitimate Uses:**
+- System monitoring and alerting
+- Automated maintenance tasks
+- Performance monitoring
+- Software deployment triggers
+
+**Malicious Patterns:**
+- Boot/startup time triggers
+- User logon triggers
+- Process creation monitoring (specific targets)
+- Timer-based execution
+- File creation in specific directories
+
+**Suspicious WQL Queries:**
+```wql
+-- Process creation monitoring
+SELECT * FROM __InstanceCreationEvent WHERE TargetInstance ISA 'Win32_Process'
+
+-- Boot time trigger (4-5 minutes after boot)
+SELECT * FROM __InstanceModificationEvent WITHIN 60 WHERE TargetInstance ISA 'Win32_PerfFormattedData_PerfOS_System' AND TargetInstance.SystemUpTime >= 240 AND TargetInstance.SystemUpTime < 325
+
+-- User logon trigger
+SELECT * FROM __InstanceCreationEvent WITHIN 15 WHERE TargetInstance ISA 'Win32_LogonSession'
+
+-- Timer-based (every X seconds)
+SELECT * FROM __IntervalTimerInstruction WHERE TimerId = 'Trigger'
+```
+</Accordion>
+
+### WMI Event Classes
+
+<Accordion title="Common WMI Event Types">
+**Intrinsic Events:**
+- `__InstanceCreationEvent` - Object created
+- `__InstanceModificationEvent` - Object modified
+- `__InstanceDeletionEvent` - Object deleted
+- `__InstanceOperationEvent` - Any instance operation
+
+**Timer Events:**
+- `__IntervalTimerInstruction` - Periodic timer
+- `__AbsoluteTimerInstruction` - Specific time
+
+**Extrinsic Events:**
+- Custom event types
+- Application-defined events
+</Accordion>
+
+## Related Commands
+
+- [WMIEventConsumer](/commands/wmieventconsumer) - WMI event consumers
+- [WMIFilterBinding](/commands/wmifilterbinding) - Filter-consumer bindings
+- [WMI](/commands/wmi) - Custom WMI queries
+- [AutoRuns](/commands/autoruns) - Auto-start programs
+- [Sysmon](/commands/sysmon) - Sysmon configuration

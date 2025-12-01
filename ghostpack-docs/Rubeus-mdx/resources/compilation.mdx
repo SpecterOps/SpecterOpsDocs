@@ -1,0 +1,351 @@
+---
+title: 'Compilation Instructions'
+description: 'Build Rubeus from source code for various environments'
+icon: 'hammer'
+---
+
+## Overview
+
+Rubeus is designed to be compiled from source rather than distributed as pre-built binaries. This approach helps avoid signature-based detection and allows for customization based on specific operational requirements.
+
+<Info>
+  Pre-compiled binaries are intentionally not provided to reduce signature-based detection and encourage understanding of the tool's functionality.
+</Info>
+
+## Prerequisites
+
+<AccordionGroup>
+  <Accordion title="Development Environment">
+    **Required Software:**
+    - Visual Studio 2017 or later
+    - .NET Framework 3.5+ or .NET Core
+    - Git for source code management
+
+    **Optional Tools:**
+    - Visual Studio Code (alternative IDE)
+    - MSBuild command line tools
+    - NuGet package manager
+  </Accordion>
+
+  <Accordion title="Target Framework Selection">
+    **Framework Options:**
+    - **.NET Framework 3.5** - Maximum compatibility
+    - **.NET Framework 4.0** - Balanced compatibility
+    - **.NET Framework 4.5+** - Modern features
+    - **.NET Core** - Cross-platform support
+
+    **Compatibility Considerations:**
+    - .NET 3.5 works on Windows 7+ systems
+    - .NET 4.0+ provides better performance
+    - .NET Core enables Linux/macOS compilation
+  </Accordion>
+</AccordionGroup>
+
+## Compilation Steps
+
+<Steps>
+  <Step title="Clone Repository">
+    ```bash
+    git clone https://github.com/GhostPack/Rubeus.git
+    cd Rubeus
+    ```
+  </Step>
+
+  <Step title="Open in Visual Studio">
+    - Open `Rubeus.sln` in Visual Studio
+    - Select appropriate build configuration
+    - Choose target framework if needed
+  </Step>
+
+  <Step title="Build Solution">
+    ```bash
+    # Using Visual Studio
+    Build → Build Solution (Ctrl+Shift+B)
+
+    # Using MSBuild command line
+    msbuild Rubeus.sln /p:Configuration=Release
+    ```
+  </Step>
+
+  <Step title="Locate Output">
+    Compiled binary will be in:
+    - `bin\Release\Rubeus.exe` (Release build)
+    - `bin\Debug\Rubeus.exe` (Debug build)
+  </Step>
+</Steps>
+
+## Build Configurations
+
+<Accordion title="Release vs Debug">
+  **Release Configuration:**
+  - Optimized for size and performance
+  - No debug symbols included
+  - Recommended for operational use
+  - Smaller file size
+
+  **Debug Configuration:**
+  - Includes debug symbols
+  - Easier troubleshooting
+  - Larger file size
+  - Useful for development
+</Accordion>
+
+<Accordion title="Framework Targeting">
+  **Modify Target Framework:**
+  1. Open project properties
+  2. Select "Application" tab
+  3. Change "Target framework" dropdown
+  4. Rebuild solution
+
+  **Framework-Specific Considerations:**
+  ```xml
+  <!-- In Rubeus.csproj -->
+  <TargetFramework>net35</TargetFramework>  <!-- .NET 3.5 -->
+  <TargetFramework>net40</TargetFramework>  <!-- .NET 4.0 -->
+  <TargetFramework>net45</TargetFramework>  <!-- .NET 4.5 -->
+  <TargetFramework>netcoreapp3.1</TargetFramework>  <!-- .NET Core -->
+  ```
+</Accordion>
+
+## Command Line Compilation
+
+<Accordion title="MSBuild Command Line">
+  **Basic Compilation:**
+  ```bash
+  # Release build
+  msbuild Rubeus.sln /p:Configuration=Release /p:Platform="Any CPU"
+
+  # Debug build
+  msbuild Rubeus.sln /p:Configuration=Debug /p:Platform="Any CPU"
+
+  # Specific framework
+  msbuild Rubeus.sln /p:Configuration=Release /p:TargetFramework=net35
+  ```
+
+  **Advanced Options:**
+  ```bash
+  # Clean and rebuild
+  msbuild Rubeus.sln /t:Clean,Rebuild /p:Configuration=Release
+
+  # Verbose output
+  msbuild Rubeus.sln /p:Configuration=Release /v:detailed
+
+  # Output to specific directory
+  msbuild Rubeus.sln /p:Configuration=Release /p:OutputPath=C:\Tools\
+  ```
+</Accordion>
+
+<Accordion title="dotnet CLI (for .NET Core)">
+  **Basic Commands:**
+  ```bash
+  # Restore dependencies
+  dotnet restore
+
+  # Build project
+  dotnet build -c Release
+
+  # Publish self-contained
+  dotnet publish -c Release -r win-x64 --self-contained
+  ```
+
+  **Framework-Specific:**
+  ```bash
+  # Target specific framework
+  dotnet build -f net35 -c Release
+  dotnet build -f netcoreapp3.1 -c Release
+  ```
+</Accordion>
+
+## Building as a Library
+
+<Accordion title="Library Integration">
+  **Purpose:**
+  - Integrate Rubeus functionality into other tools
+  - Create custom wrappers
+  - Embed in larger frameworks
+
+  **Configuration:**
+  1. Change output type to "Class Library"
+  2. Remove `Main()` method or make conditional
+  3. Expose public methods for external use
+  4. Build as .dll instead of .exe
+</Accordion>
+
+<Accordion title="Usage in Other Projects">
+  **Reference Assembly:**
+  ```csharp
+  // Add reference to Rubeus.dll
+  using Rubeus;
+
+  // Use Rubeus functionality
+  var tickets = Rubeus.Extraction.Dump();
+  ```
+
+  **NuGet Package Creation:**
+  ```bash
+  # Create NuGet package
+  dotnet pack -c Release
+
+  # Install in other projects
+  dotnet add package Rubeus
+  ```
+</Accordion>
+
+## Cross-Platform Compilation
+
+<Accordion title=".NET Core Cross-Platform">
+  **Linux Targeting:**
+  ```bash
+  dotnet publish -c Release -r linux-x64 --self-contained
+  dotnet publish -c Release -r linux-arm64 --self-contained
+  ```
+
+  **macOS Targeting:**
+  ```bash
+  dotnet publish -c Release -r osx-x64 --self-contained
+  dotnet publish -c Release -r osx-arm64 --self-contained
+  ```
+
+  **Windows Targeting:**
+  ```bash
+  dotnet publish -c Release -r win-x64 --self-contained
+  dotnet publish -c Release -r win-x86 --self-contained
+  dotnet publish -c Release -r win-arm64 --self-contained
+  ```
+</Accordion>
+
+## Optimization and Customization
+
+<Accordion title="Size Optimization">
+  **Reduce Binary Size:**
+  ```xml
+  <!-- In .csproj file -->
+  <PropertyGroup>
+    <PublishTrimmed>true</PublishTrimmed>
+    <PublishSingleFile>true</PublishSingleFile>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+  </PropertyGroup>
+  ```
+
+  **Remove Unused Features:**
+  - Comment out unused command classes
+  - Remove unnecessary dependencies
+  - Strip debug information
+</Accordion>
+
+<Accordion title="Customization Options">
+  **Branding Changes:**
+  - Modify banner text in `Program.cs`
+  - Change assembly metadata
+  - Update version information
+
+  **Feature Modification:**
+  - Add custom commands
+  - Modify existing functionality
+  - Integrate with other tools
+
+  **Obfuscation:**
+  - Use .NET obfuscators
+  - Modify string constants
+  - Change method names and signatures
+</Accordion>
+
+## PowerShell Integration
+
+<Accordion title="PowerShell Execution">
+  **Load Assembly:**
+  ```powershell
+  # Load from disk
+  [System.Reflection.Assembly]::LoadFile("C:\Path\To\Rubeus.exe")
+
+  # Load from bytes (file-less)
+  $bytes = [System.IO.File]::ReadAllBytes("C:\Path\To\Rubeus.exe")
+  [System.Reflection.Assembly]::Load($bytes)
+  ```
+
+  **Execute Commands:**
+  ```powershell
+  # Direct invocation
+  [Rubeus.Program]::Main("asktgt /user:admin /password:pass".Split())
+
+  # Capture output
+  $output = [Rubeus.Program]::Main("dump".Split())
+  ```
+</Accordion>
+
+<Accordion title="PSRemoting Considerations">
+  **Remote Execution:**
+  ```powershell
+  # Load and execute remotely
+  Invoke-Command -ComputerName target -ScriptBlock {
+      $bytes = [Convert]::FromBase64String($using:RubeusB64)
+      [System.Reflection.Assembly]::Load($bytes)
+      [Rubeus.Program]::Main("dump".Split())
+  }
+  ```
+
+  **Limitations:**
+  - PowerShell execution policy restrictions
+  - AMSI interference
+  - Constrained language mode
+  - Network connectivity requirements
+</Accordion>
+
+## Troubleshooting
+
+<Accordion title="Common Build Errors">
+  **Missing Dependencies:**
+  ```text
+  Error: Could not load file or assembly 'System.DirectoryServices'
+  Solution: Ensure .NET Framework version supports required assemblies
+  ```
+
+  **Framework Issues:**
+  ```text
+  Error: The type or namespace name 'X' could not be found
+  Solution: Check target framework compatibility and references
+  ```
+
+  **NuGet Package Issues:**
+  ```bash
+  # Restore packages
+  nuget restore Rubeus.sln
+  dotnet restore
+  ```
+</Accordion>
+
+<Accordion title="Runtime Issues">
+  **Framework Not Installed:**
+  - Install required .NET Framework version
+  - Use self-contained deployment
+  - Check Windows version compatibility
+
+  **Permission Issues:**
+  - Run as administrator when required
+  - Check antivirus interference
+  - Verify code signing if required
+</Accordion>
+
+## Operational Considerations
+
+<Warning>
+  Compiled binaries may be detected by antivirus software. Consider operational security implications before deployment.
+</Warning>
+
+<Accordion title="Detection Avoidance">
+  **Build Variations:**
+  - Compile with different frameworks
+  - Modify source code slightly
+  - Use different build configurations
+  - Apply obfuscation techniques
+
+  **Deployment Methods:**
+  - In-memory execution via PowerShell
+  - DLL injection techniques
+  - Reflective loading methods
+  - Process hollowing approaches
+</Accordion>
+
+## Related Resources
+
+- [GitHub Repository](https://github.com/GhostPack/Rubeus)

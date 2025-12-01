@@ -1,0 +1,197 @@
+---
+title: 'LogonEvents'
+description: 'Logon events (Event ID 4624) from the security event log. Default of 10 days, argument == last X days'
+icon: 'right-to-bracket'
+---
+
+## Overview
+
+The LogonEvents command parses Windows Security Event Log entries for Event ID 4624 (successful logon events). This command provides comprehensive information about all successful authentication attempts on the system, including logon type, account details, source IP addresses, and authentication packages used. It is essential for tracking user access, identifying lateral movement, and detecting unauthorized access.
+
+## Syntax
+
+```
+Seatbelt.exe LogonEvents
+```
+
+To specify a custom time range:
+
+```
+Seatbelt.exe "LogonEvents [days]"
+```
+
+### Arguments
+
+- **days** (optional) - Number of days to search backwards from the current date. Default is 10 days.
+
+### Examples
+
+```
+Seatbelt.exe LogonEvents          # Last 10 days (default)
+Seatbelt.exe "LogonEvents 30"     # Last 30 days
+Seatbelt.exe "LogonEvents 1"      # Last 24 hours
+Seatbelt.exe "LogonEvents 7"      # Last week
+```
+
+## Output
+
+The command returns:
+- Event timestamp
+- Logon ID
+- Account name
+- Account domain
+- Logon type (Interactive, Network, RemoteInteractive, etc.)
+- Authentication package (NTLM, Kerberos, Negotiate)
+- Source workstation name
+- Source IP address
+- Source port
+- Logon process
+- Process ID
+- Elevated token (Yes/No)
+
+Common logon types:
+- **Type 2** - Interactive (local logon)
+- **Type 3** - Network (SMB, file shares)
+- **Type 4** - Batch (scheduled tasks)
+- **Type 5** - Service (Windows services)
+- **Type 7** - Unlock (workstation unlock)
+- **Type 8** - NetworkCleartext (IIS basic auth)
+- **Type 9** - NewCredentials (RunAs)
+- **Type 10** - RemoteInteractive (RDP, Terminal Services)
+- **Type 11** - CachedInteractive (offline domain logon)
+
+## Use Cases
+
+### Red Team
+- Map lateral movement paths across the network
+- Identify privileged account usage patterns
+- Discover service accounts and their activity
+- Track administrator logon patterns
+- Identify potential targets based on access patterns
+- Determine authentication protocols in use
+- Find systems with cached credentials
+- Identify unusual logon times for targeted attacks
+
+### Blue Team
+- Detect unauthorized access attempts
+- Monitor lateral movement and credential theft
+- Identify suspicious logon patterns (time, location, type)
+- Audit privileged account usage
+- Detect Pass-the-Hash attacks
+- Monitor for brute force attacks
+- Correlate logon events with other security incidents
+- Validate least privilege principles
+- Identify credential reuse across systems
+- Detect anomalous authentication patterns
+- Investigate potential account compromise
+- Track service account activity
+
+## Example Output
+
+```
+====== LogonEvents (Last 10 Days) ======
+
+  Time             : 10/19/2023 8:42:15 AM
+  Logon ID         : 0x3E7
+  Account          : john.doe
+  Domain           : CORP
+  Logon Type       : RemoteInteractive (10)
+  Auth Package     : Negotiate
+  Source Workstation: ADMIN-WS01
+  Source IP        : 192.168.1.100
+  Source Port      : 53422
+  Logon Process    : User32
+  Process ID       : 1234
+  Elevated Token   : Yes
+
+  Time             : 10/19/2023 7:15:32 AM
+  Logon ID         : 0x2F8
+  Account          : svc_backup
+  Domain           : CORP
+  Logon Type       : Service (5)
+  Auth Package     : Negotiate
+  Source Workstation: -
+  Source IP        : -
+  Source Port      : -
+  Logon Process    : Advapi
+  Process ID       : 576
+  Elevated Token   : Yes
+
+  Time             : 10/18/2023 11:22:18 PM
+  Logon ID         : 0x4A3
+  Account          : administrator
+  Domain           : CORP
+  Logon Type       : Network (3)
+  Auth Package     : NTLM
+  Source Workstation: ATTACKER-PC
+  Source IP        : 192.168.1.50
+  Source Port      : 49234
+  Logon Process    : NtLmSsp
+  Process ID       : 0
+  Elevated Token   : Yes
+
+  Time             : 10/18/2023 3:45:22 PM
+  Logon ID         : 0x1B5
+  Account          : jane.smith
+  Domain           : CORP
+  Logon Type       : Interactive (2)
+  Auth Package     : Kerberos
+  Source Workstation: WORKSTATION42
+  Source IP        : 127.0.0.1
+  Source Port      : 0
+  Logon Process    : User32
+  Process ID       : 892
+  Elevated Token   : No
+```
+
+## Performance Considerations
+
+This command reads from the Windows Security Event Log, which can be time-intensive depending on:
+- Size of the Security Event Log
+- Number of days specified in the argument
+- Event log rotation and retention settings
+- System performance and disk I/O
+- Volume of logon activity on the system
+
+For busy servers or domain controllers with extensive logging, querying longer time periods (30+ days) may take considerable time to complete.
+
+## Remote Execution
+
+This command supports remote execution via WMI. Use the `-computername` parameter to query logon events on remote systems:
+
+```
+Seatbelt.exe LogonEvents -computername=TARGET.domain.com
+Seatbelt.exe "LogonEvents 30" -computername=DC01.domain.com -username=DOMAIN\admin -password=Pass123
+```
+
+## Detection Considerations
+
+### Indicators
+- Security Event Log access (Event ID 4663, 4656)
+- WMI queries to remote event logs
+- Large-scale event log enumeration
+- Access to HKLM\SYSTEM\CurrentControlSet\Services\EventLog
+- Unusual processes reading Security event logs
+
+### Defensive Recommendations
+- Enable Security Event Log auditing (Event ID 4663)
+- Monitor for mass event log queries
+- Alert on event log access by non-authorized tools
+- Implement SIEM correlation for logon patterns
+- Restrict event log access to authorized accounts only
+- Monitor for abnormal logon events (after-hours, unusual sources)
+- Correlate Event ID 4624 with failed logons (4625) and explicit logons (4648)
+- Baseline normal logon behavior per user/system
+- Alert on logon types unusual for specific accounts
+- Monitor for NTLM authentication when Kerberos should be used
+- Track source IP addresses for geographic anomalies
+
+## Related Commands
+
+- **ExplicitLogonEvents** - Explicit Logon events (Event ID 4648)
+- **LogonSessions** - Windows logon sessions
+- **ProcessCreationEvents** - Process creation logs (Event ID 4688)
+- **PowerShellEvents** - PowerShell script block logs (Event ID 4104)
+- **SysmonEvents** - Sysmon process creation logs (Event ID 1)
+- **LocalUsers** - Local users and password last set
+- **LocalGroups** - Non-empty local groups

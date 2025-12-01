@@ -1,0 +1,54 @@
+---
+title: "File Browser"
+description: "Unified, Persistent File Browser"
+---
+
+## What is it?
+
+The file browser is a visual, file browser representation of the directory listings that agents perform. Not all agents support this feature however.
+
+## Where is it?
+
+From any callback dropdown in the "Active Callbacks" window, select "File Browser" and the view will be rendered in the lower-half of the screen. This information is a combination of the data across *all* of the callbacks, and is persistent.
+
+<Frame caption="File Browser View">
+  <img src="../images/version-3.3/image-1-16.png"/>
+</Frame>
+
+## How do you use it?
+
+The view is divided into two pieces - a graphical hierarchy on the left and a more detailed view of a folder on the right. The top layer on the left will be the hostname and everything below it will correspond to the file structure for that host.
+
+You'll notice a green checkmark for the `/` folder. The green checkmark means that an agent reported back information for that folder specifically (i.e. somebody tasked an `ls` of that folder or issued a `list` command via the button on the table side). This is in contrast the other folders in that tree - those folders are "implicitly" known because we have the full path returned for the folder we did access. If there is a red circle with an exclamation point, it means that you tried to perform an `ls` on the directory, but it failed.
+
+On the right hand side, the table view has a few pieces along the top:
+
+- The text field is the `path` associated with the information below with the corresponding hostname right above it. If you haven't received any information from any agent yet or you haven't clicked on a path, this will default to the current directory `.`.
+- The first buttons allow you to navigate back, forward, or up one directory based on your browsing.
+- The first button on the right is the `list` button. This looks for a command with `file_browser:list` set in the command's supported\_ui\_features loaded into the callback identified at the top of the tab. Then issues that command with the `host` and `path` shown in the first two fields. If you want to list the contents of a directory that you can't see in the UI, just modify these two values and hit `list`.
+- The second button is the `upload` button. This will look for the `file_browser:upload` set in the supported\_ui\_features for a command and execute that command loaded into that callback. In most cases this will cause a popup dialog where you can upload your file.
+- The list icon with an x on it indicates you preference for automatically issuing the `file_browser:list` task when you click into a folder that you haven't listed already (anything without a check mark or red exclamation point). This is off by default, but toggling it on can allow you to triage quite quickly. Just keep in mind that it does issue a lot of tasks as you click around.
+- The last field allows you to toggle viewing deleted files or not.
+
+## Actions
+
+For each entry in the table menu on the right, there are some actions you can do by clicking the gear icon:
+
+<Frame caption="File Browser Actions">
+  <img src="../images/version-3.3/image-1-17.png"/>
+</Frame>
+
+The file browser only shows *some* information that's returned. There are portions that are Operating Specific though - like UNIX permissions, extended attributes, or SDDLs. This information doesn't make sense to display in the main table, so clicking the `View Permissions` action will display a popup with more specific information.
+
+The `Download History` button will display information about all the times that file has been downloaded. This is useful when you repeatedly download the same file over and over again (ex: downloading a user's Chrome Cookie's file every day). If you've downloaded a file, there will be a green download icon next to the filename. This will always point to the *latest* version of the file, but you can use the `download history` option to view all other instances in an easy pane. This popup will also show the comments associated with the tasks that issued the download commands.
+
+The other three are self explanatory - tasking to list a file/folder, download a file, or remove a file/folder. If a file is removed and reports back the removal to hook into the file browser, then the filename will have a small trash icon next to it and the name will have a strikethrough.
+
+<iframe
+  className="w-full aspect-video rounded-xl"
+  src="https://www.youtube.com/embed/XD7Az_PQew0?si=vbccoJWb2Ch1nGcZ"
+  title="Mythic Operator Video Series — File Browser"
+  frameBorder="0"
+  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+  allowFullScreen
+></iframe>

@@ -1,0 +1,39 @@
+---
+title: "objectives_create_subtask"
+description: "Create a subtask under an existing objective"
+---
+
+## Summary
+
+Add a new subtask to break down an objective into smaller trackable items.
+
+- Needs Admin: False
+- Version: 1-2
+- Author: @its_a_feature_
+
+### Arguments
+
+#### objective_id
+- Description: ID of the parent objective
+- Required: True
+
+#### description
+- Description: Description of the subtask
+- Required: True
+
+
+## Usage
+
+```
+objectives_create_subtask -objective_id 5 -description "Test SSH authentication"
+```
+
+## Detailed Summary
+
+Creates a new subtask under an existing objective. Subtasks help break down large objectives into manageable pieces and provide detailed progress tracking.
+
+Each subtask has its own:
+- Description
+- Status (complete/incomplete)
+- Assignment
+- Notes

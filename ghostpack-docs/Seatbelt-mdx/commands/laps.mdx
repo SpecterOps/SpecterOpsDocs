@@ -1,0 +1,87 @@
+---
+title: 'LAPS'
+description: 'LAPS settings, if installed'
+icon: 'key'
+---
+
+## Overview
+
+The LAPS command checks for Local Administrator Password Solution (LAPS) installation and configuration. LAPS is a Microsoft solution that manages and rotates local administrator passwords, storing them in Active Directory. Understanding LAPS deployment helps assess credential management and local admin access controls.
+
+## Syntax
+
+```bash
+Seatbelt.exe LAPS
+```
+
+### Remote Execution
+```bash
+Seatbelt.exe LAPS -computername=TARGET.domain.com [-username=DOMAIN\user -password=pass]
+```
+
+## Output
+
+Returns LAPS configuration:
+- Installation status
+- LAPS administrative template installation
+- Password complexity settings
+- Password length
+- Password age
+- Managed account name
+- Registry settings
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Determine if local admin passwords are managed
+    - Assess password rotation policies
+    - Identify non-LAPS managed systems
+    - Plan lateral movement strategies
+    - Understand credential management posture
+  </Tab>
+  <Tab title="Blue Team">
+    - Verify LAPS deployment
+    - Audit password management compliance
+    - Identify unmanaged systems
+    - Validate LAPS configuration
+    - Ensure proper password rotation
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== LAPS ======
+
+[*] LAPS Enabled                : True
+[*] LAPS Admin Account Name     :
+[*] LAPS Password Complexity    : 4 (Large, Small, Numbers, Specials)
+[*] LAPS Password Length        : 14
+[*] LAPS Password Age (Days)    : 30
+
+Registry Settings:
+  AdmPwdEnabled                 : 1
+  PasswordComplexity            : 4
+  PasswordLength                : 14
+  PasswordAgeDays               : 30
+```
+
+## Remote Execution
+
+<Check>
+This command **supports remote execution** using the `-computername` parameter.
+</Check>
+
+## Detection Considerations
+
+<Info>
+Low detection risk - queries registry for LAPS configuration.
+</Info>
+
+## Related Commands
+
+- [LocalUsers](/commands/localusers) - Local user accounts
+- [LocalGroups](/commands/localgroups) - Local group membership
+- [CredGuard](/commands/credguard) - Credential Guard status
+- [LSASettings](/commands/lsasettings) - LSA configuration

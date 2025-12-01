@@ -1,0 +1,274 @@
+---
+title: 'SMB Profiling (smb)'
+description: 'Profile discovered SCCM infrastructure to determine site system roles, connectivity, and security configurations across SMB, HTTP, and MSSQL services.'
+icon: 'server'
+sidebarTitle: 'SMB Profiling'
+---
+
+The `smb` module performs comprehensive profiling of discovered SCCM infrastructure to determine site system roles and security configurations. This module builds upon the initial discovery from the [`find`](/enumeration/find) command to provide detailed operational intelligence.
+
+<Info>
+The SMB profiling module checks multiple services (SMB, HTTP/HTTPS, MSSQL) and is particularly valuable for identifying PXE boot variables files that may contain Network Access Account credentials.
+</Info>
+
+## Profiling Components
+
+The SMB module conducts reconnaissance across three main areas:
+
+<Accordion title="1. Site Server Profiling">
+**Core Infrastructure Analysis**
+
+- **Connectivity verification** to discovered site servers
+- **MSSQL service detection** for database hosting servers
+- **Site server state identification** (Active vs Passive configuration)
+- **Central Administration Site (CAS) detection** for hierarchy mapping
+
+<Tip>
+Active/Passive configurations indicate high availability setups. CAS servers are at the top of multi-site hierarchies and represent high-value targets.
+</Tip>
+</Accordion>
+
+<Accordion title="2. Management Point Validation">
+**Client Communication Endpoints**
+
+- **HTTP endpoint connectivity** verification
+- **Management Point accessibility** for client policy requests
+- **Service availability** confirmation for exploitation planning
+
+<Info>
+Management Points handle all client communications and are essential for HTTP-based attacks like client enrollment abuse.
+</Info>
+</Accordion>
+
+<Accordion title="3. Site System Role Detection">
+**Comprehensive Service Enumeration**
+
+- **Site Code association** from default file shares
+- **SMB signing status** assessment (security configuration)
+- **Site system role identification** including:
+  - Site Server
+  - Management Point
+  - Distribution Point (with PXE variables detection)
+  - SMS Provider
+  - MSSQL Server
+  - WSUS Server
+
+<Warning>
+Distribution Points with variables files often contain Network Access Account credentials in cleartext. The `-save` flag automatically downloads these files.
+</Warning>
+</Accordion>
+
+## Prerequisites
+
+<Card title="Requirements" icon="checklist">
+- Valid Active Directory credentials (domain user minimum)
+- Previous enumeration data from [`find`](/enumeration/find) module
+- Network connectivity to target SCCM infrastructure
+- SMB access to file shares (ports 139/445)
+</Card>
+
+
+## Command Syntax
+
+<CodeGroup>
+```bash Command Format
+python3 sccmhunter.py smb [OPTIONS]
+```
+
+```bash Basic Profiling
+python3 sccmhunter.py smb -u administrator -p P@ssw0rd -d internal.lab -dc-ip 10.10.100.100
+```
+
+```bash Auto-Save PXE Variables
+python3 sccmhunter.py smb -u administrator -p P@ssw0rd -d internal.lab -dc-ip 10.10.100.100 -save
+```
+
+```bash Kerberos Authentication
+python3 sccmhunter.py smb -u administrator -d internal.lab -dc-ip 10.10.100.100 -k -no-pass
+```
+</CodeGroup>
+
+## Parameters
+
+<Accordion title="Required Parameters">
+| Parameter | Description | Example |
+|-----------|-------------|---------|
+| `-d` | Target domain name | `internal.lab` |
+| `-dc-ip` | Domain controller IP or FQDN | `10.10.100.100` |
+</Accordion>
+
+<Accordion title="Authentication Options">
+| Parameter | Description | Example |
+|-----------|-------------|---------|
+| `-u` | Username for authentication | `administrator` |
+| `-p` | Password for authentication | `P@ssw0rd` |
+| `-hashes` | NT:LM hash for authentication | `aad3b435b51404ee:5fbc3d5fec8206a30f4b6c473d68ae76` |
+| `-k` | Use Kerberos authentication | |
+| `-no-pass` | Don't prompt for password (useful with -k) | |
+| `-aes` | AES key for Kerberos (128 or 256 bits) | |
+</Accordion>
+
+<Accordion title="Advanced Options">
+| Parameter | Description | Example |
+|-----------|-------------|---------|
+| `-ldaps` | Use LDAPS instead of LDAP | |
+| `-save` | Automatically save PXE variables files | |
+| `-debug` | Enable verbose logging | |
+</Accordion>
+
+<Warning>
+The `-save` flag automatically downloads PXE variables files that may contain sensitive credentials. Ensure you have proper authorization before using this option.
+</Warning>
+
+## Usage Examples
+
+<Accordion title="Standard Infrastructure Profiling">
+**Perform comprehensive profiling of discovered SCCM infrastructure**
+
+```bash
+python3 sccmhunter.py smb -u administrator -p P@ssw0rd -d internal.lab -dc-ip 10.10.100.100
+```
+
+**Expected Output:**
+```
+[16:25:22] INFO     [+] Finished profiling Site Servers.
++----------------------+------------+-------+-----------------+--------------+---------------+----------+---------+
+| Hostname             | SiteCode   | CAS   | SigningStatus   | SiteServer   | SMSProvider   | Config   | MSSQL   |
++======================+============+=======+=================+==============+===============+==========+=========+
+| sccm2.internal.lab   | ABC        | False | False           | True         | True          | Active   | True    |
++----------------------+------------+-------+-----------------+--------------+---------------+----------+---------+
+| passive.internal.lab | ACT        | False | False           | True         | True          | Passive  | True    |
++----------------------+------------+-------+-----------------+--------------+---------------+----------+---------+
+| active.internal.lab  | ACT        | False | False           | True         | True          | Active   | False   |
++----------------------+------------+-------+-----------------+--------------+---------------+----------+---------+
+| sccm.internal.lab    | LAB        | False | False           | True         | True          | Active   | False   |
++----------------------+------------+-------+-----------------+--------------+---------------+----------+---------+
+| cas.internal.lab     | CAS        | True  | False           | True         | True          | Active   | True    |
++----------------------+------------+-------+-----------------+--------------+---------------+----------+---------+
+
+[16:25:32] INFO     [+] Finished profiling Management Points.
++---------------------+------------+-----------------+
+| Hostname            | SiteCode   | SigningStatus   |
++=====================+============+=================+
+| sccm2.internal.lab  | ABC        | False           |
++---------------------+------------+-----------------+
+| active.internal.lab | ACT        | False           |
++---------------------+------------+-----------------+
+| mp.internal.lab     | LAB        | False           |
++---------------------+------------+-----------------+
+| sccm.internal.lab   | LAB        | False           |
++---------------------+------------+-----------------+
+
+[16:26:12] INFO     [+] Finished profiling all discovered computers.
++----------------------+------------+-----------------+--------------+-------------------+---------------------+---------------+--------+---------+
+| Hostname             | SiteCode   | SigningStatus   | SiteServer   | ManagementPoint   | DistributionPoint   | SMSProvider   | WSUS   | MSSQL   |
++======================+============+=================+==============+===================+=====================+===============+========+=========+
+| sccm2.internal.lab   | ABC        | False           | True         | True              | False               | True          | False  | True    |
++----------------------+------------+-----------------+--------------+-------------------+---------------------+---------------+--------+---------+
+| passive.internal.lab | ACT        | False           | False        | False             | False               | True          | False  | True    |
++----------------------+------------+-----------------+--------------+-------------------+---------------------+---------------+--------+---------+
+| active.internal.lab  | ACT        | False           | True         | True              | False               | True          | False  | False   |
++----------------------+------------+-----------------+--------------+-------------------+---------------------+---------------+--------+---------+
+| sccm.internal.lab    | LAB        | False           | True         | True              | False               | True          | False  | False   |
++----------------------+------------+-----------------+--------------+-------------------+---------------------+---------------+--------+---------+
+| cas.internal.lab     | CAS        | False           | True         | False             | False               | True          | False  | True    |
++----------------------+------------+-----------------+--------------+-------------------+---------------------+---------------+--------+---------+
+| mp.internal.lab      | LAB        | False           | False        | True              | False               | False         | False  | False   |
++----------------------+------------+-----------------+--------------+-------------------+---------------------+---------------+--------+---------+
+```
+
+<Info>
+The SMB profiling provides three distinct tables: Site Servers (core infrastructure), Management Points (client endpoints), and a comprehensive Computers table with all role assignments.
+</Info>
+</Accordion>
+
+<Accordion title="PXE Variables Discovery and Auto-Save">
+**Automatically download PXE boot variables files containing Network Access Account credentials**
+
+```bash
+python3 sccmhunter.py smb -u administrator -p P@ssw0rd -d internal.lab -dc-ip 10.10.100.100 -save
+```
+
+**Expected Output:**
+```
+[11:52:38] INFO     Profiling 5 site servers.
+[11:53:00] INFO     [+] Finished profiling Site Servers.
+[... Site Server and Management Point tables ...]
+[11:53:16] INFO     Profiling 11 computers.
+[11:54:01] INFO     [*] Searching dp.internal.lab for PXEBoot variables files.
+[11:54:02] INFO     [+] Variables files downloaded!
+[11:54:02] INFO     [+] Results saved to /root/.sccmhunter/logs/smbhunter.log
+[11:54:02] INFO     [+] Finished profiling all discovered computers.
++-----------------------+------------+-----------------+--------------+-------------------+---------------------+---------------+--------+---------+
+| Hostname              | SiteCode   | SigningStatus   | SiteServer   | ManagementPoint   | DistributionPoint   | SMSProvider   | WSUS   | MSSQL   |
++=======================+============+=================+==============+===================+=====================+===============+========+=========+
+| dp.internal.lab       | LAB        | False           | False        | False             | True                | False         | False  | False   |
++-----------------------+------------+-----------------+--------------+-------------------+---------------------+---------------+--------+---------+
+```
+
+<Warning>
+PXE variables files may contain Network Access Account credentials in cleartext. These credentials can be used for lateral movement and are automatically saved to the logs directory when discovered.
+</Warning>
+</Accordion>
+
+## Analysis and Interpretation
+
+<Card title="Understanding Site System Roles" icon="server">
+The SMB profiling reveals the distributed nature of SCCM infrastructure:
+
+- **Site Servers**: Core SCCM infrastructure hosting the site database
+- **Management Points**: Client communication gateways for policy and software distribution
+- **Distribution Points**: Content storage and PXE boot services
+- **SMS Providers**: WMI providers for SCCM administration
+- **WSUS Integration**: Windows Update Services integration points
+</Card>
+
+<CardGroup cols={2}>
+<Card title="Security Assessment Focus" icon="shield-check">
+**Key Security Indicators:**
+- SMB signing disabled (attack opportunities)
+- Active vs Passive configurations
+- Central Administration Sites (highest privileges)
+- Servers with multiple roles (broader attack surface)
+</Card>
+
+<Card title="Credential Discovery" icon="key">
+**PXE Variables Content:**
+- Network Access Account credentials
+- Task sequence variables
+- Domain join credentials
+- Custom deployment secrets
+</Card>
+</CardGroup>
+
+## Target Prioritization
+
+<Accordion title="High-Value Targets">
+1. **Central Administration Sites (CAS)** - Top of hierarchy
+2. **Active Site Servers with MSSQL** - Database access
+3. **Distribution Points with PXE** - Credential exposure
+4. **SMS Providers** - Administrative access
+</Accordion>
+
+<Accordion title="Attack Path Planning">
+- **SMB Signing Disabled**: NTLM relay opportunities
+- **Distribution Points**: Network Access Account credential extraction
+- **Management Points**: Client enrollment abuse for credential theft
+- **Site Servers**: Database queries and privilege escalation
+</Accordion>
+
+## Next Steps
+
+<CardGroup cols={3}>
+<Card title="Display Results" icon="eye" href="/sccmhunter-docs/enumeration/show">
+Review and export profiling data for analysis
+</Card>
+
+<Card title="HTTP Exploitation" icon="globe" href="/sccmhunter-docs/exploitation/http">
+Abuse Management Points for credential extraction
+</Card>
+
+<Card title="MSSQL Attacks" icon="database" href="/sccmhunter-docs/exploitation/mssql">
+Target SQL servers for privilege escalation
+</Card>
+</CardGroup>

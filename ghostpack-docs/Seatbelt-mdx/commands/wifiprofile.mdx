@@ -1,0 +1,113 @@
+---
+title: 'WifiProfile'
+description: 'Enumerates the saved Wifi profiles and extract the ssid, authentication type, cleartext key/passphrase (when possible)'
+icon: 'wifi'
+---
+
+## Overview
+
+The WifiProfile command enumerates saved WiFi profiles on the system and attempts to extract SSIDs, authentication types, and cleartext passwords/passphrases. This reveals previously connected wireless networks and their credentials, which can be valuable for gaining access to other networks or understanding the user's physical locations.
+
+## Syntax
+
+```bash
+Seatbelt.exe WifiProfile
+```
+
+<Note>
+This command does **not** support remote execution.
+</Note>
+
+## Output
+
+Returns WiFi profile information:
+- Profile name (SSID)
+- Authentication type (WPA2-Personal, WPA2-Enterprise, etc.)
+- Encryption type (AES, TKIP)
+- Cleartext password/passphrase (if available)
+- Auto-connect setting
+- Connection mode
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Extract WiFi passwords for network access
+    - Identify corporate vs guest networks
+    - Understand user's physical movement patterns
+    - Gain access to additional networks
+    - Identify potential pivot points
+  </Tab>
+  <Tab title="Blue Team">
+    - Audit stored WiFi credentials
+    - Identify unauthorized network connections
+    - Detect connections to rogue access points
+    - Validate network access policies
+    - Investigate credential exposure
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== WifiProfile ======
+
+[*] Enumerating saved WiFi profiles...
+
+Profile Name         : CORP-WIRELESS
+SSID                 : CORP-WIRELESS
+Authentication       : WPA2PSK
+Encryption           : AES
+Key Type             : passPhrase
+Key Content          : SuperSecret123!
+Auto Connect         : True
+
+Profile Name         : Guest-WiFi
+SSID                 : Guest-WiFi
+Authentication       : Open
+Encryption           : None
+Key Type             : None
+Key Content          :
+Auto Connect         : False
+
+Profile Name         : HOME-NETWORK-5G
+SSID                 : HOME-NETWORK-5G
+Authentication       : WPA2PSK
+Encryption           : AES
+Key Type             : passPhrase
+Key Content          : MyH0meP@ssw0rd
+Auto Connect         : True
+```
+
+## Remote Execution
+
+<Warning>
+This command does **NOT support remote execution**.
+</Warning>
+
+WiFi profiles are stored locally in the system and require local access to extract.
+
+## Detection Considerations
+
+<Info>
+Moderate detection risk - reads WiFi profile XML files.
+</Info>
+
+- **File Access**: Reads XML files from `C:\ProgramData\Microsoft\Wlansvc\Profiles\Interfaces\`
+- **API Calls**: May use WLAN API functions
+- **Privilege Requirements**: Requires administrator privileges to extract passwords
+- **EDR Telemetry**: File access may be logged by security products
+
+### Defensive Recommendations
+
+- Monitor access to WiFi profile XML files
+- Alert on bulk WiFi credential extraction
+- Implement file integrity monitoring on profile directory
+- Correlate with other credential theft indicators
+
+## Related Commands
+
+- [NetworkProfiles](/commands/networkprofiles) - Network profile history
+- [DNSCache](/commands/dnscache) - DNS cache entries
+- [NetworkShares](/commands/networkshares) - Network shares
+- [InternetSettings](/commands/internetsettings) - Internet and proxy settings

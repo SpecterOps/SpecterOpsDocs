@@ -1,0 +1,87 @@
+---
+title: 'CertificateThumbprints'
+description: 'Finds thumbprints for all certificate store certs on the system'
+icon: 'fingerprint'
+---
+
+## Overview
+
+The CertificateThumbprints command enumerates thumbprints (SHA-1 hashes) for all certificates in all certificate stores on the system. Thumbprints uniquely identify certificates and are often used in configuration files, security policies, and for certificate pinning.
+
+## Syntax
+
+```bash
+Seatbelt.exe CertificateThumbprints
+```
+
+<Note>
+This command does **not** support remote execution.
+</Note>
+
+## Output
+
+The command returns:
+
+- Certificate store location (CurrentUser/LocalMachine)
+- Store name (My, Root, CA, TrustedPublisher, etc.)
+- Certificate subject
+- Thumbprint (SHA-1 hash)
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Identify trusted root certificates
+    - Find certificate pinning configurations
+    - Discover custom trusted CAs
+    - Locate certificates used in applications
+    - Identify potential trust anchor manipulation
+  </Tab>
+  <Tab title="Blue Team">
+    - Audit trusted root certificates
+    - Detect unauthorized certificate installations
+    - Validate certificate trust chains
+    - Identify rogue CA certificates
+    - Generate certificate inventory
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== CertificateThumbprints ======
+
+Store: CurrentUser\My
+  CN=user@domain.com
+  Thumbprint: 1234567890ABCDEF1234567890ABCDEF12345678
+
+Store: LocalMachine\Root
+  CN=VeriSign Class 3 Public Primary Certification Authority - G5
+  Thumbprint: 4EB6D578499B1CCF5F581EAD56BE3D9B6744A5E5
+
+Store: LocalMachine\CA
+  CN=Corporate Issuing CA
+  Thumbprint: ABCDEF1234567890ABCDEF1234567890ABCDEF12
+
+Store: LocalMachine\TrustedPublisher
+  CN=Microsoft Corporation
+  Thumbprint: 9876543210FEDCBA9876543210FEDCBA98765432
+```
+
+## Remote Execution
+
+<Warning>
+This command does **NOT support remote execution**.
+</Warning>
+
+## Detection Considerations
+
+<Info>
+Minimal detection surface - standard certificate store enumeration.
+</Info>
+
+## Related Commands
+
+- [Certificates](/commands/certificates) - Detailed certificate information
+- [AMSIProviders](/commands/amsiproviders) - AMSI provider enumeration
+- [AntiVirus](/commands/antivirus) - Security product enumeration

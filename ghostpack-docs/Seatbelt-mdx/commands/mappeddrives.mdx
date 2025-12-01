@@ -1,0 +1,117 @@
+---
+title: 'MappedDrives'
+description: 'Users mapped drives (via WMI)'
+icon: 'network-wired'
+---
+
+## Overview
+
+The `MappedDrives` command enumerates network drives mapped by users on the system via WMI. This reveals network shares, file servers, and storage resources that users regularly access, providing valuable intelligence about network infrastructure and data storage locations.
+
+**Important:** User commands run for the current user if not elevated and for ALL users if elevated.
+
+## Syntax
+
+```
+Seatbelt.exe MappedDrives
+```
+
+No additional arguments are supported. This command supports remote execution.
+
+## Output
+
+The command returns:
+- Drive letters and mapped paths
+- Network share UNC paths
+- Provider names (Microsoft Windows Network, etc.)
+- Connection status
+- User context for each mapped drive
+- Persistent vs. temporary mappings
+
+## Use Cases
+
+### Red Team
+- **Network Mapping**: Discover file servers and network shares
+- **Lateral Movement**: Identify accessible network resources for data access
+- **Target Identification**: Find high-value file shares (HR, Finance, IT)
+- **Infrastructure Discovery**: Map organizational network topology
+- **Credential Validation**: Test harvested credentials against discovered shares
+
+### Blue Team
+- **Asset Inventory**: Document network share usage across endpoints
+- **Access Auditing**: Review mapped drive permissions and usage
+- **Compliance Monitoring**: Ensure network resource access aligns with policies
+- **Incident Response**: Track network share access during investigations
+- **Risk Assessment**: Identify exposure from over-permissive share access
+
+## Example Output
+
+```
+====== MappedDrives ======
+
+User: john.doe
+
+  Drive: H:
+    RemotePath        : \\fileserver01\home\john.doe
+    ProviderName      : Microsoft Windows Network
+    Status            : Connected
+    Persistent        : True
+
+  Drive: S:
+    RemotePath        : \\fileserver01\shared\Finance
+    ProviderName      : Microsoft Windows Network
+    Status            : Connected
+    Persistent        : True
+
+  Drive: T:
+    RemotePath        : \\nas.contoso.com\departments\IT
+    ProviderName      : Microsoft Windows Network
+    Status            : Connected
+    Persistent        : False
+```
+
+## Privilege Context
+
+- **Non-Elevated**: Returns mapped drives for the current user only
+- **Elevated**: Returns mapped drives for ALL users on the system, providing comprehensive network share mapping across all user accounts
+
+## Remote Execution
+
+This command **supports** remote execution (marked with + in the command list).
+
+Remote syntax:
+```
+Seatbelt.exe MappedDrives -computername=TARGET.domain.com -username=DOMAIN\user -password=pass
+```
+
+## Detection Considerations
+
+### Indicators
+- WMI queries for Win32_MappedLogicalDisk class
+- Enumeration of network drive mappings
+- Access to user session information
+- Querying multiple user contexts
+
+### Defensive Monitoring
+- Monitor WMI queries for mapped drive information
+- Alert on automated enumeration of network shares
+- Track processes querying drive mapping information
+- Log unusual access patterns to network resource data
+- Detect reconnaissance tools mapping network infrastructure
+- Monitor for lateral movement attempts to discovered shares
+
+### What Mapped Drives Reveal
+- Organizational structure (department shares)
+- Privileged user identification (admin shares)
+- Critical infrastructure (backup shares, sensitive data)
+- Network topology and file server locations
+- User roles and responsibilities
+- Potential lateral movement paths
+
+## Related Commands
+
+- **NetworkShares**: Lists network shares exposed by the machine
+- **dir**: Can enumerate files on mapped drives
+- **ExplorerMRUs**: Shows recently accessed files which may be on network shares
+- **EnvironmentPath**: May reveal network paths in PATH variable
+- **CloudSyncProviders**: Shows cloud storage sync configurations

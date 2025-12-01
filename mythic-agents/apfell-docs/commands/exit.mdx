@@ -1,0 +1,28 @@
+---
+title: "exit"
+description: "This exits the current apfell agent by leveraging the ObjectiveC bridge's NSApplication terminate function."
+---
+
+## Summary
+
+This exits the current apfell agent by leveraging the ObjectiveC bridge's NSApplication terminate function. 
+- Needs Admin: False  
+- Version: 1  
+- Author: @its_a_feature_  
+
+### Arguments
+
+## Usage
+
+```
+exit
+```
+
+
+## Detailed Summary
+
+The command executes this call:
+```javascript
+$.NSApplication.sharedApplication.terminate(this);
+```
+

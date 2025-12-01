@@ -1,0 +1,355 @@
+---
+title: 'machinemasterkeys'
+description: 'Extract and decrypt machine DPAPI masterkeys'
+icon: 'server'
+---
+
+## Overview
+
+The **machinemasterkeys** command elevates to SYSTEM, retrieves the DPAPI_SYSTEM LSA secret, and uses it to decrypt all accessible machine DPAPI masterkeys. It returns {GUID}:SHA1 mappings that can be used with other machine DPAPI commands.
+
+<Info>
+  Machine masterkeys are used to protect system-level credentials, scheduled task passwords, service account credentials, and other machine-scope DPAPI data.
+</Info>
+
+## Basic Usage
+
+```bash
+# Decrypt machine masterkeys (requires elevation)
+SharpDPAPI.exe machinemasterkeys
+```
+
+<Warning>
+  This command requires **elevation** (Administrator privileges) to:
+  - Elevate to SYSTEM via token duplication
+  - Retrieve the DPAPI_SYSTEM LSA secret
+  - Access system masterkey files
+</Warning>
+
+## How It Works
+
+<Steps>
+  <Step title="Elevation to SYSTEM">
+    Duplicates a SYSTEM token to elevate privileges
+  </Step>
+
+  <Step title="DPAPI_SYSTEM Retrieval">
+    Retrieves the DPAPI_SYSTEM LSA secret used to protect machine masterkeys
+  </Step>
+
+  <Step title="Masterkey Discovery">
+    Locates all machine masterkey files in system directories
+  </Step>
+
+  <Step title="Masterkey Decryption">
+    Decrypts each masterkey using the DPAPI_SYSTEM secret
+  </Step>
+
+  <Step title="Output Mappings">
+    Returns {GUID}:SHA1 mappings for use with other commands
+  </Step>
+</Steps>
+
+## Example Output
+
+```bash
+SharpDPAPI.exe machinemasterkeys
+```
+
+**Output:**
+```
+[*] Action: Machine DPAPI Masterkey File Triage
+
+[*] Elevating to SYSTEM via token duplication for LSA secret retrieval
+[*] RevertToSelf()
+
+[*] Secret  : DPAPI_SYSTEM
+[*]    full: DBA60EB802B6C4B42E1E450BB5781EBD0846E1BF6C88CEFD23D0291FA9FE46899D4DE12A180E76C3
+[*]    m/u : DBA60EB802B6C4B42E1E450BB5781EBD0846E1BF / 6C88CEFD23D0291FA9FE46899D4DE12A180E76C3
+
+[*] SYSTEM master key cache:
+
+{1e76e1ee-1c53-4350-9a3d-7dec7afd024a}:4E4193B4C4D2F0420E0656B5F83D03754B565A0C
+{0bd732d9-c396-4f9a-a69a-508632c05235}:8A9F2C1D3E4B5C6A7D8E9F0A1B2C3D4E5F6A7B8C
+{f12f57e1-dd41-4daa-88f1-37a64034c7e9}:3AEB121ECF29A876D543B1C09A8F7E6D5C4B3A21
+```
+
+<Tip>
+  Save these {GUID}:SHA1 mappings to a file. They can be used with machine credential/vault commands or saved for future use.
+</Tip>
+
+## Machine Masterkey Locations
+
+Machine masterkeys are stored in:
+
+```
+C:\Windows\System32\Microsoft\Protect\S-1-5-18\
+C:\Windows\ServiceProfiles\LocalService\AppData\Roaming\Microsoft\Protect\
+C:\Windows\ServiceProfiles\NetworkService\AppData\Roaming\Microsoft\Protect\
+```
+
+**Protected Accounts:**
+- **S-1-5-18**: SYSTEM account
+- **LocalService**: Local Service account
+- **NetworkService**: Network Service account
+
+## DPAPI_SYSTEM Secret
+
+The DPAPI_SYSTEM LSA secret consists of two keys:
+
+| Component | Description |
+|-----------|-------------|
+| **Machine Key** | Used for SYSTEM and machine-scope encryption |
+| **User Key** | Used for user-scope encryption when no user is logged on |
+
+**Format:**
+```
+Full:    [MACHINE_KEY][USER_KEY]
+m/u:     [MACHINE_KEY] / [USER_KEY]
+```
+
+## Using Machine Masterkeys
+
+Once you have the {GUID}:SHA1 mappings, use them with machine DPAPI commands:
+
+```bash
+# Save masterkeys to file
+{1e76e1ee-1c53-4350-9a3d-7dec7afd024a}:4E4193B4C4D2F0420E0656B5F83D03754B565A0C
+{0bd732d9-c396-4f9a-a69a-508632c05235}:8A9F2C1D3E4B5C6A7D8E9F0A1B2C3D4E5F6A7B8C
+
+# Use with machine commands
+SharpDPAPI.exe machinecredentials /mkfile:machine_masterkeys.txt
+SharpDPAPI.exe machinevaults /mkfile:machine_masterkeys.txt
+SharpDPAPI.exe certificates /machine /mkfile:machine_masterkeys.txt
+```
+
+## What Machine Masterkeys Protect
+
+<AccordionGroup>
+  <Accordion title="Scheduled Task Credentials">
+    - Task Scheduler stored passwords
+    - Service account credentials for tasks
+    - Automated job credentials
+  </Accordion>
+
+  <Accordion title="Service Account Passwords">
+    - Windows service credentials
+    - Application pool identities
+    - Background service accounts
+  </Accordion>
+
+  <Accordion title="System Credentials">
+    - Credential Manager system entries
+    - Network authentication credentials
+    - System-level saved passwords
+  </Accordion>
+
+  <Accordion title="Machine Certificates">
+    - System certificate private keys
+    - Computer authentication certificates
+    - SSL/TLS server certificates
+  </Accordion>
+
+  <Accordion title="Application Data">
+    - IIS application pool credentials
+    - SQL Server saved passwords
+    - System-wide application settings
+  </Accordion>
+</AccordionGroup>
+
+## Common Scenarios
+
+<AccordionGroup>
+  <Accordion title="Comprehensive Machine Triage">
+    Extract and use machine masterkeys:
+
+    ```bash
+    # 1. Extract machine masterkeys
+    SharpDPAPI.exe machinemasterkeys > machine_keys.txt
+
+    # 2. Use with other commands
+    SharpDPAPI.exe machinecredentials
+    SharpDPAPI.exe machinevaults
+    SharpDPAPI.exe certificates /machine
+
+    # Or use the wrapper:
+    SharpDPAPI.exe machinetriage
+    ```
+  </Accordion>
+
+  <Accordion title="Scheduled Task Credential Extraction">
+    Find credentials for scheduled tasks:
+
+    ```bash
+    # Extract machine masterkeys
+    SharpDPAPI.exe machinemasterkeys
+
+    # Decrypt machine credentials (includes task credentials)
+    SharpDPAPI.exe machinecredentials
+
+    # Look for:
+    # TargetName: Domain:batch=TaskScheduler:Task:{GUID}
+    ```
+  </Accordion>
+
+  <Accordion title="Service Account Discovery">
+    Identify service account credentials:
+
+    ```bash
+    # Extract machine masterkeys
+    SharpDPAPI.exe machinemasterkeys
+
+    # Decrypt credentials
+    SharpDPAPI.exe machinecredentials
+
+    # Correlate with services
+    sc.exe query state= all
+    ```
+  </Accordion>
+
+  <Accordion title="Remote Machine Masterkey Extraction">
+    With admin access to remote system:
+
+    ```bash
+    # Can't extract masterkeys remotely directly
+    # But can use domain backup key remotely:
+    SharpDPAPI.exe machinecredentials /server:remote-server /pvk:key.pvk
+
+    # This will handle masterkey decryption automatically
+    ```
+
+    <Note>
+      The machinemasterkeys command doesn't support `/server` since it requires local SYSTEM access. Use machine triage commands with `/pvk` for remote operations.
+    </Note>
+  </Accordion>
+</AccordionGroup>
+
+## Comparison: User vs Machine Masterkeys
+
+| Aspect | User Masterkeys | Machine Masterkeys |
+|--------|----------------|-------------------|
+| **Protection** | User password/hash | DPAPI_SYSTEM LSA secret |
+| **Scope** | User profile data | System-wide data |
+| **Location** | `%APPDATA%\Microsoft\Protect\` | `C:\Windows\System32\Microsoft\Protect\` |
+| **Persistence** | Changes with password | Changes rarely (OS reinstall) |
+| **Privilege** | User context | SYSTEM context |
+| **Decryption** | Domain backup key / user creds | DPAPI_SYSTEM secret |
+
+## Detection Considerations
+
+<Warning>
+  Machine masterkey extraction is a high-privilege operation that should trigger security alerts.
+</Warning>
+
+**Host-Based Indicators:**
+- Process elevation to SYSTEM privileges
+- Token duplication activity
+- LSA secret retrieval (DPAPI_SYSTEM)
+- Access to system masterkey directories
+- Reading SYSTEM profile DPAPI folders
+
+**Event Log Indicators:**
+```
+Event ID: 4624 (Logon)
+Logon Type: 3 (Network) or 4 (Batch)
+Account Name: SYSTEM
+
+Event ID: 4656 (Object Access)
+Object Name: LSA Secrets
+Object Name: *\Microsoft\Protect\S-1-5-18\*
+
+Event ID: 4663 (Object Access)
+Object Name: C:\Windows\System32\Microsoft\Protect\*
+```
+
+**Defensive Monitoring:**
+- Monitor for SYSTEM token impersonation
+- Alert on LSA secret access (DPAPI_SYSTEM)
+- Track access to system masterkey directories
+- Detect SharpDPAPI or similar tool execution
+- Monitor privilege escalation to SYSTEM
+
+## Related Commands
+
+<CardGroup cols={2}>
+  <Card title="machinecredentials" icon="id-card" href="/ghostpack-docs/SharpDPAPI-mdx/commands/machinecredentials">
+    Decrypt machine credential files
+  </Card>
+  <Card title="machinevaults" icon="vault" href="/ghostpack-docs/SharpDPAPI-mdx/commands/machinevaults">
+    Decrypt machine vault data
+  </Card>
+  <Card title="machinetriage" icon="list-check" href="/ghostpack-docs/SharpDPAPI-mdx/commands/machinetriage">
+    Comprehensive machine DPAPI triage
+  </Card>
+  <Card title="sccm" icon="network-wired" href="/ghostpack-docs/SharpDPAPI-mdx/commands/sccm">
+    Extract SCCM NAA credentials
+  </Card>
+</CardGroup>
+
+## Tips
+
+<Accordion title="Best Practices">
+  - Run immediately after gaining admin access
+  - Save masterkey mappings for future use
+  - DPAPI_SYSTEM secret rarely changes (persistent)
+  - Use with machinetriage for comprehensive extraction
+  - Combine with service enumeration for context
+</Accordion>
+
+<Accordion title="OPSEC Considerations">
+  - Requires elevation (high visibility)
+  - SYSTEM privilege elevation generates events
+  - LSA secret access triggers security alerts
+  - Consider timing and detection capabilities
+  - May trigger EDR/AV behavioral detections
+</Accordion>
+
+<Accordion title="Troubleshooting">
+  **Access denied:**
+  - Need Administrator privileges
+  - UAC may prevent elevation
+  - Security software may block SYSTEM elevation
+  - Try running as SYSTEM directly
+
+  **No masterkeys found:**
+  - Check system masterkey directories exist
+  - Verify DPAPI_SYSTEM was retrieved
+  - Fresh systems may have fewer masterkeys
+  - ServiceProfile accounts may not have masterkeys
+
+  **Partial decryption:**
+  - Some masterkeys may use different protection
+  - Check for multiple DPAPI_SYSTEM secrets (rare)
+  - Verify retrieved secret is complete
+</Accordion>
+
+## Technical Details
+
+### DPAPI_SYSTEM Storage
+
+The DPAPI_SYSTEM secret is stored as an LSA secret:
+```
+Location: HKLM\SECURITY\Policy\Secrets\DPAPI_SYSTEM\CurrVal
+Access: Requires SYSTEM privileges
+Format: Binary blob containing machine and user keys
+```
+
+### Masterkey Encryption
+
+Machine masterkeys are encrypted using:
+1. **DPAPI_SYSTEM** machine key for SYSTEM account
+2. **DPAPI_SYSTEM** user key for service accounts without logged-in user
+3. Standard DPAPI encryption algorithms (3DES, AES)
+
+### Persistence
+
+The DPAPI_SYSTEM secret:
+- Generated during Windows installation
+- Persists until OS reinstall
+- Does not change with password changes
+- Stored in protected registry location
+- Backed up with system state
+
+<Note>
+  The DPAPI_SYSTEM secret is one of the most valuable secrets on a Windows system, providing access to all machine-scope DPAPI data.
+</Note>

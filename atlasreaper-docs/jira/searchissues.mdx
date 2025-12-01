@@ -1,0 +1,296 @@
+---
+title: 'searchissues'
+description: 'Search for issues in Jira using text queries'
+icon: 'magnifying-glass'
+---
+
+## Overview
+
+The `jira searchissues` command performs full-text searches across Jira issues, allowing you to find issues containing specific keywords, phrases, or patterns. This reconnaissance command is essential for discovering sensitive information, finding credentials in issue content, locating specific technologies or systems, and identifying issues relevant to attack objectives.
+
+## Syntax
+
+```bash
+.\AtlasReaper.exe jira searchissues [options]
+```
+
+## Required Parameters
+
+<ParamField path="--url" type="string" required>
+  The base URL of the target Jira instance (e.g., `https://company.atlassian.net`)
+</ParamField>
+
+<ParamField path="--query" type="string" required>
+  Text query to search for. Searches issue titles, descriptions, and optionally comments. Supports wildcards and boolean operators
+</ParamField>
+
+## Optional Parameters
+
+<ParamField path="--cookie" type="string">
+  Authentication cookie (`cloud.session.token` or `tenant.session.token`). Required for searching non-public issues
+</ParamField>
+
+<ParamField path="--all" type="boolean" default="false">
+  Return all matching results (not just the first 100). Currently not fully implemented - returns results based on limit
+</ParamField>
+
+<ParamField path="--limit" type="string" default="100">
+  Maximum number of results to return
+</ParamField>
+
+<ParamField path="--comments" type="boolean" default="false">
+  Include comments in the search results output. Useful for viewing full context of matching issues
+</ParamField>
+
+<ParamField path="--attachments" type="boolean" default="false">
+  Include attachment information in the search results output
+</ParamField>
+
+<ParamField path="--output" type="string">
+  Save command output to a specified file
+</ParamField>
+
+## Examples
+
+### Search for Keywords
+
+Find issues containing specific keywords:
+
+```bash
+.\AtlasReaper.exe jira searchissues \
+  --url https://company.atlassian.net \
+  --query "password" \
+  --cookie $cookie
+```
+
+### Search for Credentials
+
+Look for potential credential exposure:
+
+```bash
+.\AtlasReaper.exe jira searchissues \
+  --url https://company.atlassian.net \
+  --query "api key" \
+  --comments \
+  --cookie $cookie
+```
+
+### Search for Infrastructure Details
+
+Find issues discussing specific systems:
+
+```bash
+.\AtlasReaper.exe jira searchissues \
+  --url https://company.atlassian.net \
+  --query "production server" \
+  --comments \
+  --attachments \
+  --cookie $cookie
+```
+
+### Search with Wildcards
+
+Use wildcards for broader searches:
+
+```bash
+.\AtlasReaper.exe jira searchissues \
+  --url https://company.atlassian.net \
+  --query "http*example.com*" \
+  --cookie $cookie
+```
+
+### Search for Configuration Files
+
+Find issues mentioning configuration:
+
+```bash
+.\AtlasReaper.exe jira searchissues \
+  --url https://company.atlassian.net \
+  --query "config.yaml" \
+  --attachments \
+  --cookie $cookie
+```
+
+### Comprehensive Sensitive Data Search
+
+Search for multiple indicators and save results:
+
+```bash
+.\AtlasReaper.exe jira searchissues \
+  --url https://company.atlassian.net \
+  --query "connection string" \
+  --comments \
+  --attachments \
+  --output connection_strings.txt \
+  --cookie $cookie
+```
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    ### Offensive Security Applications
+
+    - **Credential Discovery**: Search for "password", "api key", "token", "secret"
+    - **Infrastructure Mapping**: Find issues mentioning servers, databases, network infrastructure
+    - **Configuration Harvesting**: Locate connection strings, config files, environment variables
+    - **Technology Stack Discovery**: Search for specific technologies (AWS, Azure, Jenkins, etc.)
+    - **Sensitive Data Location**: Find PII, financial data, or confidential information
+    - **Vulnerability Research**: Search for CVE numbers or security issues
+    - **URL Harvesting**: Find internal URLs, admin panels, or management interfaces
+    - **Documentation Discovery**: Locate architecture diagrams, runbooks, or procedures
+  </Tab>
+
+  <Tab title="Blue Team">
+    ### Defensive Monitoring
+
+    - **Credential Exposure Detection**: Search for accidentally exposed credentials or secrets
+    - **Sensitive Data Audit**: Find issues containing regulated or confidential information
+    - **Compliance Review**: Verify data handling compliance across issues
+    - **Security Issue Tracking**: Monitor security-related issue discussions
+    - **Data Classification**: Identify issues requiring security classification review
+    - **Incident Response**: Search for specific indicators during investigations
+    - **Policy Violation Detection**: Find issues violating data handling policies
+    - **Search Pattern Monitoring**: Detect suspicious search queries from users
+  </Tab>
+</Tabs>
+
+## Output
+
+The command returns detailed information about matching issues:
+
+```
+Issue Title    : Database Connection Issues
+Issue Key      : DEV-456
+Issue Id       : 10456
+Created        : 2024-08-15T14:30:00.000-0700
+Updated        : 2024-09-20T09:15:00.000-0700
+Status         : Open
+Creator        : developer@company.com - John Dev - America/Los_Angeles
+Assignee       : dba@company.com - Jane DBA - America/New_York
+Issue Contents : The application can't connect to the database.
+                 Connection string: Server=prod-db.internal;Database=MainDB;User=admin;Password=Prod@2024!
+
+Attachments    :
+  Filename      : database_config.xml
+  Attachment Id : 10567
+  Mimetype      : application/xml
+  File size     : 4567
+
+Comments       :
+  - developer@company.com - John Dev - 2024-08-16T10:00:00.000-0700
+             I've tried the connection string above but still getting errors
+```
+
+### Output Information
+
+For each matching issue:
+- **Issue Title**: Summary of the issue
+- **Issue Key**: Unique identifier (PROJECT-###)
+- **Issue Id**: Numeric ID
+- **Created**: Creation timestamp
+- **Updated**: Last update timestamp
+- **Status**: Current workflow status
+- **Creator**: Email, display name, and timezone
+- **Assignee**: Assigned user information
+- **Issue Contents**: Full description text (where match was found)
+
+When `--attachments` is used:
+- Filename, Attachment ID, MIME type, and file size
+
+When `--comments` is used:
+- Author, timestamp, and comment text for each comment
+
+## Detection Considerations
+
+<Warning>
+**Detection Indicators**
+
+Security teams should monitor for:
+
+- Searches for sensitive keywords (password, credential, secret, api key, token)
+- Searches for infrastructure terms (server, database, admin, production)
+- Wildcard-heavy searches indicating broad reconnaissance
+- High-volume search activity from single accounts
+- Searches from unusual IP addresses or geographic locations
+- Search activity outside normal business hours
+- Sequential searches with incrementally broader queries
+- Searches followed by bulk downloads or issue access
+- Service accounts performing searches
+- Search patterns associated with known attack methodologies
+</Warning>
+
+### Jira Audit Log Entries
+
+This command generates the following audit log events:
+- Search/query operations may be logged
+- `issue_viewed` events for each matching issue
+- Includes: User ID, search query, timestamp, IP address
+
+### Network Indicators
+
+- HTTP GET requests to `/rest/api/3/search?jql=text~{encodedQuery}&expand=renderedFields&fields=...`
+- URL-encoded search queries in request parameters
+- JQL (Jira Query Language) with text search operators
+- Requests including comment and attachment field expansions
+
+## OPSEC Considerations
+
+<Tip>
+**Operational Security Tips**
+
+To reduce detection risk when using this command:
+
+1. **Query Specificity**: Use targeted queries rather than obvious red flags (avoid searching "password")
+2. **Timing**: Execute searches during business hours when legitimate activity is high
+3. **Rate Limiting**: Space out searches rather than running many sequential queries
+4. **Query Obfuscation**: Use synonyms or technical terms instead of obvious keywords
+5. **Incremental Approach**: Start with broad searches, narrow down based on results
+6. **Output Files**: Save results for offline analysis to reduce repeated searches
+7. **Account Context**: Use cookies from accounts that regularly search Jira
+8. **Legitimate Patterns**: Mimic legitimate search patterns and terminology
+9. **Correlation Prevention**: Don't immediately download or access all search results
+10. **Search Refinement**: Use issue listing instead of searching if you know the project
+</Tip>
+
+### Search Query Tips
+
+- Jira uses JQL (Jira Query Language) backend with `text~` operator for full-text search
+- Queries are URL-encoded automatically
+- Wildcards (`*`) are supported for pattern matching
+- Searches include issue titles, descriptions, and summary fields
+- Comment searching requires the `--comments` flag for output, but comments are always searched
+
+### Query Examples for Sensitive Data
+
+```bash
+# Connection strings
+--query "connection string"
+--query "jdbc:"
+--query "Server=*;Password=*"
+
+# API credentials
+--query "api key"
+--query "api_key"
+--query "access token"
+
+# Cloud credentials
+--query "aws_access_key"
+--query "azure subscription"
+
+# Passwords
+--query "default password"
+--query "admin password"
+
+# URLs
+--query "http*admin*"
+--query "https://internal*"
+```
+
+## Related Commands
+
+- [jira listissues](/jira/listissues) - List all issues in a project (alternative to searching)
+- [jira listprojects](/jira/listprojects) - Identify projects to target for searches
+- [jira download](/jira/download) - Download attachments from matching issues
+- [jira listattachments](/jira/listattachments) - List attachments that may be related to search results
+- [jira addcomment](/jira/addcomment) - Add comments to issues discovered via search

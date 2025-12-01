@@ -1,0 +1,272 @@
+---
+title: 'listattachments'
+description: 'List attachments on Jira issues'
+icon: 'list'
+---
+
+## Overview
+
+The `jira listattachments` command enumerates file attachments across Jira projects and issues. This reconnaissance command is invaluable for identifying sensitive documents, discovering attachment IDs for subsequent download operations, filtering for specific file types, and mapping the document landscape of an organization's Jira instance.
+
+## Syntax
+
+```bash
+.\AtlasReaper.exe jira listattachments [options]
+```
+
+## Required Parameters
+
+<ParamField path="--url" type="string" required>
+  The base URL of the target Jira instance (e.g., `https://company.atlassian.net`)
+</ParamField>
+
+## Optional Parameters
+
+<ParamField path="--cookie" type="string">
+  Authentication cookie (`cloud.session.token` or `tenant.session.token`). Required for accessing non-public attachments
+</ParamField>
+
+<ParamField path="--project" type="string">
+  Project key to list attachments from (e.g., `PROJ`, `FIN`, `HR`). If not specified with `--all-projects`, will list attachments across accessible projects
+</ParamField>
+
+<ParamField path="--all" type="boolean" default="false">
+  Return all attachments for the specified project (not just the first 100). Automatically paginates through all results
+</ParamField>
+
+<ParamField path="--all-projects" type="boolean" default="false">
+  Return attachments for all projects. **WARNING**: This can generate a large number of requests and significant data
+</ParamField>
+
+<ParamField path="--limit" type="string" default="100">
+  Maximum number of attachments to return (when not using `--all`)
+</ParamField>
+
+<ParamField path="--include" type="string">
+  Comma-separated list of file extensions to include (e.g., `pdf,docx,xlsx`). Only attachments with these extensions will be returned
+</ParamField>
+
+<ParamField path="--exclude" type="string">
+  Comma-separated list of file extensions to exclude (e.g., `png,jpg,gif`). Attachments with these extensions will be filtered out
+</ParamField>
+
+<ParamField path="--output" type="string">
+  Save command output to a specified file
+</ParamField>
+
+## Examples
+
+### List Attachments in Specific Project
+
+List the first 100 attachments in a project:
+
+```bash
+.\AtlasReaper.exe jira listattachments \
+  --url https://company.atlassian.net \
+  --project FIN \
+  --cookie $cookie
+```
+
+### Find All PDF and Excel Files
+
+Search for potentially sensitive document types:
+
+```bash
+.\AtlasReaper.exe jira listattachments \
+  --url https://company.atlassian.net \
+  --project HR \
+  --include pdf,xlsx,docx \
+  --all \
+  --cookie $cookie
+```
+
+### Exclude Image Files
+
+List all non-image attachments:
+
+```bash
+.\AtlasReaper.exe jira listattachments \
+  --url https://company.atlassian.net \
+  --project DEV \
+  --exclude png,jpg,jpeg,gif,bmp \
+  --cookie $cookie
+```
+
+### Comprehensive Reconnaissance
+
+List all attachments across all projects (high-volume operation):
+
+```bash
+.\AtlasReaper.exe jira listattachments \
+  --url https://company.atlassian.net \
+  --all-projects \
+  --all \
+  --output attachment_inventory.txt \
+  --cookie $cookie
+```
+
+### Target Configuration Files
+
+Search for potentially sensitive configuration files:
+
+```bash
+.\AtlasReaper.exe jira listattachments \
+  --url https://company.atlassian.net \
+  --all-projects \
+  --include xml,yaml,yml,json,conf,config,ini \
+  --all \
+  --cookie $cookie
+```
+
+### Find Executable Files
+
+Identify uploaded executables or scripts:
+
+```bash
+.\AtlasReaper.exe jira listattachments \
+  --url https://company.atlassian.net \
+  --all-projects \
+  --include exe,dll,ps1,bat,sh,py,jar \
+  --all \
+  --cookie $cookie
+```
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    ### Offensive Security Applications
+
+    - **Sensitive Document Discovery**: Identify financial reports, credentials, or confidential documents
+    - **Download Planning**: Obtain attachment IDs for subsequent download operations
+    - **Configuration Harvesting**: Find config files that may contain credentials or system information
+    - **Source Code Discovery**: Locate uploaded source code or scripts
+    - **Credential Mining**: Search for password files, key files, or credential documents
+    - **Reconnaissance**: Map organizational document structure and data classification practices
+    - **Target Prioritization**: Identify high-value attachments based on filenames and types
+    - **Data Inventory**: Create comprehensive list of available data for exfiltration planning
+  </Tab>
+
+  <Tab title="Blue Team">
+    ### Defensive Monitoring
+
+    - **Data Classification Audit**: Identify potentially sensitive files that shouldn't be in Jira
+    - **Compliance Review**: Find files that may violate data handling policies
+    - **Security Auditing**: Locate executable files or scripts that could be malicious
+    - **Incident Response**: Investigate file attachments during security incidents
+    - **Policy Enforcement**: Verify that restricted file types are not being uploaded
+    - **Data Loss Prevention**: Identify potential data leakage via file attachments
+    - **Access Review**: Audit which files are accessible and by whom
+    - **Inventory Management**: Maintain inventory of organizational documents in Jira
+  </Tab>
+</Tabs>
+
+## Output
+
+The command returns detailed information about each attachment found:
+
+```
+Issue Title    : Financial Planning 2024
+Issue Key      : FIN-123
+Issue Id       : 10456
+Status         : In Progress
+Attachments    :
+
+  Filename      : Q4_Budget_Report.pdf
+  Attachment Id : 10234
+  Mimetype      : application/pdf
+  File size     : 2456789
+
+  Filename      : Salary_Data.xlsx
+  Attachment Id : 10235
+  Mimetype      : application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+  File size     : 1234567
+```
+
+### Output Information
+
+For each issue containing attachments:
+- **Issue Title**: Summary of the parent issue
+- **Issue Key**: Issue identifier (PROJECT-###)
+- **Issue Id**: Numeric ID
+- **Status**: Current workflow status
+
+For each attachment:
+- **Filename**: Original filename as uploaded
+- **Attachment Id**: Unique identifier (use with `jira download`)
+- **Mimetype**: MIME type of the file
+- **File size**: Size in bytes
+
+## Detection Considerations
+
+<Warning>
+**Detection Indicators**
+
+Security teams should monitor for:
+
+- Use of `--all-projects` flag (broad reconnaissance)
+- Large numbers of attachment listings in short timeframes
+- Filtering for sensitive file types (pdf, xlsx, docx, xml, config)
+- Access patterns from unusual IP addresses or locations
+- Listing activity outside normal business hours
+- Users accessing projects they don't typically work with
+- Sequential project enumeration patterns
+- Correlation with subsequent download activity
+- Service accounts or API tokens performing bulk listings
+- Listing activity after credential compromise
+</Warning>
+
+### Jira Audit Log Entries
+
+This command generates the following audit log events:
+- `issue_viewed` - May be logged for each issue accessed
+- Search/query operations may be logged
+- Includes: User ID, query parameters, timestamp, IP address
+
+### Network Indicators
+
+- HTTP GET requests to `/rest/api/3/search?jql=...&fields=attachment,summary,status`
+- JQL queries containing `attachments IS NOT EMPTY`
+- Multiple sequential requests when paginating through results (using `--all`)
+- Query parameters indicating project filtering or extension filtering
+
+## OPSEC Considerations
+
+<Tip>
+**Operational Security Tips**
+
+To reduce detection risk when using this command:
+
+1. **Targeted Scanning**: Use `--project` to limit scope rather than `--all-projects`
+2. **Rate Limiting**: Use `--limit` to retrieve smaller batches over time
+3. **Timing**: Execute during business hours when legitimate activity is high
+4. **Filter Strategically**: Use `--include` for specific targets rather than broad enumeration
+5. **Output Files**: Save results to files for offline analysis to reduce repeated queries
+6. **Account Context**: Use cookies from accounts that regularly access multiple projects
+7. **Incremental Approach**: Start with specific projects before expanding to all projects
+8. **Pagination Awareness**: Be aware that `--all` generates multiple requests
+9. **Network Bandwidth**: Large listings may be noticeable in network monitoring
+10. **Correlation Prevention**: Space out listing and download operations
+</Tip>
+
+### Performance Considerations
+
+- `--all-projects` with `--all` can generate hundreds or thousands of API requests
+- Large result sets may take significant time to complete
+- Network latency affects overall operation time
+- Each project/page requires a separate API call
+
+### Filtering Behavior
+
+- `--include` and `--exclude` are mutually exclusive concepts but both filter client-side
+- Filtering happens after retrieval, so all attachments are still requested from the API
+- Extensions are case-insensitive
+- Issues with zero attachments after filtering are removed from output
+
+## Related Commands
+
+- [jira download](/jira/download) - Download attachments using IDs obtained from this command
+- [jira listprojects](/jira/listprojects) - List available projects to target for attachment enumeration
+- [jira listissues](/jira/listissues) - List issues with their basic attachment information
+- [jira searchissues](/jira/searchissues) - Search for issues, optionally including attachment data
+- [jira attach](/jira/attach) - Upload new file attachments

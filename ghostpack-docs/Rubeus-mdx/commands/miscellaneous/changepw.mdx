@@ -1,0 +1,108 @@
+---
+title: 'changepw'
+description: 'Change user password using Kerberos password change protocol'
+icon: 'key'
+sidebarTitle: 'changepw'
+---
+
+## Overview
+
+Change a user's password using the Kerberos password change protocol. This command leverages the Kerberos change password service to modify user passwords when current credentials are known.
+
+## Syntax
+
+```bash
+Rubeus.exe changepw /user:USER /current:CURRENT_PASS /new:NEW_PASS [options]
+```
+
+## Required Parameters
+
+<ParamField path="user" type="string" required>
+  Target username for password change
+</ParamField>
+
+<ParamField path="current" type="string" required>
+  Current password for the user
+</ParamField>
+
+<ParamField path="new" type="string" required>
+  New password to set for the user
+</ParamField>
+
+## Optional Parameters
+
+<ParamField path="domain" type="string">
+  Target domain (default: current domain)
+</ParamField>
+
+<ParamField path="dc" type="string">
+  Domain controller to target
+</ParamField>
+
+## Examples
+
+<CodeGroup>
+```bash Basic Password Change
+# Change password for current user
+Rubeus.exe changepw /user:testuser /current:oldpass123 /new:newpass456
+
+# Change password in specific domain
+Rubeus.exe changepw /user:admin /current:current_pass /new:new_pass /domain:corp.local
+
+# Target specific domain controller
+Rubeus.exe changepw /user:serviceaccount /current:old /new:new /dc:dc01.corp.local
+```
+</CodeGroup>
+
+## Use Cases
+
+<Accordion title="Credential Management">
+  **Password Rotation:**
+  - Routine password changes for compromised accounts
+  - Service account credential rotation
+  - Security policy compliance
+  - Credential lifecycle management
+
+  **Operational Security:**
+  - Change passwords after compromise detection
+  - Rotate service account credentials
+  - Maintain access while changing credentials
+  - Support long-term operations
+</Accordion>
+
+## Technical Requirements
+
+<Accordion title="Authentication Prerequisites">
+  **Current Credentials:**
+  - Valid current password required
+  - User must have password change permissions
+  - Account must not be locked or disabled
+  - Domain connectivity required
+
+  **Service Requirements:**
+  - Kerberos password change service available
+  - Domain controller accessibility
+  - Proper network connectivity
+  - No blocking security policies
+</Accordion>
+
+## Integration Workflows
+
+<Accordion title="Credential Rotation">
+  **Complete Workflow:**
+  ```bash
+  # 1. Change compromised password
+  Rubeus.exe changepw /user:compromised_user /current:known_pass /new:secure_pass
+
+  # 2. Request new TGT with updated password
+  Rubeus.exe asktgt /user:compromised_user /password:secure_pass
+
+  # 3. Continue operations with new credentials
+  # Use updated password for subsequent operations
+  ```
+</Accordion>
+
+## Related Commands
+
+- [`asktgt`](/commands/ticket-requests/asktgt) - Use new password for TGT requests
+- [`hash`](/commands/miscellaneous/hash) - Generate hash from new password

@@ -1,0 +1,343 @@
+---
+title: 'listspaces'
+description: 'Enumerate Confluence spaces to map organizational structure and identify targets'
+icon: 'layer-group'
+---
+
+## Overview
+
+The `confluence listspaces` command enumerates spaces within a Confluence instance, providing the foundational reconnaissance needed to understand organizational structure, team organization, and information architecture. Spaces are the highest-level organizational unit in Confluence, typically representing teams, departments, projects, or functional areas.
+
+This is typically the first command executed during Confluence reconnaissance, as spaces must be identified before enumerating their pages and attachments.
+
+## Syntax
+
+```bash
+.\AtlasReaper.exe confluence listspaces [options]
+```
+
+## Required Parameters
+
+<ParamField path="--url" type="string" required>
+  The base URL of the Confluence instance (e.g., `https://example.atlassian.net`)
+</ParamField>
+
+## Optional Parameters
+
+<ParamField path="--cookie" type="string">
+  Authentication cookie (`cloud.session.token` or `tenant.session.token`). If omitted, the command will attempt anonymous access (if enabled on the target)
+</ParamField>
+
+<ParamField path="--space" type="string">
+  Specific space key to retrieve detailed information about. Returns metadata for a single space (e.g., "ENG", "IT", "HR")
+</ParamField>
+
+<ParamField path="--all" type="boolean" default="false">
+  Return all spaces in the Confluence instance, overriding the limit parameter
+</ParamField>
+
+<ParamField path="--limit" type="string" default="100">
+  Maximum number of spaces to return. Default is 100
+</ParamField>
+
+<ParamField path="--type" type="string">
+  Filter spaces by type. Common values include `global` (team/department spaces) and `personal` (user personal spaces)
+</ParamField>
+
+<ParamField path="--output" type="string">
+  Save command output to a specified file for offline analysis and processing
+</ParamField>
+
+## Examples
+
+<Tabs>
+  <Tab title="List All Spaces">
+    ```bash
+    .\AtlasReaper.exe confluence listspaces \
+      --all \
+      --url https://example.atlassian.net \
+      --cookie "cloud.session.token=abc123..."
+    ```
+    Enumerates all spaces in the Confluence instance.
+  </Tab>
+
+  <Tab title="Get Specific Space">
+    ```bash
+    .\AtlasReaper.exe confluence listspaces \
+      --space "IT" \
+      --url https://example.atlassian.net \
+      --cookie "cloud.session.token=abc123..."
+    ```
+    Retrieves detailed information about the IT space.
+  </Tab>
+
+  <Tab title="Filter by Type">
+    ```bash
+    .\AtlasReaper.exe confluence listspaces \
+      --type "global" \
+      --all \
+      --url https://example.atlassian.net \
+      --cookie "cloud.session.token=abc123..."
+    ```
+    Lists only global (team/department) spaces, excluding personal spaces.
+  </Tab>
+
+  <Tab title="Limited Enumeration">
+    ```bash
+    .\AtlasReaper.exe confluence listspaces \
+      --limit 50 \
+      --output "spaces.txt" \
+      --url https://example.atlassian.net \
+      --cookie "cloud.session.token=abc123..."
+    ```
+    Lists up to 50 spaces and saves results to file.
+  </Tab>
+
+  <Tab title="Personal Spaces Only">
+    ```bash
+    .\AtlasReaper.exe confluence listspaces \
+      --type "personal" \
+      --all \
+      --output "personal_spaces.txt" \
+      --url https://example.atlassian.net \
+      --cookie "cloud.session.token=abc123..."
+    ```
+    Enumerates all personal user spaces (may contain sensitive personal documentation).
+  </Tab>
+
+  <Tab title="Anonymous Access Test">
+    ```bash
+    .\AtlasReaper.exe confluence listspaces \
+      --all \
+      --url https://example.atlassian.net
+    ```
+    Tests what spaces are accessible without authentication.
+  </Tab>
+</Tabs>
+
+## Use Cases
+
+<AccordionGroup>
+  <Accordion title="Red Team Perspectives" icon="user-secret">
+    **Initial Reconnaissance and Mapping**
+    - Understand organizational structure through space names and organization
+    - Identify teams, departments, and business units
+    - Map the scope and scale of the Confluence deployment
+    - Discover naming conventions and organizational patterns
+
+    **Target Prioritization**
+    - Identify high-value spaces (IT, Security, Engineering, HR, Finance)
+    - Locate spaces likely to contain credentials or sensitive data
+    - Find spaces owned by high-privilege users
+    - Discover project-specific spaces that may contain valuable intelligence
+
+    **Access Control Assessment**
+    - Identify what spaces are accessible via anonymous access
+    - Determine the scope of access with compromised credentials
+    - Compare accessible spaces to understand permission boundaries
+    - Find over-permissioned spaces with sensitive content
+
+    **Personal Space Targeting**
+    - Enumerate personal spaces of high-value targets (admins, executives, developers)
+    - Identify users who actively use personal spaces
+    - Locate personal documentation that may contain credentials or secrets
+    - Find sensitive information users keep in private spaces
+
+    **Operational Planning**
+    - Determine which spaces to target for page enumeration
+    - Plan attachment enumeration based on space names and purposes
+    - Identify spaces appropriate for social engineering operations
+    - Map reconnaissance workflow: spaces → pages → attachments → content
+
+    **Intelligence Gathering**
+    - Discover active projects and business initiatives from space names
+    - Identify deprecated or archived spaces with historical data
+    - Understand team structure and organizational hierarchy
+    - Locate security, infrastructure, and operations spaces
+  </Accordion>
+
+  <Accordion title="Blue Team Perspectives" icon="shield-halved">
+    **Security Posture Assessment**
+    - Audit what spaces are accessible via anonymous access
+    - Identify spaces that should be restricted but are not
+    - Review space permissions and access controls
+    - Verify that sensitive spaces have appropriate restrictions
+
+    **Data Governance and Classification**
+    - Inventory spaces containing sensitive or regulated data
+    - Ensure proper data classification on high-risk spaces
+    - Audit compliance with data governance policies
+    - Identify shadow IT or unauthorized documentation spaces
+
+    **Access Control Review**
+    - Verify that space permissions align with business requirements
+    - Identify over-permissioned spaces (too many users with access)
+    - Review personal spaces to ensure appropriate privacy
+    - Audit external user access to spaces
+
+    **Threat Hunting**
+    - Search for suspicious spaces created by compromised accounts
+    - Identify spaces created recently that may be malicious
+    - Find spaces with unusual names or purposes
+    - Review space access patterns during incident response
+
+    **Organizational Intelligence**
+    - Map organizational structure and team organization
+    - Understand information architecture and documentation practices
+    - Identify active vs. inactive teams and projects
+    - Track organizational changes through space creation/deletion
+
+    **Detection Indicators**
+    - Monitor for space enumeration activity (API calls listing all spaces)
+    - Alert on enumeration by accounts that don't typically access Confluence
+    - Track external IP addresses enumerating spaces
+    - Identify enumeration followed by targeted page/attachment access
+    - Flag anonymous access attempts to enumerate spaces
+
+    **Incident Response**
+    - During compromise, determine which spaces were accessible to attacker
+    - Assess the scope of potential data exposure based on space access
+    - Prioritize investigation based on space sensitivity
+    - Review space access logs to track attacker activity
+  </Accordion>
+</AccordionGroup>
+
+## Output
+
+The command returns detailed information about each space:
+
+- Space key (short identifier, e.g., "IT", "ENG", "HR")
+- Space name (full name)
+- Space type (global, personal)
+- Space status (current, archived)
+- Space description
+- Homepage URL
+- Creation date
+- Number of pages in the space
+- Permissions information (who can access)
+
+Example output structure:
+```
+[+] Listing Confluence spaces
+
+Space Key: IT
+  Name: Information Technology
+  Type: global
+  Status: current
+  Description: IT Department documentation and resources
+  Homepage: https://example.atlassian.net/wiki/spaces/IT
+  Pages: 127
+  Created: 2023-05-10
+
+Space Key: SEC
+  Name: Security Team
+  Type: global
+  Status: current
+  Description: Security policies, procedures, and incident response
+  Homepage: https://example.atlassian.net/wiki/spaces/SEC
+  Pages: 85
+  Created: 2023-06-15
+
+Space Key: ~john.doe
+  Name: John Doe's Personal Space
+  Type: personal
+  Status: current
+  Homepage: https://example.atlassian.net/wiki/spaces/~john.doe
+  Pages: 23
+  Created: 2024-01-20
+
+[+] Total spaces found: 3
+```
+
+## Detection Considerations
+
+<Warning>
+  Space enumeration is logged and can trigger security monitoring:
+</Warning>
+
+**API Request Monitoring**
+- API calls to list spaces generate web server logs
+- Bulk enumeration (--all flag) creates distinct patterns
+- Multiple rapid API calls may trigger rate limiting
+
+**Confluence Audit Logs**
+- Space access and enumeration events are logged
+- Audit logs include username, timestamp, IP address, and user agent
+- Accessing space metadata may generate specific audit event types
+
+**Behavioral Analytics**
+- UEBA solutions may flag unusual space enumeration patterns
+- Accounts that don't typically use Confluence enumerating spaces is suspicious
+- Enumeration outside business hours raises alerts
+- First-time Confluence access by an account may be flagged
+
+**Anonymous Access Monitoring**
+- Anonymous enumeration attempts may be logged separately
+- Organizations with restricted anonymous access will block the operation
+- Failed anonymous access attempts indicate reconnaissance activity
+
+**Network Monitoring**
+- Web proxy logs capture space enumeration traffic
+- External IP addresses accessing Confluence APIs may be flagged
+- Unusual user agent strings may indicate automation
+
+## OPSEC Considerations
+
+<Tip>
+  Follow these operational security practices to reduce detection risk:
+</Tip>
+
+1. **Timing and Rate**
+   - Perform enumeration during business hours when activity is normal
+   - Space out API calls to mimic human browsing patterns
+   - Avoid rapid-fire automated enumeration that clearly indicates tooling
+   - Consider the compromised account's typical usage times
+
+2. **Account Context**
+   - Ensure the compromised account normally accesses Confluence
+   - Verify the account has legitimate reasons to view space listings
+   - Match the user's typical behavior patterns and access scope
+   - Consider whether the account's role justifies space enumeration
+
+3. **Scope Management**
+   - Start with limited enumeration before using --all flag
+   - Target specific spaces if intelligence indicates high-value targets
+   - Avoid blanket enumeration if you have specific targets identified
+   - Balance intelligence requirements with operational security
+
+4. **Type Filtering**
+   - Consider whether enumerating personal spaces is worth the detection risk
+   - Personal space enumeration is unusual behavior for most accounts
+   - Focus on global spaces for team/department reconnaissance
+   - Only enumerate personal spaces if targeting specific high-value users
+
+5. **Output Management**
+   - Use --output parameter to save results for offline analysis
+   - Avoid re-running enumeration unnecessarily
+   - Process results offline to minimize interactive session time
+   - Secure output files as they contain organizational intelligence
+
+6. **Operational Planning**
+   - Use space enumeration as the foundation for subsequent operations
+   - Plan page enumeration based on high-value spaces identified
+   - Prioritize spaces for deeper investigation (attachments, content)
+   - Map the full reconnaissance workflow before executing
+
+7. **Alternative Approaches**
+   - Consider gathering space information through social engineering
+   - Use public Confluence pages (if accessible) to identify spaces
+   - Leverage other intelligence sources before internal enumeration
+   - Evaluate whether enumeration is necessary given existing intelligence
+
+8. **Session Management**
+   - Minimize total time in the environment
+   - Consolidate reconnaissance to reduce the detection window
+   - Clear browser/tool artifacts after operations
+   - Consider rotating infrastructure between operations
+
+## Related Commands
+
+- [confluence listpages](/confluence/listpages) - Next step: enumerate pages within identified spaces
+- [confluence listattachments](/confluence/listattachments) - Enumerate attachments from high-value spaces
+- [confluence search](/confluence/search) - Search across spaces for specific content
+- [jira listprojects](/jira/listprojects) - Similar reconnaissance for Jira projects

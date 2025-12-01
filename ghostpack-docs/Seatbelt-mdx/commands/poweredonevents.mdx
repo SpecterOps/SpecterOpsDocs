@@ -1,0 +1,89 @@
+---
+title: 'PoweredOnEvents'
+description: 'Reboot and sleep schedule based on the System event log EIDs 1, 12, 13, 42, and 6008'
+icon: 'calendar-clock'
+---
+
+## Overview
+
+The PoweredOnEvents command analyzes the System event log to build a timeline of system reboots and sleep/wake events. It examines specific Event IDs (1, 12, 13, 42, and 6008) to understand the system's power and availability schedule, which can inform attack timing and persistence strategies.
+
+## Syntax
+
+```bash
+# Default: last 7 days
+Seatbelt.exe PoweredOnEvents
+
+# Specify number of days
+Seatbelt.exe "PoweredOnEvents 30"
+```
+
+### Remote Execution
+```bash
+Seatbelt.exe PoweredOnEvents -computername=TARGET.domain.com [-username=DOMAIN\user -password=pass]
+```
+
+## Output
+
+Returns power event timeline:
+- Event timestamp
+- Event type (Boot, Shutdown, Sleep, Wake)
+- Event ID
+- Event description
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Identify system reboot schedules
+    - Determine maintenance windows
+    - Plan persistence requiring reboots
+    - Assess system availability patterns
+    - Time attacks during low-activity periods
+  </Tab>
+  <Tab title="Blue Team">
+    - Investigate unexpected reboots
+    - Correlate with security incidents
+    - Validate maintenance schedules
+    - Detect system tampering
+    - Timeline analysis for forensics
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== PoweredOnEvents ======
+
+[*] Collecting kernel boot (EID 12) and shutdown (EID 13) events from the last 7 days
+
+10/15/2024 8:30:15 AM  - Boot (EID 12)
+10/14/2024 11:45:30 PM - Shutdown (EID 13)
+10/14/2024 6:00:00 AM  - Boot (EID 12)
+10/13/2024 11:30:22 PM - Shutdown (EID 13)
+10/13/2024 8:15:10 AM  - Boot (EID 12)
+10/12/2024 10:00:05 PM - Sleep (EID 42)
+10/12/2024 5:30:45 PM  - Wake (EID 1)
+```
+
+## Remote Execution
+
+<Check>
+This command **supports remote execution** using the `-computername` parameter.
+</Check>
+
+## Detection Considerations
+
+<Info>
+Low detection risk - reads Windows event logs.
+</Info>
+
+- **Event Log Access**: Queries System event log
+- **Remote Access**: Generates event log query events when executed remotely
+
+## Related Commands
+
+- [LastShutdown](/commands/lastshutdown) - Last shutdown timestamp
+- [OSInfo](/commands/osinfo) - Operating system and boot time
+- [LogonEvents](/commands/logonevents) - User logon events
+- [Processes](/commands/processes) - Running processes with start times

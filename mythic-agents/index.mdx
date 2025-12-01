@@ -1,0 +1,188 @@
+---
+title: 'Mythic Agents'
+description: 'Comprehensive documentation for Mythic post-exploitation agents and integrations'
+---
+
+<div style={{ textAlign: 'center', marginBottom: '30px' }}>
+  <img src="../logo/specterops-banner.png" alt="SpecterOps Banner" />
+</div>
+
+<div style={{ textAlign: 'center', marginBottom: '20px' }}>
+  <a href="https://join.slack.com/t/bloodhoundhq/shared_invite/zt-1tgq6ojd2-ixpx5nz9Wjtbhc3i8AVAWw">
+    <img src="https://img.shields.io/badge/Slack-SpecterOps-02B36C" alt="Slack" style={{ display: 'inline', margin: '0 5px' }} />
+  </a>
+  <img src="https://img.shields.io/twitter/follow/specterops?style=social" style={{ display: 'inline', margin: '0 5px' }} />
+</div>
+
+## Overview
+
+This documentation covers a comprehensive collection of Mythic agents designed for post-exploitation operations, system integration, and command augmentation. Mythic is a collaborative, multi-platform, red teaming framework that provides a flexible and extensible architecture for command and control operations.
+
+The agents documented here span multiple categories:
+- **Payload Agents**: Traditional post-exploitation agents running on compromised systems
+- **Service & Integration Agents**: Specialized agents for platform integration and data enrichment
+- **Command Augmentation**: Tools that extend capabilities across multiple agent types
+
+All agents support the Mythic framework's core features including task management, file operations, credential tracking, and comprehensive logging.
+
+## Payload Agents
+
+Traditional post-exploitation agents that run on compromised hosts across multiple platforms.
+
+<CardGroup cols={3}>
+  <Card
+    title="Apollo"
+    img="../Apollo-mdx/documentation-payload/apollo/Apollo.svg"
+    color="#d73502"
+    href="/Apollo-mdx/documentation-payload/apollo/_index"
+  >
+    **Author:** [@djhohnstein](https://twitter.com/djhohnstein)
+
+    C# agent designed for training, helping students understand attack techniques at a technical level. Supports Windows with extensive post-exploitation capabilities.
+  </Card>
+
+  <Card
+    title="Poseidon"
+    img="../Poseidon/images/poseidon.svg"
+    color="#1e90ff"
+    href="/Poseidon/home"
+  >
+    **Author:** [@its_a_feature_](https://twitter.com/its_a_feature_)
+
+    Python-based agent supporting macOS and Linux with robust command execution, file operations, and credential harvesting capabilities.
+  </Card>
+
+  <Card
+    title="Apfell"
+    img="../Apfell/images/apfell.svg"
+    color="#32cd32"
+    href="/Apfell/home"
+  >
+    **Author:** [@its_a_feature_](https://twitter.com/its_a_feature_)
+
+    macOS and Linux focused agent written in Python, designed for cross-platform post-exploitation with emphasis on stealth and flexibility.
+  </Card>
+
+  <Card
+    title="Merlin"
+    img="../merlin-documentation/logo/Merlin-transparent.png"
+    color="#9370db"
+    href="/Merlin/home"
+  >
+    **Author:** [@Ne0nd0g](https://twitter.com/Ne0nd0g)
+
+    Cross-platform post-exploitation agent written in Golang. Supports Windows, Linux, and macOS with advanced execution and credential manipulation features.
+  </Card>
+</CardGroup>
+
+## Service & Integration Agents
+
+Specialized agents that integrate with external platforms or provide unique capabilities within the Mythic framework.
+
+<CardGroup cols={3}>
+  <Card
+    title="Arachne"
+    img="../Arachne/images/arachne.svg"
+    color="#ff6347"
+    href="/Arachne/home"
+  >
+    **Author:** [@its_a_feature_](https://twitter.com/its_a_feature_)
+
+    .NET spider agent for Active Directory enumeration using BloodHound SharpHound, providing domain reconnaissance capabilities.
+  </Card>
+
+  <Card
+    title="Bloodhound"
+    img="../Bloodhound/images/bloodhound.svg"
+    color="#dc143c"
+    href="/Bloodhound/home"
+  >
+    **Author:** [@its_a_feature_](https://twitter.com/its_a_feature_)
+
+    Service agent providing seamless integration between Mythic and BloodHound Community Edition for Active Directory analysis and attack path visualization.
+  </Card>
+
+  <Card
+    title="Nemesis"
+    img="../Nemesis/images/nemesis.svg"
+    color="#ff8c00"
+    href="/Nemesis/home"
+  >
+    **Author:** [@its_a_feature_](https://twitter.com/its_a_feature_)
+
+    Service agent for automatic file enrichment, processing, and triage. Integrates with Nemesis platform for advanced data analysis and credential extraction.
+  </Card>
+
+  <Card
+    title="Ghostwriter"
+    img="../Ghostwriter/images/ghostwriter.svg"
+    color="#4b0082"
+    href="/Ghostwriter/home"
+  >
+    **Author:** [@its_a_feature_](https://twitter.com/its_a_feature_)
+
+    Service agent providing integration with Ghostwriter project management and reporting platform for collaborative operations and report generation.
+  </Card>
+
+  <Card
+    title="Sage"
+    img="../Sage/images/sage.png"
+    color="#20b2aa"
+    href="/Sage/home"
+  >
+    **Author:** [@Ne0nd0g](https://twitter.com/Ne0nd0g)
+
+    Virtual agent providing AI and LLM capabilities within Mythic. Supports multiple providers including Anthropic, OpenAI, AWS Bedrock, and ollama.
+  </Card>
+  <Card
+    title="Forge"
+    img="../Forge/images/forge.svg"
+    color="#b8860b"
+    href="/Forge/home"
+  >
+    **Author:** [@its_a_feature_](https://twitter.com/its_a_feature_)
+
+    Command augmentation payload type providing BOF and .NET assembly execution capabilities across multiple Mythic agents. Pre-configured with SharpCollection and Sliver Armory.
+  </Card>
+</CardGroup>
+
+## 🎓 Resources
+
+<CardGroup cols={3}>
+  <Card
+    title="Blog Posts"
+    icon="blog"
+    href="https://posts.specterops.io"
+  >
+    SpecterOps research on SCCM security
+  </Card>
+  
+  <Card
+    title="Community"
+    icon="slack"
+    href="http://ghst.ly/BHSlack"
+  >
+    Join BloodHound Slack for discussions
+  </Card>
+  
+</CardGroup>
+
+## 🤝 Contributing
+
+Each agent is maintained independently by their respective authors. Please refer to individual agent repositories for contribution guidelines:
+
+### Payload Agents
+- **Apollo:** [GitHub Repository](https://github.com/MythicAgents/Apollo) | [Issues](https://github.com/MythicAgents/Apollo/issues)
+- **Poseidon:** [GitHub Repository](https://github.com/MythicAgents/poseidon) | [Issues](https://github.com/MythicAgents/poseidon/issues)
+- **Apfell:** [GitHub Repository](https://github.com/MythicAgents/apfell) | [Issues](https://github.com/MythicAgents/apfell/issues)
+- **Merlin:** [GitHub Repository](https://github.com/MythicAgents/merlin) | [Main Project](https://github.com/Ne0nd0g/merlin)
+
+### Service & Integration Agents
+- **Arachne:** [GitHub Repository](https://github.com/MythicAgents/arachne) | [Issues](https://github.com/MythicAgents/arachne/issues)
+- **Bloodhound:** [GitHub Repository](https://github.com/MythicAgents/bloodhound) | [Issues](https://github.com/MythicAgents/bloodhound/issues)
+- **Nemesis:** [GitHub Repository](https://github.com/MythicAgents/Nemesis) | [Main Project](https://github.com/SpecterOps/Nemesis)
+- **Ghostwriter:** [GitHub Repository](https://github.com/MythicAgents/ghostwriter) | [Main Project](https://github.com/GhostManager/Ghostwriter)
+- **Sage:** [GitHub Repository](https://github.com/MythicAgents/sage) | [Issues](https://github.com/MythicAgents/sage/issues)
+
+### Command Augmentation
+- **Forge:** [GitHub Repository](https://github.com/MythicAgents/forge) | [Issues](https://github.com/MythicAgents/forge/issues)

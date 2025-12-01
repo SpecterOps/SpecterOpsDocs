@@ -1,0 +1,128 @@
+---
+title: 'SlackDownloads'
+description: 'Parses any found slack-downloads files'
+icon: 'slack'
+---
+
+## Overview
+
+The `SlackDownloads` command parses Slack download history files to enumerate files that have been downloaded through the Slack application. This can reveal documents, images, and other files shared within Slack workspaces, potentially containing sensitive information.
+
+**Important:** User commands run for the current user if not elevated and for ALL users if elevated.
+
+## Syntax
+
+```
+Seatbelt.exe SlackDownloads
+```
+
+No additional arguments are supported. This command supports remote execution.
+
+## Output
+
+The command returns:
+- Downloaded file names and types
+- Download timestamps
+- File sources (channels, direct messages)
+- Download locations on disk
+- User context for each download history
+- Workspace information
+
+## Use Cases
+
+### Red Team
+- **Intelligence Gathering**: Discover files shared in Slack communications
+- **Data Exfiltration Planning**: Identify sensitive documents shared via Slack
+- **Reconnaissance**: Understand team communication and file sharing patterns
+- **Credential Discovery**: Find credentials or keys shared through Slack
+- **Target Identification**: Locate high-value documents from download history
+
+### Blue Team
+- **Data Loss Prevention**: Identify sensitive files shared through Slack
+- **Incident Response**: Track file sharing during security investigations
+- **Compliance Monitoring**: Ensure file sharing aligns with data handling policies
+- **User Behavior Analysis**: Identify unusual file download patterns
+- **Forensic Analysis**: Reconstruct file sharing activities during investigations
+
+## Example Output
+
+```
+====== SlackDownloads ======
+
+User: john.doe
+
+  Slack Downloads   : C:\Users\john.doe\AppData\Roaming\Slack\storage\slack-downloads
+
+  Downloaded File
+    FileName          : Q4_Budget_Confidential.xlsx
+    DownloadDate      : 2024-10-19 14:30:00
+    Source            : #finance-team
+    LocalPath         : C:\Users\john.doe\Downloads\Q4_Budget_Confidential.xlsx
+    FileSize          : 2.3 MB
+
+  Downloaded File
+    FileName          : VPN_Access_Instructions.pdf
+    DownloadDate      : 2024-10-18 09:15:30
+    Source            : DM with @it-admin
+    LocalPath         : C:\Users\john.doe\Downloads\VPN_Access_Instructions.pdf
+    FileSize          : 156 KB
+
+  Downloaded File
+    FileName          : passwords.txt
+    DownloadDate      : 2024-10-17 16:45:00
+    Source            : #it-department
+    LocalPath         : C:\Users\john.doe\Downloads\passwords.txt
+    FileSize          : 2 KB
+```
+
+## Privilege Context
+
+- **Non-Elevated**: Parses Slack downloads for the current user only
+- **Elevated**: Parses Slack downloads for ALL users on the system, providing comprehensive visibility of Slack file sharing activity
+
+## Remote Execution
+
+This command **supports** remote execution (marked with + in the command list).
+
+Remote syntax:
+```
+Seatbelt.exe SlackDownloads -computername=TARGET.domain.com -username=DOMAIN\user -password=pass
+```
+
+## Detection Considerations
+
+### Indicators
+- File system access to Slack storage directories
+- Reading slack-downloads files in AppData\Roaming\Slack
+- Parsing JSON/LevelDB data structures
+- Enumeration across multiple user profiles
+
+### Defensive Monitoring
+- Monitor access to Slack storage directories by non-Slack processes
+- Alert on automated enumeration of Slack data
+- Track processes reading Slack download history
+- Log bulk access to Slack storage across multiple users
+- Detect reconnaissance tools accessing collaboration app data
+- Monitor for exfiltration of Slack download history
+
+### What Slack Downloads Reveal
+- Sensitive documents shared within organization
+- Communication patterns and team structures
+- File sharing frequency and types
+- Potential data leak indicators
+- Workspace activity and collaboration patterns
+- User roles based on channel access
+
+### Privacy Considerations
+- Download history may contain personal communications
+- Can reveal confidential business information
+- May expose sensitive project details
+- Consider user privacy when collecting Slack data
+
+## Related Commands
+
+- **SlackPresence**: Checks for Slack installation and workspace presence
+- **SlackWorkspaces**: Parses Slack workspace configuration files
+- **dir**: Lists files in user directories including Downloads
+- **ExplorerMRUs**: Shows recently accessed files
+- **OfficeMRUs**: Lists recently used Office documents

@@ -1,0 +1,145 @@
+---
+title: 'SuperPutty'
+description: 'SuperPutty configuration files'
+icon: 'server'
+---
+
+## Overview
+
+The `SuperPutty` command searches for SuperPuTTY configuration files on the system. SuperPuTTY is a Windows application that provides a tabbed interface for PuTTY SSH sessions. Its configuration files may contain server connection details, credentials, and session settings.
+
+**Important:** User commands run for the current user if not elevated and for ALL users if elevated.
+
+## Syntax
+
+```
+Seatbelt.exe SuperPutty
+```
+
+No additional arguments are supported. This command supports remote execution.
+
+## Output
+
+The command returns:
+- SuperPuTTY configuration file locations
+- Server connection details (hostnames, IP addresses, ports)
+- Stored session names and configurations
+- Protocol information (SSH, Telnet, etc.)
+- Usernames (when saved)
+- PuTTY session references
+- User context for each configuration
+
+## Use Cases
+
+### Red Team
+- **Credential Harvesting**: Extract SSH/Telnet connection details from configurations
+- **Network Mapping**: Discover servers and network infrastructure
+- **Lateral Movement**: Identify targets for SSH-based access
+- **Infrastructure Discovery**: Map organizational network topology
+- **Target Prioritization**: Identify critical systems from session names
+
+### Blue Team
+- **Asset Discovery**: Document SSH/Telnet accessible systems
+- **Security Audit**: Review server access patterns and configurations
+- **Incident Response**: Track SSH connection history during investigations
+- **Compliance Monitoring**: Ensure remote access aligns with policies
+- **Risk Assessment**: Identify insecure protocol usage (Telnet)
+
+## Example Output
+
+```
+====== SuperPutty ======
+
+User: john.doe
+
+  ConfigFile        : C:\Users\john.doe\Documents\SuperPuTTY\Sessions.xml
+
+  Session
+    SessionName       : Production Web Server
+    Host              : web-prod-01.contoso.com
+    Port              : 22
+    Protocol          : SSH
+    Username          : webadmin
+    PuttySession      : Default Settings
+
+  Session
+    SessionName       : Database Server
+    Host              : 192.168.10.100
+    Port              : 22
+    Protocol          : SSH
+    Username          : dbadmin
+    PuttySession      : SSH-Tunneling
+
+  Session
+    SessionName       : Legacy System
+    Host              : legacy.contoso.local
+    Port              : 23
+    Protocol          : Telnet
+    Username          : admin
+    PuttySession      : Telnet-Basic
+```
+
+## Privilege Context
+
+- **Non-Elevated**: Searches for SuperPuTTY configuration files for the current user only
+- **Elevated**: Searches for SuperPuTTY configuration files for ALL users on the system, providing comprehensive connection discovery
+
+## Remote Execution
+
+This command **supports** remote execution (marked with + in the command list).
+
+Remote syntax:
+```
+Seatbelt.exe SuperPutty -computername=TARGET.domain.com -username=DOMAIN\user -password=pass
+```
+
+## Detection Considerations
+
+### Indicators
+- File system access to SuperPuTTY configuration directories
+- Reading Sessions.xml files
+- Pattern-based searching for SuperPuTTY-specific files
+- Enumeration across multiple user profiles
+
+### Defensive Monitoring
+- Monitor access to SuperPuTTY configuration directories
+- Alert on non-SuperPuTTY processes reading Sessions.xml
+- Track automated enumeration of SSH configuration files
+- Log access to SuperPuTTY configuration files
+- Detect credential harvesting tools accessing SuperPuTTY data
+- Monitor for bulk configuration file enumeration across users
+- Alert on exfiltration of SuperPuTTY configuration files
+
+### What SuperPuTTY Reveals
+- Complete inventory of SSH/Telnet servers accessed
+- Usernames associated with remote systems
+- System naming conventions and network structure
+- Use of insecure protocols (Telnet)
+- Critical infrastructure identification
+- Session organization revealing system purposes
+- Referenced PuTTY sessions that may contain additional settings
+
+### SuperPuTTY Configuration Structure
+- XML-based configuration files
+- Session hierarchy with folders and organization
+- References to underlying PuTTY sessions
+- May link to PuTTY profiles with additional credentials
+- Portable format easily parseable
+
+### Security Recommendations
+- Discourage storing usernames in SuperPuTTY sessions
+- Use SSH key-based authentication instead of passwords
+- Implement file access monitoring on configuration directories
+- Regularly audit SuperPuTTY installations and configurations
+- Migrate from Telnet to SSH where possible
+- Consider using enterprise SSH management solutions
+- Enable logging for SSH authentication attempts
+
+## Related Commands
+
+- **PuttySessions**: Finds saved Putty SSH session configurations
+- **PuttyHostKeys**: Enumerates saved Putty SSH host keys
+- **MTPuTTY**: Searches for MTPuTTY configuration files
+- **FileZilla**: Finds FileZilla FTP credentials
+- **RDCManFiles**: Searches for RDP Connection Manager files
+- **WindowsCredentialFiles**: Finds Windows credential files

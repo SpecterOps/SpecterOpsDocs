@@ -1,0 +1,12 @@
+---
+title: 'ESC12 - YubiHSM2'
+description: 'Vulnerability in certificate authorities using YubiHSM key storage provider allowing CA private key extraction'
+icon: 'key'
+sidebarTitle: 'ESC12'
+---
+
+ESC12 is a vulnerability disclosed by Hans-Joachim Knobloch in [this blogpost](https://pkiblog.knobloch.info/esc12-shell-access-to-adcs-ca-with-yubihsm), which details a vulnerability in certificate authorities that stores their private key with the YubiHSM key storage provider. When this occurs, anyone with local unprivileged access to the CA server can extract the CA private key and forge arbitrary certificates to elevate their privileges.
+
+<Warning>
+While this is a cool attack, it is *very* niche, and as such is **not supported** by Certify.
+</Warning>

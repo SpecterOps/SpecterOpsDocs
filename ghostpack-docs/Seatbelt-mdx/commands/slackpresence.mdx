@@ -1,0 +1,123 @@
+---
+title: 'SlackPresence'
+description: 'Checks if interesting Slack files exist'
+icon: 'slack'
+---
+
+## Overview
+
+The `SlackPresence` command checks for the existence of interesting Slack application files on the system. This command identifies Slack installations and data storage locations without parsing file contents, providing a quick assessment of Slack usage and workspace presence.
+
+**Important:** User commands run for the current user if not elevated and for ALL users if elevated.
+
+## Syntax
+
+```
+Seatbelt.exe SlackPresence
+```
+
+No additional arguments are supported. This command supports remote execution.
+
+## Output
+
+The command returns:
+- Presence of Slack application installation
+- Slack data storage directory locations
+- Workspace configuration file presence
+- Cookie and token storage locations
+- Download history file presence
+- User profiles associated with Slack
+
+## Use Cases
+
+### Red Team
+- **Target Identification**: Identify Slack installations for credential and token harvesting
+- **Data Exfiltration Planning**: Determine if Slack contains valuable communications
+- **User Profiling**: Understand collaboration tool usage
+- **Credential Access**: Locate Slack tokens and authentication data
+- **Pre-Exploitation**: Identify Slack before targeting workspace data
+
+### Blue Team
+- **Asset Inventory**: Track Slack installations across the environment
+- **Data Loss Prevention**: Identify endpoints with Slack data
+- **Compliance Auditing**: Ensure Slack usage aligns with policies
+- **Shadow IT Detection**: Discover unauthorized Slack installations
+- **Incident Response**: Quickly identify Slack data during investigations
+
+## Example Output
+
+```
+====== SlackPresence ======
+
+User: john.doe
+
+  Slack Installation
+    InstallPath       : C:\Users\john.doe\AppData\Local\slack
+    Version           : 4.34.121
+
+  Data Locations
+    StoragePath       : C:\Users\john.doe\AppData\Roaming\Slack
+    Cookies           : Present
+    Workspaces        : Present
+    Downloads         : Present
+    LocalStorage      : Present
+
+  Files Present:
+    slack-workspaces  : True
+    slack-downloads   : True
+    Cookies           : True
+    Local Storage     : True
+```
+
+## Privilege Context
+
+- **Non-Elevated**: Checks for Slack files in the current user's profile only
+- **Elevated**: Checks for Slack files across all user profiles on the system, providing comprehensive Slack usage visibility
+
+## Remote Execution
+
+This command **supports** remote execution (marked with + in the command list).
+
+Remote syntax:
+```
+Seatbelt.exe SlackPresence -computername=TARGET.domain.com -username=DOMAIN\user -password=pass
+```
+
+## Detection Considerations
+
+### Indicators
+- File system enumeration in Slack installation directories
+- Access to AppData\Roaming\Slack and AppData\Local\slack
+- Pattern-based searching for Slack-specific file names
+- Rapid sequential access to Slack data locations
+
+### Defensive Monitoring
+- Monitor access to Slack directories by non-Slack processes
+- Alert on enumeration of multiple users' Slack data folders
+- Track automated tools accessing Slack file locations
+- Log unusual file system queries targeting Slack paths
+- Detect processes reading Slack databases without being Slack
+- Monitor for reconnaissance patterns across Slack directories
+
+### What Slack Presence Indicates
+- Active collaboration tool usage
+- Potential for sensitive communications
+- Workspace tokens and authentication data
+- File sharing and download history
+- Multi-workspace usage patterns
+
+### Slack Data Locations
+- `AppData\Roaming\Slack` - Main data storage
+- `AppData\Local\slack` - Application binaries
+- Cookies contain authentication tokens
+- Local Storage contains workspace data
+- slack-workspaces contains workspace configurations
+- slack-downloads contains download history
+
+## Related Commands
+
+- **SlackWorkspaces**: Parses Slack workspace configuration files
+- **SlackDownloads**: Parses Slack download history
+- **ChromiumPresence**: Checks for Chromium browser presence
+- **FirefoxPresence**: Checks for Firefox browser presence
+- **dir**: Lists files in user directories

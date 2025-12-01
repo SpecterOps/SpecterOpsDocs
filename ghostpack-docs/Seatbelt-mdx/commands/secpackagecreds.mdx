@@ -1,0 +1,114 @@
+---
+title: 'SecPackageCreds'
+description: 'Obtains credentials from security packages'
+icon: 'shield-halved'
+---
+
+## Overview
+
+The `SecPackageCreds` command attempts to obtain credentials from Windows security packages using NTLM authentication flows. This technique can extract NTLM hashes and potentially plaintext credentials from the current user's security context without requiring elevated privileges.
+
+**Important:** User commands run for the current user if not elevated and for ALL users if elevated.
+
+## Syntax
+
+```
+Seatbelt.exe SecPackageCreds
+```
+
+No additional arguments are supported.
+
+## Output
+
+The command returns:
+- NTLM challenge/response pairs
+- NetNTLM hashes
+- Username and domain information
+- Security package information
+- Credential acquisition status
+- Hash formats suitable for cracking
+
+## Use Cases
+
+### Red Team
+- **Credential Harvesting**: Extract NTLM hashes from security packages
+- **Hash Cracking**: Obtain NetNTLM hashes for offline cracking
+- **Lateral Movement**: Use extracted credentials for network authentication
+- **Privilege Escalation**: Combine with other techniques for elevated access
+- **Reconnaissance**: Understand authentication mechanisms in use
+
+### Blue Team
+- **Security Testing**: Validate detection capabilities for credential dumping
+- **Incident Response**: Understand credential exposure during investigations
+- **Security Baseline**: Test endpoint credential protection mechanisms
+- **Attack Simulation**: Replicate adversary credential theft techniques
+- **Detection Validation**: Verify security controls detect this activity
+
+## Example Output
+
+```
+====== SecPackageCreds ======
+
+  User              : CONTOSO\john.doe
+  Domain            : CONTOSO
+
+  NTLM Challenge/Response:
+    Challenge         : 1122334455667788
+    Response          : abc123def456...
+    NetNTLMv2 Hash    : john.doe::CONTOSO:1122334455667788:abc123def456...:...
+
+  Security Package  : NTLM
+    Status            : Success
+    Hash Type         : NetNTLMv2
+```
+
+## Privilege Context
+
+- **Non-Elevated**: Obtains credentials for the current user only
+- **Elevated**: May obtain credentials for multiple security contexts, though this technique primarily targets the current user's authentication
+
+## Remote Execution
+
+This command does **not** support remote execution (not marked with + in the command list).
+
+## Detection Considerations
+
+### Indicators
+- Calls to security package APIs (SSPI/LSA)
+- NTLM authentication flows initiated by unexpected processes
+- Creation of NTLM challenges and responses
+- Access to security package interfaces
+- Memory operations targeting authentication data
+
+### Defensive Monitoring
+- Monitor SSPI/LSA API calls from unexpected processes
+- Alert on NTLM authentication flows from non-browser/non-standard applications
+- Track processes accessing security package interfaces
+- Log credential dumping tool indicators
+- Detect tools like Internal-Monologue or similar techniques
+- Monitor for unusual authentication patterns
+
+### Attack Context
+- Based on techniques like Internal-Monologue
+- Leverages NTLM reflection and authentication flows
+- Can work without elevated privileges
+- Extracts NetNTLM hashes usable for offline cracking
+- May bypass some credential protection mechanisms
+
+### Security Recommendations
+- Enable Windows Defender Credential Guard
+- Implement NTLM authentication restrictions
+- Monitor for unusual NTLM authentication flows
+- Deploy EDR solutions that detect credential theft
+- Use multi-factor authentication where possible
+- Implement least privilege access controls
+- Enable detailed security auditing
+
+## Related Commands
+
+- **WindowsCredentialFiles**: Finds Windows credential DPAPI blobs
+- **WindowsVault**: Enumerates credentials in Windows Vault
+- **CredEnum**: Lists saved credentials using Windows API
+- **DpapiMasterKeys**: Lists DPAPI master keys
+- **TokenPrivileges**: Shows current token privileges
+- **LogonSessions**: Displays Windows logon sessions

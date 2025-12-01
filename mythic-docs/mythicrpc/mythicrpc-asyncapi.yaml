@@ -1,0 +1,1505 @@
+asyncapi: 3.0.0
+info:
+  title: MythicRPC API
+  version: 3.2.12
+  description: |
+    MythicRPC provides programmatic access to execute functions against Mythic and its database from within command tasking files via RabbitMQ RPC calls.
+    
+    ## Overview
+    MythicRPC is part of the `github.com/MythicMeta/MythicContainer` GoLang package and `mythic_container` PyPi package. It uses RabbitMQ's RPC functionality to execute functions within Mythic's core system.
+    
+    ## Usage Pattern
+    **GoLang:**
+    ```go
+    response, err := mythicrpc.SendMythicRPCAgentStorageCreate(
+        mythicrpc.MythicRPCAgentstorageCreateMessage{
+            UniqueID: "my-unique-id",
+            DataToStore: []byte("data"),
+        }
+    )
+    ```
+    
+    **Python:**
+    ```python
+    response = await MythicRPC().execute("create_agentstorage", 
+        unique_id="my-unique-id", 
+        data=b"data"
+    )
+    ```
+    
+    ## Response Pattern
+    All responses follow the standard format:
+    - `success` (bool): Operation success status
+    - `error` (string): Error message if success is false
+    - Additional fields specific to each operation
+  contact:
+    name: MythicMeta
+    url: https://github.com/MythicMeta/MythicContainer
+  license:
+    name: BSD 3-Clause
+    url: https://github.com/MythicMeta/MythicContainer/blob/main/LICENSE
+
+servers:
+  development:
+    host: mythic-rabbitmq:5672
+    protocol: amqp
+    description: Mythic RabbitMQ Server
+
+channels:
+  mythic_rpc_agentstorage_create:
+    address: mythic_rpc_agentstorage_create
+    messages:
+      AgentStorageCreateRequest:
+        $ref: '#/components/messages/AgentStorageCreateRequest'
+      AgentStorageCreateResponse:
+        $ref: '#/components/messages/AgentStorageCreateResponse'
+    description: Create agent storage entry
+
+  mythic_rpc_agentstorage_remove:
+    address: mythic_rpc_agentstorage_remove
+    messages:
+      AgentStorageRemoveRequest:
+        $ref: '#/components/messages/AgentStorageRemoveRequest'
+      AgentStorageRemoveResponse:
+        $ref: '#/components/messages/AgentStorageRemoveResponse'
+    description: Remove agent storage entry
+
+  mythic_rpc_agentstorage_search:
+    address: mythic_rpc_agentstorage_search
+    messages:
+      AgentStorageSearchRequest:
+        $ref: '#/components/messages/AgentStorageSearchRequest'
+      AgentStorageSearchResponse:
+        $ref: '#/components/messages/AgentStorageSearchResponse'
+    description: Search agent storage entries
+
+  mythic_rpc_callback_create:
+    address: mythic_rpc_callback_create
+    messages:
+      CallbackCreateRequest:
+        $ref: '#/components/messages/CallbackCreateRequest'
+      CallbackCreateResponse:
+        $ref: '#/components/messages/CallbackCreateResponse'
+    description: Create callback entry
+
+  mythic_rpc_callback_update:
+    address: mythic_rpc_callback_update
+    messages:
+      CallbackUpdateRequest:
+        $ref: '#/components/messages/CallbackUpdateRequest'
+      CallbackUpdateResponse:
+        $ref: '#/components/messages/CallbackUpdateResponse'
+    description: Update callback information
+
+  mythic_rpc_callback_search:
+    address: mythic_rpc_callback_search
+    messages:
+      CallbackSearchRequest:
+        $ref: '#/components/messages/CallbackSearchRequest'
+      CallbackSearchResponse:
+        $ref: '#/components/messages/CallbackSearchResponse'
+    description: Search callbacks
+
+  mythic_rpc_file_create:
+    address: mythic_rpc_file_create
+    messages:
+      FileCreateRequest:
+        $ref: '#/components/messages/FileCreateRequest'
+      FileCreateResponse:
+        $ref: '#/components/messages/FileCreateResponse'
+    description: Create file entry
+
+  mythic_rpc_file_search:
+    address: mythic_rpc_file_search
+    messages:
+      FileSearchRequest:
+        $ref: '#/components/messages/FileSearchRequest'
+      FileSearchResponse:
+        $ref: '#/components/messages/FileSearchResponse'
+    description: Search files
+
+  mythic_rpc_file_get_content:
+    address: mythic_rpc_file_get_content
+    messages:
+      FileGetContentRequest:
+        $ref: '#/components/messages/FileGetContentRequest'
+      FileGetContentResponse:
+        $ref: '#/components/messages/FileGetContentResponse'
+    description: Get file content
+
+  mythic_rpc_file_update:
+    address: mythic_rpc_file_update
+    messages:
+      FileUpdateRequest:
+        $ref: '#/components/messages/FileUpdateRequest'
+      FileUpdateResponse:
+        $ref: '#/components/messages/FileUpdateResponse'
+    description: Update file information
+
+  mythic_rpc_task_create:
+    address: mythic_rpc_task_create
+    messages:
+      TaskCreateRequest:
+        $ref: '#/components/messages/TaskCreateRequest'
+      TaskCreateResponse:
+        $ref: '#/components/messages/TaskCreateResponse'
+    description: Create task
+
+  mythic_rpc_task_create_subtask:
+    address: mythic_rpc_task_create_subtask
+    messages:
+      TaskCreateSubtaskRequest:
+        $ref: '#/components/messages/TaskCreateSubtaskRequest'
+      TaskCreateSubtaskResponse:
+        $ref: '#/components/messages/TaskCreateSubtaskResponse'
+    description: Create subtask
+
+  mythic_rpc_task_search:
+    address: mythic_rpc_task_search
+    messages:
+      TaskSearchRequest:
+        $ref: '#/components/messages/TaskSearchRequest'
+      TaskSearchResponse:
+        $ref: '#/components/messages/TaskSearchResponse'
+    description: Search tasks
+
+  mythic_rpc_task_update:
+    address: mythic_rpc_task_update
+    messages:
+      TaskUpdateRequest:
+        $ref: '#/components/messages/TaskUpdateRequest'
+      TaskUpdateResponse:
+        $ref: '#/components/messages/TaskUpdateResponse'
+    description: Update task information
+
+  mythic_rpc_payload_create_from_uuid:
+    address: mythic_rpc_payload_create_from_uuid
+    messages:
+      PayloadCreateFromUUIDRequest:
+        $ref: '#/components/messages/PayloadCreateFromUUIDRequest'
+      PayloadCreateFromUUIDResponse:
+        $ref: '#/components/messages/PayloadCreateFromUUIDResponse'
+    description: Create payload from existing UUID
+
+  mythic_rpc_payload_create_from_scratch:
+    address: mythic_rpc_payload_create_from_scratch
+    messages:
+      PayloadCreateFromScratchRequest:
+        $ref: '#/components/messages/PayloadCreateFromScratchRequest'
+      PayloadCreateFromScratchResponse:
+        $ref: '#/components/messages/PayloadCreateFromScratchResponse'
+    description: Create payload from scratch
+
+  mythic_rpc_payload_search:
+    address: mythic_rpc_payload_search
+    messages:
+      PayloadSearchRequest:
+        $ref: '#/components/messages/PayloadSearchRequest'
+      PayloadSearchResponse:
+        $ref: '#/components/messages/PayloadSearchResponse'
+    description: Search payloads
+
+operations:
+  sendAgentStorageCreate:
+    action: send
+    channel:
+      $ref: '#/channels/mythic_rpc_agentstorage_create'
+    summary: Send agent storage create request
+    messages:
+      - $ref: '#/channels/mythic_rpc_agentstorage_create/messages/AgentStorageCreateRequest'
+  
+  receiveAgentStorageCreateResponse:
+    action: receive
+    channel:
+      $ref: '#/channels/mythic_rpc_agentstorage_create'
+    summary: Receive agent storage create response
+    messages:
+      - $ref: '#/channels/mythic_rpc_agentstorage_create/messages/AgentStorageCreateResponse'
+
+  sendAgentStorageRemove:
+    action: send
+    channel:
+      $ref: '#/channels/mythic_rpc_agentstorage_remove'
+    summary: Send agent storage remove request
+    messages:
+      - $ref: '#/channels/mythic_rpc_agentstorage_remove/messages/AgentStorageRemoveRequest'
+  
+  receiveAgentStorageRemoveResponse:
+    action: receive
+    channel:
+      $ref: '#/channels/mythic_rpc_agentstorage_remove'
+    summary: Receive agent storage remove response
+    messages:
+      - $ref: '#/channels/mythic_rpc_agentstorage_remove/messages/AgentStorageRemoveResponse'
+
+  sendAgentStorageSearch:
+    action: send
+    channel:
+      $ref: '#/channels/mythic_rpc_agentstorage_search'
+    summary: Send agent storage search request
+    messages:
+      - $ref: '#/channels/mythic_rpc_agentstorage_search/messages/AgentStorageSearchRequest'
+  
+  receiveAgentStorageSearchResponse:
+    action: receive
+    channel:
+      $ref: '#/channels/mythic_rpc_agentstorage_search'
+    summary: Receive agent storage search response
+    messages:
+      - $ref: '#/channels/mythic_rpc_agentstorage_search/messages/AgentStorageSearchResponse'
+
+  sendCallbackCreate:
+    action: send
+    channel:
+      $ref: '#/channels/mythic_rpc_callback_create'
+    summary: Send callback create request
+    messages:
+      - $ref: '#/channels/mythic_rpc_callback_create/messages/CallbackCreateRequest'
+  
+  receiveCallbackCreateResponse:
+    action: receive
+    channel:
+      $ref: '#/channels/mythic_rpc_callback_create'
+    summary: Receive callback create response
+    messages:
+      - $ref: '#/channels/mythic_rpc_callback_create/messages/CallbackCreateResponse'
+
+  sendCallbackUpdate:
+    action: send
+    channel:
+      $ref: '#/channels/mythic_rpc_callback_update'
+    summary: Send callback update request
+    messages:
+      - $ref: '#/channels/mythic_rpc_callback_update/messages/CallbackUpdateRequest'
+  
+  receiveCallbackUpdateResponse:
+    action: receive
+    channel:
+      $ref: '#/channels/mythic_rpc_callback_update'
+    summary: Receive callback update response
+    messages:
+      - $ref: '#/channels/mythic_rpc_callback_update/messages/CallbackUpdateResponse'
+
+  sendCallbackSearch:
+    action: send
+    channel:
+      $ref: '#/channels/mythic_rpc_callback_search'
+    summary: Send callback search request
+    messages:
+      - $ref: '#/channels/mythic_rpc_callback_search/messages/CallbackSearchRequest'
+  
+  receiveCallbackSearchResponse:
+    action: receive
+    channel:
+      $ref: '#/channels/mythic_rpc_callback_search'
+    summary: Receive callback search response
+    messages:
+      - $ref: '#/channels/mythic_rpc_callback_search/messages/CallbackSearchResponse'
+
+  sendFileCreate:
+    action: send
+    channel:
+      $ref: '#/channels/mythic_rpc_file_create'
+    summary: Send file create request
+    messages:
+      - $ref: '#/channels/mythic_rpc_file_create/messages/FileCreateRequest'
+  
+  receiveFileCreateResponse:
+    action: receive
+    channel:
+      $ref: '#/channels/mythic_rpc_file_create'
+    summary: Receive file create response
+    messages:
+      - $ref: '#/channels/mythic_rpc_file_create/messages/FileCreateResponse'
+
+  sendFileSearch:
+    action: send
+    channel:
+      $ref: '#/channels/mythic_rpc_file_search'
+    summary: Send file search request
+    messages:
+      - $ref: '#/channels/mythic_rpc_file_search/messages/FileSearchRequest'
+  
+  receiveFileSearchResponse:
+    action: receive
+    channel:
+      $ref: '#/channels/mythic_rpc_file_search'
+    summary: Receive file search response
+    messages:
+      - $ref: '#/channels/mythic_rpc_file_search/messages/FileSearchResponse'
+
+  sendFileGetContent:
+    action: send
+    channel:
+      $ref: '#/channels/mythic_rpc_file_get_content'
+    summary: Send file get content request
+    messages:
+      - $ref: '#/channels/mythic_rpc_file_get_content/messages/FileGetContentRequest'
+  
+  receiveFileGetContentResponse:
+    action: receive
+    channel:
+      $ref: '#/channels/mythic_rpc_file_get_content'
+    summary: Receive file get content response
+    messages:
+      - $ref: '#/channels/mythic_rpc_file_get_content/messages/FileGetContentResponse'
+
+  sendFileUpdate:
+    action: send
+    channel:
+      $ref: '#/channels/mythic_rpc_file_update'
+    summary: Send file update request
+    messages:
+      - $ref: '#/channels/mythic_rpc_file_update/messages/FileUpdateRequest'
+  
+  receiveFileUpdateResponse:
+    action: receive
+    channel:
+      $ref: '#/channels/mythic_rpc_file_update'
+    summary: Receive file update response
+    messages:
+      - $ref: '#/channels/mythic_rpc_file_update/messages/FileUpdateResponse'
+
+  sendTaskCreate:
+    action: send
+    channel:
+      $ref: '#/channels/mythic_rpc_task_create'
+    summary: Send task create request
+    messages:
+      - $ref: '#/channels/mythic_rpc_task_create/messages/TaskCreateRequest'
+  
+  receiveTaskCreateResponse:
+    action: receive
+    channel:
+      $ref: '#/channels/mythic_rpc_task_create'
+    summary: Receive task create response
+    messages:
+      - $ref: '#/channels/mythic_rpc_task_create/messages/TaskCreateResponse'
+
+  sendTaskCreateSubtask:
+    action: send
+    channel:
+      $ref: '#/channels/mythic_rpc_task_create_subtask'
+    summary: Send subtask create request
+    messages:
+      - $ref: '#/channels/mythic_rpc_task_create_subtask/messages/TaskCreateSubtaskRequest'
+  
+  receiveTaskCreateSubtaskResponse:
+    action: receive
+    channel:
+      $ref: '#/channels/mythic_rpc_task_create_subtask'
+    summary: Receive subtask create response
+    messages:
+      - $ref: '#/channels/mythic_rpc_task_create_subtask/messages/TaskCreateSubtaskResponse'
+
+  sendTaskSearch:
+    action: send
+    channel:
+      $ref: '#/channels/mythic_rpc_task_search'
+    summary: Send task search request
+    messages:
+      - $ref: '#/channels/mythic_rpc_task_search/messages/TaskSearchRequest'
+  
+  receiveTaskSearchResponse:
+    action: receive
+    channel:
+      $ref: '#/channels/mythic_rpc_task_search'
+    summary: Receive task search response
+    messages:
+      - $ref: '#/channels/mythic_rpc_task_search/messages/TaskSearchResponse'
+
+  sendTaskUpdate:
+    action: send
+    channel:
+      $ref: '#/channels/mythic_rpc_task_update'
+    summary: Send task update request
+    messages:
+      - $ref: '#/channels/mythic_rpc_task_update/messages/TaskUpdateRequest'
+  
+  receiveTaskUpdateResponse:
+    action: receive
+    channel:
+      $ref: '#/channels/mythic_rpc_task_update'
+    summary: Receive task update response
+    messages:
+      - $ref: '#/channels/mythic_rpc_task_update/messages/TaskUpdateResponse'
+
+  sendPayloadCreateFromUUID:
+    action: send
+    channel:
+      $ref: '#/channels/mythic_rpc_payload_create_from_uuid'
+    summary: Send payload create from UUID request
+    messages:
+      - $ref: '#/channels/mythic_rpc_payload_create_from_uuid/messages/PayloadCreateFromUUIDRequest'
+  
+  receivePayloadCreateFromUUIDResponse:
+    action: receive
+    channel:
+      $ref: '#/channels/mythic_rpc_payload_create_from_uuid'
+    summary: Receive payload create response
+    messages:
+      - $ref: '#/channels/mythic_rpc_payload_create_from_uuid/messages/PayloadCreateFromUUIDResponse'
+
+  sendPayloadCreateFromScratch:
+    action: send
+    channel:
+      $ref: '#/channels/mythic_rpc_payload_create_from_scratch'
+    summary: Send payload create from scratch request
+    messages:
+      - $ref: '#/channels/mythic_rpc_payload_create_from_scratch/messages/PayloadCreateFromScratchRequest'
+  
+  receivePayloadCreateFromScratchResponse:
+    action: receive
+    channel:
+      $ref: '#/channels/mythic_rpc_payload_create_from_scratch'
+    summary: Receive payload create response
+    messages:
+      - $ref: '#/channels/mythic_rpc_payload_create_from_scratch/messages/PayloadCreateFromScratchResponse'
+
+  sendPayloadSearch:
+    action: send
+    channel:
+      $ref: '#/channels/mythic_rpc_payload_search'
+    summary: Send payload search request
+    messages:
+      - $ref: '#/channels/mythic_rpc_payload_search/messages/PayloadSearchRequest'
+  
+  receivePayloadSearchResponse:
+    action: receive
+    channel:
+      $ref: '#/channels/mythic_rpc_payload_search'
+    summary: Receive payload search response
+    messages:
+      - $ref: '#/channels/mythic_rpc_payload_search/messages/PayloadSearchResponse'
+
+components:
+  messages:
+    AgentStorageCreateRequest:
+      name: AgentStorageCreateRequest
+      title: Agent Storage Create Request
+      summary: Create a new entry in the agentstorage table
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/AgentStorageCreatePayload'
+    
+    AgentStorageCreateResponse:
+      name: AgentStorageCreateResponse
+      title: Agent Storage Create Response
+      summary: Response for agent storage create operation
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/BaseResponsePayload'
+    
+    AgentStorageRemoveRequest:
+      name: AgentStorageRemoveRequest
+      title: Agent Storage Remove Request
+      summary: Remove an entry from the agentstorage table
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/AgentStorageRemovePayload'
+    
+    AgentStorageRemoveResponse:
+      name: AgentStorageRemoveResponse
+      title: Agent Storage Remove Response
+      summary: Response for agent storage remove operation
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/BaseResponsePayload'
+    
+    AgentStorageSearchRequest:
+      name: AgentStorageSearchRequest
+      title: Agent Storage Search Request
+      summary: Search for entries in the agentstorage table
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/AgentStorageSearchPayload'
+    
+    AgentStorageSearchResponse:
+      name: AgentStorageSearchResponse
+      title: Agent Storage Search Response
+      summary: Response for agent storage search operation
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/AgentStorageSearchResponsePayload'
+    
+    CallbackCreateRequest:
+      name: CallbackCreateRequest
+      title: Callback Create Request
+      summary: Create a new callback entry
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/CallbackCreatePayload'
+    
+    CallbackCreateResponse:
+      name: CallbackCreateResponse
+      title: Callback Create Response
+      summary: Response for callback create operation
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/CallbackCreateResponsePayload'
+    
+    CallbackUpdateRequest:
+      name: CallbackUpdateRequest
+      title: Callback Update Request
+      summary: Update callback information
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/CallbackUpdatePayload'
+    
+    CallbackUpdateResponse:
+      name: CallbackUpdateResponse
+      title: Callback Update Response
+      summary: Response for callback update operation
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/BaseResponsePayload'
+    
+    CallbackSearchRequest:
+      name: CallbackSearchRequest
+      title: Callback Search Request
+      summary: Search for callbacks
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/CallbackSearchPayload'
+    
+    CallbackSearchResponse:
+      name: CallbackSearchResponse
+      title: Callback Search Response
+      summary: Response for callback search operation
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/CallbackSearchResponsePayload'
+    
+    FileCreateRequest:
+      name: FileCreateRequest
+      title: File Create Request
+      summary: Create a new file entry
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/FileCreatePayload'
+    
+    FileCreateResponse:
+      name: FileCreateResponse
+      title: File Create Response
+      summary: Response for file create operation
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/FileCreateResponsePayload'
+    
+    FileSearchRequest:
+      name: FileSearchRequest
+      title: File Search Request
+      summary: Search for files
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/FileSearchPayload'
+    
+    FileSearchResponse:
+      name: FileSearchResponse
+      title: File Search Response
+      summary: Response for file search operation
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/FileSearchResponsePayload'
+    
+    FileGetContentRequest:
+      name: FileGetContentRequest
+      title: File Get Content Request
+      summary: Get file content by UUID
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/FileGetContentPayload'
+    
+    FileGetContentResponse:
+      name: FileGetContentResponse
+      title: File Get Content Response
+      summary: Response for file get content operation
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/FileGetContentResponsePayload'
+    
+    FileUpdateRequest:
+      name: FileUpdateRequest
+      title: File Update Request
+      summary: Update file information
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/FileUpdatePayload'
+    
+    FileUpdateResponse:
+      name: FileUpdateResponse
+      title: File Update Response
+      summary: Response for file update operation
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/BaseResponsePayload'
+    
+    TaskCreateRequest:
+      name: TaskCreateRequest
+      title: Task Create Request
+      summary: Create a new task
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/TaskCreatePayload'
+    
+    TaskCreateResponse:
+      name: TaskCreateResponse
+      title: Task Create Response
+      summary: Response for task create operation
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/TaskCreateResponsePayload'
+    
+    TaskCreateSubtaskRequest:
+      name: TaskCreateSubtaskRequest
+      title: Task Create Subtask Request
+      summary: Create a subtask
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/TaskCreateSubtaskPayload'
+    
+    TaskCreateSubtaskResponse:
+      name: TaskCreateSubtaskResponse
+      title: Task Create Subtask Response
+      summary: Response for subtask create operation
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/TaskCreateSubtaskResponsePayload'
+    
+    TaskSearchRequest:
+      name: TaskSearchRequest
+      title: Task Search Request
+      summary: Search for tasks
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/TaskSearchPayload'
+    
+    TaskSearchResponse:
+      name: TaskSearchResponse
+      title: Task Search Response
+      summary: Response for task search operation
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/TaskSearchResponsePayload'
+    
+    TaskUpdateRequest:
+      name: TaskUpdateRequest
+      title: Task Update Request
+      summary: Update task information
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/TaskUpdatePayload'
+    
+    TaskUpdateResponse:
+      name: TaskUpdateResponse
+      title: Task Update Response
+      summary: Response for task update operation
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/BaseResponsePayload'
+    
+    PayloadCreateFromUUIDRequest:
+      name: PayloadCreateFromUUIDRequest
+      title: Payload Create From UUID Request
+      summary: Create payload from existing UUID
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/PayloadCreateFromUUIDPayload'
+    
+    PayloadCreateFromUUIDResponse:
+      name: PayloadCreateFromUUIDResponse
+      title: Payload Create From UUID Response
+      summary: Response for payload create from UUID
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/PayloadCreateResponsePayload'
+    
+    PayloadCreateFromScratchRequest:
+      name: PayloadCreateFromScratchRequest
+      title: Payload Create From Scratch Request
+      summary: Create payload from scratch
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/PayloadCreateFromScratchPayload'
+    
+    PayloadCreateFromScratchResponse:
+      name: PayloadCreateFromScratchResponse
+      title: Payload Create From Scratch Response
+      summary: Response for payload create from scratch
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/PayloadCreateResponsePayload'
+    
+    PayloadSearchRequest:
+      name: PayloadSearchRequest
+      title: Payload Search Request
+      summary: Search for payloads
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/PayloadSearchPayload'
+    
+    PayloadSearchResponse:
+      name: PayloadSearchResponse
+      title: Payload Search Response
+      summary: Response for payload search operation
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/PayloadSearchResponsePayload'
+
+  schemas:
+    BaseResponsePayload:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: Operation success status
+          default: true
+        error:
+          type: string
+          description: Error message if success is false
+          default: ""
+      required:
+        - success
+    
+    AgentStorageCreatePayload:
+      type: object
+      description: Create entry in agentstorage table
+      properties:
+        unique_id:
+          type: string
+          description: Unique identifier for this entry provided by the developer
+        data:
+          type: string
+          format: byte
+          description: Base64-encoded data to store as bytes
+      required:
+        - unique_id
+        - data
+    
+    AgentStorageRemovePayload:
+      type: object
+      description: Remove entry from agentstorage table
+      properties:
+        unique_id:
+          type: string
+          description: Unique identifier of entry to remove
+      required:
+        - unique_id
+    
+    AgentStorageSearchPayload:
+      type: object
+      description: Search entries in agentstorage table
+      properties:
+        unique_id:
+          type: string
+          description: Unique identifier to search for
+      required:
+        - unique_id
+    
+    AgentStorageSearchResponsePayload:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: Operation success status
+          default: true
+        error:
+          type: string
+          description: Error message if success is false
+          default: ""
+        data:
+          type: string
+          format: byte
+          description: Base64-encoded stored data
+        unique_id:
+          type: string
+          description: Unique identifier of the found data
+      required:
+        - success
+    
+    CallbackCreatePayload:
+      type: object
+      description: Create new callback entry
+      properties:
+        payload_uuid:
+          type: string
+          format: uuid
+          description: UUID of associated payload
+        c2_profile:
+          type: string
+          description: Name of C2 profile
+        host:
+          type: string
+          description: Host information
+          default: ""
+        user:
+          type: string
+          description: User context
+          default: ""
+        pid:
+          type: integer
+          description: Process ID
+          default: 0
+        ip:
+          type: string
+          description: IP address
+          default: ""
+        external_ip:
+          type: string
+          description: External IP address
+          default: ""
+        process_name:
+          type: string
+          description: Process name
+          default: ""
+        description:
+          type: string
+          description: Callback description
+          default: ""
+        sleep_info:
+          type: string
+          description: Sleep interval information
+          default: ""
+      required:
+        - payload_uuid
+        - c2_profile
+    
+    CallbackCreateResponsePayload:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: Operation success status
+          default: true
+        error:
+          type: string
+          description: Error message if success is false
+          default: ""
+        callback_id:
+          type: integer
+          description: Database ID of created callback
+        agent_callback_id:
+          type: string
+          format: uuid
+          description: Agent's callback UUID
+      required:
+        - success
+    
+    CallbackUpdatePayload:
+      type: object
+      description: Update callback information
+      properties:
+        callback_id:
+          type: integer
+          description: Callback database ID
+          default: 0
+        agent_callback_id:
+          type: string
+          format: uuid
+          description: Agent callback UUID
+          default: ""
+        sleep_info:
+          type: string
+          description: New sleep interval
+          default: ""
+        description:
+          type: string
+          description: New description
+          default: ""
+        user:
+          type: string
+          description: Updated user information
+          default: ""
+        host:
+          type: string
+          description: Updated host information
+          default: ""
+        pid:
+          type: integer
+          description: Updated process ID
+          default: 0
+        ip:
+          type: string
+          description: Updated IP address
+          default: ""
+    
+    CallbackSearchPayload:
+      type: object
+      description: Search for callbacks
+      properties:
+        callback_id:
+          type: integer
+          description: Specific callback ID to search for
+          default: 0
+        agent_callback_id:
+          type: string
+          format: uuid
+          description: Agent callback UUID to search for
+          default: ""
+        active:
+          type: boolean
+          description: Filter by active status
+          default: true
+        host:
+          type: string
+          description: Filter by host
+          default: ""
+        user:
+          type: string
+          description: Filter by user
+          default: ""
+    
+    CallbackSearchResponsePayload:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: Operation success status
+          default: true
+        error:
+          type: string
+          description: Error message if success is false
+          default: ""
+        callbacks:
+          type: array
+          description: Array of callback objects
+          default: []
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                default: 0
+              agent_callback_id:
+                type: string
+                format: uuid
+                default: ""
+              display_id:
+                type: integer
+                default: 0
+              host:
+                type: string
+                default: ""
+              user:
+                type: string
+                default: ""
+              description:
+                type: string
+                default: ""
+              active:
+                type: boolean
+                default: true
+              last_checkin:
+                type: string
+                format: date-time
+                default: "2024-01-01T00:00:00Z"
+      required:
+        - success
+    
+    FileCreatePayload:
+      type: object
+      description: Create new file entry
+      properties:
+        task_id:
+          type: integer
+          description: Task ID for scoping
+          default: 0
+        payload_uuid:
+          type: string
+          format: uuid
+          description: Alternative scoping via payload UUID
+          default: ""
+        agent_callback_id:
+          type: string
+          format: uuid
+          description: Alternative scoping via callback UUID
+          default: ""
+        file_contents:
+          type: string
+          format: byte
+          description: Base64-encoded file contents
+        filename:
+          type: string
+          description: Name of the file
+        delete_after_fetch:
+          type: boolean
+          description: Delete file after agent fetches it
+          default: false
+        comment:
+          type: string
+          description: Optional comment
+          default: ""
+      required:
+        - file_contents
+        - filename
+    
+    FileCreateResponsePayload:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: Operation success status
+          default: true
+        error:
+          type: string
+          description: Error message if success is false
+          default: ""
+        agent_file_id:
+          type: string
+          format: uuid
+          description: UUID of the created file
+      required:
+        - success
+    
+    FileSearchPayload:
+      type: object
+      description: Search for files
+      properties:
+        task_id:
+          type: integer
+          description: Task ID for scoping
+          default: 0
+        callback_id:
+          type: integer
+          description: Callback ID for scoping
+          default: 0
+        agent_file_id:
+          type: string
+          format: uuid
+          description: Specific file UUID
+          default: ""
+        filename:
+          type: string
+          description: Filter by filename
+          default: ""
+        limit_by_callback:
+          type: boolean
+          description: Limit results to current callback
+          default: false
+        max_results:
+          type: integer
+          description: Maximum number of results
+          default: 100
+    
+    FileSearchResponsePayload:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: Operation success status
+          default: true
+        error:
+          type: string
+          description: Error message if success is false
+          default: ""
+        files:
+          type: array
+          description: Array of file objects
+          default: []
+          items:
+            type: object
+            properties:
+              agent_file_id:
+                type: string
+                format: uuid
+                default: ""
+              filename:
+                type: string
+                default: ""
+              file_size:
+                type: integer
+                default: 0
+              comment:
+                type: string
+                default: ""
+              host:
+                type: string
+                default: ""
+              full_remote_path:
+                type: string
+                default: ""
+              timestamp:
+                type: string
+                format: date-time
+                default: "2024-01-01T00:00:00Z"
+      required:
+        - success
+    
+    FileGetContentPayload:
+      type: object
+      description: Get file content by UUID
+      properties:
+        agent_file_id:
+          type: string
+          format: uuid
+          description: UUID of file to retrieve
+      required:
+        - agent_file_id
+    
+    FileGetContentResponsePayload:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: Operation success status
+          default: true
+        error:
+          type: string
+          description: Error message if success is false
+          default: ""
+        contents:
+          type: string
+          format: byte
+          description: Base64-encoded file contents
+        filename:
+          type: string
+          description: Original filename
+      required:
+        - success
+    
+    FileUpdatePayload:
+      type: object
+      description: Update file information
+      properties:
+        agent_file_id:
+          type: string
+          format: uuid
+          description: UUID of file to update
+        filename:
+          type: string
+          description: New filename
+          default: ""
+        comment:
+          type: string
+          description: New comment
+          default: ""
+        delete_file:
+          type: boolean
+          description: Mark file for deletion
+          default: false
+      required:
+        - agent_file_id
+    
+    TaskCreatePayload:
+      type: object
+      description: Create new task
+      properties:
+        agent_callback_id:
+          type: string
+          format: uuid
+          description: Agent callback UUID to task
+        command_name:
+          type: string
+          description: Command name to execute
+        params:
+          type: string
+          description: JSON string of command parameters
+        token_id:
+          type: integer
+          description: Token ID to use for execution
+          default: 0
+      required:
+        - agent_callback_id
+        - command_name
+        - params
+    
+    TaskCreateResponsePayload:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: Operation success status
+          default: true
+        error:
+          type: string
+          description: Error message if success is false
+          default: ""
+        task_id:
+          type: integer
+          description: Database ID of created task
+        task_display_id:
+          type: integer
+          description: Display ID of created task
+      required:
+        - success
+    
+    TaskCreateSubtaskPayload:
+      type: object
+      description: Create subtask
+      properties:
+        parent_task_id:
+          type: integer
+          description: Parent task database ID
+        subtask_command_name:
+          type: string
+          description: Command name for subtask
+        subtask_params:
+          type: string
+          description: JSON parameters for subtask
+        subtask_callback_function:
+          type: string
+          description: Function to call when subtask completes
+          default: ""
+      required:
+        - parent_task_id
+        - subtask_command_name
+        - subtask_params
+    
+    TaskCreateSubtaskResponsePayload:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: Operation success status
+          default: true
+        error:
+          type: string
+          description: Error message if success is false
+          default: ""
+        task_id:
+          type: integer
+          description: Database ID of created subtask
+      required:
+        - success
+    
+    TaskSearchPayload:
+      type: object
+      description: Search for tasks
+      properties:
+        task_id:
+          type: integer
+          description: Specific task ID for scoping
+        command_name:
+          type: string
+          description: Filter by command name
+          default: ""
+        completed:
+          type: boolean
+          description: Filter by completion status
+          default: false
+        callback_id:
+          type: integer
+          description: Filter by callback ID
+          default: 0
+      required:
+        - task_id
+    
+    TaskSearchResponsePayload:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: Operation success status
+          default: true
+        error:
+          type: string
+          description: Error message if success is false
+          default: ""
+        tasks:
+          type: array
+          description: Array of task objects
+          default: []
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                default: 0
+              display_id:
+                type: integer
+                default: 0
+              command_name:
+                type: string
+                default: ""
+              params:
+                type: string
+                default: ""
+              status:
+                type: string
+                default: ""
+              completed:
+                type: boolean
+                default: false
+              callback_id:
+                type: integer
+                default: 0
+              timestamp:
+                type: string
+                format: date-time
+                default: "2024-01-01T00:00:00Z"
+      required:
+        - success
+    
+    TaskUpdatePayload:
+      type: object
+      description: Update task information
+      properties:
+        task_id:
+          type: integer
+          description: Task database ID to update
+        status:
+          type: string
+          description: New task status
+          default: ""
+        completed:
+          type: boolean
+          description: Mark task as completed
+          default: false
+        stdout:
+          type: string
+          description: Standard output from task
+          default: ""
+        stderr:
+          type: string
+          description: Standard error from task
+          default: ""
+      required:
+        - task_id
+    
+    PayloadCreateFromUUIDPayload:
+      type: object
+      description: Create payload from existing UUID
+      properties:
+        task_id:
+          type: integer
+          description: Task ID for scoping
+        payload_uuid:
+          type: string
+          format: uuid
+          description: UUID of payload to copy from
+        new_description:
+          type: string
+          description: Description for new payload
+          default: ""
+        new_filename:
+          type: string
+          description: Filename for new payload
+          default: ""
+      required:
+        - task_id
+        - payload_uuid
+    
+    PayloadCreateFromScratchPayload:
+      type: object
+      description: Create payload from scratch
+      properties:
+        task_id:
+          type: integer
+          description: Task ID for scoping
+        payload_type:
+          type: string
+          description: Name of payload type
+        filename:
+          type: string
+          description: Desired filename
+          default: ""
+        description:
+          type: string
+          description: Payload description
+          default: ""
+        build_parameters:
+          type: object
+          description: Build parameters for payload
+          default: {}
+          additionalProperties: true
+        c2_profiles:
+          type: array
+          description: C2 profile configurations
+          default: []
+          items:
+            type: object
+            additionalProperties: true
+        commands:
+          type: array
+          description: Commands to include
+          default: []
+          items:
+            type: string
+      required:
+        - task_id
+        - payload_type
+    
+    PayloadCreateResponsePayload:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: Operation success status
+          default: true
+        error:
+          type: string
+          description: Error message if success is false
+          default: ""
+        uuid:
+          type: string
+          format: uuid
+          description: UUID of created payload
+      required:
+        - success
+    
+    PayloadSearchPayload:
+      type: object
+      description: Search for payloads
+      properties:
+        payload_uuid:
+          type: string
+          format: uuid
+          description: Specific payload UUID
+          default: ""
+        callback_id:
+          type: integer
+          description: Associated callback ID for scoping
+          default: 0
+        payload_type:
+          type: string
+          description: Filter by payload type
+          default: ""
+        filename:
+          type: string
+          description: Filter by filename
+          default: ""
+    
+    PayloadSearchResponsePayload:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: Operation success status
+          default: true
+        error:
+          type: string
+          description: Error message if success is false
+          default: ""
+        payloads:
+          type: array
+          description: Array of payload objects
+          default: []
+          items:
+            type: object
+            properties:
+              uuid:
+                type: string
+                format: uuid
+                default: ""
+              description:
+                type: string
+                default: ""
+              payload_type:
+                type: string
+                default: ""
+              filename:
+                type: string
+                default: ""
+              creation_time:
+                type: string
+                format: date-time
+                default: "2024-01-01T00:00:00Z"
+              build_phase:
+                type: string
+                enum:
+                  - success
+                  - error
+                  - building
+                default: success
+      required:
+        - success

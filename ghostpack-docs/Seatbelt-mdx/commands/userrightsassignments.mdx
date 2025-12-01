@@ -1,0 +1,136 @@
+---
+title: 'UserRightAssignments'
+description: 'Configured User Right Assignments (e.g. SeDenyNetworkLogonRight, SeShutdownPrivilege, etc.)'
+icon: 'user-shield'
+---
+
+## Overview
+
+The UserRightAssignments command enumerates user rights assignments configured on the system. User rights (different from privileges) control which users and groups can perform specific system operations like network logon, batch jobs, service logons, and local logon. These assignments are critical for access control and privilege escalation assessment.
+
+## Syntax
+
+```bash
+# Local system
+Seatbelt.exe UserRightAssignments
+
+# Remote computer
+Seatbelt.exe "UserRightAssignments <computername>"
+```
+
+<Note>
+This command does **not** support standard remote execution with `-computername` parameter.
+</Note>
+
+## Output
+
+Returns user right assignments:
+- User right name
+- Assigned users and groups (SIDs and names)
+- Description of the right
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Identify who can log on locally or remotely
+    - Find users with SeBackupPrivilege or SeRestorePrivilege
+    - Discover accounts that can run as services
+    - Locate privilege escalation opportunities
+    - Identify restricted logon rights
+  </Tab>
+  <Tab title="Blue Team">
+    - Audit user right assignments
+    - Validate least privilege configurations
+    - Detect unauthorized privilege grants
+    - Ensure proper access controls
+    - Verify security baseline compliance
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== UserRightAssignments ======
+
+SeNetworkLogonRight (Access this computer from the network):
+  Everyone
+  BUILTIN\Administrators
+  BUILTIN\Users
+  CORP\Domain Users
+
+SeDenyNetworkLogonRight (Deny access to this computer from the network):
+  NT AUTHORITY\LOCAL ACCOUNT
+  CORP\Blocked Users
+
+SeInteractiveLogonRight (Allow log on locally):
+  BUILTIN\Administrators
+  BUILTIN\Users
+  CORP\Help Desk
+
+SeDenyInteractiveLogonRight (Deny log on locally):
+  CORP\Service Accounts
+
+SeRemoteInteractiveLogonRight (Allow log on through Remote Desktop Services):
+  BUILTIN\Administrators
+  BUILTIN\Remote Desktop Users
+  CORP\IT Support
+
+SeBackupPrivilege (Back up files and directories):
+  BUILTIN\Administrators
+  BUILTIN\Backup Operators
+
+SeRestorePrivilege (Restore files and directories):
+  BUILTIN\Administrators
+  BUILTIN\Backup Operators
+
+SeServiceLogonRight (Log on as a service):
+  NT SERVICE\ALL SERVICES
+  CORP\svc_sql
+  CORP\svc_backup
+
+SeBatchLogonRight (Log on as a batch job):
+  BUILTIN\Administrators
+  BUILTIN\Backup Operators
+  CORP\svc_task
+```
+
+## Remote Execution
+
+<Warning>
+This command does **NOT support standard remote execution**.
+</Warning>
+
+However, you can specify a computer name as an argument: `Seatbelt.exe "UserRightAssignments <computername>"`
+
+## Detection Considerations
+
+<Info>
+Low detection risk - queries Local Security Policy.
+</Info>
+
+- **API Calls**: Uses LsaEnumerateAccountRights and related LSA functions
+- **Privilege Required**: May require elevated privileges
+- **Policy Access**: Accesses Local Security Policy database
+
+### Important User Rights
+
+<Accordion title="Critical User Rights">
+**SeBackupPrivilege** - Can read any file (bypass ACLs)
+**SeRestorePrivilege** - Can write any file (bypass ACLs)
+**SeDebugPrivilege** - Can debug processes (credential access)
+**SeImpersonatePrivilege** - Can impersonate tokens
+**SeLoadDriverPrivilege** - Can load kernel drivers
+**SeTakeOwnershipPrivilege** - Can take ownership of objects
+**SeAssignPrimaryTokenPrivilege** - Can assign primary tokens
+**SeServiceLogonRight** - Can run as a service
+**SeRemoteInteractiveLogonRight** - Can RDP to system
+**SeTcbPrivilege** - Act as part of operating system
+</Accordion>
+
+## Related Commands
+
+- [TokenPrivileges](/commands/tokenprivileges) - Current process token privileges
+- [LocalGroups](/commands/localgroups) - Local group membership
+- [LocalUsers](/commands/localusers) - Local user accounts
+- [LogonSessions](/commands/logonsessions) - Active logon sessions

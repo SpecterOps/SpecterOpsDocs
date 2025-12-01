@@ -1,0 +1,250 @@
+---
+title: 'tgtdeleg'
+description: 'Extract TGT through Kerberos delegation abuse'
+icon: 'share'
+sidebarTitle: 'tgtdeleg'
+---
+
+## Overview
+
+Extract the current user's TGT by abusing Kerberos delegation mechanisms. This technique leverages the GSS-API to obtain a usable TGT without requiring elevated privileges, making it valuable for credential extraction in constrained environments.
+
+## Syntax
+
+```bash
+Rubeus.exe tgtdeleg [options]
+```
+
+## Optional Parameters
+
+<ParamField path="target" type="string">
+  Target SPN for delegation request (default: cifs/dc.domain.local)
+</ParamField>
+
+<ParamField path="outfile" type="string">
+  Save extracted TGT to file
+</ParamField>
+
+<ParamField path="ptt" type="boolean">
+  Pass-the-ticket (inject extracted TGT)
+</ParamField>
+
+<ParamField path="nowrap" type="boolean">
+  Don't wrap base64 output
+</ParamField>
+
+## Examples
+
+<CodeGroup>
+```bash Basic Extraction
+# Extract current user's TGT
+Rubeus.exe tgtdeleg
+
+# Extract and inject TGT
+Rubeus.exe tgtdeleg /ptt
+
+# Save TGT to file
+Rubeus.exe tgtdeleg /outfile:current_user.kirbi
+```
+
+```bash Advanced Usage
+# Use specific target SPN
+Rubeus.exe tgtdeleg /target:host/server.corp.local
+
+# Extract without base64 wrapping
+Rubeus.exe tgtdeleg /nowrap /outfile:tgt.kirbi
+```
+</CodeGroup>
+
+## Technical Background
+
+<Accordion title="Delegation Mechanism">
+  **GSS-API Abuse:**
+  - Leverages InitializeSecurityContext() API
+  - Abuses Kerberos delegation features
+  - Forces KDC to include user's TGT
+  - Extracts TGT from AP-REQ structure
+
+  **No Elevation Required:**
+  - Uses standard user privileges
+  - Bypasses traditional extraction restrictions
+  - Works from any authentication context
+  - Avoids memory dumping requirements
+</Accordion>
+
+<Accordion title="Attack Vector">
+  **Credential Access:**
+  - Extracts current user's TGT
+  - Provides reusable authentication token
+  - Enables credential theft without hashes
+  - Supports lateral movement operations
+
+  **Stealth Characteristics:**
+  - Uses legitimate Windows APIs
+  - Minimal suspicious activity
+  - No process injection required
+  - Limited detection footprint
+</Accordion>
+
+## Use Cases
+
+<Accordion title="Credential Extraction">
+  **Non-Privileged Environments:**
+  - Extract TGT without admin rights
+  - Bypass UAC and privilege restrictions
+  - Obtain credentials from limited contexts
+  - Support initial access scenarios
+
+  **Operational Flexibility:**
+  - Extract from any authenticated session
+  - Support remote execution scenarios
+  - Enable credential harvesting at scale
+  - Facilitate cross-system operations
+</Accordion>
+
+<Accordion title="Persistence and Movement">
+  **Credential Reuse:**
+  - Use extracted TGT on other systems
+  - Support offline attack scenarios
+  - Enable persistent access mechanisms
+  - Facilitate credential relay attacks
+
+  **Lateral Movement:**
+  - Move TGT to other systems
+  - Support multi-host operations
+  - Enable privilege escalation paths
+  - Expand attack surface systematically
+</Accordion>
+
+## Target Selection
+
+<Accordion title="Default Target">
+  **CIFS Service:**
+  - Default: cifs/dc.domain.local
+  - Common service type
+  - Generally accessible
+  - Minimal suspicious activity
+
+  **Domain Controller Targeting:**
+  - Ensures delegation compatibility
+  - Maximizes success probability
+  - Leverages standard service patterns
+  - Maintains operational security
+</Accordion>
+
+<Accordion title="Custom Targets">
+  **Service Selection:**
+  - Any accessible SPN
+  - Must support delegation
+  - Should avoid detection triggers
+  - Consider service availability
+
+  **Strategic Choices:**
+  - File servers (CIFS)
+  - Web services (HTTP)
+  - Administrative services (HOST)
+  - Database services (MSSQL)
+</Accordion>
+
+## Integration Workflows
+
+<Accordion title="Initial Access">
+  **Post-Compromise Extraction:**
+  ```bash
+  # 1. Extract current user TGT
+  Rubeus.exe tgtdeleg /outfile:user.kirbi
+
+  # 2. Transfer to attack system
+  # Use extracted TGT for further operations
+
+  # 3. Inject on other systems
+  Rubeus.exe ptt /ticket:user.kirbi
+
+  # 4. Enumerate accessible resources
+  Rubeus.exe asktgs /service:cifs/fileserver.corp.local
+  ```
+</Accordion>
+
+<Accordion title="Credential Harvesting">
+  **Multi-User Extraction:**
+  ```bash
+  # 1. For each compromised user session
+  Rubeus.exe tgtdeleg /outfile:user1.kirbi
+
+  # 2. Collect multiple TGTs
+  # Repeat for different user contexts
+
+  # 3. Analyze extracted credentials
+  Rubeus.exe describe /ticket:user1.kirbi
+
+  # 4. Use highest-privilege TGTs
+  Rubeus.exe ptt /ticket:admin_user.kirbi
+  ```
+</Accordion>
+
+## Advantages and Limitations
+
+<Accordion title="Advantages">
+  **Operational Benefits:**
+  - No elevation required
+  - Works from any user context
+  - Minimal detection footprint
+  - Standard API usage patterns
+
+  **Technical Benefits:**
+  - Bypasses memory protection
+  - Avoids process injection
+  - Uses legitimate delegation features
+  - Reliable extraction method
+</Accordion>
+
+<Accordion title="Limitations">
+  **Scope Restrictions:**
+  - Only extracts current user's TGT
+  - Cannot access other sessions
+  - Limited to authenticated context
+  - Requires delegation support
+
+  **Environmental Dependencies:**
+  - Requires domain connectivity
+  - Needs accessible target SPN
+  - Depends on delegation configuration
+  - May trigger some monitoring
+</Accordion>
+
+## Operational Security
+
+<Accordion title="Detection Considerations">
+  **Low-Risk Indicators:**
+  - Standard Kerberos traffic
+  - Legitimate API usage
+  - Normal delegation patterns
+  - Minimal unusual behavior
+
+  **Potential Indicators:**
+  - Unusual target SPN selection
+  - High-frequency extraction attempts
+  - Non-standard timing patterns
+  - Correlation with other activities
+</Accordion>
+
+<Accordion title="Evasion Techniques">
+  **Blending Strategies:**
+  - Use during business hours
+  - Select realistic target SPNs
+  - Vary extraction timing
+  - Correlate with normal activities
+
+  **Target Selection:**
+  - Choose common service types
+  - Avoid suspicious SPNs
+  - Use legitimate service patterns
+  - Match organizational standards
+</Accordion>
+
+## Related Commands
+
+- [`asktgt`](/GhostPack/Rubeus-mdx/commands/ticket-requests/asktgt) - Alternative TGT acquisition
+- [`dump`](/GhostPack/Rubeus-mdx/commands/extraction/dump) - Extract from memory
+- [`ptt`](/GhostPack/Rubeus-mdx/commands/management/ptt) - Use extracted TGT
+- [`describe`](/GhostPack/Rubeus-mdx/commands/management/describe) - Analyze extracted TGT

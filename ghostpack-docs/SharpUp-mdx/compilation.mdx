@@ -1,0 +1,338 @@
+---
+title: 'Compilation & Usage'
+description: 'Build and run SharpUp from source'
+icon: 'hammer'
+---
+
+## Build Requirements
+
+<CardGroup cols={2}>
+  <Card title="Visual Studio" icon="code">
+    Visual Studio 2015 Community Edition or later
+  </Card>
+  <Card title=".NET Framework" icon="microsoft">
+    .NET Framework 3.5 (required)
+  </Card>
+  <Card title="Git" icon="git">
+    For cloning the repository
+  </Card>
+  <Card title="Windows OS" icon="windows">
+    Windows build environment required
+  </Card>
+</CardGroup>
+
+## Compilation Steps
+
+<Steps>
+  <Step title="Clone Repository">
+    ```bash
+    git clone https://github.com/GhostPack/SharpUp
+    cd SharpUp
+    ```
+  </Step>
+
+  <Step title="Open Solution">
+    Open `SharpUp.sln` in Visual Studio 2015 or later
+  </Step>
+
+  <Step title="Select Build Configuration">
+    - Choose **Release** configuration (not Debug)
+    - Target platform: **Any CPU**
+  </Step>
+
+  <Step title="Build Project">
+    - Build → Build Solution (or press Ctrl+Shift+B)
+    - SharpUp.exe will be compiled
+  </Step>
+
+  <Step title="Locate Binary">
+    Compiled binary will be in:
+    ```
+    SharpUp/SharpUp/bin/Release/SharpUp.exe
+    ```
+  </Step>
+</Steps>
+
+<Note>
+  SharpUp is built against .NET Framework 3.5 for maximum compatibility with Windows systems.
+</Note>
+
+## Binary Distribution
+
+<Warning>
+  No pre-compiled binaries are provided for SharpUp. You must compile from source.
+</Warning>
+
+**Why no binaries?**
+- Encourages understanding of the code
+- Prevents signature-based detection
+- Allows for customization
+- Avoids potential legal issues
+
+## Running SharpUp
+
+<Tabs>
+  <Tab title="Direct Execution">
+    ```bash
+    # Run all checks
+    SharpUp.exe
+
+    # Run all checks in audit mode (bypasses privilege checks)
+    SharpUp.exe audit
+
+    # Run specific check
+    SharpUp.exe ModifiableServices
+
+    # Run multiple specific checks
+    SharpUp.exe UnquotedServicePath ModifiableServiceBinaries
+
+    # Run specific checks in audit mode
+    SharpUp.exe audit TokenPrivileges RegistryAutoruns
+    ```
+  </Tab>
+
+  <Tab title="PowerShell Wrapper">
+    You can load and execute SharpUp in memory via PowerShell:
+
+    ```powershell
+    # Base64 encode the binary
+    [Convert]::ToBase64String([IO.File]::ReadAllBytes("C:\Path\SharpUp.exe")) | Out-File -Encoding ASCII SharpUp.txt
+
+    # Load in PowerShell
+    $SharpUpAssembly = [System.Reflection.Assembly]::Load([Convert]::FromBase64String((Get-Content SharpUp.txt)))
+
+    # Execute command
+    [SharpUp.Program]::Main(@("audit"))
+    ```
+  </Tab>
+
+  <Tab title="Execute-Assembly">
+    Execute via Cobalt Strike or other frameworks:
+
+    ```
+    # Run all checks
+    execute-assembly /path/to/SharpUp.exe
+
+    # Run all checks in audit mode
+    execute-assembly /path/to/SharpUp.exe audit
+
+    # Run specific checks
+    execute-assembly /path/to/SharpUp.exe ModifiableServices UnquotedServicePath
+    ```
+  </Tab>
+</Tabs>
+
+## Command Line Syntax
+
+```bash
+SharpUp.exe [audit] [check1] [check2]...
+```
+
+### Parameters
+
+<ParamField path="audit" type="flag">
+  Enables audit mode, which runs vulnerability checks regardless of process integrity level or local administrator group membership. If no specific checks are provided after `audit`, all checks will be executed.
+</ParamField>
+
+<ParamField path="check*" type="string">
+  Individual vulnerability check to run. Can specify multiple checks. Available checks:
+
+  - AlwaysInstallElevated
+  - CachedGPPPassword
+  - DomainGPPPassword
+  - HijackablePaths
+  - McAfeeSitelistFiles
+  - ModifiableScheduledTask
+  - ModifiableServiceBinaries
+  - ModifiableServiceRegistryKeys
+  - ModifiableServices
+  - ProcessDLLHijack
+  - RegistryAutoLogons
+  - RegistryAutoruns
+  - TokenPrivileges
+  - UnattendedInstallFiles
+  - UnquotedServicePath
+</ParamField>
+
+## Quick Start Examples
+
+<AccordionGroup>
+  <Accordion title="Standard Privilege Escalation Check">
+    ```bash
+    # Run all privilege escalation checks
+    SharpUp.exe
+    ```
+
+    SharpUp will automatically detect if you're already running in high integrity or are a local administrator, and will exit early unless audit mode is enabled.
+  </Accordion>
+
+  <Accordion title="Audit Mode - Full System Check">
+    ```bash
+    # Run all checks regardless of current privileges
+    SharpUp.exe audit
+    ```
+
+    Useful for comprehensive security auditing, even when running with elevated privileges.
+  </Accordion>
+
+  <Accordion title="Targeted Service Checks">
+    ```bash
+    # Check for service-related vulnerabilities only
+    SharpUp.exe ModifiableServices ModifiableServiceBinaries ModifiableServiceRegistryKeys UnquotedServicePath
+    ```
+
+    Focus on service-related privilege escalation vectors.
+  </Accordion>
+
+  <Accordion title="Registry-Based Checks">
+    ```bash
+    # Check for registry-based vulnerabilities
+    SharpUp.exe audit RegistryAutoLogons RegistryAutoruns AlwaysInstallElevated
+    ```
+
+    Search for credentials and privilege escalation opportunities in the registry.
+  </Accordion>
+
+  <Accordion title="Credential Discovery">
+    ```bash
+    # Look for stored credentials
+    SharpUp.exe audit CachedGPPPassword DomainGPPPassword RegistryAutoLogons UnattendedInstallFiles McAfeeSitelistFiles
+    ```
+
+    Find plaintext credentials stored in various locations.
+  </Accordion>
+</AccordionGroup>
+
+## Understanding Audit Mode
+
+<Info>
+  Audit mode bypasses the default behavior where SharpUp exits early if you're already running with elevated privileges.
+</Info>
+
+### When to Use Audit Mode
+
+**Without audit mode:**
+- SharpUp checks if you're in high integrity or a local administrator
+- If yes, it exits with a message suggesting UAC bypass or noting you're already elevated
+- Only runs checks if you're a non-privileged user
+
+**With audit mode:**
+- Runs all checks regardless of current privilege level
+- Useful for security auditing
+- Helpful for finding additional escalation paths even when already elevated
+- Note: Running in high integrity may yield false positives
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Build Errors" icon="triangle-exclamation">
+    **Problem:** Solution won't build
+
+    **Solutions:**
+    - Ensure Visual Studio 2015+ is installed
+    - Verify .NET Framework 3.5 is installed
+    - Clean solution (Build → Clean Solution)
+    - Rebuild solution (Build → Rebuild Solution)
+  </Accordion>
+
+  <Accordion title=".NET Framework Not Found" icon="exclamation">
+    **Problem:** Target system doesn't have .NET Framework 3.5
+
+    **Solutions:**
+    - Install .NET Framework 3.5:
+      ```powershell
+      # Windows 10/11
+      DISM /Online /Enable-Feature /FeatureName:NetFx3 /All
+
+      # Or via PowerShell
+      Enable-WindowsOptionalFeature -Online -FeatureName NetFx3 -All
+      ```
+  </Accordion>
+
+  <Accordion title="No Vulnerabilities Found" icon="shield">
+    **Problem:** SharpUp reports no vulnerabilities
+
+    **Solutions:**
+    - This may be accurate - the system may be properly hardened
+    - Try running with `audit` flag to force all checks
+    - Verify you have the necessary permissions for the checks
+    - Some checks require specific configurations to be present
+  </Accordion>
+
+  <Accordion title="Access Denied Errors" icon="ban">
+    **Problem:** Access denied when running certain checks
+
+    **Solutions:**
+    - Some checks require local administrator privileges
+    - Domain GPP checks require domain connectivity
+    - File enumeration checks may fail in restricted environments
+    - This is expected behavior for some checks in limited contexts
+  </Accordion>
+</AccordionGroup>
+
+## Operational Security
+
+<Warning>
+  Consider these OPSEC factors when using SharpUp in operations:
+</Warning>
+
+<Tabs>
+  <Tab title="Detection Vectors">
+    - Process execution of SharpUp.exe
+    - Service enumeration via WMI queries
+    - Registry key enumeration
+    - File system enumeration
+    - Token privilege enumeration
+    - Network SMB access for domain GPP checks
+    - Reading sensitive file locations
+  </Tab>
+
+  <Tab title="Mitigation Strategies">
+    - Rename binary to blend in with environment
+    - Execute from memory via PowerShell
+    - Use execute-assembly in C2 frameworks
+    - Limit checks to specific targets using individual check names
+    - Delete artifacts after use
+    - Avoid running audit mode unnecessarily
+    - Run targeted checks instead of all checks
+  </Tab>
+
+  <Tab title="Alternative Execution">
+    - Load as .NET assembly in memory
+    - Use Donut/pe_to_shellcode for shellcode conversion
+    - Execute via C2 framework execute-assembly
+    - Inline execution from PowerShell
+    - Obfuscate binary to avoid signatures
+  </Tab>
+</Tabs>
+
+## Additional Resources
+
+<CardGroup cols={2}>
+  <Card title="GitHub Repository" icon="github" href="https://github.com/GhostPack/SharpUp">
+    Source code and latest releases
+  </Card>
+  <Card title="PowerUp (PowerShell)" icon="book" href="https://github.com/PowerShellMafia/PowerSploit/blob/dev/Privesc/PowerUp.ps1">
+    Original PowerShell version of privilege escalation checks
+  </Card>
+  <Card title="Visual Studio Community" icon="download" href="https://visualstudio.microsoft.com/vs/community/">
+    Download Visual Studio for compilation
+  </Card>
+  <Card title="Windows Privilege Escalation" icon="book" href="https://www.fuzzysecurity.com/tutorials/16.html">
+    Understanding Windows privilege escalation techniques
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Usage Guide" icon="terminal" href="/ghostpack-docs/SharpUp-mdx/usage">
+    Practical usage examples and workflows
+  </Card>
+  <Card title="Remediation Guide" icon="shield" href="/ghostpack-docs/SharpUp-mdx/remediation">
+    How to fix identified vulnerabilities
+  </Card>
+  <Card title="Available Checks" icon="list" href="/ghostpack-docs/SharpUp-mdx/checks/alwaysinstallelevated">
+    Detailed documentation for each check
+  </Card>
+</CardGroup>

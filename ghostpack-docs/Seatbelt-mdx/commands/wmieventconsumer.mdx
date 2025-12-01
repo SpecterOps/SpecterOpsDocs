@@ -1,0 +1,142 @@
+---
+title: 'WMIEventConsumer'
+description: 'Lists WMI Event Consumers'
+icon: 'bolt'
+---
+
+## Overview
+
+The WMIEventConsumer command enumerates WMI Event Consumers configured on the system. WMI Event Consumers are actions that execute when specific WMI events occur. They are commonly abused for persistence, as they can execute commands or scripts based on system events without requiring traditional startup locations.
+
+## Syntax
+
+```bash
+Seatbelt.exe WMIEventConsumer
+```
+
+<Note>
+This command does **not** support remote execution.
+</Note>
+
+## Output
+
+Returns WMI Event Consumer information:
+- Consumer name
+- Consumer type (CommandLineEventConsumer, ActiveScriptEventConsumer, etc.)
+- Command or script to execute
+- Consumer creation timestamp
+- Associated filter (if bound)
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Identify existing WMI persistence mechanisms
+    - Find opportunities for WMI-based persistence
+    - Discover legitimate consumers to blend with
+    - Understand WMI event infrastructure
+  </Tab>
+  <Tab title="Blue Team">
+    - Hunt for WMI-based persistence
+    - Detect malicious event consumers
+    - Audit legitimate WMI automation
+    - Identify unauthorized consumers
+    - Investigate persistence mechanisms
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== WMIEventConsumer ======
+
+[*] Listing WMI Event Consumers...
+
+Consumer Name      : BVTConsumer
+Consumer Type      : CommandLineEventConsumer
+Command            : C:\Windows\System32\cmd.exe /c C:\Tools\cleanup.bat
+Creator SID        : S-1-5-21-...
+Creation Time      : 1/15/2023 10:00:00 AM
+
+Consumer Name      : SystemMonitor
+Consumer Type      : ActiveScriptEventConsumer
+Script Language    : VBScript
+Script Text        : Set objShell = CreateObject("WScript.Shell")
+                     objShell.Run "powershell.exe -enc <base64>", 0, False
+Creator SID        : S-1-5-21-...
+Creation Time      : 10/1/2024 3:45:22 PM
+[!] Suspicious PowerShell execution detected
+```
+
+## Remote Execution
+
+<Warning>
+This command does **NOT support remote execution**.
+</Warning>
+
+## Detection Considerations
+
+<Warning>
+WMI Event Consumers are a common persistence technique.
+</Warning>
+
+- **WMI Namespace**: Queries `root\subscription` namespace
+- **Sysmon Events**: Event ID 20 logs WMI consumer creation/modification
+- **Event Logs**: WMI-Activity logs may capture consumer activity
+- **Persistence**: Consumers survive reboots
+
+### Consumer Types
+
+<Accordion title="WMI Event Consumer Types">
+**CommandLineEventConsumer:**
+- Executes command-line programs
+- Most common for malicious use
+- Runs with SYSTEM privileges
+
+**ActiveScriptEventConsumer:**
+- Executes VBScript or JScript
+- Can run encoded/obfuscated scripts
+- High abuse potential
+
+**LogFileEventConsumer:**
+- Writes to log files
+- Lower risk, monitoring/audit use
+
+**SMTPEventConsumer:**
+- Sends email notifications
+- Can exfiltrate data
+
+**NTEventLogEventConsumer:**
+- Writes to Windows Event Log
+- Legitimate administrative use
+</Accordion>
+
+### Defensive Recommendations
+
+<Accordion title="Detection and Response">
+**Detection:**
+- Enable Sysmon Event ID 19-21 (WMI events)
+- Monitor `root\subscription` namespace
+- Alert on new consumer creation
+- Baseline legitimate consumers
+
+**Investigation:**
+- Check consumer creation timestamps
+- Validate consumer legitimacy
+- Review associated filters and bindings
+- Correlate with other persistence indicators
+
+**Prevention:**
+- Restrict WMI namespace permissions
+- Monitor GPO for WMI filters
+- Implement application whitelisting
+- Use attack surface reduction rules
+</Accordion>
+
+## Related Commands
+
+- [WMIEventFilter](/commands/wmieventfilter) - WMI event filters
+- [WMIFilterBinding](/commands/wmifilterbinding) - Filter-consumer bindings
+- [WMI](/commands/wmi) - Custom WMI queries
+- [AutoRuns](/commands/autoruns) - Auto-start programs
+- [Services](/commands/services) - Windows services

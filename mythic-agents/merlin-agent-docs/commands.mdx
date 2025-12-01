@@ -1,0 +1,56 @@
+---
+title: "Commands"
+description: "Command reference for Merlin cross-platform agent"
+---
+
+<img src="../images/merlin.svg" alt="Merlin Logo" />
+
+## Merlin Command Reference
+
+These pages provide documentation for the Merlin agent commands that enable post-exploitation capabilities across Windows, Linux, and macOS platforms.
+
+## Available Commands
+
+### File System Operations
+- [cd](./commands/cd) - Change the current working directory
+- [download](./commands/download) - Download a file from the target host
+- [ls](./commands/ls) - List directory contents
+- [pwd](./commands/pwd) - Print the current working directory
+- [rm](./commands/rm) - Remove a file from the target host
+
+### Execution
+- [createprocess](./commands/createprocess) - Create a new process on the target host
+- [execute-assembly](./commands/execute-assembly) - Execute a .NET assembly in memory
+- [execute-pe](./commands/execute-pe) - Execute a Windows PE (Portable Executable) in memory
+- [execute-shellcode](./commands/execute-shellcode) - Execute shellcode in memory
+- [run](./commands/run) - Execute a program on the target host
+- [runas](./commands/runas) - Execute a program as another user
+- [shell](./commands/shell) - Execute a command using the system's default shell
+
+### Credential & Token Operations
+- [make_token](./commands/make_token) - Create a new logon session with credentials
+- [mimikatz](./commands/mimikatz) - Execute Mimikatz commands
+- [rev2self](./commands/rev2self) - Revert to the original process token
+- [steal_token](./commands/steal_token) - Steal a token from another process
+- [token](./commands/token) - Manage Windows access tokens
+
+### Code Generation & Transformation
+- [donut](./commands/donut) - Convert PE files or .NET assemblies to position-independent shellcode
+- [sharpgen](./commands/sharpgen) - Compile and execute C# code dynamically
+- [srdi](./commands/srdi) - Convert DLLs to position-independent shellcode (Shellcode Reflective DLL Injection)
+
+### Network Operations
+- [nslookup](./commands/nslookup) - Perform DNS lookups
+- [socks](./commands/socks) - Start a SOCKS5 proxy server
+- [ssh](./commands/ssh) - Execute commands over SSH
+
+### Agent Configuration
+- [exit](./commands/exit) - Exit and terminate the agent
+- [ja3](./commands/ja3) - Set the JA3 signature for TLS connections
+- [killdate](./commands/killdate) - Set a date when the agent will automatically exit
+- [maxretry](./commands/maxretry) - Set the maximum number of failed checkins before the agent exits
+- [memory](./commands/memory) - Configure in-memory execution settings
+- [memfd](./commands/memfd) - Execute files in memory using memfd_create (Linux)
+- [parrot](./commands/parrot) - Rotate through JA3 signatures
+- [skew](./commands/skew) - Set jitter/skew for agent sleep intervals
+- [sleep](./commands/sleep) - Set the agent's sleep interval and jitter

@@ -1,0 +1,108 @@
+---
+title: 'get site-push-settings'
+description: 'Analyze automatic client push installation settings'
+icon: 'upload'
+sidebarTitle: 'site-push-settings'
+---
+
+## Overview
+
+Analyze automatic client push installation settings from the SMS Provider. This reveals security-relevant configuration including push accounts and authentication settings.
+
+<Warning>
+  **Security Impact**: Client push accounts often have administrative privileges across the domain. Identifying these accounts can reveal high-value targets for credential attacks.
+</Warning>
+
+## Syntax
+
+```bash
+SharpSCCM get site-push-settings [options]
+```
+
+## Parameters
+
+<ParamField path="sms-provider" type="string">
+  The IP address, FQDN, or NetBIOS name of the SMS Provider to connect to
+</ParamField>
+
+<ParamField path="site-code" type="string">
+  The three-character site code (e.g., "PS1")
+</ParamField>
+
+## Examples
+
+<CodeGroup>
+```bash Basic Usage
+# Get client push settings from current site
+SharpSCCM get site-push-settings
+
+# Specify SMS Provider and site
+SharpSCCM get site-push-settings -sms SCCM01.corp.local -sc PS1
+```
+</CodeGroup>
+
+## Required Permissions
+
+<Info>
+  **SMS Admins local group** membership on the SMS Provider server
+</Info>
+
+## Security Analysis
+
+<Accordion title="Key Information Revealed">
+  **Client Push Installation Accounts:**
+  - Often domain administrator accounts
+  - Used for remote client installation
+  - May have excessive privileges
+
+  **NTLM Fallback Configuration:**
+  - Whether NTLM authentication is allowed
+  - Fallback mechanisms for failed installations
+  - Authentication security settings
+
+  **Automatic Installation Scope:**
+  - Which systems are targeted for automatic push
+  - Installation triggers and conditions
+  - Target system types and filters
+</Accordion>
+
+<Accordion title="Attack Opportunities">
+  **Credential Targeting:**
+  - Identify client push accounts for credential attacks
+  - Target accounts with broad administrative access
+  - Focus on accounts with domain-wide privileges
+
+  **Installation Abuse:**
+  - Exploit NTLM fallback if enabled
+  - Target systems in automatic push scope
+  - Abuse installation mechanisms for lateral movement
+</Accordion>
+
+## Output Analysis
+
+The command reveals push installation configuration including:
+
+- **Installation accounts** and their privilege levels
+- **Authentication methods** and fallback options
+- **Target scope** and installation criteria
+- **Security settings** and restrictions
+
+## Common Use Cases
+
+<Accordion title="Credential Intelligence">
+  Identify high-value administrative accounts used for client push operations.
+</Accordion>
+
+<Accordion title="Attack Surface Analysis">
+  Understand client push configuration to identify potential attack vectors and misconfigurations.
+</Accordion>
+
+<Accordion title="Privilege Escalation">
+  Map administrative accounts and their access patterns for privilege escalation planning.
+</Accordion>
+
+## Related Commands
+
+- [`get admins`](/commands/get/admins) - Enumerate all SCCM administrators
+- [`get site-info`](/commands/get/site-info) - Discover SCCM infrastructure
+- [`get devices`](/commands/get/devices) - Identify potential push targets

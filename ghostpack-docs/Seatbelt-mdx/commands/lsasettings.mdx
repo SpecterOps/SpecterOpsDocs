@@ -1,0 +1,87 @@
+---
+title: 'LSASettings'
+description: 'LSA settings (including auth packages)'
+icon: 'shield'
+---
+
+## Overview
+
+The LSASettings command enumerates Local Security Authority (LSA) configuration settings, including authentication packages, security packages, and LSA protection status. These settings are critical for understanding credential storage and authentication mechanisms.
+
+## Syntax
+
+```bash
+Seatbelt.exe LSASettings
+```
+
+### Remote Execution
+```bash
+Seatbelt.exe LSASettings -computername=TARGET.domain.com [-username=DOMAIN\user -password=pass]
+```
+
+## Output
+
+Returns LSA configuration including:
+- Authentication packages
+- Security packages
+- Notification packages
+- LSA protection status (RunAsPPL)
+- WDigest credential caching
+- Token filtering policy
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Determine if WDigest is enabled (plaintext creds in memory)
+    - Check LSA protection status (PPL)
+    - Identify authentication packages
+    - Assess credential dumping difficulty
+    - Plan credential access techniques
+  </Tab>
+  <Tab title="Blue Team">
+    - Verify LSA protection is enabled
+    - Ensure WDigest is disabled
+    - Audit security package configuration
+    - Validate credential protection measures
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== LSASettings ======
+
+Authentication Packages:
+  msv1_0
+  kerberos
+  negotiate
+
+Security Packages:
+  kerberos
+  msv1_0
+  tspkg
+  wdigest
+  cloudap
+
+LSA Protection (RunAsPPL): Enabled
+WDigest UseLogonCredential: 0 (Disabled)
+```
+
+## Remote Execution
+
+<Check>
+This command **supports remote execution** using the `-computername` parameter.
+</Check>
+
+## Detection Considerations
+
+<Info>
+Low detection risk - reads LSA registry settings.
+</Info>
+
+## Related Commands
+
+- [CredGuard](/commands/credguard) - Credential Guard configuration
+- [NTLMSettings](/commands/ntlmsettings) - NTLM authentication settings
+- [LogonSessions](/commands/logonsessions) - Active logon sessions

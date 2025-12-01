@@ -1,0 +1,56 @@
+---
+title: "MITRE ATT&CK"
+---
+
+## What is it?
+
+[MITRE ATT&CK](https://attack.mitre.org/) is a knowledge base of adversary tactics and techniques mapped out to various threat groups. It provides a common language between red teams and blue teams when discussing operations, TTPs, and threat hunting. For Mythic, this provides a great way to track all of the capabilities the agents provide and to track all of the capabilities so far exercised in an operation.
+
+For more information on MITRE ATT&CK, check out the following:
+
+<CardGroup>
+
+<Card title="https://attack.mitre.org" icon="arrow-right" link="https://attack.mitre.org/" iconType="solid" horizontal/>
+
+<Card title="MITRE ATT&CK" icon="arrow-right" link="https://twitter.com/mitreattack" iconType="solid" horizontal/>
+
+<Card title="https://attackevals.mitre.org/" icon="arrow-right" link="https://attackevals.mitre.org/" iconType="solid" horizontal/>
+
+</CardGroup>
+
+
+## Where is it?
+
+[MITRE ATT&CK](https://attack.mitre.org/) integrations can be found by clicking the chart icon from the top navigation bar.
+
+<Frame>
+  <img src="/images/version-3.0/image-32.avif"/>
+</Frame>
+
+## How to use it?
+
+There are a few different ways to leverage this information.
+
+### Commands by ATT&CK
+
+Clicking the "Fetch All Commands Mapped to MITRE" action will highlight all of the matrix cells that have a command registered to that ATT&CK technique. Clicking on a specific cell will bring up more specific information on which payload type and which command is mapped to that technique. All of this information comes from the [MITRE ATT&CK](https://docs.mythic-c2.net/version-3.0/operational-pieces/understanding-commands/mitre-att-and-ck) portion of commands.
+
+<Frame>
+  <img src="/images/version-3.0/image-33.avif"/>
+</Frame>
+
+### Tasks by ATT&CK
+
+This is a slightly different view. This button will highlight and show the cells that have been exercised in the current operation. A cell will only be highlighted if a command was executed in the current operation with that ATT&CK technique mapped to it.
+
+<Frame>
+  <img src="/images/version-3.0/image-34.avif"/>
+</Frame>
+
+The cell view will show the exact command that caused the cell to be highlighted with a link (via task number) back to the full display of the task:
+
+<Frame caption="mappings for the current operation in ATT&CK">
+  <img src="/images/version-3.0/image-35.avif"/>
+</Frame>
+
+If there is an issue with the mapping, clicking the red X button will remove the mapping.

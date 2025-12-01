@@ -1,0 +1,40 @@
+---
+title: "evidence_get"
+description: "Get all evidence entries for a report"
+---
+
+## Summary
+
+Retrieve all evidence (screenshots, files, etc.) associated with the current report.
+
+- Needs Admin: False
+- Version: 1-2
+- Author: @its_a_feature_
+
+### Arguments
+
+#### title
+- Description: Report title to filter (if multiple reports exist)
+- Required: False
+- Default: ""
+
+
+## Usage
+
+```
+evidence_get
+evidence_get -title "Internal Pentest"
+```
+
+## Detailed Summary
+
+Retrieves all evidence entries from a report including:
+
+### Evidence Details
+- Filename and file path
+- Description and caption
+- Upload timestamp
+- File size and type
+- Associated findings
+
+Evidence can include screenshots, log files, configuration files, or any other supporting documentation for findings.

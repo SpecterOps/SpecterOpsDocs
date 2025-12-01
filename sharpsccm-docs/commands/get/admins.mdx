@@ -1,0 +1,262 @@
+---
+title: 'get admins'
+description: 'Enumerate SCCM administrators and their security role assignments'
+icon: 'users'
+sidebarTitle: 'admins'
+---
+
+## Overview
+
+Enumerate SCCM administrators and their security role assignments. This provides insight into the administrative structure and potential privilege escalation paths within the SCCM environment.
+
+## Syntax
+
+```bash
+SharpSCCM get admins [options]
+```
+
+## Parameters
+
+<ParamField path="sms-provider" type="string">
+  The IP address, FQDN, or NetBIOS name of the SMS Provider to connect to
+</ParamField>
+
+<ParamField path="site-code" type="string">
+  The three-character site code (e.g., "PS1")
+</ParamField>
+
+<ParamField path="name" type="string">
+  Filter administrators by name pattern (supports partial matching)
+</ParamField>
+
+<ParamField path="properties" type="string">
+  Specify properties to retrieve (can be used multiple times)
+</ParamField>
+
+<ParamField path="where-condition" type="string">
+  Custom WQL WHERE clause for advanced filtering
+</ParamField>
+
+<ParamField path="count" type="boolean">
+  Return count of results only
+</ParamField>
+
+<ParamField path="verbose" type="boolean">
+  Display all administrator properties
+</ParamField>
+
+## Examples
+
+<CodeGroup>
+```bash Basic Usage
+# List all SCCM administrators
+SharpSCCM get admins -sms SCCM01.corp.local -sc PS1
+
+# Count total administrators
+SharpSCCM get admins -c -sms SCCM01.corp.local -sc PS1
+```
+
+```bash Administrator Search
+# Search for specific admin
+SharpSCCM get admins -n "sccmadmin" -sms SCCM01.corp.local -sc PS1
+
+# Find admin accounts
+SharpSCCM get admins -n "admin" -sms SCCM01.corp.local -sc PS1
+```
+
+```bash Detailed Analysis
+# Get detailed administrator information
+SharpSCCM get admins -v -sms SCCM01.corp.local -sc PS1
+
+# Custom properties only
+SharpSCCM get admins -p LogonName -p RoleNames -p DisplayName -sms SCCM01.corp.local -sc PS1
+```
+
+```bash Role-Based Filtering
+# Find Full Administrators
+SharpSCCM get admins -w "RoleNames LIKE '%Full Administrator%'" -sms SCCM01.corp.local -sc PS1
+
+# Find Infrastructure Administrators
+SharpSCCM get admins -w "RoleNames LIKE '%Infrastructure Administrator%'" -sms SCCM01.corp.local -sc PS1
+```
+</CodeGroup>
+
+## Key Properties
+
+| Property | Description | Example |
+|----------|-------------|---------|
+| `LogonName` | Domain account name | CORP\sccmadmin |
+| `RoleNames` | Assigned SCCM security roles | Full Administrator, Application Administrator |
+| `DisplayName` | Friendly display name | SCCM Administrator |
+| `AdminSid` | Security identifier | S-1-5-21-... |
+| `SourceSite` | Site where admin is defined | PS1 |
+| `AccountType` | Account type | 0 (User), 1 (Group) |
+| `CreatedDate` | Account creation date | 2023-01-15 |
+| `LastModifiedDate` | Last modification date | 2023-06-20 |
+
+## Required Permissions
+
+<Info>
+  **SMS Admins local group** membership on the SMS Provider server
+</Info>
+
+## Security Role Analysis
+
+<Accordion title="High-Privilege Roles">
+  **Full Administrator:**
+  - Complete SCCM control and access
+  - All permissions across all objects
+  - Highest privilege level
+
+  **Infrastructure Administrator:**
+  - Site and system management
+  - Site server configuration
+  - Distribution point management
+  - SQL Server access often required
+
+  **Application Administrator:**
+  - Application deployment control
+  - Package and program management
+  - Software library access
+</Accordion>
+
+<Accordion title="Specialized Roles">
+  **Operating System Deployment Manager:**
+  - OS deployment and imaging
+  - Boot image management
+  - Task sequence creation
+  - Often requires domain admin rights
+
+  **Software Update Manager:**
+  - Software update deployment
+  - Update group management
+  - WSUS integration
+
+  **Security Administrator:**
+  - Security role management
+  - Administrative user creation
+  - Permission boundary control
+</Accordion>
+
+## Attack Vector Analysis
+
+<Accordion title="Privilege Escalation Paths">
+  **Target High-Privilege Administrators:**
+  - Full Administrators for complete SCCM control
+  - Infrastructure Administrators for site access
+  - Application Administrators for deployment abuse
+
+  **Role-Based Attacks:**
+  - Compromise admin accounts for role inheritance
+  - Exploit role permissions for lateral movement
+  - Abuse deployment capabilities for code execution
+</Accordion>
+
+<Accordion title="Administrative Scope">
+  **Account Types:**
+  - **User accounts (AccountType = 0):** Individual administrator access
+  - **Group accounts (AccountType = 1):** Inherited group permissions
+
+  **Targeting Strategies:**
+  - Individual accounts for direct compromise
+  - Group accounts for broader access
+  - Service accounts for persistent access
+</Accordion>
+
+## Intelligence Gathering
+
+<Accordion title="Administrative Structure">
+  Administrator enumeration reveals:
+  - **Organizational hierarchy** and responsibilities
+  - **Administrative boundaries** and delegation
+  - **Service account usage** patterns
+  - **Group-based administration** models
+</Accordion>
+
+<Accordion title="Account Analysis">
+  **Naming Patterns:**
+  - Service accounts: svc_sccm, sccmservice
+  - Administrative accounts: sccmadmin, admin_sccm
+  - Personal accounts: firstname.lastname
+  - Shared accounts: shared_admin, team_admin
+
+  **Creation Dates:**
+  - Recent accounts may indicate changes
+  - Old accounts may have accumulated privileges
+  - Bulk creation may indicate automation
+</Accordion>
+
+## Common Queries
+
+<CodeGroup>
+```sql Full Administrators
+RoleNames LIKE '%Full Administrator%'
+```
+
+```sql User Accounts Only
+AccountType = 0
+```
+
+```sql Recently Created
+CreatedDate > '2023-01-01'
+```
+
+```sql Service Accounts
+LogonName LIKE '%svc%' OR LogonName LIKE '%service%'
+```
+
+```sql Domain Groups
+AccountType = 1 AND LogonName LIKE 'DOMAIN\%'
+```
+</CodeGroup>
+
+## Operational Use Cases
+
+<Accordion title="Target Identification">
+  **High-Value Targets:**
+  - Full Administrators for complete access
+  - Infrastructure Administrators for site control
+  - Recently created accounts for weak passwords
+  - Service accounts for persistence
+</Accordion>
+
+<Accordion title="Privilege Mapping">
+  **Administrative Relationships:**
+  - Map role assignments to understand privileges
+  - Identify overlapping administrative access
+  - Find potential privilege escalation paths
+  - Understand administrative boundaries
+</Accordion>
+
+<Accordion title="Attack Planning">
+  **Credential Targeting:**
+  - Focus on high-privilege accounts
+  - Target accounts with broad role assignments
+  - Identify shared or service accounts
+  - Find accounts with infrastructure access
+</Accordion>
+
+## Output Analysis
+
+<Accordion title="Role Distribution">
+  Common role assignments:
+  - **Multiple roles:** Users with several role assignments
+  - **Broad permissions:** Full Administrator assignments
+  - **Specialized access:** Single-purpose role assignments
+  - **Group inheritance:** Permissions via group membership
+</Accordion>
+
+<Accordion title="Account Patterns">
+  Administrative patterns indicate:
+  - **Centralized administration:** Few high-privilege accounts
+  - **Distributed administration:** Many specialized accounts
+  - **Service automation:** Dedicated service accounts
+  - **Group-based access:** Role assignment via groups
+</Accordion>
+
+## Related Commands
+
+- [`get devices`](/commands/get/devices) - Find devices used by administrators
+- [`get collections`](/commands/get/collections) - Analyze administrative collections
+- [`get site-push-settings`](/commands/get/site-push-settings) - Identify client push accounts
+- [`local user-sid`](/commands/local/user-sid) - Get current user's administrative context

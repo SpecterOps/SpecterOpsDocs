@@ -1,0 +1,247 @@
+---
+title: 'download'
+description: 'Download attachments from Confluence pages'
+icon: 'download'
+---
+
+## Overview
+
+The `confluence download` command retrieves attachments from Confluence pages and saves them to your local filesystem. This command is useful for reconnaissance operations to gather documents, credentials, intellectual property, and other sensitive information stored in Confluence attachments.
+
+You can download single or multiple attachments by specifying comma-separated attachment IDs.
+
+## Syntax
+
+```bash
+.\AtlasReaper.exe confluence download [options]
+```
+
+## Required Parameters
+
+<ParamField path="--url" type="string" required>
+  The base URL of the Confluence instance (e.g., `https://example.atlassian.net`)
+</ParamField>
+
+<ParamField path="--attachments" type="string" required>
+  Comma-separated list of attachment IDs to download (no spaces). Attachment IDs can be discovered using the `confluence listattachments` command
+</ParamField>
+
+## Optional Parameters
+
+<ParamField path="--cookie" type="string">
+  Authentication cookie (`cloud.session.token` or `tenant.session.token`). If omitted, the command will attempt anonymous access (if enabled on the target)
+</ParamField>
+
+<ParamField path="--output-dir" type="string">
+  Directory path where downloaded attachments will be saved. If not specified, files are saved to the current working directory
+</ParamField>
+
+<ParamField path="--output" type="string">
+  Save command output/metadata to a specified file
+</ParamField>
+
+## Examples
+
+<Tabs>
+  <Tab title="Single Attachment">
+    ```bash
+    .\AtlasReaper.exe confluence download \
+      --attachments "att123456" \
+      --url https://example.atlassian.net \
+      --cookie "cloud.session.token=abc123..."
+    ```
+    Downloads a single attachment to the current directory.
+  </Tab>
+
+  <Tab title="Multiple Attachments">
+    ```bash
+    .\AtlasReaper.exe confluence download \
+      --attachments "att123456,att789012,att345678" \
+      --output-dir "C:\loot\confluence" \
+      --url https://example.atlassian.net \
+      --cookie "cloud.session.token=abc123..."
+    ```
+    Downloads multiple attachments to a specified directory.
+  </Tab>
+
+  <Tab title="Anonymous Access">
+    ```bash
+    .\AtlasReaper.exe confluence download \
+      --attachments "att123456,att789012" \
+      --output-dir ".\downloads" \
+      --url https://example.atlassian.net
+    ```
+    Attempts to download attachments without authentication (requires anonymous access to be enabled).
+  </Tab>
+
+  <Tab title="With Output Logging">
+    ```bash
+    .\AtlasReaper.exe confluence download \
+      --attachments "att123456,att789012,att345678" \
+      --output-dir "C:\loot\confluence" \
+      --output "download_log.txt" \
+      --url https://example.atlassian.net \
+      --cookie "cloud.session.token=abc123..."
+    ```
+    Downloads attachments and saves operation metadata to a log file.
+  </Tab>
+</Tabs>
+
+## Use Cases
+
+<AccordionGroup>
+  <Accordion title="Red Team Perspectives" icon="user-secret">
+    **Data Exfiltration**
+    - Extract sensitive documents (financial reports, strategic plans, customer data)
+    - Collect intellectual property (source code, designs, patents)
+    - Harvest credentials stored in attachments (password lists, configuration files)
+    - Obtain organizational intelligence (org charts, contact lists, network diagrams)
+
+    **Reconnaissance and Intelligence Gathering**
+    - Download configuration files to understand infrastructure
+    - Collect documentation about internal systems and processes
+    - Identify additional targets from network diagrams and architecture documents
+    - Extract email lists and contact information for phishing campaigns
+
+    **Privilege Escalation Research**
+    - Find credentials or API keys in uploaded configuration files
+    - Discover service account passwords in operational runbooks
+    - Locate SSH keys, certificates, or other authentication materials
+    - Identify security gaps documented in audit reports or security assessments
+
+    **Lateral Movement Preparation**
+    - Obtain network topology information from diagrams
+    - Download VPN configurations and connection details
+    - Extract information about internal applications and services
+    - Collect data about security controls and monitoring capabilities
+  </Accordion>
+
+  <Accordion title="Blue Team Perspectives" icon="shield-halved">
+    **Threat Detection Indicators**
+    - Monitor for bulk download operations (multiple attachments in short timeframe)
+    - Alert on downloads of sensitive file types (.key, .pem, .config, .env)
+    - Track downloads from external IP addresses or unusual geolocations
+    - Identify download patterns inconsistent with user's normal behavior
+
+    **Hunting Opportunities**
+    - Review audit logs for attachment downloads outside business hours
+    - Identify compromised accounts downloading attachments they don't normally access
+    - Correlate download activity with subsequent data exfiltration events
+    - Look for downloads of attachments from archived or restricted spaces
+
+    **Security Controls**
+    - Implement DLP policies to monitor and restrict sensitive attachment downloads
+    - Enable watermarking on sensitive documents to track distribution
+    - Configure alerts for bulk download operations
+    - Restrict access to attachments based on classification and need-to-know
+    - Require MFA for accessing pages with sensitive attachments
+
+    **Incident Response**
+    - Determine which attachments were downloaded during a compromise
+    - Assess the sensitivity and classification of exfiltrated documents
+    - Identify all accounts that accessed the downloaded attachments
+    - Review attachment contents for credentials or sensitive data that may have been exposed
+    - Implement additional controls on similar high-value attachments
+  </Accordion>
+</AccordionGroup>
+
+## Output
+
+The command provides information about the download operation, including:
+
+- Number of attachments downloaded
+- File names and sizes
+- Download location
+- Any errors or warnings (authentication failures, missing attachments, etc.)
+
+Example output structure:
+```
+[+] Downloading attachments...
+    Attachment: network_diagram.pdf (1.2 MB) - Downloaded
+    Attachment: credentials.xlsx (45 KB) - Downloaded
+    Attachment: architecture.docx (3.1 MB) - Downloaded
+
+[+] Successfully downloaded 3 attachments to C:\loot\confluence\
+```
+
+Files are saved with their original filenames. If multiple attachments have the same name, the tool may append identifiers to prevent overwrites.
+
+## Detection Considerations
+
+<Warning>
+  Attachment downloads generate audit logs and may trigger security monitoring:
+</Warning>
+
+**Audit Logging**
+- Confluence logs all attachment download events with timestamps
+- Logs include: username, attachment ID, page ID, IP address, user agent
+- Download events are typically logged as "ATTACHMENT_DOWNLOADED" or similar
+
+**Behavioral Analytics**
+- UEBA solutions may flag unusual download patterns
+- Anomalies: high volume downloads, accessing many spaces, downloading outside normal hours
+- First-time access to sensitive spaces or documents
+
+**Data Loss Prevention (DLP)**
+- DLP solutions may inspect downloaded attachment content
+- Alerts on downloads of files containing sensitive data patterns (SSN, credit cards, API keys)
+- Blocking or alerting on specific file types leaving the organization
+
+**Network Monitoring**
+- Web proxy logs capture download traffic volumes
+- Unusual data transfer patterns may trigger alerts
+- Downloads from compromised accounts may exhibit different network characteristics
+
+**Access Controls**
+- Permission-based access logs show who accessed what attachments
+- Downloads of restricted content generate alerts
+- Failed download attempts may indicate unauthorized access attempts
+
+## OPSEC Considerations
+
+<Tip>
+  Minimize detection risk with these operational security practices:
+</Tip>
+
+1. **Download Patterns**
+   - Avoid bulk downloads that could trigger rate-limiting or anomaly detection
+   - Space out download operations over time to mimic normal user behavior
+   - Download only necessary files rather than indiscriminate collection
+
+2. **Timing**
+   - Perform downloads during the target user's typical work hours
+   - Consider timezone and the user's normal schedule
+   - Avoid downloads during off-hours, weekends, or holidays unless the user typically works then
+
+3. **Access Patterns**
+   - Only download attachments from spaces the compromised account normally accesses
+   - Be aware of the user's role and what documents they would legitimately need
+   - Avoid downloading from highly sensitive spaces if the account doesn't typically access them
+
+4. **Account Context**
+   - Ensure the compromised account has legitimate permissions for the attachments
+   - Match the user's typical behavior patterns (types of files accessed, download frequency)
+   - Consider whether downloads align with the user's job function
+
+5. **Data Handling**
+   - Store downloaded files securely on your infrastructure
+   - Be aware that downloaded files may contain tracking mechanisms (watermarks, steganography)
+   - Consider sandboxing downloaded files before opening them on your analysis systems
+
+6. **Network Considerations**
+   - Large file downloads may be noticed by network monitoring
+   - Consider exfiltration methods beyond direct downloads if files are very large
+   - Be aware that your IP address will be logged with the download event
+
+7. **Forensic Artifacts**
+   - Downloaded files retain metadata about their origin
+   - Confluence may track when files were last accessed
+   - Consider the digital forensics trail of the download operation
+
+## Related Commands
+
+- [confluence listattachments](/confluence/listattachments) - Discover attachment IDs before downloading
+- [confluence listpages](/confluence/listpages) - Identify pages that may contain valuable attachments
+- [confluence search](/confluence/search) - Search for specific content that may lead to interesting attachments
+- [jira download](/jira/download) - Similar functionality for Jira issue attachments
+- [jira listattachments](/jira/listattachments) - List attachments on Jira issues

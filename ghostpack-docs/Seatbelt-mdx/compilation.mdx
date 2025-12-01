@@ -1,0 +1,423 @@
+---
+title: 'Compilation Guide'
+description: 'Building Seatbelt from source'
+icon: 'hammer'
+---
+
+## Build Requirements
+
+<AccordionGroup>
+  <Accordion title="Development Environment" icon="code">
+    **Required:**
+    - Visual Studio 2015 Community Edition or later
+    - .NET Framework 3.5 or 4.0
+    - C# 8.0 language features support
+
+    **Recommended:**
+    - Visual Studio 2019 or 2022 Community Edition
+    - Windows SDK for target OS version
+  </Accordion>
+
+  <Accordion title="Target Framework" icon="bullseye">
+    Seatbelt is built against **.NET Framework 3.5** and **.NET Framework 4.0** by default.
+
+    Both versions are compatible with:
+    - Windows 7 and later
+    - Windows Server 2008 R2 and later
+  </Accordion>
+
+  <Accordion title="Language Features" icon="code-branch">
+    Seatbelt uses **C# 8.0 features** including:
+    - Nullable reference types
+    - Pattern matching enhancements
+    - Using declarations
+    - Static local functions
+  </Accordion>
+</AccordionGroup>
+
+## Compilation Steps
+
+<Steps>
+  <Step title="Clone or Download Source">
+    Obtain the Seatbelt source code:
+    ```bash
+    git clone https://github.com/GhostPack/Seatbelt.git
+    ```
+  </Step>
+
+  <Step title="Open Solution">
+    Open `Seatbelt.sln` in Visual Studio:
+    - Navigate to the project directory
+    - Double-click `Seatbelt.sln`
+    - Or open through Visual Studio: File → Open → Project/Solution
+  </Step>
+
+  <Step title="Select Configuration">
+    Choose the build configuration:
+    - **Configuration:** Select **Release** (recommended for deployment)
+    - **Platform:** Select **Any CPU** or target architecture (x86/x64)
+  </Step>
+
+  <Step title="Build Project">
+    Compile the project:
+    - **Menu:** Build → Build Solution
+    - **Keyboard:** `Ctrl + Shift + B`
+    - **Command:** `dotnet build` (if using .NET CLI)
+  </Step>
+
+  <Step title="Locate Binary">
+    Find the compiled executable:
+    ```
+    .\Seatbelt\bin\Release\Seatbelt.exe
+    ```
+  </Step>
+</Steps>
+
+## Build Configurations
+
+### Release vs Debug
+
+<Tabs>
+  <Tab title="Release">
+    **Recommended for operational use**
+
+    **Optimizations:**
+    - Code optimization enabled
+    - Debug symbols removed
+    - Smaller binary size
+    - Better performance
+
+    **Output:** `.\Seatbelt\bin\Release\Seatbelt.exe`
+  </Tab>
+
+  <Tab title="Debug">
+    **Used for development and debugging**
+
+    **Features:**
+    - Debug symbols included
+    - No optimization
+    - Larger binary size
+    - Detailed error messages
+
+    **Output:** `.\Seatbelt\bin\Debug\Seatbelt.exe`
+  </Tab>
+</Tabs>
+
+## Changing Target Framework
+
+To change the target .NET Framework version:
+
+<Steps>
+  <Step title="Open Project Properties">
+    - Right-click on the Seatbelt project in Solution Explorer
+    - Select **Properties**
+  </Step>
+
+  <Step title="Modify Target Framework">
+    - Navigate to the **Application** tab
+    - Under **Target framework**, select desired version:
+      - .NET Framework 3.5
+      - .NET Framework 4.0
+      - .NET Framework 4.5+
+  </Step>
+
+  <Step title="Rebuild Project">
+    - Save changes
+    - Build → Rebuild Solution
+  </Step>
+</Steps>
+
+<Info>
+  **Framework Selection Guidance:**
+  - **.NET 3.5** - Maximum compatibility with older Windows systems
+  - **.NET 4.0** - Better performance, still broadly compatible
+  - **.NET 4.5+** - Modern features, requires Windows 8+ / Server 2012+
+</Info>
+
+## Build from Command Line
+
+### Using MSBuild
+
+```bash
+# Navigate to solution directory
+cd path\to\Seatbelt
+
+# Build release configuration
+msbuild Seatbelt.sln /p:Configuration=Release /p:Platform="Any CPU"
+
+# Build for specific framework
+msbuild Seatbelt.sln /p:Configuration=Release /p:TargetFrameworkVersion=v3.5
+```
+
+### Using .NET CLI
+
+```bash
+# Restore dependencies
+dotnet restore
+
+# Build release
+dotnet build --configuration Release
+
+# Publish standalone
+dotnet publish --configuration Release --self-contained false
+```
+
+## Build Optimization Options
+
+### Performance Optimizations
+
+For operational use, consider these optimizations:
+
+<CodeGroup>
+```xml Release Configuration
+<PropertyGroup>
+  <Configuration>Release</Configuration>
+  <Optimize>true</Optimize>
+  <DebugType>none</DebugType>
+  <DebugSymbols>false</DebugSymbols>
+</PropertyGroup>
+```
+
+```xml Size Optimization
+<PropertyGroup>
+  <Configuration>Release</Configuration>
+  <Optimize>true</Optimize>
+  <GenerateDocumentation>false</GenerateDocumentation>
+  <IncludeSymbols>false</IncludeSymbols>
+</PropertyGroup>
+```
+</CodeGroup>
+
+### Obfuscation Considerations
+
+<Warning>
+  For operational security, consider:
+  - Renaming the output binary
+  - Using obfuscation tools (ConfuserEx, .NET Reactor)
+  - Stripping metadata and debug information
+  - Packing/compressing the executable
+</Warning>
+
+## Customization Before Building
+
+### Adding Custom Commands
+
+<Steps>
+  <Step title="Use Template">
+    Copy the command template:
+    ```bash
+    .\Seatbelt\Commands\Template.cs
+    ```
+  </Step>
+
+  <Step title="Create Command">
+    Implement your custom command class:
+    ```csharp
+    namespace Seatbelt.Commands
+    {
+        class MyCustomCommand : CommandBase
+        {
+            public override string Command => "MyCustom";
+            // Implementation here
+        }
+    }
+    ```
+  </Step>
+
+  <Step title="Add to Project">
+    - Place in appropriate `.\Seatbelt\Commands\` subdirectory
+    - Add file to project in Solution Explorer
+    - Rebuild project
+  </Step>
+</Steps>
+
+### Modifying Command Groups
+
+Edit command group definitions in the source:
+
+```csharp
+// Define custom command group
+public static readonly string[] CustomGroup = new string[]
+{
+    "OSInfo",
+    "LocalUsers",
+    "Processes"
+};
+```
+
+## Common Build Issues
+
+<AccordionGroup>
+  <Accordion title="Missing .NET Framework" icon="triangle-exclamation">
+    **Error:** "The target framework version is not supported"
+
+    **Solution:**
+    - Install required .NET Framework Developer Pack
+    - Or change target framework to installed version
+    - Download from: https://dotnet.microsoft.com/download/dotnet-framework
+  </Accordion>
+
+  <Accordion title="C# Language Version Error" icon="code">
+    **Error:** "Feature 'X' is not available in C# 7.3"
+
+    **Solution:**
+    Update language version in project file:
+    ```xml
+    <PropertyGroup>
+      <LangVersion>8.0</LangVersion>
+    </PropertyGroup>
+    ```
+  </Accordion>
+
+  <Accordion title="Missing References" icon="link-slash">
+    **Error:** "The type or namespace name 'X' could not be found"
+
+    **Solution:**
+    - Restore NuGet packages: Right-click solution → Restore NuGet Packages
+    - Or: Tools → NuGet Package Manager → Restore
+  </Accordion>
+
+  <Accordion title="Platform Target Warning" icon="microchip">
+    **Warning:** "Platform target warning"
+
+    **Solution:**
+    Set platform target explicitly:
+    - Project Properties → Build → Platform target → Any CPU
+    - Or set to x64/x86 as needed
+  </Accordion>
+</AccordionGroup>
+
+## Build Artifacts
+
+After successful compilation:
+
+```
+.\Seatbelt\bin\Release\
+├── Seatbelt.exe          # Main executable
+├── Seatbelt.exe.config   # Configuration file
+└── [dependencies]        # Any required DLLs
+```
+
+<Info>
+  **Binary Size:**
+  - Release build: ~400-600 KB
+  - Debug build: ~800 KB - 1 MB
+  - Size varies based on .NET version and optimizations
+</Info>
+
+## Post-Build Steps
+
+<Steps>
+  <Step title="Test Build">
+    Verify the executable works:
+    ```bash
+    .\Seatbelt.exe --help
+    .\Seatbelt.exe OSInfo
+    ```
+  </Step>
+
+  <Step title="Sign Binary (Optional)">
+    For organizational use, consider code signing:
+    ```bash
+    signtool sign /f certificate.pfx /p password Seatbelt.exe
+    ```
+  </Step>
+
+  <Step title="Prepare for Deployment">
+    - Copy executable to deployment location
+    - Rename if desired for OPSEC
+    - Document version and build date
+  </Step>
+</Steps>
+
+## Build Scripts
+
+### Automated Build Script
+
+```powershell
+# build.ps1
+param(
+    [string]$Configuration = "Release",
+    [string]$Framework = "net40"
+)
+
+Write-Host "Building Seatbelt..." -ForegroundColor Green
+
+# Restore packages
+dotnet restore
+
+# Build project
+msbuild Seatbelt.sln /p:Configuration=$Configuration /p:TargetFrameworkVersion=$Framework
+
+if ($LASTEXITCODE -eq 0) {
+    Write-Host "Build successful!" -ForegroundColor Green
+    Write-Host "Output: .\Seatbelt\bin\$Configuration\Seatbelt.exe"
+} else {
+    Write-Host "Build failed!" -ForegroundColor Red
+    exit 1
+}
+```
+
+### Batch Build Script
+
+```batch
+@echo off
+echo Building Seatbelt...
+
+cd /d "%~dp0"
+
+REM Restore packages
+dotnet restore
+
+REM Build release
+msbuild Seatbelt.sln /p:Configuration=Release /p:Platform="Any CPU"
+
+if %ERRORLEVEL% EQU 0 (
+    echo Build successful!
+    echo Output: .\Seatbelt\bin\Release\Seatbelt.exe
+) else (
+    echo Build failed!
+    exit /b 1
+)
+```
+
+## Troubleshooting
+
+<Accordion title="Build Performance">
+  For faster builds:
+  - Disable parallel builds if experiencing issues
+  - Use SSD for source code location
+  - Close unnecessary Visual Studio extensions
+  - Increase Visual Studio memory allocation
+</Accordion>
+
+<Accordion title="Antivirus Interference">
+  Security software may interfere with compilation:
+  - Add project directory to AV exclusions
+  - Temporarily disable real-time protection
+  - Use Windows Defender exclusions for development folder
+</Accordion>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Usage Guide" icon="terminal" href="/ghostpack-docs/Seatbelt-mdx/usage">
+    Learn how to use Seatbelt
+  </Card>
+  <Card title="Command Reference" icon="list" href="/ghostpack-docs/Seatbelt-mdx/commands/osinfo">
+    Explore available commands
+  </Card>
+  <Card title="Customization" icon="code" href="https://github.com/GhostPack/Seatbelt/blob/master/Seatbelt/Commands/Template.cs">
+    Create custom modules
+  </Card>
+  <Card title="GitHub Issues" icon="github" href="https://github.com/GhostPack/Seatbelt/issues">
+    Report build problems
+  </Card>
+</CardGroup>
+
+## Additional Resources
+
+- [Visual Studio Download](https://visualstudio.microsoft.com/downloads/)
+- [.NET Framework Downloads](https://dotnet.microsoft.com/download/dotnet-framework)
+- [MSBuild Reference](https://docs.microsoft.com/en-us/visualstudio/msbuild/msbuild)
+- [GitHub Repository](https://github.com/GhostPack/Seatbelt)

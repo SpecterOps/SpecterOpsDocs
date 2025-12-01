@@ -1,0 +1,75 @@
+---
+title: 'CredGuard'
+description: 'CredentialGuard configuration'
+icon: 'shield-check'
+---
+
+## Overview
+
+The CredGuard command checks the configuration status of Windows Defender Credential Guard, a virtualization-based security feature that protects credentials by isolating LSASS in a secure environment. Understanding Credential Guard status is crucial for assessing credential theft risk.
+
+## Syntax
+
+```bash
+Seatbelt.exe CredGuard
+```
+
+### Remote Execution
+```bash
+Seatbelt.exe CredGuard -computername=TARGET.domain.com [-username=DOMAIN\user -password=pass]
+```
+
+## Output
+
+Returns Credential Guard configuration:
+- Enabled/Disabled status
+- Configuration method (UEFI, Registry)
+- Running status
+- Security Services Running
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Red Team">
+    - Assess credential theft protection
+    - Determine if mimikatz will work
+    - Plan credential access strategy
+    - Identify systems vulnerable to credential dumping
+  </Tab>
+  <Tab title="Blue Team">
+    - Verify Credential Guard deployment
+    - Audit credential protection posture
+    - Validate security baseline compliance
+    - Identify unprotected systems
+  </Tab>
+</Tabs>
+
+## Example Output
+
+```
+====== CredGuard ======
+
+CredentialGuard      : Not Configured
+LsaCfgFlags          : 0
+SecurityServicesRunning : 0
+
+  [*] Credential Guard is NOT running
+```
+
+## Remote Execution
+
+<Check>
+This command **supports remote execution** using the `-computername` parameter.
+</Check>
+
+## Detection Considerations
+
+<Info>
+Low detection risk - reads registry and WMI data.
+</Info>
+
+## Related Commands
+
+- [LSASettings](/commands/lsasettings) - LSA configuration
+- [WindowsDefender](/commands/windowsdefender) - Defender settings
+- [SecureBoot](/commands/secureboot) - Secure Boot status
