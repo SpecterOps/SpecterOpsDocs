@@ -246,6 +246,7 @@
                         "tab": "Development",
                         "groups": [
                             {
+                                "group": "Overview",
                                 "pages": [
                                     "mythic-docs/customizing/customizing-public-agent",
                                     {
