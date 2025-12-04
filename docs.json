@@ -246,7 +246,7 @@
                         "tab": "Development",
                         "groups": [
                             {
-                                "group": "overview",
+                                "group": "Overview",
                                 "pages": [
                                     "mythic-docs/customizing/customizing-public-agent",
                                     {
@@ -386,9 +386,9 @@
                             },
                             {
                                 "group": "API Reference",
-                                "pages": [
-                                    "mythic-docs/mythicrpc/api-reference"
-                                ]
+                                "asyncapi" : {
+                                    "source" : "mythic-docs/mythicrpc/mythicrpc-asyncapi.yaml"
+                                }
                             }
                         ]
                     }
