@@ -2455,5 +2455,10 @@
             "instagram": "https://www.instagram.com/specterops.io/",
             "youtube": "https://www.youtube.com/channel/UCWMKKqCCQkUjU8dIyiL1yhQ"
         }
+    },
+    "integrations": {
+        "plausible": {
+            "domain": "docs.specterops.io"
+        }
     }
 }
