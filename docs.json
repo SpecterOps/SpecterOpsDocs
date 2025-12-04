@@ -77,7 +77,9 @@
                     {
                         "anchor": "Phisherman's Tacklebox",
                         "icon": "fish",
-                        "href": "https://docs.specterops.io/cuddlephish-docs/overview"
+                        "pages": [
+                            "cuddlephish-docs/overview"
+                        ]
                     },
                     {
                         "anchor": "Community",
