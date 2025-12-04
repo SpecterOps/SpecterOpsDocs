@@ -1836,43 +1836,43 @@
                     },
                     {
                         "anchor": "Apollo",
-                        "href": "http://159.65.255.104:3000/mythic-agents/apollo-docs/documentation-payload/apollo/_index"
+                        "href": "https://docs.specterops.io/mythic-agents/apollo-docs/documentation-payload/apollo/_index"
                     },
                     {
                         "anchor": "Poseidon",
-                        "href": "http://159.65.255.104:3000/mythic-agents/poseidon-docs/home"
+                        "href": "https://docs.specterops.io/mythic-agents/poseidon-docs/home"
                     },
                     {
                         "anchor": "Apfell",
-                        "href": "http://159.65.255.104:3000/mythic-agents/apfell-docs/home"
+                        "href": "https://docs.specterops.io/mythic-agents/apfell-docs/home"
                     },
                     {
                         "anchor": "Arachne",
-                        "href": "http://159.65.255.104:3000/mythic-agents/arachne-docs/home"
+                        "href": "https://docs.specterops.io/mythic-agents/arachne-docs/home"
                     },
                     {
                         "anchor": "Bloodhound",
-                        "href": "http://159.65.255.104:3000/mythic-agents/bloodhound-agent-docs/home"
+                        "href": "https://docs.specterops.io/mythic-agents/bloodhound-agent-docs/home"
                     },
                     {
                         "anchor": "Nemesis",
-                        "href": "http://159.65.255.104:3000/mythic-agents/nemesis-agent-docs/home"
+                        "href": "https://docs.specterops.io/mythic-agents/nemesis-agent-docs/home"
                     },
                     {
                         "anchor": "Ghostwriter",
-                        "href": "http://159.65.255.104:3000/mythic-agents/ghostwriter-agent-docs/home"
+                        "href": "https://docs.specterops.io/mythic-agents/ghostwriter-agent-docs/home"
                     },
                     {
                         "anchor": "Sage",
-                        "href": "http://159.65.255.104:3000/mythic-agents/sage-docs/home"
+                        "href": "https://docs.specterops.io/mythic-agents/sage-docs/home"
                     },
                     {
                         "anchor": "Forge",
-                        "href": "http://159.65.255.104:3000/mythic-agents/forge-docs/home"
+                        "href": "https://docs.specterops.io/mythic-agents/forge-docs/home"
                     },
                     {
                         "anchor": "Merlin",
-                        "href": "http://159.65.255.104:3000/mythic-agents/merlin-agent-docs/home"
+                        "href": "https://docs.specterops.io/mythic-agents/merlin-agent-docs/home"
                     }
                 ]
             },
