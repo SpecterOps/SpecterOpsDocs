@@ -77,12 +77,12 @@
                     {
                         "anchor": "Phisherman's Tacklebox",
                         "icon": "fish",
-                        "href": "https://docs.specterops.io/cuddlephish-docs/overview"
+                        "href": "/cuddlephish-docs/overview"
                     },
                     {
                         "anchor": "Community",
                         "icon": "slack",
-                        "href": "http://ghst.ly/BHSlack"
+                        "href": "https://slack.specterops.io"
                     }
                 ]
             },
