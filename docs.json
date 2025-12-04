@@ -27,57 +27,57 @@
                     {
                         "anchor": "Mythic",
                         "icon": "hydra",
-                        "href": "https://demine-83c68b7f.mintlify.app/mythic-docs/home"
+                        "href": "https://docs.specterops.io/mythic-docs/home"
                     },
                     {
                         "anchor": "Mythic Agents",
                         "icon": "swords",
-                        "href": "https://demine-83c68b7f.mintlify.app/mythic-agents/"
+                        "href": "https://docs.specterops.io/mythic-agents/"
                     },
                     {
                         "anchor": "GhostWriter",
                         "icon": "ghost",
-                        "href": "https://demine-83c68b7f.mintlify.app/ghostwriter-docs/home"
+                        "href": "https://docs.specterops.io/ghostwriter-docs/home"
                     },
                     {
                         "anchor": "Merlin",
                         "icon": "hat-wizard",
-                        "href": "https://demine-83c68b7f.mintlify.app/merlin-docs/introduction"
+                        "href": "https://docs.specterops.io/merlin-docs/introduction"
                     },
                     {
                         "anchor": "SharpSCCM",
                         "icon": "swords",
-                        "href": "https://demine-83c68b7f.mintlify.app/sharpsccm-docs/overview"
+                        "href": "https://docs.specterops.io/sharpsccm-docs/overview"
                     },
                     {
                         "anchor": "SCCMHunter",
                         "icon": "user-bounty-hunter",
-                        "href": "https://demine-83c68b7f.mintlify.app/sccmhunter-docs/overview"
+                        "href": "https://docs.specterops.io/sccmhunter-docs/overview"
                     },
                     {
                         "anchor": "Misconfiguration Manager",
                         "icon": "books",
-                        "href": "https://demine-83c68b7f.mintlify.app/misconfiguration-manager-docs/README"
+                        "href": "https://docs.specterops.io/misconfiguration-manager-docs/README"
                     },
                     {
                         "anchor": "Nemesis",
                         "icon": "skull",
-                        "href": "https://demine-83c68b7f.mintlify.app/nemesis-docs/docs/"
+                        "href": "https://docs.specterops.io/nemesis-docs/docs/"
                     },
                     {
                         "anchor": "Ghostpack",
                         "icon": "ghost",
-                        "href": "https://demine-83c68b7f.mintlify.app/ghostpack-docs/index"
+                        "href": "https://docs.specterops.io/ghostpack-docs/index"
                     },
                     {
                         "anchor": "Atlas Reaper",
                         "icon": "scythe",
-                        "href": "https://demine-83c68b7f.mintlify.app/atlasreaper-docs/overview"
+                        "href": "https://docs.specterops.io/atlasreaper-docs/overview"
                     },
                     {
                         "anchor": "Phisherman's Tacklebox",
                         "icon": "fish",
-                        "href": "https://demine-83c68b7f.mintlify.app/cuddlephish-docs/overview"
+                        "href": "https://docs.specterops.io/cuddlephish-docs/overview"
                     },
                     {
                         "anchor": "Community",
