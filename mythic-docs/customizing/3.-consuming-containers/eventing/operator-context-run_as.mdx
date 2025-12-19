@@ -11,7 +11,7 @@ If you're thinking about creating an eventing workflow, but curious who these ac
 Every time an operation is created, a "bot" account is also created and added to the operation as a standard "operator". More detail on the accounts can be found [here](https://docs.mythic-c2.net/operators#bots). The default operational context for a workflow is the "bot" account for the operation. However, we don't want just anybody to upload workflows to do arbitrary things within Mythic. That could get dangerous. Instead, anybody can upload the workflow files, but if the execution context is for the bot, then the admin of the operation must approve it to run.
 
 <Frame>
-    <img src="../images/version-3.3/image-1-71.png"/>
+    <img src="../../../images/version-3.3/image-1-71.png"/>
 </Frame>
 
 At any point, the admin of the operation can go back and change prior approval to a deny or a deny to an approval. The last time it changed will always be tracked. Also, if the admin of the operation changes, then all of their prior approvals are removed and the new admin must re-approve them.
@@ -19,7 +19,7 @@ At any point, the admin of the operation can go back and change prior approval t
 Since the "bot" account is a normal operator, you can apply block lists as well. That makes it easy to block what scripts are able to execute vs what you want to require a human intervention to task. Bots are always easy to identify when assigning operators because they have a robot symbol next to their name:
 
 <Frame>
-    <img src="../images/version-3.3/image-1-72.png"/>
+    <img src="../../../images/version-3.3/image-1-72.png"/>
 </Frame>
 
 <Info>
