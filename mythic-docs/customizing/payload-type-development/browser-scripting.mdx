@@ -42,7 +42,7 @@ This function reduces the Array called `responses` and aggregates all of the res
 Plaintext is also used when you don't have a browserscript set for a command in general or when you toggle it off. This uses the react-ace text editor to present the data. This view will also try to parse the output as JSON and, if it can, will re-render the output in pretty print format.
 
 <Frame>
-    <img src="../../../../images/version-3.3/image-1-55.png"/>
+    <img src="../../images/version-3.3/image-1-55.png"/>
 </Frame>
 
 ### Screenshots
@@ -164,13 +164,13 @@ So, from above we can see a few things going on:
 
 So, let's look at what the agent actually sent for this message as well as what this looks like visually:
 <Frame>
-    <img src="../images/version-3.3/image-1-56.png"/>
+    <img src="../../images/version-3.3/image-1-56.png"/>
 </Frame>
 
 Notice here in what the agent sends back that there are two main important pieces: `file_id` which we use to pass in as `agent_file_id` for the browser script, and `total_chunks`. `total_chunks` isn't strictly necessary for anything, but if you look back at the script, you'll see that we display that as plaintext to the user while we're waiting for the download to finish so that the user has some sort of idea how long it'll take (is it 1 chunk, 5, 50, etc).
 
 <Frame>
-    <img src="../images/version-3.3/image-1-57.png"/>
+    <img src="../../images/version-3.3/image-1-57.png"/>
 </Frame>
 And here you can see that we have our plaintext leading up to our button. You'll also notice how the `download` key is an array. So yes, if you're downloading multiple files, as long as you can keep track of the responses you're getting back from your agent, you can render and show multiple download buttons.
 
@@ -232,7 +232,7 @@ This is almost exactly the same as the `download` example, but the actual dictio
 Just like with the download button, you can have multiple of these `search` responses.
 
 <Frame>
-    <img src="../images/version-3.3/image-1-58.png"/>
+    <img src="../../images/version-3.3/image-1-58.png"/>
 </Frame>
 
 ### Tables
@@ -242,7 +242,7 @@ Creating tables is a little more complicated, but not by much. The biggest thing
 Let's take an example and then work through it - we're going to render the following screenshot
 
 <Frame>
-    <img src="../images/version-3.3/image-1-59.png"/>
+    <img src="../../images/version-3.3/image-1-59.png"/>
 </Frame>
 
 ```
@@ -635,7 +635,7 @@ Tasking and extra data display button is nice and all, but if you have a lot of 
 
 Notice how we have the exact same information for the `task` and `dictionary` buttons as before, but they're just in an array format now. It's as easy as that. You can even keep your logic for disabling entries or conditionally not even add them. This allows us to create a dropdown menu like the following screenshot:
 <Frame>
-    <img src="../images/version-3.3/image-1-60.png"/>
+    <img src="../../images/version-3.3/image-1-60.png"/>
 </Frame>
 
 These menu items also support the `startIcon` , `startIconColor` , and `hoverText`, properties.
