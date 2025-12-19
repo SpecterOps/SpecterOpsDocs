@@ -126,7 +126,7 @@ There are two types of Push C2. They both function largely the same, but within 
 The first one is probably the most common, one-to-one. This means that for every agent that connects to the C2 server (typically with a held-open connection like a WebSocket), the C2 server also opens one gRPC connection to Mythic. The following is a diagram what this means:
 
 <Frame>
-    <img src="../images/version-3.3/image-1-67.png"/>
+    <img src="../../../images/version-3.3/image-1-67.png"/>
 </Frame>
 
 In this case, the C2 server connects via:
@@ -164,7 +164,7 @@ fromMythic.GetMessage() // do something with the message from Mythic
 The other type of Push C2 is one-to-many. This functions largely the same as one-to-one, except that the C2 server only ever opens up one gRPC connection to Mythic with many agents that go through it. Below is a diagram showing this flow:
 
 <Frame>
-    <img src="../images/version-3.3/image-1-68.png"/>
+    <img src="../../../images/version-3.3/image-1-68.png"/>
 </Frame>
 
 Because of this, we need to make sure that the user understands that all agents using this C2 profile are sharing a connection with Mythic. We start this connection by telling Mythic that our C2 profile wants to open a oneToMany stream:
