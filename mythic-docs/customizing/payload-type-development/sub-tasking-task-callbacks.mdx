@@ -9,7 +9,7 @@ Sub-tasking is the ability for a task to spin off sub-tasks and wait for them to
 When a task has outstanding subtasks, its status will change to "delegating" while it waits for them all to finish.
 
 <Frame>
-    <img src="../images/version-3.3/image-1-61.png"/>
+    <img src="../../images/version-3.3/image-1-61.png"/>
 </Frame>
 
 ### Why do subtasks?
@@ -93,7 +93,7 @@ If you're creating subtasks and you want tokens associated with them (such as ma
 Here we have the flow for a command, `shell`, that issues a subtask called `run` and registers two completion handlers - one for when `run` completes and another for when `shell` completes. Notice how execution of `shell`'s create tasking function continues even after it issues the subtask `run`. That's because this is all asynchronous - the result you get back from issuing a subtask is only an indicator of if Mythic successfully registered the task to not, not the final execution of the task.
 
 <Frame>
-    <img src="../images/version-3.3/image-1-62.png"/>
+    <img src="../../images/version-3.3/image-1-62.png"/>
 </Frame>
 
 ## What are task callbacks?
