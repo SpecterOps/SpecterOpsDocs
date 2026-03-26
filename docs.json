@@ -25,9 +25,14 @@
                         ]
                     },
                     {
+                        "anchor": "BloodHound Enterprise & Community Edition",
+                        "icon": "paw",
+                        "href": "https://bloodhound.specterops.io/"
+                    },
+                    {
                         "anchor": "Mythic",
                         "icon": "hydra",
-                        "href": "https://docs.specterops.io/mythic-docs/home"
+                        "href": "https://docs.mythic-c2.net/home"
                     },
                     {
                         "anchor": "Mythic Agents",
@@ -35,9 +40,9 @@
                         "href": "https://docs.specterops.io/mythic-agents/"
                     },
                     {
-                        "anchor": "GhostWriter",
+                        "anchor": "Ghostwriter",
                         "icon": "ghost",
-                        "href": "https://docs.specterops.io/ghostwriter-docs/home"
+                        "href": "https://ghostwriter.wiki/"
                     },
                     {
                         "anchor": "Merlin",
@@ -65,7 +70,7 @@
                         "href": "https://docs.specterops.io/nemesis-docs/docs/"
                     },
                     {
-                        "anchor": "Ghostpack",
+                        "anchor": "GhostPack",
                         "icon": "ghost",
                         "href": "https://docs.specterops.io/ghostpack-docs/index"
                     },
@@ -80,9 +85,14 @@
                         "href": "https://docs.specterops.io/cuddlephish-docs/overview"
                     },
                     {
-                        "anchor": "Community",
+                        "anchor": "SpecterOps Slack",
                         "icon": "slack",
                         "href": "https://slack.specterops.io"
+                    },
+                    {
+                        "anchor": "SpecterOps Community",
+                        "icon": "bullhorn",
+                        "href": "https://community.specterops.io"
                     }
                 ]
             },
@@ -395,7 +405,7 @@
                 ]
             },
             {
-                "version": "GhostWriter",
+                "version": "Ghostwriter",
                 "tabs": [
                     {
                         "tab": "Home",
