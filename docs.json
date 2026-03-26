@@ -32,7 +32,7 @@
                     {
                         "anchor": "Mythic",
                         "icon": "hydra",
-                        "href": "https://docs.specterops.io/mythic-docs/home"
+                        "href": "https://docs.mythic-c2.net/home"
                     },
                     {
                         "anchor": "Mythic Agents",
@@ -42,7 +42,7 @@
                     {
                         "anchor": "Ghostwriter",
                         "icon": "ghost",
-                        "href": "https://docs.specterops.io/ghostwriter-docs/home"
+                        "href": "https://ghostwriter.wiki/"
                     },
                     {
                         "anchor": "Merlin",
