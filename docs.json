@@ -25,6 +25,11 @@
                         ]
                     },
                     {
+                        "anchor": "BloodHound Enterprise & Community Edition",
+                        "icon": "paw",
+                        "href": "https://bloodhound.specterops.io/"
+                    },
+                    {
                         "anchor": "Mythic",
                         "icon": "hydra",
                         "href": "https://docs.specterops.io/mythic-docs/home"
