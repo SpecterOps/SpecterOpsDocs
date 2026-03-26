@@ -80,9 +80,14 @@
                         "href": "https://docs.specterops.io/cuddlephish-docs/overview"
                     },
                     {
-                        "anchor": "Community",
+                        "anchor": "SpecterOps Slack",
                         "icon": "slack",
                         "href": "https://slack.specterops.io"
+                    },
+                    {
+                        "anchor": "SpecterOps Community",
+                        "icon": "bullhorn",
+                        "href": "https://community.specterops.io"
                     }
                 ]
             },
