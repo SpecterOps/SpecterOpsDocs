@@ -35,7 +35,7 @@
                         "href": "https://docs.specterops.io/mythic-agents/"
                     },
                     {
-                        "anchor": "GhostWriter",
+                        "anchor": "Ghostwriter",
                         "icon": "ghost",
                         "href": "https://docs.specterops.io/ghostwriter-docs/home"
                     },
@@ -395,7 +395,7 @@
                 ]
             },
             {
-                "version": "GhostWriter",
+                "version": "Ghostwriter",
                 "tabs": [
                     {
                         "tab": "Home",
