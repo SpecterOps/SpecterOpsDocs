@@ -85,14 +85,19 @@
                         "href": "https://docs.specterops.io/cuddlephish-docs/overview"
                     },
                     {
-                        "anchor": "SpecterOps Slack",
+                        "anchor": "Slack",
                         "icon": "slack",
                         "href": "https://slack.specterops.io"
                     },
                     {
-                        "anchor": "SpecterOps Community",
+                        "anchor": "Community",
                         "icon": "bullhorn",
                         "href": "https://community.specterops.io"
+                    },
+                    {
+                        "anchor": "Tradecraft Academy",
+                        "icon": "graduation-cap",
+                        "href": "https://academy.specterops.io/"
                     }
                 ]
             },
